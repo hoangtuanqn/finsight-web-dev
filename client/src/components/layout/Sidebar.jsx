@@ -26,22 +26,25 @@ export default function Sidebar() {
       initial={{ x: -280 }}
       animate={{ x: 0 }}
       transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-      className="w-[260px] h-screen sticky top-0 bg-[#0d1321]/90 backdrop-blur-2xl border-r border-white/[0.06] flex flex-col shrink-0 overflow-hidden"
+      className="w-[260px] h-screen sticky top-0 flex flex-col shrink-0 overflow-hidden transition-colors duration-300 border-r"
+      style={{ 
+        background: 'var(--color-bg-secondary)',
+        borderColor: 'var(--color-border)' 
+      }}
     >
       {/* Logo */}
-      <div className="p-5 pb-4 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <span className="text-white text-sm font-bold">F</span>
+      <div className="p-6 pb-2">
+        <div className="flex items-center gap-3 mb-8">
+          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20">
+            F
           </div>
-          <div>
-            <h1 className="text-[15px] font-bold text-gradient">FinSight</h1>
-            <p className="text-[10px] text-slate-600 -mt-0.5">AI Financial Advisor</p>
-          </div>
+          <span className="text-xl font-bold text-[var(--color-text-primary)]">
+            FinSight
+          </span>
         </div>
       </div>
 
-      <div className="h-px bg-white/[0.06] mx-4 shrink-0" />
+      <div className="h-px bg-[var(--color-border)] mx-4 shrink-0" />
 
       {/* Nav - Scrollable if too many items */}
       <nav className="flex-1 py-3 px-3 space-y-0.5 overflow-y-auto custom-scrollbar">
@@ -53,8 +56,8 @@ export default function Sidebar() {
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 ${
                 isActive
-                  ? 'bg-blue-500/12 text-blue-400'
-                  : 'text-slate-500 hover:bg-white/[0.04] hover:text-slate-300'
+                  ? 'bg-blue-600/10 text-blue-500 shadow-sm shadow-blue-500/5'
+                  : 'text-[var(--color-text-secondary)] hover:bg-slate-500/5 hover:text-[var(--color-text-primary)]'
               }`
             }
           >
@@ -64,25 +67,6 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* User - Fixed at bottom */}
-      <div className="p-4 border-t border-white/[0.06] shrink-0 bg-[#0d1321]/40 backdrop-blur-md">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-sm font-semibold text-white shadow-lg shadow-blue-500/20">
-            {user?.fullName?.charAt(0) || 'U'}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate text-slate-200">{user?.fullName || 'User'}</p>
-            <p className="text-[11px] text-slate-600 truncate">{user?.email || ''}</p>
-          </div>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] text-slate-600 hover:text-red-400 hover:bg-red-500/5 transition-all"
-        >
-          <span>🚪</span>
-          <span>Đăng xuất</span>
-        </button>
-      </div>
     </motion.aside>
   );
 }

@@ -65,20 +65,20 @@ export default function Header({ sidebarWidth = 260 }) {
 
   return (
     <header
-      className="fixed top-0 right-0 z-30 flex items-center justify-between px-6 h-[60px] border-b"
+      className="fixed top-0 right-0 z-30 flex items-center justify-between px-6 h-[60px] border-b transition-colors duration-300"
       style={{
         left: sidebarWidth,
-        background: 'rgba(11, 17, 32, 0.85)',
+        background: 'var(--color-bg-secondary)',
         backdropFilter: 'blur(20px)',
-        borderColor: 'rgba(255,255,255,0.06)',
+        borderColor: 'var(--color-border)',
       }}
     >
       {/* ── Left: Page breadcrumb placeholder ── */}
       <div className="flex items-center gap-2">
-        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-        <span className="text-[12px] text-slate-600 font-medium">FinSight</span>
-        <span className="text-slate-700">/</span>
-        <span className="text-[12px] text-slate-400 font-medium">Tổng quan</span>
+        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+        <span className="text-[12px] text-[var(--color-text-secondary)] font-medium">FinSight</span>
+        <span className="text-slate-500">/</span>
+        <span className="text-[12px] text-[var(--color-text-primary)] font-medium uppercase tracking-wider">Tổng quan</span>
       </div>
 
       {/* ── Right: Actions cluster ── */}
@@ -87,8 +87,8 @@ export default function Header({ sidebarWidth = 260 }) {
         {/* Dark mode toggle */}
         <button
           onClick={() => setDark(d => !d)}
-          className="relative w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:bg-white/[0.06] text-slate-400 hover:text-slate-200"
-          title={dark ? 'Chuyển Light mode' : 'Chuyển Dark mode'}
+          className="relative w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:bg-slate-500/10 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+          title={dark ? 'Chuyển Sang Sáng' : 'Chuyển Sang Tối'}
         >
           <AnimatePresence mode="wait">
             <motion.span
@@ -108,7 +108,7 @@ export default function Header({ sidebarWidth = 260 }) {
         <div className="relative" ref={notifRef}>
           <button
             onClick={() => { setNotifOpen(v => !v); setAvatarOpen(false); }}
-            className="relative w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:bg-white/[0.06] text-slate-400 hover:text-slate-200"
+            className="relative w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:bg-slate-500/10 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
           >
             <span className="text-[16px] leading-none">🔔</span>
             {unreadCount > 0 && (
@@ -125,25 +125,24 @@ export default function Header({ sidebarWidth = 260 }) {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 6, scale: 0.96 }}
                 transition={{ duration: 0.15 }}
-                className="absolute right-0 top-[calc(100%+8px)] w-[340px] rounded-2xl border overflow-hidden shadow-2xl"
+                className="absolute right-0 top-[calc(100%+8px)] w-[340px] rounded-2xl border overflow-hidden shadow-2xl z-50"
                 style={{
-                  background: '#0d1526',
-                  borderColor: 'rgba(255,255,255,0.08)',
-                  boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+                  background: 'var(--color-bg-secondary)',
+                  borderColor: 'var(--color-border)',
                 }}
               >
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06]">
+                <div className="flex items-center justify-between px-4 py-3.5 border-b" style={{ borderColor: 'var(--color-border)' }}>
                   <div className="flex items-center gap-2">
-                    <span className="text-[13px] font-semibold text-white">Thông báo</span>
+                    <span className="text-[13px] font-bold text-[var(--color-text-primary)]">Thông báo</span>
                     {unreadCount > 0 && (
-                      <span className="px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 text-[10px] font-bold">
+                      <span className="px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-500 text-[10px] font-bold">
                         {unreadCount} mới
                       </span>
                     )}
                   </div>
                   {unreadCount > 0 && (
-                    <button onClick={markAllRead} className="text-[11px] text-slate-500 hover:text-blue-400 transition-colors">
+                    <button onClick={markAllRead} className="text-[11px] text-[var(--color-text-secondary)] hover:text-blue-500 transition-colors">
                       Đánh dấu tất cả đã đọc
                     </button>
                   )}
@@ -154,28 +153,29 @@ export default function Header({ sidebarWidth = 260 }) {
                   {notifs.map(n => (
                     <div
                       key={n.id}
-                      className="flex items-start gap-3 px-4 py-3.5 transition-colors cursor-pointer border-b border-white/[0.04] last:border-0"
-                      style={{ background: n.unread ? 'rgba(59,130,246,0.04)' : 'transparent' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = n.unread ? 'rgba(59,130,246,0.04)' : 'transparent')}
+                      className="flex items-start gap-4 px-4 py-4 transition-colors cursor-pointer border-b last:border-0"
+                      style={{
+                        background: n.unread ? 'var(--color-bg-primary)' : 'transparent',
+                        borderColor: 'var(--color-border)'
+                      }}
                     >
                       <span className="text-xl shrink-0 mt-0.5">{n.icon}</span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="text-[13px] font-semibold text-slate-200 truncate">{n.title}</p>
-                          {n.unread && <div className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />}
+                          <p className="text-[13px] font-bold text-[var(--color-text-primary)] truncate">{n.title}</p>
+                          {n.unread && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />}
                         </div>
-                        <p className="text-[11px] text-slate-500 mt-0.5 truncate">{n.desc}</p>
-                        <p className="text-[10px] text-slate-700 mt-1">{n.time}</p>
+                        <p className="text-[11px] text-[var(--color-text-secondary)] mt-0.5 line-clamp-2">{n.desc}</p>
+                        <p className="text-[10px] text-[var(--color-text-muted)] mt-1.5">{n.time}</p>
                       </div>
                     </div>
                   ))}
                 </div>
 
                 {/* Footer */}
-                <div className="px-4 py-3 border-t border-white/[0.06] text-center">
-                  <Link to="/debts" onClick={() => setNotifOpen(false)} className="text-[12px] text-blue-400 hover:text-blue-300 transition-colors font-medium">
-                    Xem tất cả thông báo →
+                <div className="px-4 py-3 border-t text-center" style={{ borderColor: 'var(--color-border)' }}>
+                  <Link to="/debts" onClick={() => setNotifOpen(false)} className="text-[12px] text-blue-500 hover:text-blue-600 transition-colors font-bold uppercase tracking-wide">
+                    Tất cả thông báo
                   </Link>
                 </div>
               </motion.div>
@@ -184,24 +184,24 @@ export default function Header({ sidebarWidth = 260 }) {
         </div>
 
         {/* Divider */}
-        <div className="w-px h-5 bg-white/[0.08] mx-1.5" />
+        <div className="w-px h-5 bg-[var(--color-border)] mx-1.5" />
 
         {/* Avatar / User dropdown */}
         <div className="relative" ref={avatarRef}>
           <button
             onClick={() => { setAvatarOpen(v => !v); setNotifOpen(false); }}
-            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl hover:bg-white/[0.06] transition-all"
+            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl hover:bg-slate-500/10 transition-all"
           >
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-[13px] font-bold text-white shadow-md shadow-blue-500/20">
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-[13px] font-bold text-white shadow-md shadow-blue-500/20">
               {user?.fullName?.charAt(0)?.toUpperCase() || 'U'}
             </div>
             <div className="hidden sm:block text-left">
-              <p className="text-[12px] font-semibold text-slate-300 leading-tight max-w-[100px] truncate">
+              <p className="text-[12px] font-bold text-[var(--color-text-primary)] leading-tight max-w-[100px] truncate">
                 {user?.fullName || 'User'}
               </p>
-              <p className="text-[10px] text-slate-600 truncate max-w-[100px]">{user?.email || ''}</p>
+              <p className="text-[10px] text-[var(--color-text-secondary)] truncate max-w-[100px]">{user?.email || ''}</p>
             </div>
-            <span className="text-slate-600 text-[10px] hidden sm:block">▼</span>
+            <span className="text-[var(--color-text-secondary)] text-[10px] hidden sm:block">▼</span>
           </button>
 
           <AnimatePresence>
@@ -211,22 +211,21 @@ export default function Header({ sidebarWidth = 260 }) {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 6, scale: 0.96 }}
                 transition={{ duration: 0.15 }}
-                className="absolute right-0 top-[calc(100%+8px)] w-52 rounded-2xl border overflow-hidden shadow-2xl"
+                className="absolute right-0 top-[calc(100%+8px)] w-56 rounded-2xl border overflow-hidden shadow-2xl z-50"
                 style={{
-                  background: '#0d1526',
-                  borderColor: 'rgba(255,255,255,0.08)',
-                  boxShadow: '0 24px 64px rgba(0,0,0,0.5)',
+                  background: 'var(--color-bg-secondary)',
+                  borderColor: 'var(--color-border)',
                 }}
               >
                 {/* User info */}
-                <div className="px-4 py-3.5 border-b border-white/[0.06]">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-sm font-bold text-white">
+                <div className="px-5 py-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-sm font-bold text-white">
                       {user?.fullName?.charAt(0)?.toUpperCase() || 'U'}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[13px] font-semibold text-white truncate">{user?.fullName}</p>
-                      <p className="text-[10px] text-slate-500 truncate">{user?.email}</p>
+                      <p className="text-[14px] font-bold text-[var(--color-text-primary)] truncate">{user?.fullName}</p>
+                      <p className="text-[10px] text-[var(--color-text-secondary)] truncate">{user?.email}</p>
                     </div>
                   </div>
                 </div>
@@ -242,7 +241,7 @@ export default function Header({ sidebarWidth = 260 }) {
                       key={item.to}
                       to={item.to}
                       onClick={() => setAvatarOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] text-slate-400 hover:text-slate-200 hover:bg-white/[0.05] transition-all"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-slate-500/5 transition-all"
                     >
                       <span className="text-base w-5 text-center">{item.icon}</span>
                       <span>{item.label}</span>
@@ -250,10 +249,10 @@ export default function Header({ sidebarWidth = 260 }) {
                   ))}
                 </div>
 
-                <div className="p-1.5 border-t border-white/[0.06]">
+                <div className="p-1.5 border-t" style={{ borderColor: 'var(--color-border)' }}>
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] text-slate-400 hover:text-red-400 hover:bg-red-500/[0.07] transition-all"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-[var(--color-text-secondary)] hover:text-red-500 hover:bg-red-500/5 transition-all"
                   >
                     <span className="text-base w-5 text-center">🚪</span>
                     <span>Đăng xuất</span>
