@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String
+  fullName      String
+  monthlyIncome Float    @default(0)
+  extraBudget   Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  debts           Debt[]
+  investorProfile InvestorProfile?
+  notifications   Notification[]
+  debtSnapshots   DebtSnapshot[]
+
+  @@map("users")
+}
+
+model Debt {
+  id               String   @id @default(cuid())
+  userId           String
+  name             String
+  platform         String
+  originalAmount   Float
+  balance          Float
+  apr              Float
+  rateType         String   @default("FLAT")
+  feeProcessing    Float    @default(0)
+  feeInsurance     Float    @default(0)
+  feeManagement    Float    @default(0)
+  feePenaltyPerDay Float    @default(0)
+  minPayment       Float
+  dueDay           Int
+  termMonths       Int
+  remainingTerms   Int
+  status           String   @default("ACTIVE")
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments Payment[]
+
+  @@map("debts")
+}
+
+model Payment {
+  id     String   @id @default(cuid())
+  debtId String
+  amount Float
+  paidAt DateTime @default(now())
+  notes  String?
+
+  debt Debt @relation(fields: [debtId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+model InvestorProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  capital     Float    @default(0)
+  monthlyAdd  Float    @default(0)
+  goal        String   @default("GROWTH")
+  horizon     String   @default("MEDIUM")
+  riskLevel   String   @default("MEDIUM")
+  riskScore   Int      @default(0)
+  lastUpdated DateTime @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  allocations Allocation[]
+
+  @@map("investor_profiles")
+}
+
+model Allocation {
+  id             String   @id @default(cuid())
+  profileId      String
+  sentimentValue Int
+  sentimentLabel String
+  savings        Float
+  gold           Float
+  stocks         Float
+  bonds          Float
+  crypto         Float
+  recommendation String
+  createdAt      DateTime @default(now())
+
+  profile InvestorProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("allocations")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  severity  String   @default("INFO")
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model DebtSnapshot {
+  id           String   @id @default(cuid())
+  userId       String
+  totalDebt    Float
+  totalEAR     Float
+  debtToIncome Float
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("debt_snapshots")
+}
