@@ -33,7 +33,8 @@ const MOCK_NOTIFS = [
   { id: 3, icon: '📈', title: 'Tham lam cực độ', desc: 'Fear & Greed Index: 82/100', time: '2 giờ trước', unread: false },
 ];
 
-export default function Header({ sidebarWidth = 260 }) {
+export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed }) {
+  console.log('Header isCollapsed:', isCollapsed);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [dark, setDark] = useDarkMode();
@@ -65,7 +66,7 @@ export default function Header({ sidebarWidth = 260 }) {
 
   return (
     <header
-      className="fixed top-0 right-0 z-30 flex items-center justify-between px-6 h-[89px] border-b transition-colors duration-300"
+      className="fixed top-0 right-0 z-30 flex items-center justify-between px-6 h-[89px] border-b transition-all duration-300"
       style={{
         left: sidebarWidth,
         background: 'var(--color-bg-secondary)',
@@ -73,12 +74,28 @@ export default function Header({ sidebarWidth = 260 }) {
         borderColor: 'var(--color-border)',
       }}
     >
-      {/* ── Left: Page breadcrumb placeholder ── */}
-      <div className="flex items-center gap-2">
-        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-        <span className="text-[12px] text-[var(--color-text-secondary)] font-medium">FinSight</span>
-        <span className="text-slate-500">/</span>
-        <span className="text-[12px] text-[var(--color-text-primary)] font-medium uppercase tracking-wider">Tổng quan</span>
+      {/* ── Left: Toggle + Page breadcrumb ── */}
+      <div className="flex items-center gap-4">
+        {/* Toggle Button */}
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:bg-slate-500/10 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+          title={isCollapsed ? 'Mở rộng menu' : 'Thu gọn menu'}
+        >
+          <motion.span
+            animate={{ rotate: isCollapsed ? 180 : 0 }}
+            className="text-[18px] leading-none"
+          >
+            {isCollapsed ? '▶️' : '◀️'}
+          </motion.span>
+        </button>
+
+        <div className="flex items-center gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-[12px] text-[var(--color-text-secondary)] font-medium">FinSight</span>
+          <span className="text-slate-500">/</span>
+          <span className="text-[12px] text-[var(--color-text-primary)] font-medium uppercase tracking-wider">Tổng quan</span>
+        </div>
       </div>
 
       {/* ── Right: Actions cluster ── */}
