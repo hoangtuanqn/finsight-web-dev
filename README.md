@@ -1,138 +1,142 @@
-# FinSight - AI Financial Advisor
+<div align="center">
+  <img src="https://img.shields.io/badge/WDA-2026-CA4245?style=for-the-badge" alt="WDA 2026" />
+  <h1>FINSIGHT — AI FINANCIAL ADVISOR</h1>
+  <p><b>Giải pháp Quản lý Tài chính Chủ động & Cố vấn Đầu tư Thông minh</b></p>
+</div>
 
-> **Dự án tham gia cuộc thi WebDev Adventure 2026 (WDA2026)**
-> 
-> **Chủ đề:** Quản lý tài chính cá nhân.
+> **Đề tài dự thi WebDev Adventure 2026 (WDA2026) — Chủ đề: Tài chính**
 
-## 1. Tổng quan dự án (Project Overview)
-**FinSight** là một nền tảng Web Application thông minh hỗ trợ quản lý tài chính cá nhân. Ứng dụng được thiết kế nhằm giúp người dùng theo dõi tài sản, tối ưu hóa các khoản nợ, hiểu rõ các chi phí ẩn (hidden costs) qua việc phân tích **EAR (Effective Annual Rate)** so với **APR (Annual Percentage Rate)**, và tự động vạch ra chiến lược trả nợ (Repayment Strategy) hiệu quả (như phương pháp Snowball hoặc Avalanche). Bên cạnh đó, hệ thống cung cấp các công cụ **Risk Assessment** (đánh giá rủi ro) và theo dõi **Investment Portfolio** (danh mục đầu tư).
+---
 
-Dự án này được xây dựng bám sát yêu cầu vòng 2 của cuộc thi WDA2026, cung cấp đầy đủ Source Code, UI/UX được thiết kế riêng (không dùng template có sẵn hay tool no-code), và đáp ứng hoàn thiện các luồng nghiệp vụ (business flows) để đem đi trình bày (pitching) tại vòng Chung kết.
+## 1. Tổng quan Dự án (Executive Summary)
+**FinSight** là một nền tảng Web Application được thiết kế như một **"Cố vấn Tài chính Ảo"**. Ứng dụng tập trung xử lý hai nỗi đau lớn nhất (pain-points) của giới trẻ hiện nay: **Bẫy tín dụng tiêu dùng (Debt Trap)** và **Hội chứng Tê liệt Phân tích trong Đầu tư (Analysis Paralysis)**. 
 
-## 2. Kiến thức tài chính (Financial Concepts) áp dụng
-Để xây dựng logic cốt lõi cho ứng dụng, các kiến thức chuyên ngành Tài chính (Finance) sau đã được sử dụng:
-- **APR (Annual Percentage Rate)**: Lãi suất danh nghĩa hàng năm (thường được quảng cáo bởi các tổ chức tín dụng).
-- **EAR (Effective Annual Rate)**: Lãi suất thực tế sau khi tính toán tác động của lãi kép (compounding). Việc hiển thị EAR giúp người dùng nhận ra chi phí vay vốn thực sự so với APR bề mặt.
-- **Debt Repayment Strategies (Chiến lược trả nợ)**:
-  - **Snowball Strategy**: Trả nợ từ khoản có dư nợ nhỏ nhất để tạo động lực tâm lý (quick wins).
-  - **Avalanche Strategy**: Xếp ưu tiên thanh toán các khoản có mức lãi suất (Interest Rate) cao nhất để tối ưu chi phí lãi vay (Interest Expense) trong dài hạn.
-- **Risk Assessment**: Khảo sát và đánh giá khẩu vị rủi ro (Risk Tolerance) của người dùng để đề xuất chiến lược đầu tư phù hợp.
-- **Asset Allocation**: Phân bổ tài sản vào các loại hình khác nhau (Ví dụ: Cash, Equities, Bonds) để đa dạng hóa rủi ro.
+Bằng cách áp dụng các mô hình tài chính thực tế và Dữ liệu Cảm xúc Thị trường (Market Sentiment), FinSight vạch trần các "chi phí ẩn" của nợ xấu, đồng thời tự động hóa lộ trình gỡ nợ và phân bổ tài sản an toàn chống tình trạng lạm phát. Dự án được lập trình 100% bằng code từ đầu (zero no-code tools), sở hữu UI/UX đậm chất SaaS chuyên nghiệp, đảm bảo sự mượt mà cho trải nghiệm Pitching/Demo.
 
-## 3. Danh sách Chức năng (Features List)
+---
 
-| STT | Tên chức năng | Mô tả ngắn | Tình trạng |
-|---|---|---|---|
-| 1 | **Authentication** | Đăng ký, Đăng nhập, Quản lý phiên làm việc của người dùng (Session). | Đã hoàn thành |
-| 2 | **Dashboard Overview** | Dashboard hiển thị tổng quan tài chính (Net Worth, Total Debt), biểu đồ phân bổ tài sản và các Insights được AI tạo. | Đã hoàn thành |
-| 3 | **Debt Management** | Quản lý chuyên sâu các khoản nợ (Debts): thêm, sửa, xóa thông tin chi tiết các khoản vay tín dụng. Cảnh báo nợ đáo hạn. | Đã hoàn thành |
-| 4 | **EAR Analysis** | Công cụ so sánh trực quan APR vs EAR, phân tích sự thay đổi trong kỳ ghép lãi (Compounding frequency) ảnh hưởng đến số tiền thực trả. | Đã hoàn thành |
-| 5 | **Repayment Planner** | Đưa ra Kế hoạch trả nợ tự động (Roadmap) dựa trên tình hình tài chính hiện tại bằng thuật toán Snowball/Avalanche. | Đã hoàn thành |
-| 6 | **Investment & Risk** | Công cụ đánh giá điểm rủi ro (*Risk Score*) và theo dõi lợi nhuận danh mục (*Investment Portfolio*). | Đã hoàn thành |
-| 7 | **Dark/Light Mode** | UI/UX chuyên nghiệp mang âm hưởng các ứng dụng SaaS và VSCode, hỗ trợ Theme chuyển đổi linh hoạt bằng *CSS Variables*. | Đã hoàn thành |
+## 2. Các Nền tảng Lý thuyết Tài chính (Financial Concepts)
+Dự án không chỉ là một ứng dụng CRUD đơn thuần. Chúng tôi áp dụng trực tiếp các kiến thức Tài chính chuyên sâu làm Hệ tư tưởng (Core Engine) cho hệ thống:
+
+- **EAR (Effective Annual Rate):** Khác với APR (danh nghĩa), EAR bóc trần sự thật về tác động của **Lãi kép (Compounding)** cùng các loại *Phí ẩn (Phí bảo hiểm, Phí làm hồ sơ)*. 
+- **DTI Ratio (Tỷ lệ Dư nợ trên Thu nhập):** Công cụ đo lường sức khỏe dòng tiền. Đóng vai trò như "chỉ báo màu vàng/đỏ" cho khả năng thanh khoản của cá nhân.
+- **Rủi ro Domino (Domino Effect):** Dạng khủng hoảng nợ dây chuyền (vay mới trả cũ) khi nhiều khoản tín dụng đáo hạn dồn dập.
+- **Snowball & Avalanche Strategy:** Hai chiến lược tất toán nợ khoa học. *Snowball (Quả cầu tuyết)* đánh vào động lực tâm lý, *Avalanche (Tuyết lở)* chặn đứng sự bào mòn của lãi suất cao.
+- **Market Sentiment (Fear & Greed Index):** Định hướng dòng tiền dựa trên tâm lý đám đông, phân bổ tài sản nghịch vòng chu kỳ để phòng vệ rủi ro.
+
+---
+
+## 3. Phân tích Module Nghiệp vụ (Core Modules)
+
+### 📊 3.1. Module Quản Lý Nợ (Debt Management) - *Xóa bỏ "Bẫy Tín Dụng"*
+Đây là module cốt lõi phân tích sức khỏe khoản vay của người dùng, mang lại cái nhìn minh bạch tuyệt đối về nợ gốc và lãi.
+- **Tổng kết & Thống kê Dư nợ (Debt Dashboard):** Quản lý và trực quan hóa toàn bộ số dư nợ từ nhiều nguồn (Thẻ tín dụng, SPayLater, MoMo...). Đo lường sức túng quẫn qua **Chỉ số DTI**.
+- **Phân tích Lãi suất thực tế (EAR X-Ray):** So sánh bằng đồ thị diện tích giữa APR và EAR, bóc tách toàn bộ **Chi phí ẩn** tạo ra vòng lặp nợ nần.
+- **Chiến lược Trả nợ Tự động (Repayment Simulator):** Thuật toán mô phỏng chặng đường tất toán trong 3 năm tới bằng phương pháp **Avalanche** hoặc **Snowball** phụ thuộc vào "Extra Budget" cố định hàng tháng.
+- **Hệ thống Cảnh báo Thông minh (Smart Alerts & Cron Jobs):** Gửi thông báo tự động khi nợ sắp đáo hạn. Mạng lưới phát hiện sớm trạng thái **Hiệu ứng Domino** (Nguy cơ vỡ nợ nếu có >= 2 khoản đáo hạn cùng tuần hoặc DTI > 50%).
+- **Thêm khoản nợ qua AI (Advanced):** Tích hợp Chatbot AI và định dạng OCR hỗ trợ trích xuất ngay lập tức số liệu từ hóa đơn/hợp đồng vay mà không cần gõ phím.
+
+### 📈 3.2. Module Cố vấn Đầu tư (Investment Advisor) - *Kiến tạo Dòng tiền*
+Module đóng vai trò phân tích Vĩ mô và hướng dẫn người dùng "bỏ tiền vào quỹ nào".
+- **Hồ sơ Rủi ro (Risk Assessment):** Hệ thống đánh giá khẩu vị rủi ro qua thu nhập, mục tiêu tài chính và điểm số bài Test, phân cấp người dùng (Hệ An toàn / Cân bằng / Mạo hiểm).
+- **Trích xuất Cảm xúc Thị trường (Market Sentiment Tracker):** Lấy dữ liệu API thời gian thực để đo độ "Tham lam" hay "Sợ hãi" của thị trường.
+- **Phân bổ Danh mục (Asset Allocation):** AI Rules Engine tự động gợi ý chia vốn % vào *Tiết kiệm, Vàng, Chứng khoán, Trái phiếu, Crypto*. (VD: Khi thị trường "Tham Lam Tột Độ" => Cảnh báo dịch chuyển % Crypto về Tiết kiệm - chốt lời an toàn).
+
+### 🛠 3.3. Các Tính năng Toàn hệ thống
+| Chức năng | Phân hệ | Tình trạng |
+| :--- | :--- | :---: |
+| **Authentication System** | Xác thực JWT bảo mật cường độ cao | `Hoàn tất` |
+| **Unified Dashboard** | Tóm lược Net Worth và Báo cáo Tổng | `Hoàn tất` |
+| **Theming (Dark/Light)** | CSS Variables linh hoạt chuẩn SaaS | `Hoàn tất` |
+| **Responsive UI/UX** | Framer Motion cho trải nghiệm Flow mượt mà | `Hoàn tất` |
+
+---
 
 ## 4. Công nghệ sử dụng (Tech Stack)
-Tuân thủ quy định của đề thi (Không sử dụng WordPress, Wix, Webflow, Streamlit, v.v.), hệ thống được xây dựng từ đầu 100% bằng code:
+Dự án được triển khai bằng các giải pháp hiệu suất cao và chuẩn Công nghiệp:
 
-### Frontend
+❖ **Frontend:**
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
 ![Vite](https://img.shields.io/badge/vite-%23646CFF.svg?style=for-the-badge&logo=vite&logoColor=white)
 ![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)
 ![Framer](https://img.shields.io/badge/Framer_Motion-white?style=for-the-badge&logo=framer&logoColor=black)
-![React Router](https://img.shields.io/badge/React_Router-CA4245?style=for-the-badge&logo=react-router&logoColor=white)
-![Recharts](https://img.shields.io/badge/recharts-%2322B5BF.svg?style=for-the-badge&logo=react&logoColor=white)
 
-### Backend
+❖ **Backend:**
 ![NodeJS](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)
 ![Express.js](https://img.shields.io/badge/express.js-%23404d59.svg?style=for-the-badge&logo=express&logoColor=%2361DAFB)
 
-### Database & ORM
+❖ **Database & DevOps:**
 ![PostgreSQL](https://img.shields.io/badge/postgresql-4169e1?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?style=for-the-badge&logo=redis&logoColor=white)
 ![Prisma](https://img.shields.io/badge/Prisma-3982CE?style=for-the-badge&logo=Prisma&logoColor=white)
-
-### Khác
-![JavaScript](https://img.shields.io/badge/javascript-%23323330.svg?style=for-the-badge&logo=javascript&logoColor=%23F7DF1E)
-![Git](https://img.shields.io/badge/git-%23F05033.svg?style=for-the-badge&logo=git&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
-![JWT](https://img.shields.io/badge/JWT-black?style=for-the-badge&logo=JSON%20web%20tokens)
-![Antigravity](https://img.shields.io/badge/Antigravity-4B0082?style=for-the-badge)
-![Claude AI](https://img.shields.io/badge/Claude_AI-D97757?style=for-the-badge&logo=anthropic&logoColor=white)
 
-## 5. Sơ đồ hệ thống & Luồng hoạt động (System Diagrams)
+---
 
-### 5.1. Sơ đồ Kiến trúc Tổng quan (Architecture Diagram)
+## 5. Sơ đồ Hệ thống (Architecture Diagrams)
+
+### 5.1 Kiến trúc Client - Server
 ```mermaid
 graph TD
-    Client[Client Browser] <-->|HTTP/REST APIs| Server[API Server]
-    Server <--> Database[(PostgreSQL)]
-    Server <--> Cache[(Redis)]
+    Client[Client Browser - React] <-->|HTTP/REST| Server[API Express Server]
+    Server <--> Database[(PostgreSQL - Prisma)]
+    Server <--> Cache[(Redis Server)]
     
-    subgraph Frontend [Frontend Architecture - React]
-        UI[UI Components & Layout]
-        Router[React Router]
-        State[State Management]
+    subgraph Architecture
+        UI[Tailwind & UI Components]
+        Logic[Controllers & Services Logic]
     end
-    
-    subgraph Backend [Backend Architecture - Node.js]
-        Controllers[API Controllers]
-        Services[Business Logic]
-        Models[Database Models]
-    end
-
-    Client -.-> Frontend
-    Server -.-> Backend
 ```
 
-### 5.2. Luồng Giải quyết nợ (Debt Resolution Flow) 
-Đây là Core Feature giúp giải quyết vấn đề "Bẫy tín dụng" ở người dùng.
+### 5.2 Luồng Logic Phân tích Nợ (Avalanche / EAR)
 ```mermaid
 sequenceDiagram
     participant U as User
     participant F as Frontend App
     participant B as Backend API
-    participant DB as Database
+    participant DB as System DB
 
-    U->>F: Nhập khoản vay (Số tiền, APR, Kỳ ghép lãi)
-    F->>B: Gửi dữ liệu khoản nợ (POST /api/debts)
-    Note over B: Xử lý Business Logic:<br/>EAR = (1 + APR/n)^n - 1
-    B->>B: Phân tích EAR & Chi phí ẩn
-    B->>DB: Lưu bản ghi khoản nợ
-    DB-->>B: Trả kết quả thành công
-    B-->>F: Cập nhật danh sách nợ & Data EAR
-    F-->>U: Trực quan hóa Biểu đồ (So sánh APR và EAR)
-    Note over U,F: Đề xuất phương pháp thanh toán<br/>(Snowball vs Avalanche)
+    U->>F: Khai báo Hợp đồng Tín dụng
+    F->>B: Gửi data (APR, Kỳ hạn, Số tiền, Phí ẩn)
+    Note over B: Engine Tính toán: <br/> Phân tích DTI & Tính giá trị EAR
+    B->>DB: Trích xuất lịch sử nợ
+    B-->>F: Gửi về Bảng so sánh EAR vs APR
+    F-->>U: Hiển thị Biểu đồ Area Chart
+    Note over U,F: Đề xuất Chạy Mô phỏng (Simulator) <br/>Phương án Avalanche vs Snowball
 ```
 
-## 6. Hướng dẫn cài đặt và chạy (Installation & Setup)
+---
 
-*Yêu cầu:* Máy tính đã cài đặt [Node.js](https://nodejs.org/) (khuyến nghị phiên bản 18 trở lên).
+## 6. Khởi chạy & Triển khai Local (Setup Guide)
 
-**Bước 1: Clone dự án tải về máy**
+Yêu cầu máy tính cài sẵn Node.js (Phiên bản v18+) và PostgreSQL/Redis.
+
+**Bước 1: Clone dự án**
 ```bash
 git clone https://github.com/maaitlunghau/finance-webdev-adventure.git
 cd finance-webdev-adventure
 ```
 
-**Bước 2: Khởi động Backend (Server)**
+**Bước 2: Chạy API Server (Backend)**
 ```bash
 cd server
 npm install
-# Khởi chạy server API (cổng mặc định 5001)
 npm run dev
+# Server lắng nghe tại cổng http://localhost:5001
 ```
 
-**Bước 3: Khởi động Frontend (Client)**
-*Lưu ý: Bạn cần mở song song một cửa sổ Terminal mới để chạy Client.*
+**Bước 3: Chạy Client (Frontend)**
+*(Mở tab Terminal mới)*
 ```bash
 cd client
 npm install
-# Khởi chạy giao diện UI (cổng mặc định 5173)
 npm run dev
+# Dashboard mở tại http://localhost:5173
 ```
-Truy cập trình duyệt theo địa chỉ: `http://localhost:5173` để trải nghiệm ứng dụng.
 
-## 7. Tiêu chí Đánh giá / Tính đổi mới theo Đề thi
-1. **Hoàn thiện UI/UX**: Đáp ứng yêu cầu không dùng tool No-code hay Template chỉnh sẵn. Hệ thống CSS Design Tokens được thiết kế tốt kết hợp với logic Component của React.
-2. **Khả năng giải quyết vấn đề**: Project này trực tiếp giải quyết sự mơ hồ của người trẻ đối với các số liệu vay tài chính tiêu dùng (như các loại thẻ tín dụng, ví trả sau) thông qua việc phân tích **EAR** chống lại các chi phí ẩn.
-3. **Sẵn sàng cho Vòng thi Triển lãm (Demo & Pitching)**: Dự án đã được đóng gói code trơn tru, sẵn flow thao tác thực tế, hỗ trợ dễ dàng demo từng tính năng trước Ban Giám Khảo vào vòng Chung kết.
+---
+
+## 7. Tính Đổi mới & Định vị Sản phẩm
+- **UX phi tập trung:** Không sử dụng các Template Bootstrap lỗi thời, FinSight đầu tư vào trải nghiệm tinh tế nhờ Design Tokens và Component Re-usability của hệ sinh thái React.
+- **Chuyên môn Sâu sắc:** 100% logic thuật toán tài chính (EAR, DTI, Cảm xúc thị trường) được code thủ công, tạo ra "giá trị khai sáng" cho người dùng khi đối diện với các báo cáo số liệu khô khan truyền thống.
+- **Sẵn sàng chinh chiến:** Luồng Flow UX đã khóa và tối ưu hoàn thành; tích hợp các chế độ *Demo* để trực quan hóa trong ngày Demo Day của cuộc thi. 
