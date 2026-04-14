@@ -33,33 +33,55 @@ Dự án này được xây dựng bám sát yêu cầu vòng 2 của cuộc thi
 
 ## 4. Công nghệ sử dụng (Tech Stack)
 Tuân thủ quy định của đề thi (Không sử dụng WordPress, Wix, Webflow, Streamlit, v.v.), hệ thống được xây dựng từ đầu 100% bằng code:
-- **Frontend**: React.js (khởi tạo qua Vite), Tailwind CSS để styling, Framer Motion (cho UI Animations mượt mà), React Router DOM, Vite hmr.
-- **Backend**: Node.js, Express.js (RESTful APIs).
-- **Database**: MongoDB và Mongoose ORM.
-- **Biểu đồ (Charts)**: Recharts (Hiển thị dữ liệu tương tác).
+
+### Frontend
+![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
+![Vite](https://img.shields.io/badge/vite-%23646CFF.svg?style=for-the-badge&logo=vite&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Framer](https://img.shields.io/badge/Framer_Motion-white?style=for-the-badge&logo=framer&logoColor=black)
+![React Router](https://img.shields.io/badge/React_Router-CA4245?style=for-the-badge&logo=react-router&logoColor=white)
+![Recharts](https://img.shields.io/badge/recharts-%2322B5BF.svg?style=for-the-badge&logo=react&logoColor=white)
+
+### Backend
+![NodeJS](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)
+![Express.js](https://img.shields.io/badge/express.js-%23404d59.svg?style=for-the-badge&logo=express&logoColor=%2361DAFB)
+
+### Database & ORM
+![PostgreSQL](https://img.shields.io/badge/postgresql-4169e1?style=for-the-badge&logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?style=for-the-badge&logo=redis&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-3982CE?style=for-the-badge&logo=Prisma&logoColor=white)
+
+### Khác
+![JavaScript](https://img.shields.io/badge/javascript-%23323330.svg?style=for-the-badge&logo=javascript&logoColor=%23F7DF1E)
+![Git](https://img.shields.io/badge/git-%23F05033.svg?style=for-the-badge&logo=git&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
+![JWT](https://img.shields.io/badge/JWT-black?style=for-the-badge&logo=JSON%20web%20tokens)
+![Antigravity](https://img.shields.io/badge/Antigravity-4B0082?style=for-the-badge)
+![Claude AI](https://img.shields.io/badge/Claude_AI-D97757?style=for-the-badge&logo=anthropic&logoColor=white)
 
 ## 5. Sơ đồ hệ thống & Luồng hoạt động (System Diagrams)
 
 ### 5.1. Sơ đồ Kiến trúc Tổng quan (Architecture Diagram)
 ```mermaid
 graph TD
-    Client[Client Browser (React/Vite)] <-->|HTTP/REST APIs| Server[Node.js Express Server]
-    Server <--> Database[(MongoDB)]
+    Client[Client Browser] <-->|HTTP/REST APIs| Server[API Server]
+    Server <--> Database[(PostgreSQL)]
+    Server <--> Cache[(Redis)]
     
-    subgraph "Frontend Architecture"
+    subgraph Frontend [Frontend Architecture - React]
         UI[UI Components & Layout]
         Router[React Router]
-        State[State (Auth Hook / Theme Context)]
+        State[State Management]
     end
     
-    subgraph "Backend Architecture"
+    subgraph Backend [Backend Architecture - Node.js]
         Controllers[API Controllers]
-        Services[Business Logic & Finance Math]
-        Models[Database Models / Schemas]
+        Services[Business Logic]
+        Models[Database Models]
     end
 
-    Client -.-> Frontend Architecture
-    Server -.-> Backend Architecture
+    Client -.-> Frontend
+    Server -.-> Backend
 ```
 
 ### 5.2. Luồng Giải quyết nợ (Debt Resolution Flow) 
