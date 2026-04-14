@@ -63,11 +63,20 @@ export default function DebtDetailPage() {
       </div>
 
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-[22px] font-bold text-white">{debt.name}</h1>
-        <p className="text-sm text-slate-500 mt-0.5">
-          {debt.platform} • {debt.rateType === 'FLAT' ? 'Lãi phẳng' : 'Dư nợ giảm dần'}
-        </p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-[22px] font-bold text-white">{debt.name}</h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            {debt.platform} • {debt.rateType === 'FLAT' ? 'Lãi phẳng' : 'Dư nợ giảm dần'}
+          </p>
+        </div>
+        
+        <Link 
+          to={`/debts/${id}/edit`} 
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.05] border border-white/[0.1] text-[13px] font-medium text-slate-300 hover:bg-white/[0.1] hover:text-white transition-all shadow-sm"
+        >
+          <span>✏️</span> Chỉnh sửa
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
