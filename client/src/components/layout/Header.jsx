@@ -95,9 +95,9 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
 
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[12px] text-[var(--color-text-secondary)] font-medium">FinSight</span>
+          <span className="text-[14px] text-[var(--color-text-secondary)] font-medium">FinSight</span>
           <span className="text-slate-500">/</span>
-          <span className="text-[12px] text-[var(--color-text-primary)] font-medium uppercase tracking-wider">Tổng quan</span>
+          <span className="text-[16px] text-[var(--color-text-primary)] font-medium uppercase tracking-wider">Tổng quan</span>
         </div>
       </div>
 
@@ -234,10 +234,9 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
               {user?.fullName?.charAt(0)?.toUpperCase() || 'U'}
             </div>
             <div className="hidden sm:block text-left">
-              <p className="text-[12px] font-bold text-[var(--color-text-primary)] leading-tight max-w-[100px] truncate">
+              <p className="text-[14px] font-bold text-[var(--color-text-primary)] leading-tight max-w-[100px] truncate">
                 {user?.fullName || 'User'}
               </p>
-              <p className="text-[10px] text-[var(--color-text-secondary)] truncate max-w-[100px]">{user?.email || ''}</p>
             </div>
             <span className="text-[var(--color-text-secondary)] text-[10px] hidden sm:block">▼</span>
           </button>
@@ -263,7 +262,7 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
                     </div>
                     <div className="min-w-0">
                       <p className="text-[14px] font-bold text-[var(--color-text-primary)] truncate">{user?.fullName}</p>
-                      <p className="text-[10px] text-[var(--color-text-secondary)] truncate">{user?.email}</p>
+                      <p className="text-[12px] text-[var(--color-text-secondary)] truncate">{user?.email}</p>
                     </div>
                   </div>
                 </div>
@@ -271,20 +270,20 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
                 {/* Menu items */}
                 <div className="p-1.5">
                   {[
-                    { 
-                      to: '/profile', 
-                      icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, 
-                      label: 'Hồ sơ cá nhân' 
+                    {
+                      to: '/profile',
+                      icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>,
+                      label: 'Hồ sơ cá nhân'
                     },
-                    { 
-                      to: '/', 
-                      icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>, 
-                      label: 'Dashboard' 
+                    {
+                      to: '/',
+                      icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1" /><rect width="7" height="5" x="14" y="3" rx="1" /><rect width="7" height="9" x="14" y="12" rx="1" /><rect width="7" height="5" x="3" y="16" rx="1" /></svg>,
+                      label: 'Dashboard'
                     },
-                    { 
-                      to: '/investment', 
-                      icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>, 
-                      label: 'Đầu tư' 
+                    {
+                      to: '/investment',
+                      icon: <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18" /><path d="m19 9-5 5-4-4-3 3" /></svg>,
+                      label: 'Đầu tư'
                     },
                   ].map(item => (
                     <Link
@@ -305,7 +304,7 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-[var(--color-text-secondary)] hover:text-red-500 hover:bg-red-500/5 transition-all"
                   >
                     <span className="w-5 flex justify-center shrink-0">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" x2="9" y1="12" y2="12" /></svg>
                     </span>
                     <span>Đăng xuất</span>
                   </button>
