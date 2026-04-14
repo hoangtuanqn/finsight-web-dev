@@ -33,8 +33,11 @@ Dự án không chỉ là một ứng dụng CRUD đơn thuần. Chúng tôi áp
 - **Tổng kết & Thống kê Dư nợ (Debt Dashboard):** Quản lý và trực quan hóa toàn bộ số dư nợ từ nhiều nguồn (Thẻ tín dụng, SPayLater, MoMo...). Đo lường sức túng quẫn qua **Chỉ số DTI**.
 - **Phân tích Lãi suất thực tế (EAR X-Ray):** So sánh bằng đồ thị diện tích giữa APR và EAR, bóc tách toàn bộ **Chi phí ẩn** tạo ra vòng lặp nợ nần.
 - **Chiến lược Trả nợ Tự động (Repayment Simulator):** Thuật toán mô phỏng chặng đường tất toán trong 3 năm tới bằng phương pháp **Avalanche** hoặc **Snowball** phụ thuộc vào "Extra Budget" cố định hàng tháng.
-- **Hệ thống Cảnh báo Thông minh (Smart Alerts & Cron Jobs):** Gửi thông báo tự động khi nợ sắp đáo hạn. Mạng lưới phát hiện sớm trạng thái **Hiệu ứng Domino** (Nguy cơ vỡ nợ nếu có >= 2 khoản đáo hạn cùng tuần hoặc DTI > 50%).
-- **Thêm khoản nợ qua AI (Advanced):** Tích hợp Chatbot AI và định dạng OCR hỗ trợ trích xuất ngay lập tức số liệu từ hóa đơn/hợp đồng vay mà không cần gõ phím.
+- **Hệ thống Cảnh báo Thông minh (Smart Alerts & Cron Jobs):** Tự động quét dữ liệu định kỳ để bảo vệ người dùng:
+  - **Sắp đáo hạn (DUE_DATE):** Cảnh báo khi khoản nợ cách ngày thanh toán <= 3 ngày. Tự động chuyển cấp độ **KHẨN CẤP** khi chỉ còn 1 ngày để hối thúc hành động.
+  - **Rủi ro Domino (DOMINO_RISK):** Thuật toán phát hiện sớm nguy cơ vỡ nợ chuỗi khi có >= 2 nợ đáo hạn cùng tuần hoặc chỉ số DTI vượt ngưỡng an toàn (50%).
+  - **Đa kênh:** Tích hợp thông báo In-app và hệ thống **Email Service (Mailtrap/SMTP)** chuyên nghiệp với template hiện đại.
+- **Thêm & Sửa nợ linh hoạt:** Tích hợp Chatbot AI/OCR để trích xuất hóa đơn và giao diện chỉnh sửa thông số nợ/phí ẩn chuyên sâu.
 
 ### 📈 3.2. Module Cố vấn Đầu tư (Investment Advisor) - *Kiến tạo Dòng tiền*
 Module đóng vai trò "kiến trúc sư trưởng" phân bổ tài sản thông minh dựa trên định lượng dữ liệu thay vì cảm tính:

@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 
+import { userAPI } from '../../api/index.js';
+
 /* ─── Dark mode hook (persisted to localStorage) ─── */
 function useDarkMode() {
   const [dark, setDark] = useState(() => {
@@ -26,25 +28,33 @@ function useDarkMode() {
   return [dark, setDark];
 }
 
-/* ─── Mock notifications ─── */
-const MOCK_NOTIFS = [
-  { id: 1, icon: '🚨', title: 'Khoản nợ sắp đáo hạn', desc: 'Vay xe máy — đáo hạn ngày 25', time: '5 phút trước', unread: true },
-  { id: 2, icon: '⚠️', title: 'EAR cao bất thường', desc: 'Thẻ tín dụng VCB — EAR 32.1%', time: '1 giờ trước', unread: true },
-  { id: 3, icon: '📈', title: 'Tham lam cực độ', desc: 'Fear & Greed Index: 82/100', time: '2 giờ trước', unread: false },
-];
-
 export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [dark, setDark] = useDarkMode();
   const [notifOpen, setNotifOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
-  const [notifs, setNotifs] = useState(MOCK_NOTIFS);
+  const [notifs, setNotifs] = useState([]);
 
   const notifRef = useRef(null);
   const avatarRef = useRef(null);
 
-  const unreadCount = notifs.filter(n => n.unread).length;
+  const unreadCount = notifs.filter(n => !n.isRead).length;
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await userAPI.getNotifications();
+      setNotifs(res.data.data.notifications || []);
+    } catch (err) {
+      console.error('Fetch notifications error:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const timer = setInterval(fetchNotifications, 30000); // Polling every 30s
+    return () => clearInterval(timer);
+  }, []);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -56,11 +66,44 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
     return () => document.removeEventListener('mousedown', handle);
   }, []);
 
-  const markAllRead = () => setNotifs(n => n.map(x => ({ ...x, unread: false })));
+  const markAllAsRead = async () => {
+    try {
+      await userAPI.markAllRead();
+      setNotifs(prev => prev.map(n => ({ ...n, isRead: true })));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const markOneAsRead = async (id) => {
+    try {
+      await userAPI.markRead(id);
+      setNotifs(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const getNotifIcon = (type, severity) => {
+    if (type === 'DOMINO_RISK') return '🚨';
+    if (severity === 'DANGER') return '🔥';
+    if (severity === 'WARNING') return '⚠️';
+    return '🔔';
+  };
+
+  const getTimeAgo = (dateStr) => {
+    const diff = new Date() - new Date(dateStr);
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Vừa xong';
+    if (mins < 60) return `${mins} phút trước`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours} giờ trước`;
+    return new Date(dateStr).toLocaleDateString('vi-VN');
   };
 
   return (
@@ -180,7 +223,7 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
                     )}
                   </div>
                   {unreadCount > 0 && (
-                    <button onClick={markAllRead} className="text-[11px] text-[var(--color-text-secondary)] hover:text-blue-500 transition-colors">
+                    <button onClick={markAllAsRead} className="text-[11px] text-[var(--color-text-secondary)] hover:text-blue-500 transition-colors">
                       Đánh dấu tất cả đã đọc
                     </button>
                   )}
@@ -188,26 +231,33 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
 
                 {/* Notif list */}
                 <div className="max-h-72 overflow-y-auto">
-                  {notifs.map(n => (
-                    <div
-                      key={n.id}
-                      className="flex items-start gap-4 px-4 py-4 transition-colors cursor-pointer border-b last:border-0"
-                      style={{
-                        background: n.unread ? 'var(--color-bg-primary)' : 'transparent',
-                        borderColor: 'var(--color-border)'
-                      }}
-                    >
-                      <span className="text-xl shrink-0 mt-0.5">{n.icon}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-[13px] font-bold text-[var(--color-text-primary)] truncate">{n.title}</p>
-                          {n.unread && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />}
+                  {notifs.length > 0 ? (
+                    notifs.map(n => (
+                      <div
+                        key={n.id}
+                        onClick={() => markOneAsRead(n.id)}
+                        className="flex items-start gap-4 px-4 py-4 transition-colors cursor-pointer border-b last:border-0 hover:bg-slate-500/5"
+                        style={{
+                          background: !n.isRead ? 'var(--color-bg-primary)' : 'transparent',
+                          borderColor: 'var(--color-border)'
+                        }}
+                      >
+                        <span className="text-xl shrink-0 mt-0.5">{getNotifIcon(n.type, n.severity)}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-[13px] font-bold text-[var(--color-text-primary)] truncate">{n.title}</p>
+                            {!n.isRead && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />}
+                          </div>
+                          <p className="text-[11px] text-[var(--color-text-secondary)] mt-0.5 line-clamp-2">{n.message}</p>
+                          <p className="text-[10px] text-[var(--color-text-muted)] mt-1.5">{getTimeAgo(n.createdAt)}</p>
                         </div>
-                        <p className="text-[11px] text-[var(--color-text-secondary)] mt-0.5 line-clamp-2">{n.desc}</p>
-                        <p className="text-[10px] text-[var(--color-text-muted)] mt-1.5">{n.time}</p>
                       </div>
+                    ))
+                  ) : (
+                    <div className="py-10 text-center text-slate-500 text-[13px]">
+                      Không có thông báo nào
                     </div>
-                  ))}
+                  )}
                 </div>
 
                 {/* Footer */}
