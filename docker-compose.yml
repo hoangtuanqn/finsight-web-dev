@@ -52,18 +52,6 @@ services:
       # NEWS_API_KEY: "your_key"
     restart: always
 
-  client:
-    build:
-      context: ./client
-      dockerfile: Dockerfile
-    depends_on:
-      - server
-    ports:
-      - "5173:5173"
-    environment:
-      VITE_API_URL: "http://localhost:5001/api"
-    restart: always
-
 volumes:
   postgres_data:
   redis_data:
