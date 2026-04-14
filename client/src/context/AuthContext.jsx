@@ -11,7 +11,13 @@ export function AuthProvider({ children }) {
     const token = localStorage.getItem('finsight_token');
     if (token) {
       authAPI.me()
-        .then(res => setUser(res.data.data.user))
+        .then(res => {
+          if (res.data.success) {
+            setUser(res.data.data.user);
+          } else {
+            localStorage.removeItem('finsight_token');
+          }
+        })
         .catch(() => localStorage.removeItem('finsight_token'))
         .finally(() => setLoading(false));
     } else {

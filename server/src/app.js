@@ -9,9 +9,10 @@ import userRoutes from './routes/user.routes.js';
 import debtRoutes from './routes/debt.routes.js';
 import investmentRoutes from './routes/investment.routes.js';
 import marketRoutes from './routes/market.routes.js';
+import cronService from './services/cron.service.js';
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Middleware
 app.use(cors({
@@ -52,6 +53,9 @@ app.use((err, req, res, _next) => {
 app.listen(PORT, () => {
   console.log(`🚀 FinSight API running at http://localhost:${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
+  
+  // Initialize background jobs
+  cronService.init();
 });
 
 export default app;
