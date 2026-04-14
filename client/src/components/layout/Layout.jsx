@@ -4,6 +4,7 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import { useAuth } from '../../context/AuthContext';
 import MockMarketControl from '../common/MockMarketControl';
+import AIChatbotModal from '../chat/AIChatbotModal';
 
 export default function Layout() {
   const { user, loading } = useAuth();
@@ -48,6 +49,9 @@ export default function Layout() {
       </div>
 
       <MockMarketControl />
+      
+      {/* AI Chatbot Floating Component */}
+      <AIChatbotModal />
     </div>
   );
 }
