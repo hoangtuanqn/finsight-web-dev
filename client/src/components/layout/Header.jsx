@@ -65,7 +65,7 @@ export default function Header({ sidebarWidth = 260 }) {
 
   return (
     <header
-      className="fixed top-0 right-0 z-30 flex items-center justify-between px-6 h-[60px] border-b transition-colors duration-300"
+      className="fixed top-0 right-0 z-30 flex items-center justify-between px-6 h-[89px] border-b transition-colors duration-300"
       style={{
         left: sidebarWidth,
         background: 'var(--color-bg-secondary)',

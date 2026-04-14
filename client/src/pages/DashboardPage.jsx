@@ -143,7 +143,7 @@ export default function DashboardPage() {
       className="space-y-5! pb-8"
     >
       {/* ── PAGE HEADER ── */}
-      <motion.div variants={fade} className="pt-1 pb-2">
+      <motion.div variants={fade} className="pt-4 pb-2">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
             <h1 className="text-[22px] font-bold text-[var(--color-text-primary)] tracking-tight leading-tight">
