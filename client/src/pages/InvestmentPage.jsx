@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import { investmentAPI, marketAPI } from '../api/index.js';
+import { useAuth } from '../context/AuthContext';
 import SentimentGauge from '../components/investment/SentimentGauge';
 import { PageSkeleton } from '../components/common/LoadingSpinner';
 import { formatVND } from '../utils/calculations';
@@ -19,12 +20,17 @@ const tooltipStyle = {
 };
 
 export default function InvestmentPage() {
+  const { user } = useAuth();
   const [allocationData, setAllocationData] = useState(null);
   const [marketSummary, setMarketSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [mockSentiment, setMockSentiment] = useState(null);
 
+  // Check if profile is complete
+  const isProfileIncomplete = !user?.fullName || !user?.email || !user?.monthlyIncome || !user?.investorProfile?.capital;
+
   const loadAllocation = useCallback(async (mock) => {
+    if (isProfileIncomplete) return;
     try {
       const params = mock !== null && mock !== undefined ? { mockSentiment: mock } : {};
       const res = await investmentAPI.getAllocation(params);
@@ -32,9 +38,14 @@ export default function InvestmentPage() {
     } catch (e) {
       console.error(e);
     }
-  }, []);
+  }, [isProfileIncomplete]);
 
   useEffect(() => {
+    if (isProfileIncomplete) {
+      setLoading(false);
+      return;
+    }
+
     const load = async () => {
       try {
         const [_, marketRes] = await Promise.all([
@@ -61,9 +72,30 @@ export default function InvestmentPage() {
     };
     window.addEventListener('mockSentimentChange', handleMock);
     return () => window.removeEventListener('mockSentimentChange', handleMock);
-  }, [loadAllocation]);
+  }, [loadAllocation, isProfileIncomplete]);
 
   if (loading) return <PageSkeleton />;
+
+  if (isProfileIncomplete) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6">
+        <motion.div 
+          initial={{ scale: 0.9, opacity: 0 }} 
+          animate={{ scale: 1, opacity: 1 }}
+          className="glass-card max-w-md p-10"
+        >
+          <div className="text-5xl mb-6">🔒</div>
+          <h2 className="text-xl font-bold text-white mb-3">Chưa đủ dữ liệu phân tích</h2>
+          <p className="text-slate-400 text-sm mb-8 leading-relaxed">
+            Hệ thống AI cần biết <strong>Thu nhập</strong> và <strong>Số vốn</strong> của bạn để đưa ra đề xuất phân bổ tài sản chính xác nhất.
+          </p>
+          <Link to="/profile" className="btn-primary w-full">
+            Hoàn thiện Hồ sơ ngay
+          </Link>
+        </motion.div>
+      </div>
+    );
+  }
 
   const allocation = allocationData?.allocation || {};
   const sentiment = allocationData?.sentimentData || {};

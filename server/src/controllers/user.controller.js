@@ -5,7 +5,6 @@ export async function getProfile(req, res) {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { id: true, email: true, fullName: true, monthlyIncome: true, extraBudget: true, createdAt: true },
       include: { investorProfile: true },
     });
     if (!user) return error(res, 'User not found', 404);
@@ -18,17 +17,47 @@ export async function getProfile(req, res) {
 
 export async function updateProfile(req, res) {
   try {
-    const { fullName, monthlyIncome, extraBudget } = req.body;
+    const { fullName, email, monthlyIncome, extraBudget, capital, goal, horizon, riskLevel } = req.body;
+    
+    // Update User basic info
     const user = await prisma.user.update({
       where: { id: req.userId },
-      data: {
-        ...(fullName !== undefined && { fullName }),
-        ...(monthlyIncome !== undefined && { monthlyIncome }),
-        ...(extraBudget !== undefined && { extraBudget }),
+      data: { 
+        fullName, 
+        email, 
+        monthlyIncome: monthlyIncome !== undefined ? parseFloat(monthlyIncome) : undefined,
+        extraBudget: extraBudget !== undefined ? parseFloat(extraBudget) : undefined 
       },
-      select: { id: true, email: true, fullName: true, monthlyIncome: true, extraBudget: true },
+      include: { investorProfile: true }
     });
-    return success(res, { user });
+
+    // Update or Create Investor Profile if investment data provided
+    if (capital !== undefined || goal || horizon || riskLevel) {
+      await prisma.investorProfile.upsert({
+        where: { userId: req.userId },
+        update: { 
+          capital: capital !== undefined ? parseFloat(capital) : undefined,
+          goal, 
+          horizon, 
+          riskLevel,
+          lastUpdated: new Date() 
+        },
+        create: { 
+          userId: req.userId,
+          capital: capital !== undefined ? parseFloat(capital) : 0,
+          goal: goal || 'GROWTH',
+          horizon: horizon || 'MEDIUM',
+          riskLevel: riskLevel || 'MEDIUM'
+        }
+      });
+    }
+
+    const updatedUser = await prisma.user.findUnique({
+      where: { id: req.userId },
+      include: { investorProfile: true }
+    });
+
+    return success(res, { user: updatedUser });
   } catch (err) {
     console.error('updateProfile error:', err);
     return error(res, 'Internal server error');
