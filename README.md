@@ -37,10 +37,15 @@ Dự án không chỉ là một ứng dụng CRUD đơn thuần. Chúng tôi áp
 - **Thêm khoản nợ qua AI (Advanced):** Tích hợp Chatbot AI và định dạng OCR hỗ trợ trích xuất ngay lập tức số liệu từ hóa đơn/hợp đồng vay mà không cần gõ phím.
 
 ### 📈 3.2. Module Cố vấn Đầu tư (Investment Advisor) - *Kiến tạo Dòng tiền*
-Module đóng vai trò phân tích Vĩ mô và hướng dẫn người dùng "bỏ tiền vào quỹ nào".
-- **Hồ sơ Rủi ro (Risk Assessment):** Hệ thống đánh giá khẩu vị rủi ro qua thu nhập, mục tiêu tài chính và điểm số bài Test, phân cấp người dùng (Hệ An toàn / Cân bằng / Mạo hiểm).
-- **Trích xuất Cảm xúc Thị trường (Market Sentiment Tracker):** Lấy dữ liệu API thời gian thực để đo độ "Tham lam" hay "Sợ hãi" của thị trường.
-- **Phân bổ Danh mục (Asset Allocation):** AI Rules Engine tự động gợi ý chia vốn % vào *Tiết kiệm, Vàng, Chứng khoán, Trái phiếu, Crypto*. (VD: Khi thị trường "Tham Lam Tột Độ" => Cảnh báo dịch chuyển % Crypto về Tiết kiệm - chốt lời an toàn).
+Module đóng vai trò "kiến trúc sư trưởng" phân bổ tài sản thông minh dựa trên định lượng dữ liệu thay vì cảm tính:
+- **Cập nhật & Nghiên cứu Thị trường:** Phân tích thời gian thực qua Public API (CoinGecko, Alternative.me, NewsAPI) các loại tài sản cốt lõi: **Vàng SJC, Crypto (Bitcoin), Chứng khoán (VNIndex)** và Tin tức vĩ mô.
+- **Thống kê Cảm xúc Thị trường (Fear & Greed Index):** Đo lường tâm lý đám đông (Sợ hãi, Trung lập, Tham lam) để làm đầu vào (input) cho thuật toán.
+- **Khảo sát Hồ sơ Rủi ro (Risk Profile):** Đánh giá khẩu vị rủi ro qua trắc nghiệm đi kèm thông số cá nhân cốt lõi: 
+  - Số vốn hiện có và Dòng tiền nhàn rỗi (Monthly Add).
+  - Mục tiêu tài chính và Thời gian đầu tư.
+- **Ma trận Phân bổ Động (Dynamic Allocation Engine):** Tự động đưa ra cấu trúc tỷ lệ % cho danh mục (Tiết kiệm, Vàng, Cổ phiếu, Trái phiếu, Crypto) dựa trên sự giao thoa giữa **Khẩu vị rủi ro cá nhân** và **Tâm lý thị trường** *(Mua khi sợ hãi, phòng thủ chốt lời khi tham lam tột độ)*.
+- **Mô phỏng/Giả lập Lợi nhuận (Portfolio Projection):** Chạy mô phỏng tài sản tương lai trong khung 1 năm, 3 năm, 5 năm, 10 năm theo Tỷ suất sinh lời kỳ vọng (Expected Return) của danh mục.
+- **Cảnh báo Tái cơ cấu (Auto-Rebalance):** Hệ thống tiến trình ngầm (Background Jobs) gửi cảnh báo Notification/Email khi thị trường biến động mạnh nhằm nhắc nhở người dùng cấu trúc lại danh mục.
 
 ### 🛠 3.3. Các Tính năng Toàn hệ thống
 | Chức năng | Phân hệ | Tình trạng |
