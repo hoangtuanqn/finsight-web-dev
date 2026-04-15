@@ -55,7 +55,7 @@ const navItems = [
   },
 ];
 
-export default function Sidebar({ isCollapsed, width }) {
+export default function Sidebar({ isCollapsed, width, onClose, isMobile }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -105,6 +105,7 @@ export default function Sidebar({ isCollapsed, width }) {
             to={item.to}
             end={item.end}
             title={isCollapsed ? item.label : ''}
+            onClick={() => isMobile && onClose?.()}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-medium transition-all duration-200 ${isActive
                 ? 'bg-blue-600/10 text-blue-500 shadow-sm shadow-blue-500/5'

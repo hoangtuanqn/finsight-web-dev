@@ -28,7 +28,7 @@ function useDarkMode() {
   return [dark, setDark];
 }
 
-export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed }) {
+export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed, isMobile }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [dark, setDark] = useDarkMode();
@@ -108,39 +108,48 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
 
   return (
     <header
-      className="fixed top-0 right-0 z-30 flex items-center justify-between px-6 h-[89px] border-b transition-all duration-300"
+      className="fixed top-0 right-0 z-30 flex items-center justify-between px-4 sm:px-6 h-[89px] border-b transition-all duration-300"
       style={{
-        left: sidebarWidth,
+        left: isMobile ? 0 : sidebarWidth,
         background: 'var(--color-bg-secondary)',
         backdropFilter: 'blur(20px)',
         borderColor: 'var(--color-border)',
       }}
     >
       {/* ── Left: Toggle + Page breadcrumb ── */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         {/* Toggle Button */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:bg-slate-500/10 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
           title={isCollapsed ? 'Mở rộng menu' : 'Thu gọn menu'}
         >
-          <motion.div
-            animate={{ rotate: isCollapsed ? 180 : 0 }}
-            className="flex items-center justify-center"
-          >
+          {isMobile ? (
+            /* Hamburger icon on mobile */
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect width="18" height="18" x="3" y="3" rx="2" />
-              <path d="M9 3v18" />
-              <path d="m14 9-3 3 3 3" />
+              <line x1="4" x2="20" y1="6" y2="6" />
+              <line x1="4" x2="20" y1="12" y2="12" />
+              <line x1="4" x2="20" y1="18" y2="18" />
             </svg>
-          </motion.div>
+          ) : (
+            <motion.div
+              animate={{ rotate: isCollapsed ? 180 : 0 }}
+              className="flex items-center justify-center"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="2" />
+                <path d="M9 3v18" />
+                <path d="m14 9-3 3 3 3" />
+              </svg>
+            </motion.div>
+          )}
         </button>
 
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[14px] text-[var(--color-text-secondary)] font-medium">FinSight</span>
-          <span className="text-slate-500">/</span>
-          <span className="text-[16px] text-[var(--color-text-primary)] font-medium uppercase tracking-wider">Tổng quan</span>
+          <span className="text-[14px] text-[var(--color-text-secondary)] font-medium hidden sm:block">FinSight</span>
+          <span className="text-slate-500 hidden sm:block">/</span>
+          <span className="text-[15px] sm:text-[16px] text-[var(--color-text-primary)] font-medium uppercase tracking-wider">Tổng quan</span>
         </div>
       </div>
 

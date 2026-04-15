@@ -166,10 +166,10 @@ export default function DashboardPage() {
           </div>
           <Link
             to="/debts/add"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold text-white transition-all hover:opacity-90 active:scale-[0.97]"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-[13px] font-semibold text-white transition-all hover:opacity-90 active:scale-[0.97] shrink-0"
             style={{ background: 'linear-gradient(135deg, #3b82f6, #2563eb)' }}
           >
-            <span>➕</span> Thêm khoản nợ
+            <span>➕</span> <span className="hidden sm:inline">Thêm khoản nợ</span>
           </Link>
         </div>
       </motion.div>
@@ -195,7 +195,7 @@ export default function DashboardPage() {
       {/* ══════════════════════════════════════════
           ROW 1 — KPI CARDS (4 equal columns)
       ══════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
         {/* Health Score */}
         <motion.div variants={fade}>
           <Card className="p-5! h-full" style={{ borderColor: `${healthColor}20` }}>
@@ -297,9 +297,37 @@ export default function DashboardPage() {
       </div>
 
       {/* ══════════════════════════════════════════
+          QUICK ACTIONS
+      ══════════════════════════════════════════ */}
+      <motion.div variants={fade}>
+        <h2 className="text-[13px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-widest mb-3">Thao tác nhanh</h2>
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
+          {QUICK_ACTIONS.map(action => (
+            <Link
+              key={action.to}
+              to={action.to}
+              className="flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all hover:scale-[1.03] active:scale-[0.97] text-center group"
+              style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)', boxShadow: 'var(--shadow-card)' }}
+            >
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center text-[18px] shrink-0 transition-transform group-hover:scale-110"
+                style={{ background: `${action.color}18` }}
+              >
+                {action.icon}
+              </div>
+              <div>
+                <p className="text-[11px] sm:text-[12px] font-semibold text-[var(--color-text-primary)] leading-tight">{action.label}</p>
+                <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5 hidden sm:block">{action.desc}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* ══════════════════════════════════════════
           ROW 2 — CHART (left 55%) + DUE (right 45%)
       ══════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-11 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-11 gap-3 sm:gap-4">
         {/* APR vs EAR Chart — 6 of 11 cols */}
         <motion.div variants={fade} className="lg:col-span-6">
           <Card className="p-5 h-full flex flex-col">
@@ -398,7 +426,7 @@ export default function DashboardPage() {
       {/* ══════════════════════════════════════════
           ROW 3 — TOP DEBTS | PIE CHART | DTI
       ══════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
         {/* Top Debts */}
         <motion.div variants={fade}>
           <Card className="p-5 h-full flex flex-col">
@@ -503,7 +531,7 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* Financial Metrics — DTI */}
-        <motion.div variants={fade} className="md:col-span-2 xl:col-span-1">
+        <motion.div variants={fade} className="sm:col-span-2 xl:col-span-1">
           <Card className="p-5 h-full flex flex-col">
             <CardHeader icon="📐" title="Chỉ số tài chính" />
             <div className="flex-1 flex flex-col gap-4">
