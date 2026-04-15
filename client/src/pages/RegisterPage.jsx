@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import heroImg from '../assets/finance-illustration.png';
+import { AlertTriangle, User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
 export default function RegisterPage() {
   const [form, setForm] = useState({ email: '', password: '', fullName: '', confirmPassword: '' });
@@ -87,7 +88,7 @@ export default function RegisterPage() {
               animate={{ opacity: 1, y: 0 }}
               className="bg-red-500/8 border border-red-500/20 rounded-xl px-4 py-3 mb-5 text-sm text-red-400 flex items-start gap-2"
             >
-              <span className="mt-0.5">⚠️</span>
+              <AlertTriangle size={16} className="mt-0.5 shrink-0" />
               <span>{error}</span>
             </motion.div>
           )}
@@ -96,7 +97,7 @@ export default function RegisterPage() {
             <div>
               <label className="input-label">Họ và tên *</label>
               <div className="input-group">
-                <span className="input-icon">👤</span>
+                <span className="input-icon"><User size={16} /></span>
                 <input
                   type="text"
                   value={form.fullName}
@@ -111,7 +112,7 @@ export default function RegisterPage() {
             <div>
               <label className="input-label">Email *</label>
               <div className="input-group">
-                <span className="input-icon">✉️</span>
+                <span className="input-icon"><Mail size={16} /></span>
                 <input
                   type="email"
                   value={form.email}
@@ -126,7 +127,7 @@ export default function RegisterPage() {
             <div>
               <label className="input-label">Mật khẩu *</label>
               <div className="input-group">
-                <span className="input-icon">🔒</span>
+                <span className="input-icon"><Lock size={16} /></span>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={form.password}
@@ -143,7 +144,7 @@ export default function RegisterPage() {
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors text-sm"
                   tabIndex={-1}
                 >
-                  {showPassword ? '🙈' : '👁️'}
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
             </div>
@@ -151,7 +152,7 @@ export default function RegisterPage() {
             <div>
               <label className="input-label">Xác nhận mật khẩu *</label>
               <div className="input-group">
-                <span className="input-icon">🔒</span>
+                <span className="input-icon"><Lock size={16} /></span>
                 <input
                   type="password"
                   value={form.confirmPassword}

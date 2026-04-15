@@ -1,6 +1,7 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { motion } from 'framer-motion';
 import { formatPercent } from '../../utils/calculations';
+import { BarChart2, AlertTriangle } from 'lucide-react';
 
 const COLORS = {
   apr: '#3b82f6',
@@ -40,7 +41,7 @@ export default function EARBreakdown({ breakdown }) {
     >
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-[15px] font-semibold text-white flex items-center gap-2">
-          <span>📊</span> Phân tích EAR
+          <BarChart2 size={16} /> Phân tích EAR
         </h3>
         <div className="text-right">
           <p className="text-xl font-bold text-red-400">{formatPercent(totalEAR)}</p>
@@ -50,8 +51,8 @@ export default function EARBreakdown({ breakdown }) {
 
       {hiddenCost > 0 && (
         <div className="bg-red-500/6 border border-red-500/15 rounded-xl px-4 py-2.5 mb-4">
-          <p className="text-[12px] text-red-400">
-            ⚠️ Chi phí ẩn: <span className="font-bold">+{formatPercent(hiddenCost)}</span> so với lãi suất quảng cáo
+          <p className="text-[12px] text-red-400 flex items-center gap-1">
+            <AlertTriangle size={12} className="shrink-0" /> Chi phí ẩn: <span className="font-bold">+{formatPercent(hiddenCost)}</span> so với lãi suất quảng cáo
           </p>
         </div>
       )}

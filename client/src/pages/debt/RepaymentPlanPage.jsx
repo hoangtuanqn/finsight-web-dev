@@ -4,6 +4,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { debtAPI } from '../../api/index.js';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
 import { formatVND } from '../../utils/calculations';
+import { ClipboardList, DollarSign, TrendingDown, Bot, Lightbulb, Target, Zap } from 'lucide-react';
 
 export default function RepaymentPlanPage() {
   const [data, setData] = useState(null);
@@ -52,7 +53,7 @@ export default function RepaymentPlanPage() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <div className="mb-6">
-        <h1 className="text-[22px] font-bold text-white">📋 Kế hoạch trả nợ</h1>
+        <h1 className="text-[22px] font-bold text-white flex items-center gap-2"><ClipboardList size={20} /> Kế hoạch trả nợ</h1>
         <p className="text-slate-500 text-sm mt-1">So sánh Avalanche vs Snowball để chọn chiến lược tối ưu</p>
       </div>
 
@@ -60,7 +61,7 @@ export default function RepaymentPlanPage() {
       <div className="glass-card mb-6">
         <div className="flex items-center justify-between mb-3">
           <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-            <span>💰</span> Ngân sách trả thêm mỗi tháng
+            <DollarSign size={16} /> Ngân sách trả thêm mỗi tháng
           </label>
           <span className="text-base font-bold text-blue-400">{formatVND(extraBudget)}</span>
         </div>
@@ -80,7 +81,7 @@ export default function RepaymentPlanPage() {
 
       {!data || !avalanche ? (
         <div className="glass-card text-center py-16">
-          <p className="text-3xl mb-3">📭</p>
+          <p className="text-3xl mb-3"><ClipboardList size={40} className="mx-auto text-slate-500" /></p>
           <p className="text-slate-500">Không có khoản nợ nào để tính</p>
         </div>
       ) : (
@@ -94,8 +95,7 @@ export default function RepaymentPlanPage() {
               style={{ borderColor: 'rgba(59, 130, 246, 0.2)' }}
             >
               <div className="flex items-center gap-2.5 mb-3">
-                <span className="text-xl">⚡</span>
-                <h3 className="font-semibold text-blue-400">Avalanche</h3>
+                <span className="text-xl"><Zap size={20} /></span>                <h3 className="font-semibold text-blue-400">Avalanche</h3>
                 <span className="text-[10px] bg-blue-500/12 px-2 py-0.5 rounded-full text-blue-300 font-medium">Tiết kiệm lãi</span>
               </div>
               <p className="text-[12px] text-slate-500 mb-4">Ưu tiên trả nợ lãi suất CAO nhất trước</p>
@@ -119,7 +119,7 @@ export default function RepaymentPlanPage() {
               style={{ borderColor: 'rgba(16, 185, 129, 0.2)' }}
             >
               <div className="flex items-center gap-2.5 mb-3">
-                <span className="text-xl">🎯</span>
+                <span className="text-xl"><Target size={20} /></span>
                 <h3 className="font-semibold text-emerald-400">Snowball</h3>
                 <span className="text-[10px] bg-emerald-500/12 px-2 py-0.5 rounded-full text-emerald-300 font-medium">Động lực tâm lý</span>
               </div>
@@ -146,7 +146,7 @@ export default function RepaymentPlanPage() {
               style={{ borderColor: 'rgba(16, 185, 129, 0.15)' }}
             >
               <p className="text-center text-emerald-400 font-medium text-sm">
-                💡 Avalanche giúp tiết kiệm <span className="font-bold">{formatVND(comparison.savedInterest)}</span> tiền lãi
+                <Lightbulb size={14} className="inline mr-1" /> Avalanche giúp tiết kiệm <span className="font-bold">{formatVND(comparison.savedInterest)}</span> tiền lãi
                 {comparison.savedMonths > 0 && ` và trả xong sớm hơn ${comparison.savedMonths} tháng`}
               </p>
             </motion.div>
@@ -156,7 +156,7 @@ export default function RepaymentPlanPage() {
           {recommendation && (
             <div className="glass-card mb-6 bg-blue-500/3" style={{ borderColor: 'rgba(59, 130, 246, 0.12)' }}>
               <p className="text-sm text-blue-300">
-                🤖 <span className="font-semibold">AI khuyến nghị:</span> {recommendation}
+                <Bot size={14} className="inline mr-1" /> <span className="font-semibold">AI khuyến nghị:</span> {recommendation}
               </p>
             </div>
           )}
@@ -165,7 +165,7 @@ export default function RepaymentPlanPage() {
           {timelineData.length > 0 && (
             <div className="glass-card">
               <h3 className="text-[15px] font-semibold text-white mb-4 flex items-center gap-2">
-                <span>📉</span> Tiến trình giảm nợ
+                <TrendingDown size={16} /> Tiến trình giảm nợ
               </h3>
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
