@@ -284,6 +284,7 @@ export default function DashboardPage() {
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                   style={{ background: `${sentimentColor}18` }}>
                   <Thermometer size={18} style={{ color: sentimentColor }} />
+                </div>
                 <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-widest">Tâm lý thị trường</span>
               </div>
               <div className="flex items-end gap-1.5 mb-1">
