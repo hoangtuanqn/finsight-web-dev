@@ -23,7 +23,7 @@ export default function Layout() {
     );
   }
 
-  if (!user) return <Navigate to="/login" />;
+  if (!user) return <Navigate to="/" />;
 
   return (
     <div className="flex min-h-screen" style={{ background: 'var(--color-bg-primary)' }}>
@@ -41,8 +41,8 @@ export default function Layout() {
         />
 
         {/* Content area scrolling */}
-        <main className="flex-1 overflow-y-auto pt-[89px]">
-          <div className="p-8 max-w-[1280px] mx-auto">
+        <main className="flex-1 overflow-y-auto pt-22.25">
+          <div className="p-8 max-w-7xl mx-auto">
             <Outlet />
           </div>
         </main>

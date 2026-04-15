@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import LandingPage from './pages/LandingPage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
 import Layout from './components/layout/Layout';
@@ -26,10 +27,11 @@ export default function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
+            <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
             <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
             <Route element={<Layout />}>
-              <Route path="/" element={<DashboardPage />} />
+              <Route path="/home" element={<DashboardPage />} />
               <Route path="/debts" element={<DebtOverviewPage />} />
               <Route path="/debts/add" element={<AddDebtPage />} />
               <Route path="/debts/ear-analysis" element={<EarAnalysisPage />} />
@@ -40,7 +42,7 @@ export default function App() {
               <Route path="/risk-assessment" element={<RiskAssessmentPage />} />
               <Route path="/profile" element={<ProfilePage />} />
             </Route>
-            <Route path="*" element={<Navigate to="/" />} />
+            <Route path="*" element={<Navigate to="/home" />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

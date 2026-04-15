@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const navItems = [
   {
-    to: '/',
+    to: '/home',
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1" /><rect width="7" height="5" x="14" y="3" rx="1" /><rect width="7" height="9" x="14" y="12" rx="1" /><rect width="7" height="5" x="3" y="16" rx="1" /></svg>
     ),
@@ -75,7 +75,7 @@ export default function Sidebar({ isCollapsed, width }) {
       }}
     >
       {/* Logo */}
-      <div className="p-6 h-[89px] flex items-center shrink-0">
+      <div className="p-6 h-22.25 flex items-center shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-500/20 shrink-0">
             F

@@ -26,7 +26,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await register(form.email, form.password, form.fullName);
-      navigate('/');
+      navigate('/home');
     } catch (err) {
       setError(err.response?.data?.error || 'Đăng ký thất bại. Vui lòng thử lại.');
     } finally {
