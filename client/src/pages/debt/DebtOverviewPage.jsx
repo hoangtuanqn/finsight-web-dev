@@ -14,11 +14,23 @@ export default function DebtOverviewPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchDebts = () => {
     debtAPI.getAll()
       .then(res => setData(res.data.data))
-      .catch(console.error)
-      .finally(() => setTimeout(() => setLoading(false), 500));
+      .catch(console.error);
+  };
+
+  useEffect(() => {
+    fetchDebts();
+    const timer = setTimeout(() => setLoading(false), 500);
+
+    const handleUpdate = () => fetchDebts();
+    window.addEventListener('Finsight:DebtUpdated', handleUpdate);
+    
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('Finsight:DebtUpdated', handleUpdate);
+    };
   }, []);
 
   if (loading) return <PageSkeleton />;

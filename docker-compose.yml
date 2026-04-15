@@ -2,17 +2,17 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:15
+    image: pgvector/pgvector:pg15
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: finsight_db
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -24,13 +24,13 @@ services:
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 5s
       retries: 5
 
   server:
-    build: 
+    build:
       context: ./server
       dockerfile: Dockerfile
     depends_on:
@@ -48,8 +48,30 @@ services:
       PORT: 5001
       NODE_ENV: development
       CLIENT_URL: "http://localhost:5173"
-      # ALPHA_VANTAGE_API_KEY: "your_key"
-      # NEWS_API_KEY: "your_key"
+      # LLM Configuration (FPT Cloud SaoLa4)
+      LLM_PROVIDER: "${LLM_PROVIDER:-fptcloud}"
+      LLM_MODEL: "${LLM_MODEL:-SaoLa4-medium}"
+      LLM_BASE_URL: "${LLM_BASE_URL:-https://mkp-api.fptcloud.com}"
+      LLM_API_KEY: "${LLM_API_KEY:-}"
+      # Embedding
+      EMBEDDING_PROVIDER: "${EMBEDDING_PROVIDER:-fptcloud}"
+      EMBEDDING_MODEL: "${EMBEDDING_MODEL:-Vietnamese_Embedding}"
+    restart: always
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_PROXY=http://server:5001
+      - VITE_API_URL=http://server:5001/api
+    depends_on:
+      - server
+    volumes:
+      - ./client:/app
+      - /app/node_modules
     restart: always
 
 volumes:
