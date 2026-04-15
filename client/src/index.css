@@ -283,6 +283,12 @@ select.input-field {
   background-repeat: no-repeat;
   background-size: 18px;
   padding-right: 36px;
+  color: var(--color-text-primary);
+}
+
+select.input-field option {
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
 }
 
 /* ==========================================
