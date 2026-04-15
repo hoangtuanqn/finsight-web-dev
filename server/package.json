@@ -9,13 +9,18 @@
     "seed": "node prisma/seed.js",
     "db:push": "npx prisma db push",
     "db:generate": "npx prisma generate",
-    "db:studio": "npx prisma studio"
+    "db:studio": "npx prisma studio",
+    "rag:ingest": "node src/agentic/rag/ingest.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@langchain/core": "^1.1.40",
+    "@langchain/google-genai": "^2.1.27",
+    "@langchain/langgraph": "^1.2.9",
+    "@langchain/openai": "^1.4.4",
     "@prisma/client": "^6.19.2",
     "axios": "^1.13.6",
     "bcryptjs": "^3.0.3",
@@ -25,7 +30,9 @@
     "ioredis": "^5.10.1",
     "jsonwebtoken": "^9.0.3",
     "node-cron": "^4.2.1",
-    "nodemailer": "^8.0.4"
+    "nodemailer": "^8.0.4",
+    "pgvector": "^0.2.1",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.14",
