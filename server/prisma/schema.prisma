@@ -1,10 +1,12 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector")]
 }
 
 model User {
@@ -21,6 +23,7 @@ model User {
   investorProfile InvestorProfile?
   notifications   Notification[]
   debtSnapshots   DebtSnapshot[]
+  chatSessions    ChatSession[]
 
   @@map("users")
 }
@@ -126,4 +129,49 @@ model DebtSnapshot {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("debt_snapshots")
+}
+
+// ── Agentic AI: Chat & RAG Models ──────────────────────────
+
+model ChatSession {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String?  // Auto-generated từ message đầu tiên
+  metadata  Json?    // Lưu context bổ sung
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id         String   @id @default(cuid())
+  sessionId  String
+  role       String   // "user" | "assistant" | "tool" | "system"
+  content    String   // Nội dung tin nhắn
+  toolCalls  Json?    // Lưu tool calls nếu có
+  toolResult Json?    // Kết quả tool execution
+  actionType String?  // "text_response" | "form_population"
+  payload    Json?    // trigger_payload cho form_population
+  createdAt  DateTime @default(now())
+
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}
+
+model FinanceKnowledge {
+  id        String                      @id @default(cuid())
+  title     String
+  content   String                      // Nội dung gốc
+  chunk     String                      // Đoạn đã chunk
+  category  String                      // "CONCEPT" | "REGULATION" | "STRATEGY"
+  embedding Unsupported("vector(1024)")? // pgvector embedding
+  metadata  Json?
+  createdAt DateTime                    @default(now())
+
+  @@map("finance_knowledge")
 }

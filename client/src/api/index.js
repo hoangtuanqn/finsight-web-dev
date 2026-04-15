@@ -68,4 +68,11 @@ export const marketAPI = {
   getSummary: () => api.get('/market/summary'),
 };
 
+// AGENTIC AI
+export const agenticAPI = {
+  getSessions: () => api.get('/agentic/sessions'),
+  getSession: (id) => api.get(`/agentic/sessions/${id}`),
+  deleteSession: (id) => api.delete(`/agentic/sessions/${id}`),
+};
+
 export default api;

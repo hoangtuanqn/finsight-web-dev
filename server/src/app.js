@@ -9,6 +9,7 @@ import userRoutes from './routes/user.routes.js';
 import debtRoutes from './routes/debt.routes.js';
 import investmentRoutes from './routes/investment.routes.js';
 import marketRoutes from './routes/market.routes.js';
+import agenticRoutes from './routes/agentic.routes.js';
 import cronService from './services/cron.service.js';
 
 const app = express();
@@ -38,6 +39,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/debts', debtRoutes);
 app.use('/api/investment', investmentRoutes);
 app.use('/api/market', marketRoutes);
+app.use('/api/agentic', agenticRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -88,6 +88,10 @@ export default function DashboardPage() {
       }
     };
     load();
+
+    const handleUpdate = () => load();
+    window.addEventListener('Finsight:DebtUpdated', handleUpdate);
+    return () => window.removeEventListener('Finsight:DebtUpdated', handleUpdate);
   }, []);
 
   if (loading) return <PageSkeleton />;
