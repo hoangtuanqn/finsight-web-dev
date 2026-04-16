@@ -4,7 +4,7 @@ import { streamChat, getSessions, getSessionMessages, deleteSession } from '../a
 const WELCOME_MESSAGE = {
   id: 'welcome',
   role: 'assistant',
-  content: 'Xin chào! Tôi là **FinSight AI Advisor** — trợ lý tài chính thông minh của bạn. Hãy hỏi tôi về:\n- 📊 Tình trạng nợ & DTI\n- 💡 Chiến lược trả nợ (Avalanche / Snowball)\n- 📈 Thị trường & đầu tư\n- 🏦 Khai báo khoản nợ mới',
+  content: 'Xin chào! Tôi là **FinSight AI Advisor** — trợ lý tài chính thông minh của bạn. Hãy hỏi tôi về:\n- 📊 Tình trạng nợ & DTI\n- 💡 Chiến lược trả nợ (Avalanche / Snowball)\n- 📈 Thị trường & đầu tư\n- 🏦 Khai báo khoản nợ mới\n- 📷 Upload ảnh hóa đơn/hợp đồng vay để thêm nợ tự động',
 };
 
 export function useAgenticChat() {
@@ -16,10 +16,11 @@ export function useAgenticChat() {
   const [toolStatus, setToolStatus] = useState(null); // Agent tool status text
   const abortRef = useRef(false);
 
-  const sendMessage = useCallback(async (text) => {
+  const sendMessage = useCallback(async (text, ocrText = null, overrideDisplay = null) => {
     if (!text.trim() || isStreaming) return;
 
-    const userMsg = { id: `user-${Date.now()}`, role: 'user', content: text };
+    const displayContent = overrideDisplay || text;
+    const userMsg = { id: `user-${Date.now()}`, role: 'user', content: displayContent };
     const aiMsgId = `ai-${Date.now()}`;
     const aiMsg = { id: aiMsgId, role: 'assistant', content: '' };
 
@@ -34,7 +35,7 @@ export function useAgenticChat() {
       // onToken
       (token) => {
         if (abortRef.current) return;
-        setToolStatus(null); // Clear tool status when text starts arriving
+        setToolStatus(null);
         setMessages(prev =>
           prev.map(m => m.id === aiMsgId ? { ...m, content: m.content + token } : m)
         );
@@ -62,7 +63,9 @@ export function useAgenticChat() {
       // onStatus (tool execution status)
       (status) => {
         setToolStatus(status);
-      }
+      },
+      // ocrText extracted directly on the browser
+      ocrText
     );
   }, [isStreaming, sessionId]);
 
@@ -111,5 +114,6 @@ export function useAgenticChat() {
   return {
     messages, isStreaming, sessionId, sessions, pendingAction, toolStatus,
     sendMessage, loadSession, loadSessions, removeSession, newChat, dismissAction,
+    setToolStatus, setIsStreaming, setMessages,
   };
 }
