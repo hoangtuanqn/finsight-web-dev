@@ -11,6 +11,8 @@ export default function RepaymentPlanPage() {
   const [debtSummary, setDebtSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [extraBudget, setExtraBudget] = useState(1000000);
+  const [inputRaw, setInputRaw] = useState('1000000');
+  const SLIDER_MAX = 100000000;
 
   const load = (budget) => {
     setLoading(true);
@@ -29,8 +31,23 @@ export default function RepaymentPlanPage() {
   useEffect(() => { load(extraBudget); }, []);
 
   const handleBudgetChange = (val) => {
-    setExtraBudget(val);
-    load(val);
+    const n = Math.max(0, val);
+    setExtraBudget(n);
+    setInputRaw(String(n));
+    load(n);
+  };
+
+  const handleInputChange = (e) => {
+    setInputRaw(e.target.value);
+  };
+
+  const handleInputBlur = () => {
+    const n = Math.max(0, parseInt(inputRaw.replace(/\D/g, ''), 10) || 0);
+    handleBudgetChange(n);
+  };
+
+  const handleInputKeyDown = (e) => {
+    if (e.key === 'Enter') e.target.blur();
   };
 
   if (loading && !data) return <PageSkeleton />;
@@ -82,26 +99,51 @@ export default function RepaymentPlanPage() {
         <p className="text-slate-500 text-sm mt-1">So sánh Avalanche vs Snowball để chọn chiến lược tối ưu</p>
       </div>
 
-      {/* Budget Slider */}
+      {/* Budget Slider + Input */}
       <div className="glass-card mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-            <DollarSign size={16} /> Ngân sách trả thêm mỗi tháng
-          </label>
-          <span className="text-base font-bold text-blue-400">{formatVND(extraBudget)}</span>
+        <label className="text-sm font-medium text-slate-300 flex items-center gap-2 mb-4">
+          <DollarSign size={16} /> Ngân sách trả thêm mỗi tháng
+        </label>
+
+        {/* Input nhập tay */}
+        <div className="flex items-center gap-3 mb-5">
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder="Nhập số tiền..."
+              value={inputRaw}
+              onChange={handleInputChange}
+              onBlur={handleInputBlur}
+              onKeyDown={handleInputKeyDown}
+              className="input-field w-full pr-8 text-blue-400 font-semibold"
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-slate-500">đ</span>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-lg font-bold text-blue-400">{formatVND(extraBudget)}</p>
+            <p className="text-[10px] text-slate-600 mt-0.5">mỗi tháng</p>
+          </div>
         </div>
+
+        {/* Slider tối đa 100tr */}
         <input
           type="range"
           min="0"
-          max="5000000"
-          step="100000"
-          value={extraBudget}
+          max={SLIDER_MAX}
+          step="500000"
+          value={Math.min(extraBudget, SLIDER_MAX)}
           onChange={e => handleBudgetChange(+e.target.value)}
           className="w-full"
         />
         <div className="flex justify-between text-[11px] text-slate-600 mt-2">
-          <span>0đ</span><span>1tr</span><span>2.5tr</span><span>5tr</span>
+          <span>0đ</span><span>25tr</span><span>50tr</span><span>75tr</span><span>100tr</span>
         </div>
+        {extraBudget > SLIDER_MAX && (
+          <p className="text-[11px] text-amber-400 mt-2">
+            ⚠ Giá trị vượt thanh kéo — slider hiển thị tối đa 100tr, nhưng tính toán vẫn dùng đúng số bạn nhập.
+          </p>
+        )}
       </div>
 
       {!data || !avalanche ? (
