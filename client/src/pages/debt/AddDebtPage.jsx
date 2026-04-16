@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 import { debtAPI } from '../../api/index.js';
 import { calcEAR, calcAPY, formatVND, formatPercent } from '../../utils/calculations';
 import { Plus, AlertTriangle, BarChart2 } from 'lucide-react';
@@ -17,11 +18,10 @@ const PLATFORM_PRESETS = {
 export default function AddDebtPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [form, setForm] = useState({
-    name: '', platform: 'SPAYLATER', originalAmount: 0, balance: 0, apr: 18, rateType: 'FLAT',
-    feeProcessing: 0, feeInsurance: 0, feeManagement: 0, feePenaltyPerDay: 0.05,
-    minPayment: 0, dueDay: 15, termMonths: 12, remainingTerms: 12,
+    name: '', platform: 'SPAYLATER', originalAmount: '', balance: '', apr: 18, rateType: 'FLAT',
+    feeProcessing: '', feeInsurance: '', feeManagement: '', feePenaltyPerDay: 0.05,
+    minPayment: '', dueDay: 15, termMonths: 12, remainingTerms: 12,
   });
 
   const applyPreset = (platform) => {
@@ -29,18 +29,28 @@ export default function AddDebtPage() {
     setForm(f => ({ ...f, platform, ...preset }));
   };
 
-  const ear = calcEAR(form.apr, form.feeProcessing, form.feeInsurance, form.feeManagement, form.termMonths);
-  const apy = calcAPY(form.apr);
+  const ear = calcEAR(+form.apr || 0, +form.feeProcessing || 0, +form.feeInsurance || 0, +form.feeManagement || 0, +form.termMonths || 12);
+  const apy = calcAPY(+form.apr || 0);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
     try {
-      await debtAPI.create(form);
+      const payload = {
+        ...form,
+        originalAmount: +form.originalAmount || 0,
+        balance: +form.balance || 0,
+        apr: +form.apr || 0,
+        feeProcessing: +form.feeProcessing || 0,
+        feeInsurance: +form.feeInsurance || 0,
+        feeManagement: +form.feeManagement || 0,
+        minPayment: +form.minPayment || 0,
+      };
+      await debtAPI.create(payload);
+      toast.success('Thêm khoản nợ thành công!');
       navigate('/debts');
     } catch (err) {
-      setError(err.response?.data?.error || 'Thêm nợ thất bại');
+      toast.error(err.response?.data?.error || 'Thêm nợ thất bại');
     } finally {
       setLoading(false);
     }
@@ -63,12 +73,6 @@ export default function AddDebtPage() {
         {/* Form */}
         <div className="lg:col-span-2">
           <div className="glass-card">
-            {error && (
-              <div className="bg-red-500/8 border border-red-500/20 rounded-xl px-4 py-3 mb-5 text-sm text-red-400 flex items-center gap-2">
-                <AlertTriangle size={14} className="shrink-0" /> {error}
-              </div>
-            )}
-
             {/* Platform presets */}
             <div className="mb-6">
               <label className="input-label">Nền tảng</label>
@@ -98,18 +102,18 @@ export default function AddDebtPage() {
                 </div>
                 <div>
                   <label className="input-label">Số tiền gốc</label>
-                  <input type="number" className="input-field" value={form.originalAmount} onChange={e => update('originalAmount', +e.target.value)} required />
+                  <input type="number" className="input-field" value={form.originalAmount} onChange={e => update('originalAmount', e.target.value)} placeholder="0" required />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="input-label">Dư nợ hiện tại</label>
-                  <input type="number" className="input-field" value={form.balance} onChange={e => update('balance', +e.target.value)} required />
+                  <input type="number" className="input-field" value={form.balance} onChange={e => update('balance', e.target.value)} placeholder="0" required />
                 </div>
                 <div>
                   <label className="input-label">Lãi suất APR (%/năm)</label>
-                  <input type="number" step="0.1" className="input-field" value={form.apr} onChange={e => update('apr', +e.target.value)} required />
+                  <input type="number" step="0.1" className="input-field" value={form.apr} onChange={e => update('apr', e.target.value)} placeholder="0" required />
                 </div>
               </div>
 
@@ -123,7 +127,7 @@ export default function AddDebtPage() {
                 </div>
                 <div>
                   <label className="input-label">Trả tối thiểu/tháng</label>
-                  <input type="number" className="input-field" value={form.minPayment} onChange={e => update('minPayment', +e.target.value)} required />
+                  <input type="number" className="input-field" value={form.minPayment} onChange={e => update('minPayment', e.target.value)} placeholder="0" required />
                 </div>
               </div>
 
@@ -133,15 +137,15 @@ export default function AddDebtPage() {
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="input-label">Phí xử lý (%)</label>
-                  <input type="number" step="0.1" className="input-field" value={form.feeProcessing} onChange={e => update('feeProcessing', +e.target.value)} />
+                  <input type="number" step="0.1" className="input-field" value={form.feeProcessing} onChange={e => update('feeProcessing', e.target.value)} placeholder="0" />
                 </div>
                 <div>
                   <label className="input-label">Phí bảo hiểm (%/năm)</label>
-                  <input type="number" step="0.1" className="input-field" value={form.feeInsurance} onChange={e => update('feeInsurance', +e.target.value)} />
+                  <input type="number" step="0.1" className="input-field" value={form.feeInsurance} onChange={e => update('feeInsurance', e.target.value)} placeholder="0" />
                 </div>
                 <div>
                   <label className="input-label">Phí quản lý (%/năm)</label>
-                  <input type="number" step="0.1" className="input-field" value={form.feeManagement} onChange={e => update('feeManagement', +e.target.value)} />
+                  <input type="number" step="0.1" className="input-field" value={form.feeManagement} onChange={e => update('feeManagement', e.target.value)} placeholder="0" />
                 </div>
               </div>
 

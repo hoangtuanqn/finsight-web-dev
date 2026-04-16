@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import LandingPage from './pages/LandingPage';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
@@ -13,6 +14,7 @@ import DebtDetailPage from './pages/debt/DebtDetailPage';
 import EditDebtPage from './pages/debt/EditDebtPage';
 import EarAnalysisPage from './pages/debt/EarAnalysisPage';
 import RepaymentPlanPage from './pages/debt/RepaymentPlanPage';
+import DtiAnalysisPage from './pages/debt/DtiAnalysisPage';
 import InvestmentPage from './pages/InvestmentPage';
 import RiskAssessmentPage from './pages/RiskAssessmentPage';
 import ProfilePage from './pages/ProfilePage';
@@ -26,6 +28,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
+          <Toaster richColors position="top-right" />
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
@@ -36,6 +39,7 @@ export default function App() {
               <Route path="/debts/add" element={<AddDebtPage />} />
               <Route path="/debts/ear-analysis" element={<EarAnalysisPage />} />
               <Route path="/debts/repayment" element={<RepaymentPlanPage />} />
+              <Route path="/debts/dti" element={<DtiAnalysisPage />} />
               <Route path="/debts/:id" element={<DebtDetailPage />} />
               <Route path="/debts/:id/edit" element={<EditDebtPage />} />
               <Route path="/investment" element={<InvestmentPage />} />

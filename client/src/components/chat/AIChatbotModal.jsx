@@ -235,8 +235,8 @@ export default function AIChatbotModal() {
                           <Bot className="w-3.5 h-3.5 text-indigo-400" />
                         </div>
                       ) : (
-                        <div className="w-7 h-7 rounded-full flex items-center justify-center bg-slate-700 border border-slate-600">
-                          <User className="w-3.5 h-3.5 text-slate-300" />
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)' }}>
+                          <User className="w-3.5 h-3.5" style={{ color: 'var(--color-text-secondary)' }} />
                         </div>
                       )}
                     </div>
@@ -246,14 +246,17 @@ export default function AIChatbotModal() {
                       <div
                         className={`px-3.5 py-2.5 rounded-2xl text-[13px] leading-relaxed ${
                           msg.role === 'user'
-                            ? 'bg-blue-600 text-white rounded-tr-sm shadow-sm'
+                            ? 'rounded-tr-sm shadow-sm'
                             : 'shadow-sm rounded-tl-sm'
                         }`}
-                        style={msg.role === 'assistant' ? {
+                        style={msg.role === 'user' ? {
+                          background: 'linear-gradient(135deg, #2563EB 0%, #4F46E5 100%)',
+                          color: '#ffffff',
+                        } : {
                           background: 'var(--color-bg-elevated)',
                           color: 'var(--color-text-primary)',
                           border: '1px solid var(--color-border)',
-                        } : {}}
+                        }}
                       >
                         {msg.role === 'assistant' ? (
                           <>

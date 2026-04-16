@@ -92,10 +92,10 @@ class CronService {
 
       // Domino condition: >= 2 debts due this week OR DTI > 50%
       if (debtsDueThisWeek >= 2 || dtiRatio > 50) {
-        const reason = debtsDueThisWeek >= 2 
-          ? `Bạn có ${debtsDueThisWeek} khoản nợ đáo hạn trong cùng 1 tuần.` 
+        const reason = debtsDueThisWeek >= 2
+          ? `Bạn có ${debtsDueThisWeek} khoản nợ đáo hạn trong cùng 1 tuần.`
           : `Tỷ lệ nợ trên thu nhập (DTI) của bạn đang ở mức nguy hiểm (${dtiRatio.toFixed(1)}%).`;
-          
+
         const created = await this.createNotificationIfNotExists(
           userId,
           'DOMINO_RISK',
@@ -107,6 +107,31 @@ class CronService {
         if (created && user.email) {
           await emailService.sendDominoRiskAlert(user.email, user.username, reason);
         }
+      }
+
+      // Cảnh báo sớm khi DTI vượt 35% (WARNING) — chưa đến mức DOMINO nhưng cần theo dõi
+      if (dtiRatio > 35 && dtiRatio <= 50 && debtsDueThisWeek < 2) {
+        await this.createNotificationIfNotExists(
+          userId,
+          'HIGH_DTI',
+          '⚠️ Chỉ số DTI vượt ngưỡng cảnh báo',
+          `Tỷ lệ nợ/thu nhập (DTI) của bạn đang ở ${dtiRatio.toFixed(1)}% — vượt mức cảnh báo 35%. Hãy xem xét kế hoạch trả nợ để giảm DTI về mức an toàn.`,
+          'WARNING'
+        );
+      }
+
+      // Ghi DebtSnapshot hàng ngày (chỉ 1 bản/ngày)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const existingSnapshot = await prisma.debtSnapshot.findFirst({
+        where: { userId, createdAt: { gte: today } }
+      });
+      if (!existingSnapshot) {
+        const totalBalance = debts.reduce((s, d) => s + d.balance, 0);
+        await prisma.debtSnapshot.create({
+          data: { userId, totalDebt: totalBalance, totalEAR: 0, debtToIncome: dtiRatio }
+        });
+        console.log(`[DebtSnapshot] Ghi snapshot DTI=${dtiRatio.toFixed(1)}% cho User ${userId}`);
       }
     }
   }

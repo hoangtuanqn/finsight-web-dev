@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 import { debtAPI } from '../../api/index.js';
 import { formatVND, formatPercent } from '../../utils/calculations';
 import EARBreakdown from '../../components/debt/EARBreakdown';
@@ -11,7 +12,7 @@ export default function DebtDetailPage() {
   const { id } = useParams();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [payForm, setPayForm] = useState({ amount: 0, notes: '' });
+  const [payForm, setPayForm] = useState({ amount: '', notes: '' });
   const [paying, setPaying] = useState(false);
   const [paySuccess, setPaySuccess] = useState(false);
 
@@ -27,15 +28,25 @@ export default function DebtDetailPage() {
 
   const handlePayment = async (e) => {
     e.preventDefault();
+    const amount = +payForm.amount;
+    if (!amount || amount <= 0) {
+      toast.error('Số tiền phải lớn hơn 0 ₫');
+      return;
+    }
+    if (amount > debt.balance) {
+      toast.error(`Số tiền không được vượt quá dư nợ hiện tại ( ${formatVND(debt.balance)} )`);
+      return;
+    }
     setPaying(true);
     setPaySuccess(false);
     try {
-      await debtAPI.logPayment(id, payForm);
-      setPayForm({ amount: 0, notes: '' });
+      await debtAPI.logPayment(id, { ...payForm, amount });
+      setPayForm({ amount: '', notes: '' });
       setPaySuccess(true);
       setTimeout(() => setPaySuccess(false), 3000);
       load();
     } catch (err) {
+      toast.error('Ghi nhận thất bại, vui lòng thử lại');
       console.error(err);
     } finally {
       setPaying(false);
@@ -72,9 +83,10 @@ export default function DebtDetailPage() {
           </p>
         </div>
         
-        <Link 
-          to={`/debts/${id}/edit`} 
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.05] border border-white/[0.1] text-[13px] font-medium text-slate-300 hover:bg-white/[0.1] hover:text-white transition-all shadow-sm"
+        <Link
+          to={`/debts/${id}/edit`}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-medium transition-all shadow-sm"
+          style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
         >
           <span className="flex items-center gap-1.5"><Pencil size={14} /> Chỉnh sửa</span>
         </Link>
@@ -109,7 +121,7 @@ export default function DebtDetailPage() {
               <span className="text-sm text-slate-400">Tiến trình trả nợ</span>
               <span className="text-sm font-semibold text-blue-400">{paidPercent}%</span>
             </div>
-            <div className="h-2.5 bg-slate-800 rounded-full overflow-hidden">
+            <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--color-border)' }}>
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${Math.max(2, paidPercent)}%` }}
@@ -134,7 +146,7 @@ export default function DebtDetailPage() {
             {paymentHistory?.length > 0 ? (
               <div className="space-y-1">
                 {paymentHistory.map(p => (
-                  <div key={p.id} className="flex items-center justify-between py-2.5 border-b border-white/[0.04] last:border-0">
+                  <div key={p.id} className="flex items-center justify-between py-2.5 border-b last:border-0" style={{ borderColor: 'var(--color-border)' }}>
                     <div>
                       <p className="text-sm font-medium text-green-400">{formatVND(p.amount)}</p>
                       <p className="text-[11px] text-slate-600">{new Date(p.paidAt).toLocaleDateString('vi-VN')}</p>
@@ -164,7 +176,7 @@ export default function DebtDetailPage() {
             <form onSubmit={handlePayment} className="space-y-4">
               <div>
                 <label className="input-label">Số tiền</label>
-                <input type="number" className="input-field" value={payForm.amount} onChange={e => setPayForm(f => ({ ...f, amount: +e.target.value }))} required />
+                <input type="number" className="input-field" value={payForm.amount} onChange={e => setPayForm(f => ({ ...f, amount: e.target.value }))} placeholder="0" required />
               </div>
               <div>
                 <label className="input-label">Ghi chú</label>
@@ -180,7 +192,7 @@ export default function DebtDetailPage() {
               </button>
             </form>
 
-            <div className="h-px bg-white/[0.06] my-5" />
+            <div className="h-px my-5" style={{ background: 'var(--color-border)' }} />
 
             <div className="space-y-2.5 text-sm">
               <div className="flex justify-between">

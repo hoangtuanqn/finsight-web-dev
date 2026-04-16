@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { investmentAPI } from '../api/index.js';
+import { investmentAPI, userAPI } from '../api/index.js';
+import { useAuth } from '../context/AuthContext';
 import { TrendingUp, RefreshCw, Target, Flame, Shield } from 'lucide-react';
 
 const QUESTIONS = [
@@ -54,6 +55,7 @@ const QUESTIONS = [
 
 export default function RiskAssessmentPage() {
   const navigate = useNavigate();
+  const { setUser } = useAuth();
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState([]);
   const [result, setResult] = useState(null);
@@ -70,6 +72,9 @@ export default function RiskAssessmentPage() {
       try {
         const res = await investmentAPI.submitRiskAssessment({ answers: newAnswers });
         setResult(res.data.data);
+        // Refresh user context để ProfilePage hiển thị riskLevel + riskScore mới nhất
+        const profileRes = await userAPI.getProfile();
+        setUser(prev => ({ ...prev, ...profileRes.data.data.user }));
       } catch (e) {
         console.error(e);
       } finally {

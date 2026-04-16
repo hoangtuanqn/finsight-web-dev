@@ -11,16 +11,28 @@ const COLORS = {
   managementFee: '#f59e0b',
 };
 
-const tooltipStyle = {
-  background: '#111827',
-  border: '1px solid rgba(255,255,255,0.08)',
-  borderRadius: '12px',
-  fontSize: '12px',
-  boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+const CustomTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  const style = getComputedStyle(document.documentElement);
+  const bg = style.getPropertyValue('--color-bg-secondary').trim() || '#111827';
+  const border = style.getPropertyValue('--color-border').trim() || 'rgba(255,255,255,0.08)';
+  const textPrimary = style.getPropertyValue('--color-text-primary').trim() || '#f8fafc';
+  const textSecondary = style.getPropertyValue('--color-text-secondary').trim() || '#94a3b8';
+  return (
+    <div style={{ background: bg, border: `1px solid ${border}`, borderRadius: '12px', padding: '10px 14px', fontSize: '12px', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
+      <p style={{ color: textSecondary, marginBottom: 4 }}>{label}</p>
+      <p style={{ color: textPrimary, fontWeight: 600 }}>{payload[0].value.toFixed(2)}%</p>
+    </div>
+  );
 };
 
 export default function EARBreakdown({ breakdown }) {
   if (!breakdown) return null;
+
+  const style = getComputedStyle(document.documentElement);
+  const textMuted = style.getPropertyValue('--color-text-muted').trim() || '#64748b';
+  const textSecondary = style.getPropertyValue('--color-text-secondary').trim() || '#94a3b8';
+  const gridStroke = style.getPropertyValue('--color-border').trim() || 'rgba(255,255,255,0.04)';
 
   const chartData = [
     { name: 'APR', value: breakdown.apr, key: 'apr' },
@@ -40,12 +52,12 @@ export default function EARBreakdown({ breakdown }) {
       className="glass-card"
     >
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[15px] font-semibold text-white flex items-center gap-2">
+        <h3 className="text-[15px] font-semibold flex items-center gap-2" style={{ color: 'var(--color-text-primary)' }}>
           <BarChart2 size={16} /> Phân tích EAR
         </h3>
         <div className="text-right">
           <p className="text-xl font-bold text-red-400">{formatPercent(totalEAR)}</p>
-          <p className="text-[11px] text-slate-500">Chi phí thực tế/năm</p>
+          <p className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>Chi phí thực tế/năm</p>
         </div>
       </div>
 
@@ -60,10 +72,10 @@ export default function EARBreakdown({ breakdown }) {
       <div className="h-52">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 70, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-            <XAxis type="number" tick={{ fill: '#64748b', fontSize: 11 }} tickFormatter={(v) => `${v.toFixed(1)}%`} axisLine={{ stroke: 'rgba(255,255,255,0.06)' }} />
-            <YAxis type="category" dataKey="name" tick={{ fill: '#94a3b8', fontSize: 11 }} width={70} axisLine={{ stroke: 'rgba(255,255,255,0.06)' }} />
-            <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: '#e2e8f0' }} formatter={(val) => [`${val.toFixed(2)}%`, '']} />
+            <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
+            <XAxis type="number" tick={{ fill: textMuted, fontSize: 11 }} tickFormatter={(v) => `${v.toFixed(1)}%`} axisLine={{ stroke: gridStroke }} />
+            <YAxis type="category" dataKey="name" tick={{ fill: textSecondary, fontSize: 11 }} width={70} axisLine={{ stroke: gridStroke }} />
+            <Tooltip content={<CustomTooltip />} />
             <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={16}>
               {chartData.map((entry, i) => (
                 <Cell key={i} fill={COLORS[entry.key] || '#64748b'} />
@@ -78,7 +90,7 @@ export default function EARBreakdown({ breakdown }) {
         {chartData.map(d => (
           <div key={d.key} className="flex items-center gap-1.5 text-[11px]">
             <div className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS[d.key] }} />
-            <span className="text-slate-500">{d.name}: <span className="text-slate-400 font-medium">{formatPercent(d.value)}</span></span>
+            <span style={{ color: 'var(--color-text-muted)' }}>{d.name}: <span style={{ color: 'var(--color-text-secondary)', fontWeight: 500 }}>{formatPercent(d.value)}</span></span>
           </div>
         ))}
       </div>

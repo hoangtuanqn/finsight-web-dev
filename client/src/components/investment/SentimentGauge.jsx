@@ -45,7 +45,7 @@ export default function SentimentGauge({ value = 50, size = 200 }) {
 
   return (
     <div className="flex flex-col items-center">
-      <svg width={size} height={size / 2 + 40} viewBox={`0 0 ${size} ${size / 2 + 40}`}>
+      <svg width={size} height={size / 2 + 20} viewBox={`0 0 ${size} ${size / 2 + 20}`}>
         {/* Arc segments */}
         {segments.map((seg, i) => (
           <path
@@ -72,13 +72,11 @@ export default function SentimentGauge({ value = 50, size = 200 }) {
 
         {/* Center dot */}
         <circle cx={cx} cy={cy} r="6" fill={color} />
-
-        {/* Value text */}
-        <text x={cx} y={cy + 30} textAnchor="middle" fill={color} fontSize="28" fontWeight="bold">
-          {value}
-        </text>
       </svg>
-      <div className="text-center -mt-2">
+
+      {/* Value & label below gauge — separated from SVG to avoid overlap */}
+      <div className="text-center mt-1">
+        <p className="text-3xl font-bold leading-none" style={{ color }}>{value}</p>
         <p className="text-sm font-semibold mt-1" style={{ color }}>{label}</p>
       </div>
     </div>

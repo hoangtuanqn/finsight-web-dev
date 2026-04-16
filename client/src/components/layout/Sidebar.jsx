@@ -13,7 +13,8 @@ const navItems = [
   {
     to: '/debts',
     icon: <CreditCard size={18} />,
-    label: 'Quản lý nợ'
+    label: 'Quản lý nợ',
+    end: true
   },
   {
     to: '/debts/ear-analysis',

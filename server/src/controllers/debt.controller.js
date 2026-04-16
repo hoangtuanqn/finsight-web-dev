@@ -187,6 +187,55 @@ export async function getRepaymentPlan(req, res) {
   }
 }
 
+export async function getDtiAnalysis(req, res) {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.userId } });
+    const debts = await prisma.debt.findMany({ where: { userId: req.userId, status: 'ACTIVE' } });
+
+    const monthlyIncome = user.monthlyIncome || 0;
+    const totalMinPayment = debts.reduce((s, d) => s + d.minPayment, 0);
+    const dtiRatio = calcDebtToIncomeRatio(totalMinPayment, monthlyIncome);
+
+    const zone =
+      dtiRatio > 50 ? 'CRITICAL' :
+      dtiRatio > 35 ? 'WARNING' :
+      dtiRatio > 20 ? 'CAUTION' : 'SAFE';
+
+    const breakdown = debts.map(d => ({
+      id: d.id,
+      name: d.name,
+      platform: d.platform,
+      balance: d.balance,
+      minPayment: d.minPayment,
+      dtiContribution: parseFloat(
+        monthlyIncome > 0 ? ((d.minPayment / monthlyIncome) * 100).toFixed(2) : 0
+      ),
+    })).sort((a, b) => b.dtiContribution - a.dtiContribution);
+
+    const safeMaxPayment = monthlyIncome * 0.20;
+    const whatIf = {
+      targetDti: 20,
+      incomeNeededForSafe: totalMinPayment > 0 ? parseFloat((totalMinPayment / 0.20).toFixed(0)) : 0,
+      paymentReductionNeeded: parseFloat(Math.max(0, totalMinPayment - safeMaxPayment).toFixed(0)),
+    };
+
+    return success(res, {
+      summary: {
+        dtiRatio: parseFloat(dtiRatio.toFixed(2)),
+        zone,
+        monthlyIncome,
+        totalMinPayment,
+        remainingCashflow: monthlyIncome - totalMinPayment,
+      },
+      breakdown,
+      whatIf,
+    });
+  } catch (err) {
+    console.error('getDtiAnalysis error:', err);
+    return error(res, 'Internal server error');
+  }
+}
+
 export async function getEarAnalysis(req, res) {
   try {
     const debts = await prisma.debt.findMany({ where: { userId: req.userId, status: 'ACTIVE' } });

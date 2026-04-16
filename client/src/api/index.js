@@ -48,6 +48,7 @@ export const debtAPI = {
   logPayment: (id, data) => api.post(`/debts/${id}/payments`, data),
   getRepaymentPlan: (params) => api.get('/debts/repayment-plan', { params }),
   getEarAnalysis: () => api.get('/debts/ear-analysis'),
+  getDtiAnalysis: () => api.get('/debts/dti'),
 };
 
 // INVESTMENT

@@ -56,6 +56,9 @@ services:
       # Embedding
       EMBEDDING_PROVIDER: "${EMBEDDING_PROVIDER:-fptcloud}"
       EMBEDDING_MODEL: "${EMBEDDING_MODEL:-Vietnamese_Embedding}"
+    volumes:
+      - ./server:/app
+      - /app/node_modules
     restart: always
 
   client:
