@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { userAPI } from '../api/index.js';
 import { formatVND } from '../utils/calculations';
+import { User, Mail, DollarSign, TrendingDown, CheckCircle, Rocket, AlertTriangle } from 'lucide-react';
 
 export default function ProfilePage() {
   const { user, setUser } = useAuth();
@@ -51,7 +52,7 @@ export default function ProfilePage() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl pb-10">
       <div className="mb-6">
-        <h1 className="text-[22px] font-bold text-white">👤 Hồ sơ cá nhân</h1>
+        <h1 className="text-[22px] font-bold text-white flex items-center gap-2"><User size={20} /> Hồ sơ cá nhân</h1>
         <p className="text-slate-500 text-sm mt-1">Cần hoàn thiện thông tin để hệ thống AI đánh giá tài chính chính xác nhất</p>
       </div>
 
@@ -62,7 +63,7 @@ export default function ProfilePage() {
             animate={{ opacity: 1, y: 0 }}
             className="bg-emerald-500/8 border border-emerald-500/20 rounded-xl px-4 py-2.5 mb-5 text-sm text-emerald-400"
           >
-            ✅ Đã lưu thay đổi thành công!
+            <CheckCircle size={16} className="text-emerald-400 shrink-0" /> Đã lưu thay đổi thành công!
           </motion.div>
         )}
 
@@ -78,7 +79,7 @@ export default function ProfilePage() {
               <div>
                 <label className="input-label">Họ và tên</label>
                 <div className="input-group">
-                  <span className="input-icon">👤</span>
+                  <span className="input-icon"><User size={16} /></span>
                   <input
                     className="input-field has-icon"
                     value={form.fullName}
@@ -90,7 +91,7 @@ export default function ProfilePage() {
               <div>
                 <label className="input-label">Email nhận cảnh báo</label>
                 <div className="input-group">
-                  <span className="input-icon">✉️</span>
+                  <span className="input-icon"><Mail size={16} /></span>
                   <input
                     type="email"
                     className="input-field has-icon"
@@ -116,7 +117,7 @@ export default function ProfilePage() {
               <div>
                 <label className="input-label text-[12px]">Thu nhập hằng tháng</label>
                 <div className="input-group">
-                  <span className="input-icon">💰</span>
+                  <span className="input-icon"><DollarSign size={16} /></span>
                   <input
                     type="number"
                     className="input-field has-icon"
@@ -130,7 +131,7 @@ export default function ProfilePage() {
               <div>
                 <label className="input-label text-[12px]">Ngân sách trả nợ thêm/tháng</label>
                 <div className="input-group">
-                  <span className="input-icon">📉</span>
+                  <span className="input-icon"><TrendingDown size={16} /></span>
                   <input
                     type="number"
                     className="input-field has-icon"
@@ -145,7 +146,7 @@ export default function ProfilePage() {
             <div>
               <label className="input-label text-[12px]">Số vốn đang có (Tổng tài sản)</label>
               <div className="input-group">
-                <span className="input-icon">🏛️</span>
+                <span className="input-icon"><DollarSign size={16} /></span>
                 <input
                   type="number"
                   className="input-field has-icon"
@@ -203,10 +204,10 @@ export default function ProfilePage() {
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Đang lưu...
                 </span>
-              ) : '🚀 Lưu toàn bộ thông tin'}
+              ) : <span className="flex items-center gap-2"><Rocket size={16} /> Lưu toàn bộ thông tin</span>}
             </button>
             <p className="text-[11px] text-slate-500 mt-4 text-center">
-              ⚠️ Cần cập nhật tối thiểu các thông tin trên để mở khóa tính năng <strong>Tư vấn AI</strong>
+              <AlertTriangle size={12} className="inline mr-1" /> Cần cập nhật tối thiểu các thông tin trên để mở khóa tính năng <strong>Tư vấn AI</strong>
             </p>
           </div>
         </form>
