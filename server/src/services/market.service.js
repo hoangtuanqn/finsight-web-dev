@@ -100,15 +100,27 @@ export async function fetchGoldPrice() {
   }
 
   try {
-    const response = await axios.get('https://sjc.com.vn/xml/tygiavang.xml', { timeout: 5000, responseType: 'text' });
-    const xml = response.data;
-    // Simple XML parse for SJC gold price
-    const buyMatch = xml.match(/<buy>([^<]+)<\/buy>/);
-    const sellMatch = xml.match(/<sell>([^<]+)<\/sell>/);
+    // BTMC API provides real-time SJC gold price (row 69: VÀNG MIẾNG SJC)
+    const response = await axios.get(
+      'https://btmc.vn/api/BTMCAPI/getpricebtmc?key=3kd8ub1llcg9t45hnoh8hmn7t5kc2v',
+      { timeout: 5000 }
+    );
+    const rows = response.data?.DataList?.Data || [];
+
+    // Find the SJC gold bar row by name
+    let sjcRow = null;
+    for (let i = 0; i < rows.length; i++) {
+      const idx = i + 1;
+      const name = rows[i][`@n_${idx}`] || '';
+      if (name.includes('VÀNG MIẾNG SJC') || name.includes('SJC')) {
+        sjcRow = { buy: rows[i][`@pb_${idx}`], sell: rows[i][`@ps_${idx}`] };
+        break;
+      }
+    }
 
     const result = {
-      buy: buyMatch ? parseFloat(buyMatch[1].replace(/,/g, '')) : 0,
-      sell: sellMatch ? parseFloat(sellMatch[1].replace(/,/g, '')) : 0,
+      buy: sjcRow?.buy ? parseInt(sjcRow.buy, 10) : 0,
+      sell: sjcRow?.sell ? parseInt(sjcRow.sell, 10) : 0,
       unit: 'VND/chỉ',
       source: 'SJC',
       updatedAt: new Date().toISOString(),

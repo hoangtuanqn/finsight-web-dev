@@ -145,7 +145,7 @@ export default function InvestmentPage() {
               {[
                 { label: 'Bitcoin', value: prices.bitcoin?.price ? `$${prices.bitcoin.price.toLocaleString()}` : '—', change: prices.bitcoin?.change24h },
                 { label: 'Ethereum', value: prices.ethereum?.price ? `$${prices.ethereum.price.toLocaleString()}` : '—', change: prices.ethereum?.change24h },
-                { label: 'Vàng SJC', value: prices.gold?.sell ? `${(prices.gold.sell / 1000000).toFixed(1)}tr` : '—', extra: prices.gold?.unit || '' },
+                { label: 'Vàng SJC', value: prices.gold?.sell ? `${prices.gold.sell.toLocaleString('vi-VN')} đ` : '—', extra: prices.gold?.unit || '' },
               ].map((item, i) => (
                 <div key={i} className="py-1">
                   <p className="text-[11px] text-slate-500 mb-0.5">{item.label}</p>
