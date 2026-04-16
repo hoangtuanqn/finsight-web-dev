@@ -10,6 +10,7 @@
   /* Dark Theme (Deep Blue) */
   --color-bg-primary: #0b1121;
   --color-bg-secondary: #111827;
+  --color-bg-elevated: #1e293b;
   --color-bg-card: rgba(17, 24, 39, 0.8);
   --color-border: rgba(255, 255, 255, 0.08);
   --color-border-hover: rgba(255, 255, 255, 0.15);
@@ -36,6 +37,7 @@
   /* Light Theme (Clean White) */
   --color-bg-primary: #f8fafc;
   --color-bg-secondary: #ffffff;
+  --color-bg-elevated: #f1f5f9;
   --color-bg-card: #ffffff;
   --color-border: #e2e8f0;
   --color-border-hover: #cbd5e1;

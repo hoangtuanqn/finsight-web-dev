@@ -9,16 +9,15 @@ export default function ChatHistory({ sessions, onSelect, onDelete, onNew, curre
       <div className="p-3">
         <button
           onClick={onNew}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-medium transition-colors hover:opacity-90 shadow-sm"
+          className="w-full flex items-center justify-center gap-1.5 py-3 rounded-xl text-xs font-medium transition-colors hover:opacity-90 shadow-sm whitespace-nowrap"
           style={{ background: 'linear-gradient(135deg, #2563EB 0%, #4F46E5 100%)', color: 'white' }}
         >
-          <Plus className="w-3.5 h-3.5" />
           Cuộc trò chuyện mới
         </button>
       </div>
 
       {/* Session List */}
-      <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-1 scrollbar-thin scrollbar-thumb-slate-700">
+      <div className="flex-1 overflow-y-auto px-2 pt-1 pb-2 space-y-1 scrollbar-thin scrollbar-thumb-slate-700">
         {sessions.length === 0 && (
           <p className="text-center text-[11px] py-6 opacity-50" style={{ color: 'var(--color-text-secondary)' }}>
             Chưa có cuộc trò chuyện nào
