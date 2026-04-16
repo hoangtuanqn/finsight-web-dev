@@ -1,2 +1,31 @@
-node_modules
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Environments
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Documentation
+Docs/
+
+# Build outputs
+dist/
+build/
+coverage/
+
+# Mac OS
+.DS_Store
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

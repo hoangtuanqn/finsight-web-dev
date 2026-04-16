@@ -4,6 +4,7 @@ import { debtAPI } from '../../api/index.js';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
 import EARBreakdown from '../../components/debt/EARBreakdown';
 import { formatVND, formatPercent } from '../../utils/calculations';
+import { BarChart2, Lightbulb } from 'lucide-react';
 
 export default function EarAnalysisPage() {
   const [data, setData] = useState(null);
@@ -19,7 +20,7 @@ export default function EarAnalysisPage() {
   if (loading) return <PageSkeleton />;
   if (!data) return (
     <div className="text-center py-20">
-      <p className="text-3xl mb-3">📊</p>
+      <p className="text-3xl mb-3"><BarChart2 size={40} className="mx-auto text-slate-500" /></p>
       <p className="text-slate-500">Không có dữ liệu phân tích</p>
     </div>
   );
@@ -27,7 +28,7 @@ export default function EarAnalysisPage() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <div className="mb-6">
-        <h1 className="text-[22px] font-bold text-white">📊 Phân tích EAR toàn bộ</h1>
+        <h1 className="text-[22px] font-bold text-white flex items-center gap-2"><BarChart2 size={20} /> Phân tích EAR toàn bộ</h1>
         <p className="text-slate-500 text-sm mt-1">So sánh lãi suất quảng cáo vs chi phí thực tế của từng khoản nợ</p>
       </div>
 
@@ -56,7 +57,7 @@ export default function EarAnalysisPage() {
       {data.summary.totalHiddenCost > 0 && (
         <div className="bg-amber-500/6 border border-amber-500/15 rounded-xl px-4 py-3 mb-6">
           <p className="text-sm text-amber-400">
-            💡 Tổng chi phí ẩn trung bình <span className="font-bold">+{formatPercent(data.summary.totalHiddenCost)}</span> — khoản nợ của bạn đắt hơn {Math.round(data.summary.totalHiddenCost / (data.summary.averageAPR || 1) * 100)}% so với lãi suất quảng cáo.
+            <Lightbulb size={14} className="inline mr-1" /> Tổng chi phí ẩn trung bình <span className="font-bold">+{formatPercent(data.summary.totalHiddenCost)}</span> — khoản nợ của bạn đắt hơn {Math.round(data.summary.totalHiddenCost / (data.summary.averageAPR || 1) * 100)}% so với lãi suất quảng cáo.
           </p>
         </div>
       )}

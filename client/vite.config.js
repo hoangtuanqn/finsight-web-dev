@@ -9,7 +9,7 @@ export default defineConfig({
     host: true, // Required for Docker — binds to 0.0.0.0
     proxy: {
       '/api': {
-        target: 'http://localhost:5001',
+        target: process.env.VITE_API_PROXY || 'http://localhost:5001',
         changeOrigin: true,
       },
     },

@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import SentimentGauge from '../components/investment/SentimentGauge';
 import { PageSkeleton } from '../components/common/LoadingSpinner';
 import { formatVND } from '../utils/calculations';
+import { Lock, TrendingUp, TrendingDown, Target, Bot, Thermometer, BarChart2, PieChart as PieChartIcon, FileText } from 'lucide-react';
 
 const COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6', '#f97316'];
 const ASSET_LABELS = { savings: 'Tiết kiệm', gold: 'Vàng', stocks: 'Chứng khoán', bonds: 'Trái phiếu', crypto: 'Crypto' };
@@ -84,7 +85,7 @@ export default function InvestmentPage() {
           animate={{ scale: 1, opacity: 1 }}
           className="glass-card max-w-md p-10"
         >
-          <div className="text-5xl mb-6">🔒</div>
+          <div className="text-5xl mb-6"><Lock size={48} className="mx-auto text-slate-400" /></div>
           <h2 className="text-xl font-bold text-white mb-3">Chưa đủ dữ liệu phân tích</h2>
           <p className="text-slate-400 text-sm mb-8 leading-relaxed">
             Hệ thống AI cần biết <strong>Thu nhập</strong> và <strong>Số vốn</strong> của bạn để đưa ra đề xuất phân bổ tài sản chính xác nhất.
@@ -122,10 +123,10 @@ export default function InvestmentPage() {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-[22px] font-bold text-white">📈 Tư vấn đầu tư AI</h1>
+          <h1 className="text-[22px] font-bold text-white flex items-center gap-2"><TrendingUp size={20} /> Tư vấn đầu tư AI</h1>
           <p className="text-slate-500 text-sm mt-1">Phân bổ tài sản dựa trên tâm lý thị trường & risk profile</p>
         </div>
-        <Link to="/risk-assessment" className="btn-secondary text-[13px]">🎯 Cập nhật Risk Profile</Link>
+        <Link to="/risk-assessment" className="btn-secondary text-[13px] flex items-center gap-1.5"><Target size={14} /> Cập nhật Risk Profile</Link>
       </div>
 
       {mockSentiment !== null && (
@@ -139,7 +140,7 @@ export default function InvestmentPage() {
         <div className="lg:col-span-2 space-y-6">
           {/* Market Ticker */}
           <div className="glass-card">
-            <h3 className="text-[12px] font-semibold mb-3 text-slate-500 uppercase tracking-wider">📡 Thị trường</h3>
+            <h3 className="text-[12px] font-semibold mb-3 text-slate-500 uppercase tracking-wider flex items-center gap-1.5"><BarChart2 size={14} /> Thị trường</h3>
             <div className="grid grid-cols-3 gap-4">
               {[
                 { label: 'Bitcoin', value: prices.bitcoin?.price ? `$${prices.bitcoin.price.toLocaleString()}` : '—', change: prices.bitcoin?.change24h },
@@ -151,7 +152,7 @@ export default function InvestmentPage() {
                   <p className="font-bold text-white text-[15px]">{item.value}</p>
                   {item.change !== undefined && (
                     <p className={`text-[11px] font-medium ${(item.change || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {(item.change || 0) >= 0 ? '▲' : '▼'} {Math.abs(item.change || 0).toFixed(2)}%
+                      {(item.change || 0) >= 0 ? <TrendingUp size={11} className="inline" /> : <TrendingDown size={11} className="inline" />} {Math.abs(item.change || 0).toFixed(2)}%
                     </p>
                   )}
                   {item.extra && <p className="text-[11px] text-slate-600">{item.extra}</p>}
@@ -164,7 +165,7 @@ export default function InvestmentPage() {
           {recommendation && (
             <div className="glass-card bg-blue-500/3" style={{ borderColor: 'rgba(59, 130, 246, 0.12)' }}>
               <p className="text-sm text-blue-300">
-                🤖 <span className="font-semibold">AI phân tích:</span> {recommendation}
+                <Bot size={14} className="inline mr-1" /> <span className="font-semibold">AI phân tích:</span> {recommendation}
               </p>
             </div>
           )}
@@ -172,7 +173,7 @@ export default function InvestmentPage() {
           {/* Allocation Pie + Breakdown */}
           <div className="glass-card">
             <h3 className="text-[15px] font-semibold text-white mb-4 flex items-center gap-2">
-              <span>🧩</span> Phân bổ danh mục khuyến nghị
+              <PieChartIcon size={16} /> Phân bổ danh mục khuyến nghị
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
               <div className="h-56">
@@ -208,7 +209,7 @@ export default function InvestmentPage() {
           {/* Projection Chart */}
           <div className="glass-card">
             <h3 className="text-[15px] font-semibold text-white mb-1 flex items-center gap-2">
-              <span>📊</span> Dự phóng tài sản
+              <BarChart2 size={16} /> Dự phóng tài sản
             </h3>
             <p className="text-[12px] text-slate-500 mb-4">So sánh: Gửi tiết kiệm 100% vs Phân bổ theo AI</p>
             <div className="h-64">
@@ -230,7 +231,7 @@ export default function InvestmentPage() {
           {news.length > 0 && (
             <div className="glass-card">
               <h3 className="text-[15px] font-semibold text-white mb-4 flex items-center gap-2">
-                <span>📰</span> Tin tức tài chính
+                <FileText size={16} /> Tin tức tài chính
               </h3>
               <div className="space-y-1">
                 {news.map((article, i) => (
@@ -253,12 +254,12 @@ export default function InvestmentPage() {
         {/* Right — Sentiment */}
         <div className="space-y-6">
           <div className="glass-card">
-            <h3 className="text-[12px] font-semibold mb-4 text-center text-slate-500 uppercase tracking-wider">🌡️ Fear & Greed Index</h3>
+            <h3 className="text-[12px] font-semibold mb-4 text-center text-slate-500 uppercase tracking-wider flex items-center justify-center gap-1.5"><Thermometer size={14} /> Fear & Greed Index</h3>
             <SentimentGauge value={sentiment.value || 50} />
           </div>
 
           <div className="glass-card">
-            <h3 className="text-[12px] font-semibold mb-3 text-slate-500 uppercase tracking-wider">📊 Thông tin</h3>
+            <h3 className="text-[12px] font-semibold mb-3 text-slate-500 uppercase tracking-wider flex items-center gap-1.5"><BarChart2 size={14} /> Thông tin</h3>
             <div className="space-y-2.5 text-sm">
               <div className="flex justify-between">
                 <span className="text-slate-500">Tâm lý</span>

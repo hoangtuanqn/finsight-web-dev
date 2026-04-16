@@ -6,14 +6,15 @@ import { PageSkeleton } from '../components/common/LoadingSpinner';
 import { debtAPI, marketAPI } from '../api/index.js';
 import { useAuth } from '../context/AuthContext';
 import { formatVND, formatPercent } from '../utils/calculations';
+import { Plus, ClipboardList, Target, TrendingUp, Search, User, HeartPulse, CreditCard, BarChart2, Thermometer, Flame, PieChart as PieChartIcon, Ruler, Calendar, AlertOctagon, AlertTriangle, PartyPopper } from 'lucide-react';
 
 const QUICK_ACTIONS = [
-  { to: '/debts/add', icon: '➕', label: 'Thêm khoản nợ', desc: 'Nhập nợ mới', color: '#3b82f6' },
-  { to: '/debts/repayment', icon: '📋', label: 'Kế hoạch trả nợ', desc: 'Avalanche vs Snowball', color: '#10b981' },
-  { to: '/risk-assessment', icon: '🎯', label: 'Đánh giá rủi ro', desc: '5 câu hỏi nhanh', color: '#8b5cf6' },
-  { to: '/investment', icon: '📈', label: 'Phân bổ đầu tư', desc: 'Tư vấn AI', color: '#06b6d4' },
-  { to: '/debts/ear-analysis', icon: '🔍', label: 'Phân tích EAR', desc: 'Chi phí ẩn', color: '#f59e0b' },
-  { to: '/profile', icon: '👤', label: 'Hồ sơ', desc: 'Cập nhật thu nhập', color: '#64748b' },
+  { to: '/debts/add', icon: <Plus size={18} />, label: 'Thêm khoản nợ', desc: 'Nhập nợ mới', color: '#3b82f6' },
+  { to: '/debts/repayment', icon: <ClipboardList size={18} />, label: 'Kế hoạch trả nợ', desc: 'Avalanche vs Snowball', color: '#10b981' },
+  { to: '/risk-assessment', icon: <Target size={18} />, label: 'Đánh giá rủi ro', desc: '5 câu hỏi nhanh', color: '#8b5cf6' },
+  { to: '/investment', icon: <TrendingUp size={18} />, label: 'Phân bổ đầu tư', desc: 'Tư vấn AI', color: '#06b6d4' },
+  { to: '/debts/ear-analysis', icon: <Search size={18} />, label: 'Phân tích EAR', desc: 'Chi phí ẩn', color: '#f59e0b' },
+  { to: '/profile', icon: <User size={18} />, label: 'Hồ sơ', desc: 'Cập nhật thu nhập', color: '#64748b' },
 ];
 
 const PIE_COLORS = ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6'];
@@ -88,6 +89,10 @@ export default function DashboardPage() {
       }
     };
     load();
+
+    const handleUpdate = () => load();
+    window.addEventListener('Finsight:DebtUpdated', handleUpdate);
+    return () => window.removeEventListener('Finsight:DebtUpdated', handleUpdate);
   }, []);
 
   if (loading) return <PageSkeleton />;
@@ -162,10 +167,10 @@ export default function DashboardPage() {
           </div>
           <Link
             to="/debts/add"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold text-white transition-all hover:opacity-90 active:scale-[0.97]"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-[13px] font-semibold text-white transition-all hover:opacity-90 active:scale-[0.97] shrink-0"
             style={{ background: 'linear-gradient(135deg, #3b82f6, #2563eb)' }}
           >
-            <span>➕</span> Thêm khoản nợ
+            <Plus size={16} /> <span className="hidden sm:inline">Thêm khoản nợ</span>
           </Link>
         </div>
       </motion.div>
@@ -181,7 +186,7 @@ export default function DashboardPage() {
                 : 'bg-amber-500/[0.07] border-amber-500/25 text-amber-400'
                 }`}
             >
-              <span className="text-base shrink-0">{alert.severity === 'DANGER' ? '🚨' : '⚠️'}</span>
+              <span className="text-base shrink-0">{alert.severity === 'DANGER' ? <AlertOctagon size={16} /> : <AlertTriangle size={16} />}</span>
               {alert.message}
             </div>
           ))}
@@ -191,7 +196,7 @@ export default function DashboardPage() {
       {/* ══════════════════════════════════════════
           ROW 1 — KPI CARDS (4 equal columns)
       ══════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
         {/* Health Score */}
         <motion.div variants={fade}>
           <Card className="p-5! h-full" style={{ borderColor: `${healthColor}20` }}>
@@ -205,7 +210,7 @@ export default function DashboardPage() {
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0"
                   style={{ background: `${healthColor}18` }}
                 >
-                  🏥
+                  <HeartPulse size={18} style={{ color: healthColor }} />
                 </div>
                 <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-widest">Sức khỏe</span>
               </div>
@@ -236,7 +241,7 @@ export default function DashboardPage() {
               style={{ background: 'radial-gradient(ellipse at top right, #ef4444, transparent 70%)' }} />
             <div className="relative flex flex-col h-full">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-red-500/15 flex items-center justify-center text-base shrink-0">💳</div>
+                <div className="w-8 h-8 rounded-lg bg-red-500/15 flex items-center justify-center shrink-0"><CreditCard size={18} className="text-red-400" /></div>
                 <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-widest">Tổng nợ</span>
               </div>
               <div className="text-[28px] font-extrabold text-red-500 leading-tight tracking-tight mb-1">
@@ -258,7 +263,7 @@ export default function DashboardPage() {
               style={{ background: 'radial-gradient(ellipse at top right, #8b5cf6, transparent 70%)' }} />
             <div className="relative flex flex-col h-full">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-purple-500/15 flex items-center justify-center text-base shrink-0">📊</div>
+                <div className="w-8 h-8 rounded-lg bg-purple-500/15 flex items-center justify-center shrink-0"><BarChart2 size={18} className="text-purple-400" /></div>
                 <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-widest">EAR trung bình</span>
               </div>
               <div className="text-[32px] font-extrabold text-purple-500 leading-none tracking-tight mb-1">
@@ -276,8 +281,10 @@ export default function DashboardPage() {
               style={{ background: `radial-gradient(ellipse at top right, ${sentimentColor}, transparent 70%)` }} />
             <div className="relative flex flex-col h-full">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0"
-                  style={{ background: `${sentimentColor}18` }}>🌡️</div>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                  style={{ background: `${sentimentColor}18` }}>
+                  <Thermometer size={18} style={{ color: sentimentColor }} />
+                </div>
                 <span className="text-[11px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-widest">Tâm lý thị trường</span>
               </div>
               <div className="flex items-end gap-1.5 mb-1">
@@ -293,14 +300,42 @@ export default function DashboardPage() {
       </div>
 
       {/* ══════════════════════════════════════════
+          QUICK ACTIONS
+      ══════════════════════════════════════════ */}
+      <motion.div variants={fade}>
+        <h2 className="text-[13px] font-semibold text-[var(--color-text-secondary)] uppercase tracking-widest mb-3">Thao tác nhanh</h2>
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
+          {QUICK_ACTIONS.map(action => (
+            <Link
+              key={action.to}
+              to={action.to}
+              className="flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all hover:scale-[1.03] active:scale-[0.97] text-center group"
+              style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)', boxShadow: 'var(--shadow-card)' }}
+            >
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center text-[18px] shrink-0 transition-transform group-hover:scale-110"
+                style={{ background: `${action.color}18` }}
+              >
+                {action.icon}
+              </div>
+              <div>
+                <p className="text-[11px] sm:text-[12px] font-semibold text-[var(--color-text-primary)] leading-tight">{action.label}</p>
+                <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5 hidden sm:block">{action.desc}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* ══════════════════════════════════════════
           ROW 2 — CHART (left 55%) + DUE (right 45%)
       ══════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-11 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-11 gap-3 sm:gap-4">
         {/* APR vs EAR Chart — 6 of 11 cols */}
         <motion.div variants={fade} className="lg:col-span-6">
           <Card className="p-5 h-full flex flex-col">
             <CardHeader
-              icon="📊"
+              icon={<BarChart2 size={18} />}
               title="APR vs EAR — Chi phí ẩn"
               subtitle="So sánh lãi suất quảng cáo (APR) và chi phí thực tế (EAR)"
             />
@@ -332,8 +367,7 @@ export default function DashboardPage() {
                 </ResponsiveContainer>
               ) : (
                 <div className="h-full flex flex-col items-center justify-center gap-2">
-                  <span className="text-3xl">📭</span>
-                  <p className="text-sm text-slate-600">Chưa có dữ liệu nợ</p>
+                  <span className="text-3xl"><BarChart2 size={32} className="mx-auto text-slate-500" /></span>                  <p className="text-sm text-slate-600">Chưa có dữ liệu nợ</p>
                 </div>
               )}
             </div>
@@ -352,7 +386,7 @@ export default function DashboardPage() {
         <motion.div variants={fade} className="lg:col-span-5">
           <Card className="p-5 h-full flex flex-col">
             <CardHeader
-              icon="📅"
+              icon={<Calendar size={18} />}
               title="Đáo hạn sắp tới"
               action={
                 <Link to="/debts" className="text-blue-400 text-[12px] hover:text-blue-300 transition-colors font-medium shrink-0">
@@ -381,7 +415,7 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-center py-4">
-                  <span className="text-5xl mb-3 block">🎉</span>
+                  <span className="text-5xl mb-3 block"><PartyPopper size={40} className="mx-auto text-amber-400" /></span>
                   <p className="text-[13px] font-semibold text-slate-400">Không có nợ đáo hạn</p>
                   <p className="text-[11px] text-slate-600 mt-1">Tuyệt vời! Hãy giữ vững phong độ 💪</p>
                 </div>
@@ -394,11 +428,11 @@ export default function DashboardPage() {
       {/* ══════════════════════════════════════════
           ROW 3 — TOP DEBTS | PIE CHART | DTI
       ══════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
         {/* Top Debts */}
         <motion.div variants={fade}>
           <Card className="p-5 h-full flex flex-col">
-            <CardHeader icon="🔥" title="Top nợ lớn nhất" />
+            <CardHeader icon={<Flame size={18} />} title="Top nợ lớn nhất" />
             {debts.length > 0 ? (
               <div className="space-y-1 flex-1">
                 {debts
@@ -439,7 +473,7 @@ export default function DashboardPage() {
         {/* Platform Distribution */}
         <motion.div variants={fade}>
           <Card className="p-5 h-full flex flex-col">
-            <CardHeader icon="🧩" title="Phân bổ nền tảng" />
+            <CardHeader icon={<PieChartIcon size={18} />} title="Phân bổ nền tảng" />
             {platformPieData.length > 0 ? (
               <div className="flex-1 flex flex-col">
                 {/* Pie — fixed height so it doesn't overflow */}
@@ -499,9 +533,9 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* Financial Metrics — DTI */}
-        <motion.div variants={fade} className="md:col-span-2 xl:col-span-1">
+        <motion.div variants={fade} className="sm:col-span-2 xl:col-span-1">
           <Card className="p-5 h-full flex flex-col">
-            <CardHeader icon="📐" title="Chỉ số tài chính" />
+            <CardHeader icon={<Ruler size={18} />} title="Chỉ số tài chính" />
             <div className="flex-1 flex flex-col gap-4">
               {/* DTI Donut */}
               <div className="flex items-center gap-5">

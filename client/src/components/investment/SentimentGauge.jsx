@@ -2,16 +2,16 @@ import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 
 export default function SentimentGauge({ value = 50, size = 200 }) {
-  const { angle, color, label, emoji } = useMemo(() => {
+  const { angle, color, label } = useMemo(() => {
     // Map 0-100 to -90 to +90 degrees (semicircle)
     const a = -90 + (value / 100) * 180;
-    let c, l, e;
-    if (value <= 24) { c = '#dc2626'; l = 'Sợ hãi cực độ'; e = '😱'; }
-    else if (value <= 49) { c = '#f97316'; l = 'Sợ hãi'; e = '😰'; }
-    else if (value === 50) { c = '#eab308'; l = 'Trung lập'; e = '😐'; }
-    else if (value <= 74) { c = '#22c55e'; l = 'Tham lam'; e = '😊'; }
-    else { c = '#15803d'; l = 'Tham lam cực độ'; e = '🤑'; }
-    return { angle: a, color: c, label: l, emoji: e };
+    let c, l;
+    if (value <= 24) { c = '#dc2626'; l = 'Sợ hãi cực độ'; }
+    else if (value <= 49) { c = '#f97316'; l = 'Sợ hãi'; }
+    else if (value === 50) { c = '#eab308'; l = 'Trung lập'; }
+    else if (value <= 74) { c = '#22c55e'; l = 'Tham lam'; }
+    else { c = '#15803d'; l = 'Tham lam cực độ'; }
+    return { angle: a, color: c, label: l };
   }, [value]);
 
   const cx = size / 2;
@@ -79,7 +79,6 @@ export default function SentimentGauge({ value = 50, size = 200 }) {
         </text>
       </svg>
       <div className="text-center -mt-2">
-        <span className="text-2xl">{emoji}</span>
         <p className="text-sm font-semibold mt-1" style={{ color }}>{label}</p>
       </div>
     </div>

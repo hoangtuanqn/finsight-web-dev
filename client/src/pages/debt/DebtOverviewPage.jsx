@@ -4,21 +4,34 @@ import { motion } from 'framer-motion';
 import { debtAPI } from '../../api/index.js';
 import { formatVND, formatPercent } from '../../utils/calculations';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
+import { CreditCard, BarChart2, ClipboardList, Plus, AlertOctagon, AlertTriangle, PartyPopper, FileText, Home } from 'lucide-react';
 
 const PLATFORM_ICONS = {
-  SPAYLATER: '🟠', LAZPAYLATER: '🔵', CREDIT_CARD: '💳',
-  HOME_CREDIT: '🏠', FE_CREDIT: '🏦', MOMO: '🟣', OTHER: '📄',
+  SPAYLATER: '🟠', LAZPAYLATER: '🔵', CREDIT_CARD: <CreditCard size={18} />,
+  HOME_CREDIT: <Home size={18} />, FE_CREDIT: '🏦', MOMO: '🟣', OTHER: <FileText size={18} />,
 };
 
 export default function DebtOverviewPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchDebts = () => {
     debtAPI.getAll()
       .then(res => setData(res.data.data))
-      .catch(console.error)
-      .finally(() => setTimeout(() => setLoading(false), 500));
+      .catch(console.error);
+  };
+
+  useEffect(() => {
+    fetchDebts();
+    const timer = setTimeout(() => setLoading(false), 500);
+
+    const handleUpdate = () => fetchDebts();
+    window.addEventListener('Finsight:DebtUpdated', handleUpdate);
+    
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('Finsight:DebtUpdated', handleUpdate);
+    };
   }, []);
 
   if (loading) return <PageSkeleton />;
@@ -31,13 +44,13 @@ export default function DebtOverviewPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-[22px] font-bold text-white">💳 Quản lý nợ</h1>
+          <h1 className="text-[22px] font-bold text-white flex items-center gap-2"><CreditCard size={20} /> Quản lý nợ</h1>
           <p className="text-slate-500 text-sm mt-1">Tổng quan các khoản nợ của bạn</p>
         </div>
         <div className="flex gap-2">
-          <Link to="/debts/ear-analysis" className="btn-ghost text-[12px]">📊 Phân tích EAR</Link>
-          <Link to="/debts/repayment" className="btn-ghost text-[12px]">📋 Kế hoạch trả nợ</Link>
-          <Link to="/debts/add" className="btn-primary text-[13px] py-2 px-4">+ Thêm nợ</Link>
+          <Link to="/debts/ear-analysis" className="btn-ghost text-[12px] flex items-center gap-1"><BarChart2 size={13} /> Phân tích EAR</Link>
+          <Link to="/debts/repayment" className="btn-ghost text-[12px] flex items-center gap-1"><ClipboardList size={13} /> Kế hoạch trả nợ</Link>
+          <Link to="/debts/add" className="btn-primary text-[13px] py-2 px-4 flex items-center gap-1"><Plus size={14} /> Thêm nợ</Link>
         </div>
       </div>
 
@@ -65,14 +78,14 @@ export default function DebtOverviewPage() {
       {/* Domino alerts */}
       {summary.dominoAlerts?.map((a, i) => (
         <div key={i} className={`mb-3 px-4 py-3 rounded-xl border text-sm ${a.severity === 'DANGER' ? 'bg-red-500/8 border-red-500/20 text-red-400 pulse-danger' : 'bg-amber-500/8 border-amber-500/20 text-amber-400'}`}>
-          {a.severity === 'DANGER' ? '🚨' : '⚠️'} {a.message}
+          {a.severity === 'DANGER' ? <AlertOctagon size={15} className="shrink-0" /> : <AlertTriangle size={15} className="shrink-0" />} {a.message}
         </div>
       ))}
 
       {/* Debt Cards */}
       {debts.length === 0 ? (
         <div className="glass-card text-center py-16">
-          <p className="text-4xl mb-3">🎉</p>
+          <p className="text-4xl mb-3"><PartyPopper size={40} className="mx-auto text-amber-400" /></p>
           <p className="text-slate-400 mb-4">Bạn chưa có khoản nợ nào. Tuyệt vời!</p>
           <Link to="/debts/add" className="btn-primary">+ Thêm khoản nợ đầu tiên</Link>
         </div>
@@ -88,7 +101,7 @@ export default function DebtOverviewPage() {
               <Link to={`/debts/${debt.id}`} className="glass-card block group">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">{PLATFORM_ICONS[debt.platform] || '📄'}</span>
+                    <span className="text-lg flex items-center justify-center">{PLATFORM_ICONS[debt.platform] || <FileText size={18} />}</span>
                     <div>
                       <p className="font-semibold text-sm text-white group-hover:text-blue-400 transition-colors">{debt.name}</p>
                       <p className="text-[11px] text-slate-600">{debt.platform}</p>

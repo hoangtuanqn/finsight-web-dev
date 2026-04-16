@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { debtAPI } from '../../api/index.js';
 import { calcEAR, calcAPY, formatVND, formatPercent } from '../../utils/calculations';
+import { Pencil, AlertTriangle, BarChart2 } from 'lucide-react';
 
 const PLATFORM_PRESETS = {
   SPAYLATER: { name: 'SPayLater', apr: 18, rateType: 'FLAT', feeProcessing: 0, feeInsurance: 0, feeManagement: 0 },
@@ -97,14 +98,14 @@ export default function EditDebtPage() {
         <span className="text-slate-300">Chỉnh sửa</span>
       </div>
 
-      <h1 className="text-[22px] font-bold text-white mb-6">✏️ Chỉnh sửa khoản nợ</h1>
+      <h1 className="text-[22px] font-bold text-white mb-6 flex items-center gap-2"><Pencil size={20} /> Chỉnh sửa khoản nợ</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <div className="glass-card">
             {error && (
-              <div className="bg-red-500/8 border border-red-500/20 rounded-xl px-4 py-3 mb-5 text-sm text-red-400">
-                ⚠️ {error}
+              <div className="bg-red-500/8 border border-red-500/20 rounded-xl px-4 py-3 mb-5 text-sm text-red-400 flex items-center gap-2">
+                <AlertTriangle size={14} className="shrink-0" /> {error}
               </div>
             )}
 
@@ -216,7 +217,7 @@ export default function EditDebtPage() {
         <div>
           <div className="glass-card sticky top-8">
             <h3 className="text-[15px] font-semibold text-white mb-4 flex items-center gap-2">
-              <span>📊</span> Xem trước chi phí mới
+              <BarChart2 size={16} /> Xem trước chi phí mới
             </h3>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
@@ -234,8 +235,8 @@ export default function EditDebtPage() {
               </div>
               {ear > form.apr && (
                 <div className="bg-red-500/8 border border-red-500/15 rounded-xl px-3 py-2.5">
-                  <p className="text-[12px] text-red-400">
-                    ⚠️ Chi phí ẩn: <span className="font-semibold">+{formatPercent(ear - form.apr)}</span> so với quảng cáo
+                  <p className="text-[12px] text-red-400 flex items-center gap-1">
+                    <AlertTriangle size={12} className="shrink-0" /> Chi phí ẩn: <span className="font-semibold">+{formatPercent(ear - form.apr)}</span> so với quảng cáo
                   </p>
                 </div>
               )}
