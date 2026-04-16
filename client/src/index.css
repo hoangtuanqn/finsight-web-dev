@@ -1580,6 +1580,207 @@ input[type="range"]::-webkit-slider-thumb:hover {
   line-height: 1.8;
 }
 
+/* ==========================================
+   Light Mode — Tailwind Class Overrides
+   Fix hardcoded dark-mode Tailwind colors
+   so text/borders/backgrounds stay readable
+   on a white background.
+   ========================================== */
+
+/* ── Text: white & light-slate → dark on light bg ── */
+[data-theme='light'] .text-white {
+  color: var(--color-text-primary);
+}
+
+[data-theme='light'] .text-slate-300 {
+  color: #334155; /* slate-700 — readable on white */
+}
+
+[data-theme='light'] .text-slate-400 {
+  color: #475569; /* slate-600 — readable on white */
+}
+
+/* Hover / group-hover variants that flip text to white */
+[data-theme='light'] .hover\:text-white:hover {
+  color: var(--color-text-primary);
+}
+
+[data-theme='light'] .hover\:text-slate-300:hover {
+  color: #334155;
+}
+
+/* group-hover:text-white (option cards in RiskAssessmentPage, etc.) */
+[data-theme='light'] .group:hover .group-hover\:text-white {
+  color: var(--color-text-primary);
+}
+
+/* ── Backgrounds: near-transparent white → subtle tint on light bg ── */
+/* On a white page rgba(255,255,255,0.02-0.06) is completely invisible.
+   Replace with a faint dark tint so cards/panels have visible separation. */
+[data-theme='light'] .bg-white\/\[0\.02\] {
+  background-color: rgba(0, 0, 0, 0.025);
+}
+
+[data-theme='light'] .bg-white\/\[0\.03\] {
+  background-color: rgba(0, 0, 0, 0.035);
+}
+
+[data-theme='light'] .bg-white\/\[0\.04\] {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme='light'] .bg-white\/\[0\.05\] {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme='light'] .bg-white\/\[0\.06\] {
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+/* Hover-state transparent-white backgrounds */
+[data-theme='light'] .hover\:bg-white\/\[0\.03\]:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme='light'] .hover\:bg-white\/\[0\.06\]:hover {
+  background-color: rgba(0, 0, 0, 0.07);
+}
+
+[data-theme='light'] .hover\:bg-white\/\[0\.1\]:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+/* ── Backgrounds: dark slate → light gray (progress bar tracks, etc.) ── */
+[data-theme='light'] .bg-slate-800 {
+  background-color: #e2e8f0; /* slate-200 */
+}
+
+[data-theme='light'] .bg-slate-800\/70 {
+  background-color: rgba(226, 232, 240, 0.7);
+}
+
+[data-theme='light'] .bg-slate-800\/80 {
+  background-color: rgba(226, 232, 240, 0.8);
+}
+
+/* ── Borders: near-transparent white → visible light border ── */
+[data-theme='light'] .border-white\/\[0\.06\] {
+  border-color: #e2e8f0; /* slate-200 */
+}
+
+[data-theme='light'] .border-white\/\[0\.08\] {
+  border-color: #cbd5e1; /* slate-300 */
+}
+
+[data-theme='light'] .border-white\/\[0\.1\] {
+  border-color: #cbd5e1; /* slate-300 */
+}
+
+/* ── Light-mode fixes for non-Tailwind component classes ── */
+
+/* btn-secondary / btn-ghost: hardcoded rgba(255,255,255,...) backgrounds */
+[data-theme='light'] .btn-secondary {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme='light'] .btn-secondary:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme='light'] .btn-ghost:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* input-field: near-transparent white → light gray tint */
+[data-theme='light'] .input-field {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme='light'] .input-field:focus {
+  background: rgba(59, 130, 246, 0.04);
+}
+
+/* Skeleton shimmer: invert for light bg */
+[data-theme='light'] .skeleton {
+  background: linear-gradient(90deg,
+      rgba(0, 0, 0, 0.04) 25%,
+      rgba(0, 0, 0, 0.09) 50%,
+      rgba(0, 0, 0, 0.04) 75%);
+  background-size: 200% 100%;
+}
+
+/* Landing page nav: dark translucent bg → white translucent */
+[data-theme='light'] .landing-nav {
+  background: rgba(248, 250, 252, 0.85);
+  border-bottom-color: rgba(0, 0, 0, 0.07);
+}
+
+[data-theme='light'] .landing-nav-link:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* Landing section-alt subtle tint */
+[data-theme='light'] .landing-section-alt {
+  background: rgba(0, 0, 0, 0.015);
+  border-top-color: rgba(0, 0, 0, 0.05);
+  border-bottom-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Feature visual cards (mock UI screenshots on landing page) */
+[data-theme='light'] .feature-visual-card {
+  background: rgba(248, 250, 252, 0.95);
+  border-color: #e2e8f0;
+}
+
+[data-theme='light'] .feature-visual-header {
+  border-bottom-color: #e2e8f0;
+}
+
+/* repay-method inner card on landing */
+[data-theme='light'] .repay-method {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: #e2e8f0;
+}
+
+/* ai-alloc-bar-bg track */
+[data-theme='light'] .ai-alloc-bar-bg {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+/* Scroll mouse indicator on landing hero */
+[data-theme='light'] .scroll-mouse {
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme='light'] .scroll-wheel {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* Range slider track */
+[data-theme='light'] input[type="range"] {
+  background: #e2e8f0;
+}
+
+[data-theme='light'] input[type="range"]::-webkit-slider-thumb {
+  border-color: #f8fafc;
+}
+
+/* Recharts tooltip */
+[data-theme='light'] .recharts-default-tooltip {
+  background: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Scrollbar thumb */
+[data-theme='light'] ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+
+[data-theme='light'] ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
 /* ── Responsive ── */
 @media (max-width: 1024px) {
   .hero-content {
