@@ -3,18 +3,25 @@ import { motion } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { debtAPI } from '../../api/index.js';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
-import { formatVND } from '../../utils/calculations';
-import { ClipboardList, DollarSign, TrendingDown, Bot, Lightbulb, Target, Zap } from 'lucide-react';
+import { formatVND, formatPercent, calcDebtToIncomeRatio } from '../../utils/calculations';
+import { ClipboardList, DollarSign, TrendingDown, Bot, Lightbulb, Target, Zap, TrendingUp } from 'lucide-react';
 
 export default function RepaymentPlanPage() {
   const [data, setData] = useState(null);
+  const [debtSummary, setDebtSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [extraBudget, setExtraBudget] = useState(1000000);
 
   const load = (budget) => {
     setLoading(true);
-    debtAPI.getRepaymentPlan({ extraBudget: budget })
-      .then(res => setData(res.data.data))
+    Promise.all([
+      debtAPI.getRepaymentPlan({ extraBudget: budget }),
+      debtAPI.getAll(),
+    ])
+      .then(([planRes, allRes]) => {
+        setData(planRes.data.data);
+        setDebtSummary(allRes.data.data?.summary || null);
+      })
       .catch(console.error)
       .finally(() => setTimeout(() => setLoading(false), 400));
   };
@@ -29,6 +36,7 @@ export default function RepaymentPlanPage() {
   if (loading && !data) return <PageSkeleton />;
 
   const { avalanche, snowball, comparison, recommendation } = data || {};
+  const monthlyIncome = debtSummary?.monthlyIncome ?? 0;
 
   const timelineData = [];
   if (avalanche?.schedule && snowball?.schedule) {
@@ -38,9 +46,26 @@ export default function RepaymentPlanPage() {
       const snMonth = snowball.schedule[m];
       const avBalance = avMonth ? avMonth.payments.reduce((s, p) => s + p.balance, 0) : 0;
       const snBalance = snMonth ? snMonth.payments.reduce((s, p) => s + p.balance, 0) : 0;
-      timelineData.push({ month: `T${m + 1}`, avalanche: Math.round(avBalance), snowball: Math.round(snBalance) });
+
+      // DTI projection: tổng minPayment tháng đó / income
+      const avTotalMin = avMonth ? avMonth.payments.reduce((s, p) => s + (p.minPayment ?? 0), 0) : 0;
+      const snTotalMin = snMonth ? snMonth.payments.reduce((s, p) => s + (p.minPayment ?? 0), 0) : 0;
+      const avDti = monthlyIncome > 0 ? parseFloat(((avTotalMin / monthlyIncome) * 100).toFixed(1)) : null;
+      const snDti = monthlyIncome > 0 ? parseFloat(((snTotalMin / monthlyIncome) * 100).toFixed(1)) : null;
+
+      timelineData.push({
+        month: `T${m + 1}`,
+        avalanche: Math.round(avBalance),
+        snowball: Math.round(snBalance),
+        ...(avDti !== null && { avDti }),
+        ...(snDti !== null && { snDti }),
+      });
     }
   }
+
+  // Find first month DTI reaches safe zone (<20%) for each method
+  const avSafeMonth = timelineData.findIndex(d => d.avDti !== undefined && d.avDti <= 20);
+  const snSafeMonth = timelineData.findIndex(d => d.snDti !== undefined && d.snDti <= 20);
 
   const tooltipStyle = {
     background: '#111827',
@@ -163,7 +188,7 @@ export default function RepaymentPlanPage() {
 
           {/* Timeline Chart */}
           {timelineData.length > 0 && (
-            <div className="glass-card">
+            <div className="glass-card mb-6">
               <h3 className="text-[15px] font-semibold text-white mb-4 flex items-center gap-2">
                 <TrendingDown size={16} /> Tiến trình giảm nợ
               </h3>
@@ -180,6 +205,75 @@ export default function RepaymentPlanPage() {
                   </LineChart>
                 </ResponsiveContainer>
               </div>
+            </div>
+          )}
+
+          {/* DTI Projection Chart */}
+          {timelineData.length > 0 && monthlyIncome > 0 && timelineData[0]?.avDti !== undefined && (
+            <div className="glass-card">
+              <h3 className="text-[15px] font-semibold text-white mb-2 flex items-center gap-2">
+                <TrendingUp size={16} /> DTI sẽ giảm như thế nào?
+              </h3>
+              <p className="text-[12px] text-slate-500 mb-4">Dự phóng tỉ lệ nợ/thu nhập theo từng tháng của từng chiến lược</p>
+
+              {/* Safe zone arrival info */}
+              {(avSafeMonth !== -1 || snSafeMonth !== -1) && (
+                <div className="flex gap-3 mb-4">
+                  {avSafeMonth !== -1 && (
+                    <div className="flex-1 bg-blue-500/8 border border-blue-500/15 rounded-lg px-3 py-2 text-center">
+                      <p className="text-[10px] text-slate-500 uppercase">Avalanche</p>
+                      <p className="text-sm font-bold text-blue-400">Tháng {avSafeMonth + 1}</p>
+                      <p className="text-[10px] text-slate-500">DTI về &lt;20%</p>
+                    </div>
+                  )}
+                  {snSafeMonth !== -1 && (
+                    <div className="flex-1 bg-emerald-500/8 border border-emerald-500/15 rounded-lg px-3 py-2 text-center">
+                      <p className="text-[10px] text-slate-500 uppercase">Snowball</p>
+                      <p className="text-sm font-bold text-emerald-400">Tháng {snSafeMonth + 1}</p>
+                      <p className="text-[10px] text-slate-500">DTI về &lt;20%</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={timelineData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                    <XAxis dataKey="month" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={{ stroke: 'rgba(255,255,255,0.06)' }} />
+                    <YAxis
+                      tick={{ fill: '#64748b', fontSize: 11 }}
+                      axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
+                      tickFormatter={v => `${v}%`}
+                      domain={[0, 'auto']}
+                    />
+                    <Tooltip
+                      contentStyle={tooltipStyle}
+                      formatter={(v, name) => [`${v}%`, name === 'avDti' ? 'Avalanche DTI' : 'Snowball DTI']}
+                    />
+                    <Legend
+                      wrapperStyle={{ fontSize: '12px' }}
+                      formatter={(value) => value === 'avDti' ? 'Avalanche DTI' : 'Snowball DTI'}
+                    />
+                    {/* Safe zone reference line at 20% */}
+                    <Line
+                      type="monotone"
+                      dataKey={() => 20}
+                      name="safe-zone"
+                      stroke="#10b981"
+                      strokeWidth={1}
+                      strokeDasharray="4 4"
+                      dot={false}
+                      legendType="none"
+                    />
+                    <Line type="monotone" dataKey="avDti" name="avDti" stroke="#3b82f6" strokeWidth={2.5} dot={false} />
+                    <Line type="monotone" dataKey="snDti" name="snDti" stroke="#10b981" strokeWidth={2.5} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <p className="text-[11px] text-slate-600 mt-2 text-center">
+                Đường đứt nét xanh = ngưỡng an toàn 20%
+              </p>
             </div>
           )}
         </>

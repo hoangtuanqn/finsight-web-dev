@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { debtAPI } from '../../api/index.js';
 import { formatVND, formatPercent } from '../../utils/calculations';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
-import { CreditCard, BarChart2, ClipboardList, Plus, AlertOctagon, AlertTriangle, PartyPopper, FileText, Home } from 'lucide-react';
+import { CreditCard, BarChart2, ClipboardList, Plus, AlertOctagon, AlertTriangle, PartyPopper, FileText, Home, TrendingUp } from 'lucide-react';
 
 const PLATFORM_ICONS = {
   SPAYLATER: '🟠', LAZPAYLATER: '🔵', CREDIT_CARD: <CreditCard size={18} />,
@@ -49,6 +49,7 @@ export default function DebtOverviewPage() {
         </div>
         <div className="flex gap-2">
           <Link to="/debts/ear-analysis" className="btn-ghost text-[12px] flex items-center gap-1"><BarChart2 size={13} /> Phân tích EAR</Link>
+          <Link to="/debts/dti" className="btn-ghost text-[12px] flex items-center gap-1"><TrendingUp size={13} /> Phân tích DTI</Link>
           <Link to="/debts/repayment" className="btn-ghost text-[12px] flex items-center gap-1"><ClipboardList size={13} /> Kế hoạch trả nợ</Link>
           <Link to="/debts/add" className="btn-primary text-[13px] py-2 px-4 flex items-center gap-1"><Plus size={14} /> Thêm nợ</Link>
         </div>
@@ -60,7 +61,7 @@ export default function DebtOverviewPage() {
           { label: 'Tổng dư nợ', value: formatVND(summary.totalBalance || 0), color: '#ef4444' },
           { label: 'Trả/tháng tối thiểu', value: formatVND(summary.totalMinPayment || 0), color: '#f59e0b' },
           { label: 'EAR trung bình', value: formatPercent(summary.averageEAR || 0), color: '#8b5cf6' },
-          { label: 'Nợ/Thu nhập (DTI)', value: formatPercent(summary.debtToIncomeRatio || 0), color: (summary.debtToIncomeRatio || 0) > 35 ? '#ef4444' : '#10b981' },
+          { label: 'Nợ/Thu nhập (DTI)', value: formatPercent(summary.debtToIncomeRatio || 0), color: (summary.debtToIncomeRatio || 0) > 50 ? '#ef4444' : (summary.debtToIncomeRatio || 0) > 35 ? '#f97316' : (summary.debtToIncomeRatio || 0) > 20 ? '#f59e0b' : '#10b981', desc: (summary.debtToIncomeRatio || 0) > 50 ? 'Khủng hoảng' : (summary.debtToIncomeRatio || 0) > 35 ? 'Nguy hiểm' : (summary.debtToIncomeRatio || 0) > 20 ? 'Cẩn thận' : 'An toàn' },
         ].map((item, i) => (
           <motion.div
             key={i}
@@ -71,6 +72,7 @@ export default function DebtOverviewPage() {
           >
             <p className="text-[11px] text-slate-500 uppercase tracking-wide mb-1">{item.label}</p>
             <p className="text-xl font-bold" style={{ color: item.color }}>{item.value}</p>
+            {item.desc && <p className="text-[10px] mt-0.5" style={{ color: item.color }}>{item.desc}</p>}
           </motion.div>
         ))}
       </div>
@@ -131,6 +133,14 @@ export default function DebtOverviewPage() {
                     <span className="text-slate-500">Đáo hạn</span>
                     <span className="text-slate-300">Ngày {debt.dueDay}</span>
                   </div>
+                  {summary.debtToIncomeRatio > 0 && (
+                    <div className="flex justify-between text-[12px]">
+                      <span className="text-slate-500">Đóng góp DTI</span>
+                      <span className="text-amber-400 font-medium">
+                        {((debt.minPayment / (summary.totalMinPayment || 1)) * summary.debtToIncomeRatio).toFixed(1)}%
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Progress */}

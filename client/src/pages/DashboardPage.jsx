@@ -14,6 +14,7 @@ const QUICK_ACTIONS = [
   { to: '/risk-assessment', icon: <Target size={18} />, label: 'Đánh giá rủi ro', desc: '5 câu hỏi nhanh', color: '#8b5cf6' },
   { to: '/investment', icon: <TrendingUp size={18} />, label: 'Phân bổ đầu tư', desc: 'Tư vấn AI', color: '#06b6d4' },
   { to: '/debts/ear-analysis', icon: <Search size={18} />, label: 'Phân tích EAR', desc: 'Chi phí ẩn', color: '#f59e0b' },
+  { to: '/debts/dti', icon: <TrendingUp size={18} />, label: 'Phân tích DTI', desc: 'Tỉ lệ nợ/thu nhập', color: '#10b981' },
   { to: '/profile', icon: <User size={18} />, label: 'Hồ sơ', desc: 'Cập nhật thu nhập', color: '#64748b' },
 ];
 
@@ -117,9 +118,10 @@ export default function DashboardPage() {
           ? '#22c55e'
           : '#15803d';
 
-  const dtiColor = dtiRatio > 35 ? '#ef4444' : dtiRatio > 20 ? '#f59e0b' : '#10b981';
+  const dtiColor = dtiRatio > 50 ? '#ef4444' : dtiRatio > 35 ? '#f97316' : dtiRatio > 20 ? '#f59e0b' : '#10b981';
+  const dtiZoneLabel = dtiRatio > 50 ? 'Khủng hoảng' : dtiRatio > 35 ? 'Nguy hiểm' : dtiRatio > 20 ? 'Cẩn thận' : 'An toàn';
   const dtiLabel =
-    dtiRatio > 35 ? 'Rủi ro cao — cần giảm nợ' : dtiRatio > 20 ? 'Trung bình — cần chú ý' : 'Lành mạnh — tốt lắm!';
+    dtiRatio > 50 ? 'Mức khủng hoảng — hành động ngay!' : dtiRatio > 35 ? 'Rủi ro cao — cần giảm nợ' : dtiRatio > 20 ? 'Trung bình — cần chú ý' : 'Lành mạnh — tốt lắm!';
 
   const earChartData = debts.slice(0, 5).map((d) => ({
     name: d.name.length > 12 ? d.name.slice(0, 12) + '…' : d.name,
@@ -562,7 +564,15 @@ export default function DashboardPage() {
                     className="inline-block mt-2 px-2.5 py-0.5 rounded-full text-[10px] font-semibold"
                     style={{ background: `${dtiColor}18`, color: dtiColor }}
                   >
-                    DTI Score
+                    {dtiZoneLabel}
+                  </div>
+                  <div className="mt-1.5">
+                    <Link
+                      to="/debts/dti"
+                      className="text-[11px] text-slate-500 hover:text-blue-400 transition-colors"
+                    >
+                      Xem phân tích chi tiết →
+                    </Link>
                   </div>
                 </div>
               </div>
