@@ -75,9 +75,11 @@ model InvestorProfile {
   monthlyAdd  Float    @default(0)
   goal        String   @default("GROWTH")
   horizon     String   @default("MEDIUM")
-  riskLevel   String   @default("MEDIUM")
-  riskScore   Int      @default(0)
-  lastUpdated DateTime @default(now())
+  riskLevel     String   @default("MEDIUM")
+  riskScore     Int      @default(0)
+  savingsRate   Float    @default(6.0)
+  inflationRate Float    @default(3.5)
+  lastUpdated   DateTime @default(now())
 
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   allocations Allocation[]

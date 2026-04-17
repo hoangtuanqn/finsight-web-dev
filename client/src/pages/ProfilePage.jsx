@@ -32,6 +32,8 @@ export default function ProfilePage() {
     goal: 'GROWTH',
     horizon: 'MEDIUM',
     riskLevel: 'MEDIUM',
+    savingsRate: 6.0,
+    inflationRate: 3.5,
   });
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -47,6 +49,8 @@ export default function ProfilePage() {
         goal:          user.investorProfile?.goal || 'GROWTH',
         horizon:       user.investorProfile?.horizon || 'MEDIUM',
         riskLevel:     user.investorProfile?.riskLevel || 'MEDIUM',
+        savingsRate:   user.investorProfile?.savingsRate?.toString() ?? '6.0',
+        inflationRate: user.investorProfile?.inflationRate?.toString() ?? '3.5',
       });
     }
   }, [user]);
@@ -56,7 +60,15 @@ export default function ProfilePage() {
     setLoading(true);
     setSaved(false);
     try {
-      const res = await userAPI.updateProfile(form);
+      const payload = {
+        ...form,
+        capital: parseFloat(form.capital) || 0,
+        monthlyIncome: parseFloat(form.monthlyIncome) || 0,
+        extraBudget: parseFloat(form.extraBudget) || 0,
+        savingsRate: parseFloat(form.savingsRate) || 0,
+        inflationRate: parseFloat(form.inflationRate) || 0,
+      };
+      const res = await userAPI.updateProfile(payload);
       setUser(prev => ({ ...prev, ...res.data.data.user }));
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -206,6 +218,24 @@ export default function ProfilePage() {
                   </div>
                   <p className="text-[10px] text-slate-500 mt-1">{formatVND(form.capital)}</p>
                 </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="input-label text-[12px]">Lãi suất ngân hàng (%)</label>
+                    <div className="input-group">
+                      <span className="input-icon"><TrendingUp size={16} /></span>
+                      <input type="number" step="0.1" className="input-field has-icon" value={form.savingsRate}
+                        onChange={e => setForm(f => ({ ...f, savingsRate: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="input-label text-[12px]">Mức lạm phát (Khấu trừ) (%)</label>
+                    <div className="input-group">
+                      <span className="input-icon"><TrendingDown size={16} /></span>
+                      <input type="number" step="0.1" className="input-field has-icon" value={form.inflationRate}
+                        onChange={e => setForm(f => ({ ...f, inflationRate: e.target.value }))} />
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="h-px bg-white/5" />
@@ -322,6 +352,8 @@ export default function ProfilePage() {
                 { icon: <DollarSign size={13} />, label: 'Thu nhập / tháng', value: formatVND(user?.monthlyIncome || 0), color: '#10b981' },
                 { icon: <TrendingDown size={13} />, label: 'Trả nợ thêm / tháng', value: formatVND(user?.extraBudget || 0), color: '#f59e0b' },
                 { icon: <Wallet size={13} />, label: 'Tổng vốn', value: formatVND(user?.investorProfile?.capital || 0), color: '#3b82f6' },
+                { icon: <TrendingUp size={13} />, label: 'Lãi gửi ngân hàng', value: `${user?.investorProfile?.savingsRate ?? 6.0}%`, color: '#06b6d4' },
+                { icon: <TrendingDown size={13} />, label: 'Mức lạm phát', value: `${user?.investorProfile?.inflationRate ?? 3.5}%`, color: '#ef4444' },
               ].map(row => (
                 <div key={row.label} className="flex items-center justify-between py-2.5">
                   <span className="text-[12px] text-slate-500 flex items-center gap-1.5">
