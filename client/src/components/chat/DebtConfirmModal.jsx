@@ -26,7 +26,7 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
         remainingTerms: debtInfo.termMonths || 12,
         minPayment: Math.round((debtInfo.originalAmount || 0) / (debtInfo.termMonths || 12)),
         platform: debtInfo.name || 'Khác',
-        dueDay: 15,
+        dueDay: 15, // chỉnh nếu cần 
       });
       window.dispatchEvent(new Event('Finsight:DebtUpdated')); // Trigger refresh across components
       onConfirm?.();

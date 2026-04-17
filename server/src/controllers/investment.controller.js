@@ -15,11 +15,11 @@ export async function getInvestorProfile(req, res) {
 
 export async function createInvestorProfile(req, res) {
   try {
-    const { capital, monthlyAdd, goal, horizon, riskLevel, riskScore } = req.body;
+    const { capital, monthlyAdd, goal, horizon, riskLevel, riskScore, savingsRate, inflationRate } = req.body;
     const profile = await prisma.investorProfile.upsert({
       where: { userId: req.userId },
-      update: { capital, monthlyAdd, goal, horizon, riskLevel, riskScore, lastUpdated: new Date() },
-      create: { userId: req.userId, capital, monthlyAdd, goal, horizon, riskLevel, riskScore },
+      update: { capital, monthlyAdd, goal, horizon, riskLevel, riskScore, savingsRate, inflationRate, lastUpdated: new Date() },
+      create: { userId: req.userId, capital, monthlyAdd, goal, horizon, riskLevel, riskScore, savingsRate, inflationRate },
     });
     return success(res, { investorProfile: profile }, 201);
   } catch (err) {
@@ -60,7 +60,7 @@ export async function getAllocationRecommendation(req, res) {
       sentimentValue = sentiment.value;
     }
 
-    const allocation = getAllocation(profile.riskLevel, sentimentValue);
+    const allocation = getAllocation(profile, sentimentValue);
 
     // Save allocation history
     await prisma.allocation.create({
@@ -87,16 +87,29 @@ export async function getAllocationRecommendation(req, res) {
     ];
 
     // Simple projection estimates
-    const rates = { savings: 0.06, gold: 0.08, stocks: 0.12, bonds: 0.07, crypto: 0.15 };
+    const rates = { savings: profile.savingsRate !== undefined ? profile.savingsRate / 100 : 0.06, gold: 0.08, stocks: 0.12, bonds: 0.07, crypto: 0.15 };
+    const inflationRate = profile.inflationRate !== undefined ? profile.inflationRate / 100 : 0.035;
+
     const weightedReturn = (allocation.savings * rates.savings + allocation.gold * rates.gold +
       allocation.stocks * rates.stocks + allocation.bonds * rates.bonds +
       allocation.crypto * rates.crypto) / 100;
 
-    const projection = {};
+    const realReturn = weightedReturn - inflationRate;
+    const optReturn = weightedReturn * 1.3 - inflationRate;
+    const pessReturn = Math.max(-0.5, weightedReturn * 0.5 - inflationRate);
+
+    const projection = { base: {}, optimistic: {}, pessimistic: {} };
+
     for (const years of [1, 3, 5, 10]) {
-      const fv = profile.capital * Math.pow(1 + weightedReturn, years) +
-        profile.monthlyAdd * 12 * ((Math.pow(1 + weightedReturn, years) - 1) / weightedReturn);
-      projection[`${years}y`] = Math.round(fv);
+      const calcFV = (rate) => {
+        if (rate === 0) return profile.capital + profile.monthlyAdd * 12 * years;
+        return profile.capital * Math.pow(1 + rate, years) +
+          profile.monthlyAdd * 12 * ((Math.pow(1 + rate, years) - 1) / rate);
+      };
+      
+      projection.base[`${years}y`] = Math.round(calcFV(realReturn));
+      projection.optimistic[`${years}y`] = Math.round(calcFV(optReturn));
+      projection.pessimistic[`${years}y`] = Math.round(calcFV(pessReturn));
     }
 
     return success(res, {

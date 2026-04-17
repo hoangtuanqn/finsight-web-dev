@@ -2,16 +2,16 @@ import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 
 export default function SentimentGauge({ value = 50, size = 200 }) {
-  const { angle, color, label, emoji } = useMemo(() => {
+  const { angle, color, label } = useMemo(() => {
     // Map 0-100 to -90 to +90 degrees (semicircle)
     const a = -90 + (value / 100) * 180;
-    let c, l, e;
-    if (value <= 24) { c = '#dc2626'; l = 'Sợ hãi cực độ'; e = '😱'; }
-    else if (value <= 49) { c = '#f97316'; l = 'Sợ hãi'; e = '😰'; }
-    else if (value === 50) { c = '#eab308'; l = 'Trung lập'; e = '😐'; }
-    else if (value <= 74) { c = '#22c55e'; l = 'Tham lam'; e = '😊'; }
-    else { c = '#15803d'; l = 'Tham lam cực độ'; e = '🤑'; }
-    return { angle: a, color: c, label: l, emoji: e };
+    let c, l;
+    if (value <= 24) { c = '#dc2626'; l = 'Sợ hãi cực độ'; }
+    else if (value <= 49) { c = '#f97316'; l = 'Sợ hãi'; }
+    else if (value === 50) { c = '#eab308'; l = 'Trung lập'; }
+    else if (value <= 74) { c = '#22c55e'; l = 'Tham lam'; }
+    else { c = '#15803d'; l = 'Tham lam cực độ'; }
+    return { angle: a, color: c, label: l };
   }, [value]);
 
   const cx = size / 2;
@@ -45,7 +45,7 @@ export default function SentimentGauge({ value = 50, size = 200 }) {
 
   return (
     <div className="flex flex-col items-center">
-      <svg width={size} height={size / 2 + 40} viewBox={`0 0 ${size} ${size / 2 + 40}`}>
+      <svg width={size} height={size / 2 + 20} viewBox={`0 0 ${size} ${size / 2 + 20}`}>
         {/* Arc segments */}
         {segments.map((seg, i) => (
           <path
@@ -72,14 +72,11 @@ export default function SentimentGauge({ value = 50, size = 200 }) {
 
         {/* Center dot */}
         <circle cx={cx} cy={cy} r="6" fill={color} />
-
-        {/* Value text */}
-        <text x={cx} y={cy + 30} textAnchor="middle" fill={color} fontSize="28" fontWeight="bold">
-          {value}
-        </text>
       </svg>
-      <div className="text-center -mt-2">
-        <span className="text-2xl">{emoji}</span>
+
+      {/* Value & label below gauge — separated from SVG to avoid overlap */}
+      <div className="text-center mt-1">
+        <p className="text-3xl font-bold leading-none" style={{ color }}>{value}</p>
         <p className="text-sm font-semibold mt-1" style={{ color }}>{label}</p>
       </div>
     </div>

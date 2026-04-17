@@ -3,17 +3,27 @@ import { motion } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { debtAPI } from '../../api/index.js';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
-import { formatVND } from '../../utils/calculations';
+import { formatVND, formatPercent, calcDebtToIncomeRatio } from '../../utils/calculations';
+import { ClipboardList, DollarSign, TrendingDown, Bot, Lightbulb, Target, Zap, TrendingUp } from 'lucide-react';
 
 export default function RepaymentPlanPage() {
   const [data, setData] = useState(null);
+  const [debtSummary, setDebtSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [extraBudget, setExtraBudget] = useState(1000000);
+  const [inputRaw, setInputRaw] = useState('1000000');
+  const SLIDER_MAX = 100000000;
 
   const load = (budget) => {
     setLoading(true);
-    debtAPI.getRepaymentPlan({ extraBudget: budget })
-      .then(res => setData(res.data.data))
+    Promise.all([
+      debtAPI.getRepaymentPlan({ extraBudget: budget }),
+      debtAPI.getAll(),
+    ])
+      .then(([planRes, allRes]) => {
+        setData(planRes.data.data);
+        setDebtSummary(allRes.data.data?.summary || null);
+      })
       .catch(console.error)
       .finally(() => setTimeout(() => setLoading(false), 400));
   };
@@ -21,13 +31,29 @@ export default function RepaymentPlanPage() {
   useEffect(() => { load(extraBudget); }, []);
 
   const handleBudgetChange = (val) => {
-    setExtraBudget(val);
-    load(val);
+    const n = Math.max(0, val);
+    setExtraBudget(n);
+    setInputRaw(String(n));
+    load(n);
+  };
+
+  const handleInputChange = (e) => {
+    setInputRaw(e.target.value);
+  };
+
+  const handleInputBlur = () => {
+    const n = Math.max(0, parseInt(inputRaw.replace(/\D/g, ''), 10) || 0);
+    handleBudgetChange(n);
+  };
+
+  const handleInputKeyDown = (e) => {
+    if (e.key === 'Enter') e.target.blur();
   };
 
   if (loading && !data) return <PageSkeleton />;
 
   const { avalanche, snowball, comparison, recommendation } = data || {};
+  const monthlyIncome = debtSummary?.monthlyIncome ?? 0;
 
   const timelineData = [];
   if (avalanche?.schedule && snowball?.schedule) {
@@ -37,9 +63,26 @@ export default function RepaymentPlanPage() {
       const snMonth = snowball.schedule[m];
       const avBalance = avMonth ? avMonth.payments.reduce((s, p) => s + p.balance, 0) : 0;
       const snBalance = snMonth ? snMonth.payments.reduce((s, p) => s + p.balance, 0) : 0;
-      timelineData.push({ month: `T${m + 1}`, avalanche: Math.round(avBalance), snowball: Math.round(snBalance) });
+
+      // DTI projection: tổng minPayment tháng đó / income
+      const avTotalMin = avMonth ? avMonth.payments.reduce((s, p) => s + (p.minPayment ?? 0), 0) : 0;
+      const snTotalMin = snMonth ? snMonth.payments.reduce((s, p) => s + (p.minPayment ?? 0), 0) : 0;
+      const avDti = monthlyIncome > 0 ? parseFloat(((avTotalMin / monthlyIncome) * 100).toFixed(1)) : null;
+      const snDti = monthlyIncome > 0 ? parseFloat(((snTotalMin / monthlyIncome) * 100).toFixed(1)) : null;
+
+      timelineData.push({
+        month: `T${m + 1}`,
+        avalanche: Math.round(avBalance),
+        snowball: Math.round(snBalance),
+        ...(avDti !== null && { avDti }),
+        ...(snDti !== null && { snDti }),
+      });
     }
   }
+
+  // Find first month DTI reaches safe zone (<20%) for each method
+  const avSafeMonth = timelineData.findIndex(d => d.avDti !== undefined && d.avDti <= 20);
+  const snSafeMonth = timelineData.findIndex(d => d.snDti !== undefined && d.snDti <= 20);
 
   const tooltipStyle = {
     background: '#111827',
@@ -52,35 +95,60 @@ export default function RepaymentPlanPage() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <div className="mb-6">
-        <h1 className="text-[22px] font-bold text-white">📋 Kế hoạch trả nợ</h1>
+        <h1 className="text-[22px] font-bold text-white flex items-center gap-2"><ClipboardList size={20} /> Kế hoạch trả nợ</h1>
         <p className="text-slate-500 text-sm mt-1">So sánh Avalanche vs Snowball để chọn chiến lược tối ưu</p>
       </div>
 
-      {/* Budget Slider */}
+      {/* Budget Slider + Input */}
       <div className="glass-card mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-            <span>💰</span> Ngân sách trả thêm mỗi tháng
-          </label>
-          <span className="text-base font-bold text-blue-400">{formatVND(extraBudget)}</span>
+        <label className="text-sm font-medium text-slate-300 flex items-center gap-2 mb-4">
+          <DollarSign size={16} /> Ngân sách trả thêm mỗi tháng
+        </label>
+
+        {/* Input nhập tay */}
+        <div className="flex items-center gap-3 mb-5">
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder="Nhập số tiền..."
+              value={inputRaw}
+              onChange={handleInputChange}
+              onBlur={handleInputBlur}
+              onKeyDown={handleInputKeyDown}
+              className="input-field w-full pr-8 text-blue-400 font-semibold"
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-slate-500">đ</span>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-lg font-bold text-blue-400">{formatVND(extraBudget)}</p>
+            <p className="text-[10px] text-slate-600 mt-0.5">mỗi tháng</p>
+          </div>
         </div>
+
+        {/* Slider tối đa 100tr */}
         <input
           type="range"
           min="0"
-          max="5000000"
-          step="100000"
-          value={extraBudget}
+          max={SLIDER_MAX}
+          step="500000"
+          value={Math.min(extraBudget, SLIDER_MAX)}
           onChange={e => handleBudgetChange(+e.target.value)}
           className="w-full"
         />
         <div className="flex justify-between text-[11px] text-slate-600 mt-2">
-          <span>0đ</span><span>1tr</span><span>2.5tr</span><span>5tr</span>
+          <span>0đ</span><span>25tr</span><span>50tr</span><span>75tr</span><span>100tr</span>
         </div>
+        {extraBudget > SLIDER_MAX && (
+          <p className="text-[11px] text-amber-400 mt-2">
+            ⚠ Giá trị vượt thanh kéo — slider hiển thị tối đa 100tr, nhưng tính toán vẫn dùng đúng số bạn nhập.
+          </p>
+        )}
       </div>
 
       {!data || !avalanche ? (
         <div className="glass-card text-center py-16">
-          <p className="text-3xl mb-3">📭</p>
+          <p className="text-3xl mb-3"><ClipboardList size={40} className="mx-auto text-slate-500" /></p>
           <p className="text-slate-500">Không có khoản nợ nào để tính</p>
         </div>
       ) : (
@@ -94,8 +162,7 @@ export default function RepaymentPlanPage() {
               style={{ borderColor: 'rgba(59, 130, 246, 0.2)' }}
             >
               <div className="flex items-center gap-2.5 mb-3">
-                <span className="text-xl">⚡</span>
-                <h3 className="font-semibold text-blue-400">Avalanche</h3>
+                <span className="text-xl"><Zap size={20} /></span>                <h3 className="font-semibold text-blue-400">Avalanche</h3>
                 <span className="text-[10px] bg-blue-500/12 px-2 py-0.5 rounded-full text-blue-300 font-medium">Tiết kiệm lãi</span>
               </div>
               <p className="text-[12px] text-slate-500 mb-4">Ưu tiên trả nợ lãi suất CAO nhất trước</p>
@@ -119,7 +186,7 @@ export default function RepaymentPlanPage() {
               style={{ borderColor: 'rgba(16, 185, 129, 0.2)' }}
             >
               <div className="flex items-center gap-2.5 mb-3">
-                <span className="text-xl">🎯</span>
+                <span className="text-xl"><Target size={20} /></span>
                 <h3 className="font-semibold text-emerald-400">Snowball</h3>
                 <span className="text-[10px] bg-emerald-500/12 px-2 py-0.5 rounded-full text-emerald-300 font-medium">Động lực tâm lý</span>
               </div>
@@ -146,7 +213,7 @@ export default function RepaymentPlanPage() {
               style={{ borderColor: 'rgba(16, 185, 129, 0.15)' }}
             >
               <p className="text-center text-emerald-400 font-medium text-sm">
-                💡 Avalanche giúp tiết kiệm <span className="font-bold">{formatVND(comparison.savedInterest)}</span> tiền lãi
+                <Lightbulb size={14} className="inline mr-1" /> Avalanche giúp tiết kiệm <span className="font-bold">{formatVND(comparison.savedInterest)}</span> tiền lãi
                 {comparison.savedMonths > 0 && ` và trả xong sớm hơn ${comparison.savedMonths} tháng`}
               </p>
             </motion.div>
@@ -156,16 +223,16 @@ export default function RepaymentPlanPage() {
           {recommendation && (
             <div className="glass-card mb-6 bg-blue-500/3" style={{ borderColor: 'rgba(59, 130, 246, 0.12)' }}>
               <p className="text-sm text-blue-300">
-                🤖 <span className="font-semibold">AI khuyến nghị:</span> {recommendation}
+                <Bot size={14} className="inline mr-1" /> <span className="font-semibold">AI khuyến nghị:</span> {recommendation}
               </p>
             </div>
           )}
 
           {/* Timeline Chart */}
           {timelineData.length > 0 && (
-            <div className="glass-card">
+            <div className="glass-card mb-6">
               <h3 className="text-[15px] font-semibold text-white mb-4 flex items-center gap-2">
-                <span>📉</span> Tiến trình giảm nợ
+                <TrendingDown size={16} /> Tiến trình giảm nợ
               </h3>
               <div className="h-72">
                 <ResponsiveContainer width="100%" height="100%">
@@ -180,6 +247,75 @@ export default function RepaymentPlanPage() {
                   </LineChart>
                 </ResponsiveContainer>
               </div>
+            </div>
+          )}
+
+          {/* DTI Projection Chart */}
+          {timelineData.length > 0 && monthlyIncome > 0 && timelineData[0]?.avDti !== undefined && (
+            <div className="glass-card">
+              <h3 className="text-[15px] font-semibold text-white mb-2 flex items-center gap-2">
+                <TrendingUp size={16} /> DTI sẽ giảm như thế nào?
+              </h3>
+              <p className="text-[12px] text-slate-500 mb-4">Dự phóng tỉ lệ nợ/thu nhập theo từng tháng của từng chiến lược</p>
+
+              {/* Safe zone arrival info */}
+              {(avSafeMonth !== -1 || snSafeMonth !== -1) && (
+                <div className="flex gap-3 mb-4">
+                  {avSafeMonth !== -1 && (
+                    <div className="flex-1 bg-blue-500/8 border border-blue-500/15 rounded-lg px-3 py-2 text-center">
+                      <p className="text-[10px] text-slate-500 uppercase">Avalanche</p>
+                      <p className="text-sm font-bold text-blue-400">Tháng {avSafeMonth + 1}</p>
+                      <p className="text-[10px] text-slate-500">DTI về &lt;20%</p>
+                    </div>
+                  )}
+                  {snSafeMonth !== -1 && (
+                    <div className="flex-1 bg-emerald-500/8 border border-emerald-500/15 rounded-lg px-3 py-2 text-center">
+                      <p className="text-[10px] text-slate-500 uppercase">Snowball</p>
+                      <p className="text-sm font-bold text-emerald-400">Tháng {snSafeMonth + 1}</p>
+                      <p className="text-[10px] text-slate-500">DTI về &lt;20%</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={timelineData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                    <XAxis dataKey="month" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={{ stroke: 'rgba(255,255,255,0.06)' }} />
+                    <YAxis
+                      tick={{ fill: '#64748b', fontSize: 11 }}
+                      axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
+                      tickFormatter={v => `${v}%`}
+                      domain={[0, 'auto']}
+                    />
+                    <Tooltip
+                      contentStyle={tooltipStyle}
+                      formatter={(v, name) => [`${v}%`, name === 'avDti' ? 'Avalanche DTI' : 'Snowball DTI']}
+                    />
+                    <Legend
+                      wrapperStyle={{ fontSize: '12px' }}
+                      formatter={(value) => value === 'avDti' ? 'Avalanche DTI' : 'Snowball DTI'}
+                    />
+                    {/* Safe zone reference line at 20% */}
+                    <Line
+                      type="monotone"
+                      dataKey={() => 20}
+                      name="safe-zone"
+                      stroke="#10b981"
+                      strokeWidth={1}
+                      strokeDasharray="4 4"
+                      dot={false}
+                      legendType="none"
+                    />
+                    <Line type="monotone" dataKey="avDti" name="avDti" stroke="#3b82f6" strokeWidth={2.5} dot={false} />
+                    <Line type="monotone" dataKey="snDti" name="snDti" stroke="#10b981" strokeWidth={2.5} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <p className="text-[11px] text-slate-600 mt-2 text-center">
+                Đường đứt nét xanh = ngưỡng an toàn 20%
+              </p>
             </div>
           )}
         </>

@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { investmentAPI } from '../api/index.js';
+import { investmentAPI, userAPI } from '../api/index.js';
+import { useAuth } from '../context/AuthContext';
+import { TrendingUp, RefreshCw, Target, Flame, Shield } from 'lucide-react';
 
 const QUESTIONS = [
   {
@@ -53,6 +55,7 @@ const QUESTIONS = [
 
 export default function RiskAssessmentPage() {
   const navigate = useNavigate();
+  const { setUser } = useAuth();
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState([]);
   const [result, setResult] = useState(null);
@@ -69,6 +72,9 @@ export default function RiskAssessmentPage() {
       try {
         const res = await investmentAPI.submitRiskAssessment({ answers: newAnswers });
         setResult(res.data.data);
+        // Refresh user context để ProfilePage hiển thị riskLevel + riskScore mới nhất
+        const profileRes = await userAPI.getProfile();
+        setUser(prev => ({ ...prev, ...profileRes.data.data.user }));
       } catch (e) {
         console.error(e);
       } finally {
@@ -90,9 +96,9 @@ export default function RiskAssessmentPage() {
   };
 
   const getRiskEmoji = (level) => {
-    if (level === 'LOW') return '🛡️';
-    if (level === 'MEDIUM') return '⚖️';
-    return '🔥';
+    if (level === 'LOW') return <Shield size={56} className="mx-auto mb-2 text-emerald-400" />;
+    if (level === 'MEDIUM') return <Target size={56} className="mx-auto mb-2 text-amber-400" />;
+    return <Flame size={56} className="mx-auto mb-2 text-red-400" />;
   };
 
   // Result screen
@@ -100,7 +106,7 @@ export default function RiskAssessmentPage() {
     return (
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-lg mx-auto py-12">
         <div className="glass-card text-center">
-          <span className="text-6xl block mb-5">{getRiskEmoji(result.riskLevel)}</span>
+          <span className="block mb-5">{getRiskEmoji(result.riskLevel)}</span>
           <h2 className="text-xl font-bold text-white mb-1">Kết quả đánh giá</h2>
           <p className="text-sm text-slate-500 mb-6">Dựa trên {QUESTIONS.length} câu trả lời của bạn</p>
 
@@ -114,11 +120,11 @@ export default function RiskAssessmentPage() {
           <p className="text-sm text-slate-400 leading-relaxed mb-8">{result.riskDescription}</p>
 
           <div className="flex gap-3 justify-center">
-            <button onClick={() => navigate('/investment')} className="btn-primary">
-              📈 Xem phân bổ đầu tư
+            <button onClick={() => navigate('/investment')} className="btn-primary flex items-center gap-1.5">
+              <TrendingUp size={16} /> Xem phân bổ đầu tư
             </button>
-            <button onClick={() => { setCurrent(0); setAnswers([]); setResult(null); }} className="btn-secondary">
-              🔄 Làm lại
+            <button onClick={() => { setCurrent(0); setAnswers([]); setResult(null); }} className="btn-secondary flex items-center gap-1.5">
+              <RefreshCw size={16} /> Làm lại
             </button>
           </div>
         </div>
@@ -132,7 +138,7 @@ export default function RiskAssessmentPage() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl mx-auto py-4">
       <div className="mb-6">
-        <h1 className="text-[22px] font-bold text-white">🎯 Đánh giá mức độ rủi ro</h1>
+        <h1 className="text-[22px] font-bold text-white flex items-center gap-2"><Target size={20} /> Đánh giá mức độ rủi ro</h1>
         <p className="text-slate-500 text-sm mt-1">Trả lời {QUESTIONS.length} câu hỏi để xác định profile đầu tư phù hợp</p>
       </div>
 

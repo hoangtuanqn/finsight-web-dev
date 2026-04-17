@@ -3,8 +3,9 @@ import nodemailer from 'nodemailer';
 class EmailService {
   constructor() {
     this.transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST || 'sandbox.smtp.mailtrap.io',
+      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
       port: process.env.EMAIL_PORT || 587,
+      secure: false,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
@@ -78,6 +79,149 @@ class EmailService {
       </html>
     `;
 
+    return this.send(to, subject, html);
+  }
+
+  async sendDueTodayAlert(to, userName, debtName, dueDay, minPayment) {
+    const subject = `🚨 DANGER: Khoản nợ ${debtName} đến hạn HÔM NAY — tránh phí phạt!`;
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: 'Inter', -apple-system, sans-serif; background-color: #0f172a; margin: 0; padding: 0; }
+          .container { max-width: 600px; margin: 40px auto; background: #1e293b; border-radius: 20px; overflow: hidden; border: 1px solid #334155; }
+          .header { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); padding: 40px 20px; text-align: center; color: white; }
+          .header h1 { margin: 0 0 8px 0; font-size: 28px; }
+          .header p { margin: 0; opacity: 0.85; font-size: 14px; }
+          .badge { display: inline-block; padding: 5px 14px; border-radius: 99px; background: #fee2e2; color: #dc2626; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
+          .content { padding: 40px; color: #e2e8f0; line-height: 1.7; }
+          .debt-card { background: rgba(220,38,38,0.08); border: 1px solid rgba(220,38,38,0.3); border-radius: 16px; padding: 24px; margin: 24px 0; }
+          .debt-info { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
+          .label { color: #94a3b8; }
+          .value { font-weight: 700; color: #f8fafc; }
+          .value-danger { font-weight: 700; color: #ef4444; }
+          .warning-box { background: rgba(245,158,11,0.1); border-left: 4px solid #f59e0b; padding: 16px 20px; border-radius: 8px; margin: 20px 0; font-size: 13px; color: #fcd34d; }
+          .cta-button { display: block; padding: 16px; background: #dc2626; color: white !important; text-align: center; text-decoration: none; border-radius: 12px; font-weight: 700; margin-top: 28px; font-size: 15px; }
+          .footer { padding: 24px; text-align: center; color: #475569; font-size: 12px; background: #0f172a; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>⚠️ ĐẾN HẠN HÔM NAY</h1>
+            <p>FinSight AI Advisor — Cảnh báo khẩn cấp</p>
+          </div>
+          <div class="content">
+            <span class="badge">DANGER — Hành động ngay</span>
+            <h2 style="color:#f8fafc; margin-top:0;">Chào ${userName},</h2>
+            <p>Hôm nay là <strong style="color:#ef4444;">ngày đáo hạn</strong> của khoản nợ bên dưới. Nếu chưa thanh toán, bạn sẽ bắt đầu chịu <strong>phí phạt chậm trả</strong> tính theo ngày.</p>
+
+            <div class="debt-card">
+              <div class="debt-info">
+                <span class="label">Tên khoản vay:</span>
+                <span class="value">${debtName}</span>
+              </div>
+              <div class="debt-info">
+                <span class="label">Ngày đáo hạn:</span>
+                <span class="value-danger">Ngày ${dueDay} — HÔM NAY</span>
+              </div>
+              <div class="debt-info">
+                <span class="label">Số tiền cần trả tối thiểu:</span>
+                <span class="value-danger">${new Intl.NumberFormat('vi-VN').format(minPayment)}đ</span>
+              </div>
+            </div>
+
+            <div class="warning-box">
+              ⚡ Phí phạt chậm trả thường dao động từ 0.05% – 0.1%/ngày trên dư nợ. Thanh toán ngay hôm nay để tránh chi phí ẩn phát sinh.
+            </div>
+
+            <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/debts" class="cta-button">Thanh toán ngay trên FinSight</a>
+          </div>
+          <div class="footer">
+            &copy; 2026 FinSight Financial Platform. Email tự động từ hệ thống AI giám sát nợ.
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    return this.send(to, subject, html);
+  }
+
+  async sendOverdueAlert(to, userName, debtName, daysOverdue, minPayment) {
+    const subject = `🔴 CRITICAL: Khoản nợ ${debtName} đã QUÁ HẠN ${daysOverdue} ngày — Phí phạt đang tích lũy!`;
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: 'Inter', -apple-system, sans-serif; background-color: #0f172a; margin: 0; padding: 0; }
+          .container { max-width: 600px; margin: 40px auto; background: #1e293b; border-radius: 20px; overflow: hidden; border: 2px solid #dc2626; }
+          .header { background: #0f172a; padding: 40px 20px; text-align: center; color: white; border-bottom: 2px solid #dc2626; }
+          .header h1 { margin: 0 0 8px 0; font-size: 30px; color: #ef4444; }
+          .header p { margin: 0; color: #94a3b8; font-size: 13px; }
+          .badge { display: inline-block; padding: 5px 14px; border-radius: 99px; background: #dc2626; color: white; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
+          .content { padding: 40px; color: #e2e8f0; line-height: 1.7; }
+          .overdue-banner { background: rgba(220,38,38,0.15); border: 1px solid rgba(220,38,38,0.5); border-radius: 12px; padding: 20px 24px; text-align: center; margin: 20px 0; }
+          .overdue-days { font-size: 48px; font-weight: 900; color: #ef4444; line-height: 1; }
+          .overdue-label { color: #94a3b8; font-size: 13px; margin-top: 4px; }
+          .debt-card { background: #0f172a; border: 1px solid #334155; border-radius: 16px; padding: 24px; margin: 24px 0; }
+          .debt-info { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
+          .label { color: #64748b; }
+          .value { font-weight: 700; color: #f8fafc; }
+          .value-danger { font-weight: 700; color: #ef4444; }
+          .penalty-box { background: rgba(220,38,38,0.1); border-left: 4px solid #dc2626; padding: 16px 20px; border-radius: 8px; margin: 20px 0; font-size: 13px; color: #fca5a5; }
+          .cta-button { display: block; padding: 18px; background: #dc2626; color: white !important; text-align: center; text-decoration: none; border-radius: 12px; font-weight: 800; margin-top: 28px; font-size: 15px; letter-spacing: 0.5px; }
+          .footer { padding: 24px; text-align: center; color: #475569; font-size: 12px; background: #0f172a; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🔴 QUÁ HẠN</h1>
+            <p>FinSight AI Advisor — Cảnh báo CRITICAL</p>
+          </div>
+          <div class="content">
+            <span class="badge">CRITICAL — Xử lý ngay lập tức</span>
+            <h2 style="color:#f8fafc; margin-top:0;">Chào ${userName},</h2>
+            <p>Hệ thống AI FinSight phát hiện khoản nợ của bạn đã <strong style="color:#ef4444;">vượt quá ngày đáo hạn</strong>. Phí phạt đang <strong>tích lũy theo từng ngày</strong>.</p>
+
+            <div class="overdue-banner">
+              <div class="overdue-days">+${daysOverdue}</div>
+              <div class="overdue-label">ngày quá hạn</div>
+            </div>
+
+            <div class="debt-card">
+              <div class="debt-info">
+                <span class="label">Tên khoản vay:</span>
+                <span class="value">${debtName}</span>
+              </div>
+              <div class="debt-info">
+                <span class="label">Số ngày quá hạn:</span>
+                <span class="value-danger">${daysOverdue} ngày</span>
+              </div>
+              <div class="debt-info">
+                <span class="label">Số tiền trả tối thiểu:</span>
+                <span class="value-danger">${new Intl.NumberFormat('vi-VN').format(minPayment)}đ</span>
+              </div>
+            </div>
+
+            <div class="penalty-box">
+              🔥 <strong>Phí phạt đang tích lũy:</strong> Mỗi ngày trễ hạn, bạn có thể bị tính thêm 0.05% – 0.1% trên tổng dư nợ. Sau ${daysOverdue} ngày, khoản phí này đã đáng kể. Thanh toán ngay để dừng tích lũy!
+            </div>
+
+            <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/debts" class="cta-button">XỬ LÝ NGAY — Vào FinSight</a>
+          </div>
+          <div class="footer">
+            &copy; 2026 FinSight Financial Platform. Email tự động từ hệ thống AI giám sát nợ.<br>
+            Bạn nhận email này vì khoản nợ của bạn đã quá hạn thanh toán.
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
     return this.send(to, subject, html);
   }
 

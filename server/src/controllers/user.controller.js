@@ -17,7 +17,7 @@ export async function getProfile(req, res) {
 
 export async function updateProfile(req, res) {
   try {
-    const { fullName, email, monthlyIncome, extraBudget, capital, goal, horizon, riskLevel } = req.body;
+    const { fullName, email, monthlyIncome, extraBudget, capital, goal, horizon, riskLevel, savingsRate, inflationRate } = req.body;
     
     // Update User basic info
     const user = await prisma.user.update({
@@ -32,7 +32,7 @@ export async function updateProfile(req, res) {
     });
 
     // Update or Create Investor Profile if investment data provided
-    if (capital !== undefined || goal || horizon || riskLevel) {
+    if (capital !== undefined || goal || horizon || riskLevel || savingsRate !== undefined || inflationRate !== undefined) {
       await prisma.investorProfile.upsert({
         where: { userId: req.userId },
         update: { 
@@ -40,6 +40,8 @@ export async function updateProfile(req, res) {
           goal, 
           horizon, 
           riskLevel,
+          savingsRate: savingsRate !== undefined ? parseFloat(savingsRate) : undefined,
+          inflationRate: inflationRate !== undefined ? parseFloat(inflationRate) : undefined,
           lastUpdated: new Date() 
         },
         create: { 
@@ -47,7 +49,9 @@ export async function updateProfile(req, res) {
           capital: capital !== undefined ? parseFloat(capital) : 0,
           goal: goal || 'GROWTH',
           horizon: horizon || 'MEDIUM',
-          riskLevel: riskLevel || 'MEDIUM'
+          riskLevel: riskLevel || 'MEDIUM',
+          savingsRate: savingsRate !== undefined ? parseFloat(savingsRate) : 6.0,
+          inflationRate: inflationRate !== undefined ? parseFloat(inflationRate) : 3.5,
         }
       });
     }

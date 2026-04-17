@@ -27,8 +27,7 @@ class CronService {
   async checkDueDebtsAndDominoRisk() {
     const now = new Date();
     console.log(`[Cron] Quét nợ lúc: ${now.toISOString()}`);
-    
-    // 1. Fetch all active debts
+
     const activeDebts = await prisma.debt.findMany({
       where: { status: 'ACTIVE' },
       include: { user: true }
@@ -38,48 +37,71 @@ class CronService {
     const userDebtsMap = {};
 
     for (const debt of activeDebts) {
-      // Group by user
       if (!userDebtsMap[debt.userId]) {
-        userDebtsMap[debt.userId] = {
-          user: debt.user,
-          debts: [],
-          totalMinPayment: 0
-        };
+        userDebtsMap[debt.userId] = { user: debt.user, debts: [], totalMinPayment: 0 };
       }
-      
-      // Calculate next due date from dueDay (Day of month)
-      const nextDue = new Date(now.getFullYear(), now.getMonth(), debt.dueDay);
-      // If dueDay has passed this month, move to next month
-      if (nextDue < now) {
-        nextDue.setMonth(nextDue.getMonth() + 1);
-      }
-      
-      const diffTime = nextDue - now;
+
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+
+      // Ngày đáo hạn trong tháng hiện tại
+      const dueDateThisMonth = new Date(currentYear, currentMonth, debt.dueDay);
+      const diffTime = dueDateThisMonth - now;
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      console.log(`[Cron] Xét nợ: ${debt.name} | Ngày đáo hàng tháng: ${debt.dueDay} | Ngày đáo tiếp theo: ${nextDue.toLocaleDateString()} | diffDays: ${diffDays}`);
-      
+
+      console.log(`[Cron] Xét nợ: ${debt.name} | dueDay: ${debt.dueDay} | diffDays: ${diffDays}`);
+
       userDebtsMap[debt.userId].debts.push({ ...debt, daysUntilDue: diffDays });
       userDebtsMap[debt.userId].totalMinPayment += debt.minPayment;
-      
-      // Individual Debt Warning: Due in <= 3 days
-      if (diffDays >= 0 && diffDays <= 3) {
-        console.log(`[Cron] 🎯 Đạt điều kiện thông báo DUE_DATE cho: ${debt.name}`);
+
+      // ── Kịch bản 1: Sắp đến hạn (còn <= 3 ngày) ──
+      if (diffDays > 0 && diffDays <= 3) {
+        console.log(`[Cron] 📅 Kịch bản 1 - Sắp đến hạn: ${debt.name} (còn ${diffDays} ngày)`);
         const created = await this.createNotificationIfNotExists(
           debt.userId,
           'DUE_DATE',
           `Khoản nợ sắp đến hạn: ${debt.name}`,
-          `Khoản vay ${debt.name} của bạn sẽ đến hạn thanh toán vào ngày ${debt.dueDay} (${diffDays} ngày nữa). Đừng quên thanh toán nhé!`,
+          `Khoản vay ${debt.name} sẽ đến hạn vào ngày ${debt.dueDay} (còn ${diffDays} ngày). Đừng quên thanh toán!`,
           'WARNING'
         );
-        
         if (created && debt.user.email) {
           await emailService.sendDebtAlert(debt.user.email, debt.user.username, debt.name, debt.dueDay, diffDays);
         }
       }
+
+      // ── Kịch bản 2: Đến hạn HÔM NAY (diffDays = 0) ──
+      if (diffDays === 0) {
+        console.log(`[Cron] 🚨 Kịch bản 2 - Đến hạn hôm nay: ${debt.name}`);
+        const created = await this.createNotificationIfNotExists(
+          debt.userId,
+          'DUE_TODAY',
+          `Khoản nợ đến hạn HÔM NAY: ${debt.name}`,
+          `Khoản vay ${debt.name} đến hạn thanh toán HÔM NAY (ngày ${debt.dueDay}). Thanh toán ngay để tránh phí phạt!`,
+          'DANGER'
+        );
+        if (created && debt.user.email) {
+          await emailService.sendDueTodayAlert(debt.user.email, debt.user.username, debt.name, debt.dueDay, debt.minPayment);
+        }
+      }
+
+      // ── Kịch bản 3: Quá hạn (diffDays < 0) ──
+      if (diffDays < 0) {
+        const daysOverdue = Math.abs(diffDays);
+        console.log(`[Cron] 🔴 Kịch bản 3 - Quá hạn: ${debt.name} (${daysOverdue} ngày)`);
+        const created = await this.createNotificationIfNotExists(
+          debt.userId,
+          'OVERDUE',
+          `Khoản nợ QUÁ HẠN ${daysOverdue} ngày: ${debt.name}`,
+          `Khoản vay ${debt.name} đã quá hạn ${daysOverdue} ngày! Phí phạt đang tích lũy theo ngày. Hãy xử lý ngay!`,
+          'CRITICAL'
+        );
+        if (created && debt.user.email) {
+          await emailService.sendOverdueAlert(debt.user.email, debt.user.username, debt.name, daysOverdue, debt.minPayment);
+        }
+      }
     }
 
-    // 2. Check Domino Risk per user
+    // ── Check Domino Risk + DTI per user ──
     for (const userId in userDebtsMap) {
       const { user, debts, totalMinPayment } = userDebtsMap[userId];
       
@@ -92,10 +114,10 @@ class CronService {
 
       // Domino condition: >= 2 debts due this week OR DTI > 50%
       if (debtsDueThisWeek >= 2 || dtiRatio > 50) {
-        const reason = debtsDueThisWeek >= 2 
-          ? `Bạn có ${debtsDueThisWeek} khoản nợ đáo hạn trong cùng 1 tuần.` 
+        const reason = debtsDueThisWeek >= 2
+          ? `Bạn có ${debtsDueThisWeek} khoản nợ đáo hạn trong cùng 1 tuần.`
           : `Tỷ lệ nợ trên thu nhập (DTI) của bạn đang ở mức nguy hiểm (${dtiRatio.toFixed(1)}%).`;
-          
+
         const created = await this.createNotificationIfNotExists(
           userId,
           'DOMINO_RISK',
@@ -107,6 +129,31 @@ class CronService {
         if (created && user.email) {
           await emailService.sendDominoRiskAlert(user.email, user.username, reason);
         }
+      }
+
+      // Cảnh báo sớm khi DTI vượt 35% (WARNING) — chưa đến mức DOMINO nhưng cần theo dõi
+      if (dtiRatio > 35 && dtiRatio <= 50 && debtsDueThisWeek < 2) {
+        await this.createNotificationIfNotExists(
+          userId,
+          'HIGH_DTI',
+          '⚠️ Chỉ số DTI vượt ngưỡng cảnh báo',
+          `Tỷ lệ nợ/thu nhập (DTI) của bạn đang ở ${dtiRatio.toFixed(1)}% — vượt mức cảnh báo 35%. Hãy xem xét kế hoạch trả nợ để giảm DTI về mức an toàn.`,
+          'WARNING'
+        );
+      }
+
+      // Ghi DebtSnapshot hàng ngày (chỉ 1 bản/ngày)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const existingSnapshot = await prisma.debtSnapshot.findFirst({
+        where: { userId, createdAt: { gte: today } }
+      });
+      if (!existingSnapshot) {
+        const totalBalance = debts.reduce((s, d) => s + d.balance, 0);
+        await prisma.debtSnapshot.create({
+          data: { userId, totalDebt: totalBalance, totalEAR: 0, debtToIncome: dtiRatio }
+        });
+        console.log(`[DebtSnapshot] Ghi snapshot DTI=${dtiRatio.toFixed(1)}% cho User ${userId}`);
       }
     }
   }

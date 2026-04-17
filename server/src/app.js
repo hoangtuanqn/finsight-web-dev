@@ -31,7 +31,7 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json());
+app.use(express.json()); // No more Base64 images, back to default text payload
 
 // Routes
 app.use('/api/auth', authRoutes);

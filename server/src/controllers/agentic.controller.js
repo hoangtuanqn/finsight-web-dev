@@ -4,10 +4,10 @@ import { runAgenticChat } from '../agentic/agent.js';
 
 /**
  * POST /api/agentic/chat
- * SSE streaming chat endpoint with tool status events
+ * SSE streaming chat endpoint with tool status events + OCR support
  */
 export async function chatWithAgent(req, res) {
-  const { message, sessionId } = req.body;
+  const { message, sessionId, ocrText } = req.body;
 
   if (!message || typeof message !== 'string' || message.trim().length === 0) {
     return error(res, 'Message is required', 400);
@@ -30,9 +30,15 @@ export async function chatWithAgent(req, res) {
   }, 15000);
 
   try {
+    let finalMessage = message.trim();
+    if (ocrText) {
+      finalMessage = `[Nội dung tài liệu đính kèm (OCR):\n${ocrText}]\n\nYêu cầu của tôi: ${message.trim()}`;
+      console.log(`[OCR] Browser extracted ${ocrText.length} chars, injected into prompt.`);
+    }
+
     const result = await runAgenticChat(
       req.userId,
-      message.trim(),
+      finalMessage,
       sessionId || null,
       // onToken callback — stream each token chunk
       (token) => {
