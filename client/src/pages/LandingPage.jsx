@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useInView, useMotionValue, useTransform, animate } from 'framer-motion';
 import { useEffect, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import {
   Rocket, Eye, CreditCard, Drama, BrainCircuit, Zap, Snowflake,
   BarChart3, Map, Bot, AlertTriangle, Mail, Target, TrendingUp,
@@ -150,6 +151,9 @@ function FAQAccordion() {
    LANDING PAGE
 ═══════════════════════════════════════════════════ */
 export default function LandingPage() {
+  const { token } = useAuth();
+  const isLoggedIn = !!token;
+
   return (
     <div className="landing-page">
       {/* ── NAVIGATION BAR ── */}
@@ -162,8 +166,14 @@ export default function LandingPage() {
           <div className="landing-nav-links">
             <a href="#features" className="landing-nav-link">Tính năng</a>
             <a href="#how-it-works" className="landing-nav-link">Hướng dẫn</a>
-            <Link to="/login" className="landing-nav-link">Đăng nhập</Link>
-            <Link to="/register" className="btn-primary landing-nav-cta">Bắt đầu miễn phí</Link>
+            {isLoggedIn ? (
+              <Link to="/home" className="btn-primary landing-nav-cta">Vào Dashboard</Link>
+            ) : (
+              <>
+                <Link to="/login" className="landing-nav-link">Đăng nhập</Link>
+                <Link to="/register" className="btn-primary landing-nav-cta">Bắt đầu miễn phí</Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -206,12 +216,20 @@ export default function LandingPage() {
             </p>
 
             <div className="hero-cta-group">
-              <Link to="/register" className="btn-primary hero-cta-primary">
-                <Rocket size={18} /> Bắt đầu miễn phí
-              </Link>
-              <Link to="/login" className="btn-secondary hero-cta-secondary">
-                 Xem Demo
-              </Link>
+              {isLoggedIn ? (
+                <Link to="/home" className="btn-primary hero-cta-primary">
+                  <Rocket size={18} /> Vào Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link to="/register" className="btn-primary hero-cta-primary">
+                    <Rocket size={18} /> Bắt đầu miễn phí
+                  </Link>
+                  <Link to="/login" className="btn-secondary hero-cta-secondary">
+                    Xem Demo
+                  </Link>
+                </>
+              )}
             </div>
 
             <div className="hero-trust">
@@ -650,12 +668,20 @@ export default function LandingPage() {
             Đừng để nợ kiểm soát bạn. Hàng ngàn người trẻ đã bắt đầu hành trình tài chính thông minh với FinSight.
           </p>
           <div className="cta-final-buttons">
-            <Link to="/register" className="btn-primary hero-cta-primary">
-              <Sparkles size={18} /> Đăng ký miễn phí ngay
-            </Link>
-            <Link to="/login" className="btn-secondary hero-cta-secondary">
-              Dùng thử với tài khoản Demo
-            </Link>
+            {isLoggedIn ? (
+              <Link to="/home" className="btn-primary hero-cta-primary">
+                <Sparkles size={18} /> Vào Dashboard ngay
+              </Link>
+            ) : (
+              <>
+                <Link to="/register" className="btn-primary hero-cta-primary">
+                  <Sparkles size={18} /> Đăng ký miễn phí ngay
+                </Link>
+                <Link to="/login" className="btn-secondary hero-cta-secondary">
+                  Dùng thử với tài khoản Demo
+                </Link>
+              </>
+            )}
           </div>
         </motion.div>
       </section>
