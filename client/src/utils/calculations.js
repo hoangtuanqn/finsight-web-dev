@@ -94,9 +94,94 @@ export function getSentimentLabel(value) {
   return 'EXTREME_GREED';
 }
 
-export function getAllocation(riskLevel, sentimentValue) {
+export function getSentimentVietnamese(label) {
+  const map = {
+    EXTREME_FEAR: 'Sợ hãi cực độ',
+    FEAR: 'Sợ hãi',
+    NEUTRAL: 'Trung lập',
+    GREED: 'Tham lam',
+    EXTREME_GREED: 'Tham lam cực độ',
+  };
+  return map[label] || label;
+}
+
+export function getAllocation(profile, sentimentValue) {
+  const riskLevel = profile?.riskLevel || 'MEDIUM';
   const label = getSentimentLabel(sentimentValue);
-  return ALLOCATION_RULES[riskLevel]?.[label] || ALLOCATION_RULES.MEDIUM.NEUTRAL;
+  const baseAllocation = ALLOCATION_RULES[riskLevel]?.[label] || ALLOCATION_RULES.MEDIUM.NEUTRAL;
+  let alloc = { ...baseAllocation };
+
+  const savingsRate = profile?.savingsRate !== undefined ? profile.savingsRate : 6.0;
+  const diff = savingsRate - 6.0;
+  if (diff > 0) {
+    let shiftPercent = Math.min(diff * 2, 15);
+    shiftPercent = Math.min(shiftPercent, alloc.stocks);
+    alloc.stocks -= shiftPercent; alloc.savings += shiftPercent;
+  } else if (diff < 0) {
+    let shiftPercent = Math.min(Math.abs(diff) * 2, 15);
+    shiftPercent = Math.min(shiftPercent, alloc.savings);
+    alloc.savings -= shiftPercent; alloc.stocks += shiftPercent;
+  }
+
+  if (profile?.horizon === 'SHORT') {
+    let shiftP = Math.min(10, alloc.stocks + alloc.crypto);
+    if (alloc.stocks > 0) { const take = Math.min(shiftP, alloc.stocks); alloc.stocks -= take; alloc.savings += take; shiftP -= take; }
+    if (shiftP > 0 && alloc.crypto > 0) { const take = Math.min(shiftP, alloc.crypto); alloc.crypto -= take; alloc.savings += take; }
+  } else if (profile?.horizon === 'LONG') {
+    let shiftP = Math.min(10, alloc.savings);
+    alloc.savings -= shiftP; alloc.stocks += shiftP;
+  }
+
+  if (profile?.goal === 'STABILITY') {
+    let shiftP = Math.min(10, alloc.stocks + alloc.crypto);
+    if (alloc.crypto > 0) { const take = Math.min(shiftP, alloc.crypto); alloc.crypto -= take; alloc.bonds += take; shiftP -= take; }
+    if (shiftP > 0 && alloc.stocks > 0) { const take = Math.min(shiftP, alloc.stocks); alloc.stocks -= take; alloc.bonds += take; }
+  } else if (profile?.goal === 'SPECULATION') {
+    let shiftP = Math.min(10, alloc.savings + alloc.bonds);
+    if (alloc.savings > 0) { const take = Math.min(shiftP, alloc.savings); alloc.savings -= take; alloc.crypto += take; shiftP -= take; }
+    if (shiftP > 0 && alloc.bonds > 0) { const take = Math.min(shiftP, alloc.bonds); alloc.bonds -= take; alloc.crypto += take; }
+  }
+
+  const capital = profile?.capital || 0;
+  let capitalScaleWarning = null;
+  if (capital > 0 && capital < 50000000) {
+    if (alloc.crypto > 5) { alloc.savings += (alloc.crypto - 5); alloc.crypto = 5; }
+    if (alloc.stocks > 10) { alloc.savings += (alloc.stocks - 10); alloc.stocks = 10; }
+    capitalScaleWarning = 'Quy mô vốn nhỏ (< 50tr), AI khuyến nghị ưu tiên dòng tiền tích lũy (Tiết kiệm/Vàng) trước khi đa dạng hoá rủi ro.';
+  }
+
+  alloc = {
+    savings: Math.max(0, Math.round(alloc.savings * 10) / 10),
+    gold: Math.max(0, Math.round(alloc.gold * 10) / 10),
+    stocks: Math.max(0, Math.round(alloc.stocks * 10) / 10),
+    bonds: Math.max(0, Math.round(alloc.bonds * 10) / 10),
+    crypto: Math.max(0, Math.round(alloc.crypto * 10) / 10),
+  };
+  const sum = alloc.savings + alloc.gold + alloc.stocks + alloc.bonds + alloc.crypto;
+  if (sum !== 100) {
+    alloc.savings += (100 - sum);
+    alloc.savings = Math.round(alloc.savings * 10) / 10;
+  }
+
+  let baseRecommendation = '';
+  const recommendations = {
+    EXTREME_FEAR: 'Thị trường đang sợ hãi cực độ. Đây thường là cơ hội tốt để mua vào, nhưng hãy ưu tiên bảo toàn vốn.',
+    FEAR: 'Thị trường đang e ngại. Phân bổ thận trọng, giữ nhiều tiết kiệm và vàng để an toàn.',
+    NEUTRAL: 'Thị trường cân bằng. Phân bổ theo profile rủi ro của bạn là hợp lý.',
+    GREED: 'Thị trường đang hưng phấn. Thận trọng với crypto và cổ phiếu rủi ro cao.',
+    EXTREME_GREED: 'CẢNH BÁO: Thị trường đang tham lam cực độ — dấu hiệu bong bóng. Cân nhắc chuyển sang tài sản an toàn.',
+  };
+  baseRecommendation = recommendations[label];
+
+  const finalRecommendation = capitalScaleWarning ? `${baseRecommendation} ${capitalScaleWarning}` : baseRecommendation;
+
+  return {
+    ...alloc,
+    sentimentValue,
+    sentimentLabel: label,
+    sentimentVietnamese: getSentimentVietnamese(label),
+    recommendation: finalRecommendation,
+  };
 }
 
 export function formatVND(amount) {
