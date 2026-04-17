@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, CreditCard, Search, ClipboardList, TrendingUp, Target, User } from 'lucide-react';
+import { LayoutDashboard, CreditCard, Search, ClipboardList, TrendingUp, Target, User, BarChart2 } from 'lucide-react';
 
 const navItems = [
   {
@@ -20,6 +20,11 @@ const navItems = [
     to: '/debts/ear-analysis',
     icon: <Search size={18} />,
     label: 'Phân tích EAR'
+  },
+  {
+    to: '/debts/dti',
+    icon: <BarChart2 size={18} />,
+    label: 'Phân tích DTI'
   },
   {
     to: '/debts/repayment',
