@@ -173,8 +173,11 @@ export default function ProfilePage() {
                     <label className="input-label text-[12px]">Thu nhập hằng tháng</label>
                     <div className="input-group">
                       <span className="input-icon"><DollarSign size={16} /></span>
-                      <input type="number" className="input-field has-icon" value={form.monthlyIncome}
-                        onChange={e => setForm(f => ({ ...f, monthlyIncome: +e.target.value }))} />
+                      <input type="number" className="input-field has-icon"
+                        value={form.monthlyIncome || ''}
+                        placeholder="0"
+                        min="0"
+                        onChange={e => setForm(f => ({ ...f, monthlyIncome: Math.max(0, +e.target.value) || 0 }))} />
                     </div>
                     <p className="text-[10px] text-slate-500 mt-1">{formatVND(form.monthlyIncome)}</p>
                   </div>
@@ -182,8 +185,11 @@ export default function ProfilePage() {
                     <label className="input-label text-[12px]">Ngân sách trả nợ thêm/tháng</label>
                     <div className="input-group">
                       <span className="input-icon"><TrendingDown size={16} /></span>
-                      <input type="number" className="input-field has-icon" value={form.extraBudget}
-                        onChange={e => setForm(f => ({ ...f, extraBudget: +e.target.value }))} />
+                      <input type="number" className="input-field has-icon"
+                        value={form.extraBudget || ''}
+                        placeholder="0"
+                        min="0"
+                        onChange={e => setForm(f => ({ ...f, extraBudget: Math.max(0, +e.target.value) || 0 }))} />
                     </div>
                     <p className="text-[10px] text-slate-500 mt-1">{formatVND(form.extraBudget)}</p>
                   </div>
@@ -192,9 +198,11 @@ export default function ProfilePage() {
                   <label className="input-label text-[12px]">Số vốn đang có (Tổng tài sản)</label>
                   <div className="input-group">
                     <span className="input-icon"><DollarSign size={16} /></span>
-                    <input type="number" className="input-field has-icon" value={form.capital}
-                      placeholder="Ví dụ: 100,000,000"
-                      onChange={e => setForm(f => ({ ...f, capital: +e.target.value }))} />
+                    <input type="number" className="input-field has-icon"
+                      value={form.capital || ''}
+                      placeholder="Ví dụ: 100000000"
+                      min="0"
+                      onChange={e => setForm(f => ({ ...f, capital: Math.max(0, +e.target.value) || 0 }))} />
                   </div>
                   <p className="text-[10px] text-slate-500 mt-1">{formatVND(form.capital)}</p>
                 </div>
