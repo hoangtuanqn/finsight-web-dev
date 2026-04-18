@@ -2,16 +2,20 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { debtAPI } from '../../api/index.js';
+import { useAuth } from '../../context/AuthContext';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
 import { formatVND, formatPercent, calcDebtToIncomeRatio } from '../../utils/calculations';
 import { ClipboardList, DollarSign, TrendingDown, Bot, Lightbulb, Target, Zap, TrendingUp } from 'lucide-react';
 
 export default function RepaymentPlanPage() {
+  const { user } = useAuth();
+  const defaultBudget = user?.extraBudget || 0;
+
   const [data, setData] = useState(null);
   const [debtSummary, setDebtSummary] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [extraBudget, setExtraBudget] = useState(1000000);
-  const [inputRaw, setInputRaw] = useState('1000000');
+  const [extraBudget, setExtraBudget] = useState(defaultBudget);
+  const [inputRaw, setInputRaw] = useState(String(defaultBudget));
   const SLIDER_MAX = 100000000;
 
   const load = (budget) => {

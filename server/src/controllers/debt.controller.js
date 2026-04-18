@@ -55,9 +55,56 @@ export async function getAllDebts(req, res) {
 }
 
 export async function createDebt(req, res) {
+  const { name, originalAmount, balance, apr, termMonths, dueDay, startDate } = req.body;
+
+  if (!name || !String(name).trim())
+    return error(res, 'Vui lòng nhập tên khoản vay.', 400);
+  if (!originalAmount || +originalAmount <= 0)
+    return error(res, 'Số tiền gốc phải lớn hơn 0.', 400);
+  if (!balance || +balance <= 0)
+    return error(res, 'Dư nợ hiện tại phải lớn hơn 0.', 400);
+  if (+balance > +originalAmount)
+    return error(res, 'Dư nợ không được lớn hơn số tiền gốc.', 400);
+  if (!req.body.minPayment || +req.body.minPayment <= 0)
+    return error(res, 'Số tiền trả tối thiểu/tháng phải lớn hơn 0.', 400);
+  if (+req.body.minPayment > +balance)
+    return error(res, 'Số tiền trả tối thiểu không được lớn hơn dư nợ hiện tại.', 400);
+  if (apr === undefined || apr === null || apr === '')
+    return error(res, 'Vui lòng nhập lãi suất APR.', 400);
+  if (+apr < 0)
+    return error(res, 'Lãi suất APR không được âm.', 400);
+  if (+apr > 100)
+    return error(res, 'Lãi suất APR không được vượt quá 100%.', 400);
+  if (req.body.feeProcessing !== undefined && +req.body.feeProcessing < 0)
+    return error(res, 'Phí xử lý không được âm.', 400);
+  if (req.body.feeProcessing !== undefined && +req.body.feeProcessing > 100)
+    return error(res, 'Phí xử lý không được vượt quá 100%.', 400);
+  if (req.body.feeInsurance !== undefined && +req.body.feeInsurance < 0)
+    return error(res, 'Phí bảo hiểm không được âm.', 400);
+  if (req.body.feeInsurance !== undefined && +req.body.feeInsurance > 100)
+    return error(res, 'Phí bảo hiểm không được vượt quá 100%.', 400);
+  if (req.body.feeManagement !== undefined && +req.body.feeManagement < 0)
+    return error(res, 'Phí quản lý không được âm.', 400);
+  if (req.body.feeManagement !== undefined && +req.body.feeManagement > 100)
+    return error(res, 'Phí quản lý không được vượt quá 100%.', 400);
+  if (!termMonths || +termMonths <= 0)
+    return error(res, 'Kỳ hạn phải lớn hơn 0.', 400);
+  if (!startDate)
+    return error(res, 'Vui lòng chọn ngày vay.', 400);
+  if (new Date(startDate) > new Date())
+    return error(res, 'Ngày vay không được ở tương lai.', 400);
+  if (+dueDay < 1 || +dueDay > 31)
+    return error(res, 'Ngày đáo hạn phải từ 1 đến 31.', 400);
+
+  // Tự tính kỳ còn lại từ ngày vay và kỳ hạn
+  const start = new Date(startDate);
+  const now = new Date();
+  const monthsPassed = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+  const remainingTerms = Math.max(0, +termMonths - monthsPassed);
+
   try {
     const debt = await prisma.debt.create({
-      data: { userId: req.userId, ...req.body },
+      data: { userId: req.userId, ...req.body, remainingTerms, startDate: new Date(startDate) },
     });
     await invalidateCache([`user:${req.userId}:*`]);
     return success(res, { debt }, 201);

@@ -45,6 +45,7 @@ model Debt {
   dueDay           Int
   termMonths       Int
   remainingTerms   Int
+  startDate        DateTime?
   status           String   @default("ACTIVE")
   notes            String?
   createdAt        DateTime @default(now())

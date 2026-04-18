@@ -1,20 +1,23 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { debtAPI } from '../../api/index.js';
 import { formatVND, formatPercent } from '../../utils/calculations';
 import EARBreakdown from '../../components/debt/EARBreakdown';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
-import { Pencil, FileText, DollarSign, CheckCircle, ArrowLeft, Search } from 'lucide-react';
+import { Pencil, FileText, DollarSign, CheckCircle, ArrowLeft, Search, Trash2 } from 'lucide-react';
 
 export default function DebtDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [payForm, setPayForm] = useState({ amount: '', notes: '' });
   const [paying, setPaying] = useState(false);
   const [paySuccess, setPaySuccess] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -25,6 +28,21 @@ export default function DebtDetailPage() {
   };
 
   useEffect(() => { load(); }, [id]);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await debtAPI.delete(id);
+      toast.success(`Đã xóa khoản nợ "${debt?.name}"`);
+      navigate('/debts');
+    } catch (err) {
+      toast.error('Xóa thất bại, vui lòng thử lại');
+      console.error(err);
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  };
 
   const handlePayment = async (e) => {
     e.preventDefault();
@@ -67,6 +85,48 @@ export default function DebtDetailPage() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+
+      {/* ── Delete Confirm Modal ── */}
+      {confirmDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setConfirmDelete(false)}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="glass-card w-full max-w-sm text-center p-6"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-12 h-12 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-4">
+              <Trash2 size={22} className="text-red-400" />
+            </div>
+            <h3 className="text-[16px] font-bold text-white mb-2">Xóa khoản nợ?</h3>
+            <p className="text-sm text-slate-400 mb-6">
+              Khoản nợ <span className="font-semibold text-white">"{debt.name}"</span> sẽ bị xóa vĩnh viễn cùng toàn bộ lịch sử thanh toán. Hành động này không thể hoàn tác.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="flex-1 px-4 py-2.5 rounded-xl text-[13px] font-medium transition-all"
+                style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 px-4 py-2.5 rounded-xl text-[13px] font-semibold bg-red-500 hover:bg-red-600 !text-white transition-all flex items-center justify-center gap-2"
+                style={{ color: '#ffffff' }}              >
+                {deleting
+                  ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Đang xóa...</>
+                  : <><Trash2 size={14} /> Xóa vĩnh viễn</>}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm mb-6">
         <Link to="/debts" className="text-slate-500 hover:text-slate-300 transition-colors">Quản lý nợ</Link>
@@ -83,13 +143,21 @@ export default function DebtDetailPage() {
           </p>
         </div>
         
-        <Link
-          to={`/debts/${id}/edit`}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-medium transition-all shadow-sm"
-          style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
-        >
-          <span className="flex items-center gap-1.5"><Pencil size={14} /> Chỉnh sửa</span>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            to={`/debts/${id}/edit`}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-medium transition-all shadow-sm"
+            style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
+          >
+            <Pencil size={14} /> Chỉnh sửa
+          </Link>
+          <button
+            onClick={() => setConfirmDelete(true)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-medium bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all"
+          >
+            <Trash2 size={14} /> Xóa
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
