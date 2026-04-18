@@ -6,7 +6,7 @@ export function calcAPY(apr, n = 12) {
 export function calcEAR(apr, feeProcessing, feeInsurance, feeManagement, termMonths) {
   const apy = calcAPY(apr);
   const annualizedProcessingFee = termMonths > 0 ? (feeProcessing / termMonths) * 12 : 0;
-  const totalAnnualFees = annualizedProcessingFee + feeInsurance + feeManagement;
+  const totalAnnualFees = Math.min(annualizedProcessingFee + feeInsurance + feeManagement, 300);
   return apy + totalAnnualFees;
 }
 
