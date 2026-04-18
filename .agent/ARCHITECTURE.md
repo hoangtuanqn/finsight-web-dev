@@ -164,14 +164,7 @@ Modular knowledge domains that agents can load on-demand. based on task context.
 | `documentation-templates` | Doc formats               |
 | `i18n-localization`       | Internationalization      |
 | `performance-profiling`   | Web Vitals, optimization  |
-| `systematic-debugging`    | Troubleshooting                               |
-| `using-superpowers`       | Master discipline skill (Jesse Vincent)       |
-| `using-git-worktrees`     | Isolated workspaces (Jesse Vincent)           |
-| `writing-skills`          | Meta-skill for new skills (Jesse Vincent)     |
-| `subagent-driven-dev`     | Subagent task execution (Jesse Vincent)       |
-| `verification-before-comp`| Evidence before claims (Jesse Vincent)        |
-| `executing-plans`         | Plan execution with checkpoints               |
-| `finishing-branch`        | Branch cleanup/merge workflow                 |
+| `systematic-debugging`    | Troubleshooting           |
 
 ---
 
@@ -274,7 +267,7 @@ For details, see [scripts/README.md](scripts/README.md)
 | Metric              | Value                         |
 | ------------------- | ----------------------------- |
 | **Total Agents**    | 20                            |
-| **Total Skills**    | 43                            |
+| **Total Skills**    | 36                            |
 | **Total Workflows** | 11                            |
 | **Total Scripts**   | 2 (master) + 18 (skill-level) |
 | **Coverage**        | ~90% web/mobile development   |

@@ -4,13 +4,15 @@ import { motion, useInView, useMotionValue, useTransform, animate } from 'framer
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
-  Rocket, Eye, CreditCard, Drama, BrainCircuit, Zap, Snowflake,
+  Rocket, CreditCard, Drama, BrainCircuit, Zap, Snowflake,
   BarChart3, Map, Bot, AlertTriangle, Mail, Target, TrendingUp,
   ShieldCheck, Moon, FileEdit, Sparkles, Check, User, GraduationCap,
   Briefcase, BookOpen, Heart, ChevronDown
 } from 'lucide-react';
 import heroMockup from '../assets/hero-mockup.png';
 import featureCards from '../assets/feature-cards.png';
+import { ToggleMode } from '../components/layout/components/ToggleMode';
+import { useDarkMode } from '../hooks/useDarkMode';
 
 /* ─── Animated Counter ─── */
 function AnimatedCounter({ target, suffix = '', duration = 2 }) {
@@ -152,6 +154,7 @@ function FAQAccordion() {
 ═══════════════════════════════════════════════════ */
 export default function LandingPage() {
   const { token } = useAuth();
+  const [dark, setDark] = useDarkMode();
   const isLoggedIn = !!token;
 
   return (
@@ -163,6 +166,7 @@ export default function LandingPage() {
             <div className="landing-logo-icon">F</div>
             <span className="text-gradient landing-logo-text">FinSight</span>
           </Link>
+          <ToggleMode dark={dark} setDark={setDark} />
           <div className="landing-nav-links">
             <a href="#features" className="landing-nav-link">Tính năng</a>
             <a href="#how-it-works" className="landing-nav-link">Hướng dẫn</a>

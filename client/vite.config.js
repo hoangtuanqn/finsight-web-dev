@@ -6,7 +6,15 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 5173,
-    host: true, // Required for Docker — binds to 0.0.0.0
+    host: true,
+    watch: {
+      usePolling: true,
+      interval: 300,
+    },
+    hmr: {
+      host: 'localhost',
+      port: 5173,
+    },
     proxy: {
       '/api': {
         target: process.env.VITE_API_PROXY || 'http://localhost:5001',
