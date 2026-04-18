@@ -383,6 +383,7 @@ export default function DashboardPage() {
             <CardHeader
               icon={<Calendar size={18} />}
               title="Đáo hạn sắp tới"
+              subtitle="30 ngày tới"
               action={
                 <Link to="/debts" className="text-blue-400 text-[12px] hover:text-blue-300 transition-colors font-medium shrink-0">
                   Xem tất cả →
@@ -392,26 +393,48 @@ export default function DashboardPage() {
             <div className="flex-1 flex flex-col">
               {debtSummary.dueThisWeek?.length > 0 ? (
                 <div className="space-y-1.5">
-                  {debtSummary.dueThisWeek.map((d) => (
-                    <div
-                      key={d.id}
-                      className="flex items-center justify-between py-3 px-3.5 rounded-xl hover:bg-[var(--color-bg-secondary)] transition-colors cursor-pointer"
-                      style={{ background: 'var(--color-bg-secondary)' }}
-                    >
-                      <div>
-                        <p className="text-[13px] font-semibold text-[var(--color-text-primary)]">{d.name}</p>
-                        <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">Ngày {d.dueDay}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[13px] font-bold text-red-500">{formatVND(d.minPayment)}</p>
-                      </div>
-                    </div>
-                  ))}
+                  {debtSummary.dueThisWeek.map((d) => {
+                    const urgency = d.daysUntil <= 3 ? 'danger' : d.daysUntil <= 7 ? 'warning' : 'normal';
+                    const urgencyBadge =
+                      urgency === 'danger'
+                        ? { bg: 'bg-red-500/15', text: 'text-red-400', label: d.daysUntil === 0 ? 'Hôm nay!' : `${d.daysUntil} ngày` }
+                        : urgency === 'warning'
+                          ? { bg: 'bg-amber-500/15', text: 'text-amber-400', label: `${d.daysUntil} ngày` }
+                          : { bg: 'bg-slate-700/50', text: 'text-slate-400', label: `${d.daysUntil} ngày` };
+                    return (
+                      <Link
+                        key={d.id}
+                        to={`/debts/${d.id}`}
+                        className="flex items-center justify-between py-3 px-3.5 rounded-xl hover:bg-[var(--color-bg-secondary)] transition-colors"
+                        style={{ background: 'var(--color-bg-secondary)' }}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold ${urgencyBadge.bg} ${urgencyBadge.text}`}>
+                            {urgencyBadge.label}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[13px] font-semibold text-[var(--color-text-primary)] truncate">{d.name}</p>
+                            <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
+                            {(() => {
+                              const today = new Date();
+                              const due = new Date(today.getFullYear(), today.getMonth(), d.dueDay);
+                              if (due < today) due.setMonth(due.getMonth() + 1);
+                              return due.toLocaleDateString('vi-VN', { weekday: 'short', day: 'numeric', month: 'short' });
+                            })()}
+                          </p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0 ml-2">
+                          <p className="text-[13px] font-bold text-red-500">{formatVND(d.minPayment)}</p>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-center py-4">
                   <span className="text-5xl mb-3 block"><PartyPopper size={40} className="mx-auto text-amber-400" /></span>
-                  <p className="text-[13px] font-semibold text-slate-400">Không có nợ đáo hạn</p>
+                  <p className="text-[13px] font-semibold text-slate-400">Không có nợ đáo hạn trong 30 ngày tới</p>
                   <p className="text-[11px] text-slate-600 mt-1">Tuyệt vời! Hãy giữ vững phong độ 💪</p>
                 </div>
               )}

@@ -30,12 +30,18 @@ export async function getAllDebts(req, res) {
     const dominoAlerts = detectDominoRisk(debts, user.monthlyIncome);
 
     const today = new Date();
-    const dueThisWeek = debts.filter(d => {
-      const daysUntil = d.dueDay >= today.getDate()
-        ? d.dueDay - today.getDate()
-        : 30 - today.getDate() + d.dueDay;
-      return daysUntil <= 7;
-    });
+    const currentDay = today.getDate();
+    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+
+    const upcomingDebts = debts
+      .map(d => {
+        const daysUntil = d.dueDay >= currentDay
+          ? d.dueDay - currentDay
+          : daysInMonth - currentDay + d.dueDay;
+        return { ...d, daysUntil };
+      })
+      .filter(d => d.daysUntil <= 30)
+      .sort((a, b) => a.daysUntil - b.daysUntil);
 
     return success(res, {
       debts: debtsWithCalc,
@@ -45,7 +51,13 @@ export async function getAllDebts(req, res) {
         averageEAR: weightedEAR,
         debtToIncomeRatio: dtiRatio,
         dominoAlerts,
-        dueThisWeek: dueThisWeek.map(d => ({ id: d.id, name: d.name, dueDay: d.dueDay, minPayment: d.minPayment })),
+        dueThisWeek: upcomingDebts.map(d => ({
+          id: d.id,
+          name: d.name,
+          dueDay: d.dueDay,
+          minPayment: d.minPayment,
+          daysUntil: d.daysUntil,
+        })),
       },
     });
   } catch (err) {
@@ -104,7 +116,25 @@ export async function createDebt(req, res) {
 
   try {
     const debt = await prisma.debt.create({
-      data: { userId: req.userId, ...req.body, remainingTerms, startDate: new Date(startDate) },
+      data: {
+        userId:          req.userId,
+        name:            String(req.body.name).trim(),
+        platform:        req.body.platform ?? 'CUSTOM',
+        originalAmount:  +req.body.originalAmount,
+        balance:         +req.body.balance,
+        apr:             +req.body.apr,
+        rateType:        req.body.rateType ?? 'FLAT',
+        feeProcessing:   +req.body.feeProcessing  || 0,
+        feeInsurance:    +req.body.feeInsurance   || 0,
+        feeManagement:   +req.body.feeManagement  || 0,
+        feePenaltyPerDay: +req.body.feePenaltyPerDay || 0,
+        minPayment:      +req.body.minPayment,
+        dueDay:          Math.round(+req.body.dueDay),
+        termMonths:      Math.round(+req.body.termMonths),
+        remainingTerms:  Math.round(remainingTerms),
+        startDate:       new Date(startDate),
+        notes:           req.body.notes ?? null,
+      },
     });
     await invalidateCache([`user:${req.userId}:*`]);
     return success(res, { debt }, 201);
