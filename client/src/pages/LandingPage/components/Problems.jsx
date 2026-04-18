@@ -1,17 +1,17 @@
 import { CreditCard, Drama, BrainCircuit } from 'lucide-react';
-import { Section, StaggerGroup, fadeUp, Web3Card, GradientText } from './Shared';
+import { Section, StaggerGroup, fadeUp, GlowCard, GradientText } from './Shared';
 import { motion } from 'framer-motion';
 
 export default function Problems() {
   return (
     <Section id="problems" className="py-32">
       <div className="text-center max-w-3xl mx-auto mb-20 relative">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-blue-500/20 blur-3xl rounded-full" />
-        <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-6 relative z-10 tracking-tight">
-          Tại sao bạn cần <GradientText>FinSight</GradientText>?
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-blue-500/10 blur-[100px] rounded-full pointer-events-none" />
+        <h2 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white mb-6 relative z-10 tracking-tighter">
+          Tại sao bạn cần <GradientText from="from-blue-600" to="to-indigo-500">FinSight</GradientText>?
         </h2>
-        <p className="text-lg text-slate-600 dark:text-slate-400 font-medium relative z-10">
-          Quản lý tài chính cá nhân không nên phức tạp. Hãy để công nghệ giải quyết những khó khăn của bạn.
+        <p className="text-xl text-slate-600 dark:text-slate-400 font-medium relative z-10">
+          Trong kỷ nguyên nợ nần phân mảnh, chúng tôi mang lại sự minh bạch tuyệt đối.
         </p>
       </div>
 
@@ -20,40 +20,43 @@ export default function Problems() {
           {
             icon: CreditCard,
             title: 'Nợ phân mảnh',
-            desc: 'Mất kiểm soát với vô số khoản nợ rải rác trên SPayLater, thẻ tín dụng và các ứng dụng ví trả sau.',
-            glowColor: 'bg-blue-500/20',
-            iconColor: 'text-blue-500'
+            desc: 'Dễ dàng mất kiểm soát khi có nhiều khoản nợ từ SPayLater, ví trả sau đến thẻ tín dụng rải rác khắp nơi.',
+            glow: 'rgba(59, 130, 246, 0.2)',
+            iconColor: 'bg-blue-500'
           },
           {
             icon: Drama,
             title: 'Lãi suất ẩn',
-            desc: 'Bị đánh lừa bởi quảng cáo lãi suất thấp, trong khi chi phí thực (EAR) đội lên cao vì các loại phí ẩn.',
-            glowColor: 'bg-purple-500/20',
-            iconColor: 'text-purple-500'
+            desc: 'Chi phí thực tế thường cao hơn nhiều so với quảng cáo do các khoản phí hồ sơ và bảo hiểm "vô hình".',
+            glow: 'rgba(139, 92, 246, 0.2)',
+            iconColor: 'bg-purple-500'
           },
           {
             icon: BrainCircuit,
             title: 'Thiếu định hướng',
-            desc: 'Không biết phương pháp thoát nợ nào hiệu quả nhất và gặp khó khăn trong việc phân bổ tài sản.',
-            glowColor: 'bg-cyan-500/20',
-            iconColor: 'text-cyan-500'
+            desc: 'Không biết phương pháp thoát nợ nào là tối ưu và loay hoay trong việc phân bổ tài sản an toàn.',
+            glow: 'rgba(236, 72, 153, 0.2)',
+            iconColor: 'bg-pink-500'
           },
         ].map((item) => (
           <motion.div key={item.title} variants={fadeUp}>
-            <Web3Card glowColor={item.glowColor} className="h-full">
-              <div className="relative z-10">
-                <div className={`w-14 h-14 rounded-2xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-white/60 dark:border-white/10 ${item.iconColor} flex items-center justify-center mb-8 shadow-lg`}>
-                  <item.icon size={28} />
-                </div>
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4 tracking-tight">{item.title}</h3>
-                <p className="text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
-                  {item.desc}
-                </p>
+            <GlowCard glowColor={item.glow} className="h-full group">
+              <div className={`w-16 h-16 rounded-2xl ${item.iconColor} text-white flex items-center justify-center mb-8 shadow-2xl transition-transform group-hover:scale-110 group-hover:rotate-3 duration-500`}>
+                <item.icon size={32} />
               </div>
-            </Web3Card>
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-4 tracking-tight">{item.title}</h3>
+              <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
+                {item.desc}
+              </p>
+              
+              <div className="mt-8 pt-6 border-t border-slate-200 dark:border-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center gap-2 text-sm font-bold text-blue-500">
+                Tìm hiểu thêm <ChevronRight size={16} />
+              </div>
+            </GlowCard>
           </motion.div>
         ))}
       </StaggerGroup>
     </Section>
   );
 }
+import { ChevronRight } from 'lucide-react';

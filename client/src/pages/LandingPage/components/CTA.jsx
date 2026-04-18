@@ -1,54 +1,64 @@
 import { Link } from 'react-router-dom';
-import { Sparkles, ArrowRight, Zap } from 'lucide-react';
-import { useAuth } from '../../../context/AuthContext';
 import { motion } from 'framer-motion';
-import { GradientText } from './Shared';
+import { ChevronRight, Sparkles, Zap, ArrowRight } from 'lucide-react';
+import { Section, GradientText } from './Shared';
 
 export default function CTA() {
-  const { token } = useAuth();
-  const isLoggedIn = !!token;
-
   return (
-    <section className="py-32 px-6 relative z-10">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        whileInView={{ opacity: 1, scale: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className="max-w-6xl mx-auto rounded-[3rem] bg-slate-900/80 backdrop-blur-2xl p-12 lg:p-24 text-center relative overflow-hidden border border-white/10 shadow-[0_0_80px_rgba(59,130,246,0.15)] group"
-      >
-        {/* Web3 Ambient Background Effects */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-gradient-to-r from-blue-600/30 to-purple-600/30 blur-[100px] rounded-[100%] pointer-events-none group-hover:scale-110 transition-transform duration-1000" />
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHBhdGggZD0iTTAgMGg0MHY0MEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0wIDM5LjVoNDBNMzkuNSAwdi00ME0wIDAuNWg0ME0wLjUgMHY0MCIgc3Ryb2tlPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMDIpIiBzdHJva2Utd2lkdGg9IjEiLz48L3N2Zz4=')] opacity-50" />
-        
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-cyan-400 text-xs font-bold uppercase tracking-widest mb-8 relative z-10">
-          <Zap size={14} /> Future of Finance
+    <Section className="py-32">
+      <div className="relative overflow-hidden rounded-[3rem] bg-slate-950 px-8 py-24 md:px-16 text-center shadow-[0_0_100px_rgba(37,99,235,0.2)] border border-white/10">
+        {/* Web3 Background Effects */}
+        <div className="absolute top-0 left-0 w-full h-full">
+          <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-600/30 blur-[150px] rounded-full animate-pulse" />
+          <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-600/20 blur-[150px] rounded-full animate-pulse [animation-delay:2s]" />
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHBhdGggZD0iTTAgMGg0MHY0MEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0wIDM5LjVoNDBNMzkuNSAwdi00ME0wIDAuNWg0ME0wLjUgMHY0MCIgc3Ryb2tlPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMDIpIiBzdHJva2Utd2lkdGg9IjEiLz48L3N2Zz4=')] opacity-20" />
         </div>
 
-        <h2 className="text-4xl md:text-6xl font-black text-white mb-8 leading-[1.1] relative z-10 tracking-tight">
-          Sẵn sàng bắt đầu hành trình <br className="hidden md:block"/> <GradientText from="from-blue-400" to="to-cyan-300">Tự do tài chính</GradientText>?
-        </h2>
-        <p className="text-xl text-slate-300 mb-12 font-medium relative z-10 max-w-2xl mx-auto leading-relaxed">
-          Đừng để lãi suất kiểm soát cuộc sống của bạn. Tham gia giao thức quản lý tài chính thế hệ mới ngay hôm nay.
-        </p>
-        
-        <div className="flex flex-col sm:flex-row justify-center gap-6 relative z-10">
-          {isLoggedIn ? (
-            <Link to="/home" className="group relative flex items-center justify-center gap-2 px-10 py-5 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold rounded-2xl shadow-[0_0_40px_rgba(59,130,246,0.4)] hover:shadow-[0_0_60px_rgba(59,130,246,0.6)] transition-all">
-              Vào Dashboard <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-          ) : (
-            <>
-              <Link to="/register" className="group relative flex items-center justify-center gap-2 px-10 py-5 bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold rounded-2xl shadow-[0_0_40px_rgba(59,130,246,0.4)] hover:shadow-[0_0_60px_rgba(59,130,246,0.6)] transition-all">
-                Đăng ký ngay <Sparkles size={20} />
+        <div className="relative z-10 max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-black uppercase tracking-[0.2em] mb-8">
+              <Zap size={14} /> Ready for the next level?
+            </div>
+            
+            <h2 className="text-5xl md:text-8xl font-black text-white mb-8 tracking-tighter leading-tight">
+              Bắt đầu hành trình <br />
+              <GradientText from="from-blue-400" to="to-cyan-300">Tự do Tài chính</GradientText>
+            </h2>
+            
+            <p className="text-xl md:text-2xl text-slate-400 mb-12 font-medium max-w-2xl mx-auto leading-relaxed">
+              Gia nhập cộng đồng người dùng thông minh đang tối ưu hóa dòng tiền và xóa nợ mỗi ngày cùng FinSight.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+              <Link to="/register" className="group relative flex items-center gap-3 px-10 py-5 bg-blue-600 text-white font-black rounded-2xl shadow-[0_20px_50px_rgba(37,99,235,0.4)] hover:shadow-[0_20px_80px_rgba(37,99,235,0.6)] transition-all hover:scale-105 active:scale-95">
+                Bắt đầu miễn phí <ArrowRight size={22} className="group-hover:translate-x-1 transition-transform" />
+                <div className="absolute inset-0 bg-white/20 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
               </Link>
-              <Link to="/login" className="flex items-center justify-center gap-2 px-10 py-5 bg-white/5 text-white font-bold rounded-2xl border border-white/10 hover:bg-white/10 backdrop-blur-md transition-all">
-                Dùng thử Demo
+              <Link to="/contact" className="flex items-center gap-2 px-10 py-5 bg-white/5 text-white font-black rounded-2xl border border-white/10 backdrop-blur-md hover:bg-white/10 transition-all">
+                Liên hệ tư vấn
               </Link>
-            </>
-          )}
+            </div>
+
+            <div className="mt-16 pt-8 border-t border-white/5 flex flex-wrap justify-center gap-10">
+              {[
+                { label: 'Uptime', val: '99.9%' },
+                { label: 'Security', val: 'Military' },
+                { label: 'Support', val: '24/7' }
+              ].map((stat, i) => (
+                <div key={i} className="text-center">
+                  <div className="text-2xl font-black text-white">{stat.val}</div>
+                  <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
         </div>
-      </motion.div>
-    </section>
+      </div>
+    </Section>
   );
 }
