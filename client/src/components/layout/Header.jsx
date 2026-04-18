@@ -1,33 +1,26 @@
-import { useState, useRef, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  AlertOctagon,
+  AlertTriangle,
+  Bell,
+  ChevronDown,
+  Flame,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  PanelLeftClose,
+  TrendingUp,
+  User,
+} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
-import { Menu, PanelLeftClose, Moon, Sun, Bell, User, LogOut, LayoutDashboard, TrendingUp, ChevronDown, AlertOctagon, Flame, AlertTriangle } from 'lucide-react';
 
 import { userAPI } from '../../api/index.js';
+import { ToggleMode } from './components/ToggleMode.jsx';
+import { useDarkMode } from '../../hooks/useDarkMode.js';
 
 /* ─── Dark mode hook (persisted to localStorage) ─── */
-function useDarkMode() {
-  const [dark, setDark] = useState(() => {
-    const saved = localStorage.getItem('finsight-theme');
-    if (saved) return saved === 'dark';
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
-  });
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (dark) {
-      root.classList.add('dark');
-      root.setAttribute('data-theme', 'dark');
-    } else {
-      root.classList.remove('dark');
-      root.setAttribute('data-theme', 'light');
-    }
-    localStorage.setItem('finsight-theme', dark ? 'dark' : 'light');
-  }, [dark]);
-
-  return [dark, setDark];
-}
 
 export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed, isMobile }) {
   const { user, logout } = useAuth();
@@ -40,7 +33,7 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
   const notifRef = useRef(null);
   const avatarRef = useRef(null);
 
-  const unreadCount = notifs.filter(n => !n.isRead).length;
+  const unreadCount = notifs.filter((n) => !n.isRead).length;
 
   const fetchNotifications = async () => {
     try {
@@ -70,7 +63,7 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
   const markAllAsRead = async () => {
     try {
       await userAPI.markAllRead();
-      setNotifs(prev => prev.map(n => ({ ...n, isRead: true })));
+      setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })));
     } catch (err) {
       console.error(err);
     }
@@ -79,7 +72,7 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
   const markOneAsRead = async (id) => {
     try {
       await userAPI.markRead(id);
-      setNotifs(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+      setNotifs((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
     } catch (err) {
       console.error(err);
     }
@@ -128,10 +121,7 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
           {isMobile ? (
             <Menu size={20} />
           ) : (
-            <motion.div
-              animate={{ rotate: isCollapsed ? 180 : 0 }}
-              className="flex items-center justify-center"
-            >
+            <motion.div animate={{ rotate: isCollapsed ? 180 : 0 }} className="flex items-center justify-center">
               <PanelLeftClose size={20} />
             </motion.div>
           )}
@@ -141,36 +131,24 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
           <span className="text-[14px] text-[var(--color-text-secondary)] font-medium hidden sm:block">FinSight</span>
           <span className="text-slate-500 hidden sm:block">/</span>
-          <span className="text-[15px] sm:text-[16px] text-[var(--color-text-primary)] font-medium uppercase tracking-wider">Tổng quan</span>
+          <span className="text-[15px] sm:text-[16px] text-[var(--color-text-primary)] font-medium uppercase tracking-wider">
+            Tổng quan
+          </span>
         </div>
       </div>
 
       {/* ── Right: Actions cluster ── */}
       <div className="flex items-center gap-1.5">
-
         {/* Dark mode toggle */}
-        <button
-          onClick={() => setDark(d => !d)}
-          className="relative w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:bg-slate-500/10 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-          title={dark ? 'Chuyển Sang Sáng' : 'Chuyển Sang Tối'}
-        >
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={dark ? 'moon' : 'sun'}
-              initial={{ opacity: 0, scale: 0.5, rotate: -45 }}
-              animate={{ opacity: 1, scale: 1, rotate: 0 }}
-              exit={{ opacity: 0, scale: 0.5, rotate: 45 }}
-              transition={{ duration: 0.2 }}
-            >
-              {dark ? <Moon size={18} /> : <Sun size={18} />}
-            </motion.div>
-          </AnimatePresence>
-        </button>
+        <ToggleMode dark={dark} setDark={setDark} />
 
         {/* Notification bell */}
         <div className="relative" ref={notifRef}>
           <button
-            onClick={() => { setNotifOpen(v => !v); setAvatarOpen(false); }}
+            onClick={() => {
+              setNotifOpen((v) => !v);
+              setAvatarOpen(false);
+            }}
             className="relative w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:bg-slate-500/10 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
           >
             <Bell size={19} />
@@ -195,7 +173,10 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
                 }}
               >
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 py-3.5 border-b" style={{ borderColor: 'var(--color-border)' }}>
+                <div
+                  className="flex items-center justify-between px-4 py-3.5 border-b"
+                  style={{ borderColor: 'var(--color-border)' }}
+                >
                   <div className="flex items-center gap-2">
                     <span className="text-[13px] font-bold text-[var(--color-text-primary)]">Thông báo</span>
                     {unreadCount > 0 && (
@@ -205,7 +186,10 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
                     )}
                   </div>
                   {unreadCount > 0 && (
-                    <button onClick={markAllAsRead} className="text-[11px] text-[var(--color-text-secondary)] hover:text-blue-500 transition-colors">
+                    <button
+                      onClick={markAllAsRead}
+                      className="text-[11px] text-[var(--color-text-secondary)] hover:text-blue-500 transition-colors"
+                    >
                       Đánh dấu tất cả đã đọc
                     </button>
                   )}
@@ -214,14 +198,14 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
                 {/* Notif list */}
                 <div className="max-h-72 overflow-y-auto">
                   {notifs.length > 0 ? (
-                    notifs.map(n => (
+                    notifs.map((n) => (
                       <div
                         key={n.id}
                         onClick={() => markOneAsRead(n.id)}
                         className="flex items-start gap-4 px-4 py-4 transition-colors cursor-pointer border-b last:border-0 hover:bg-slate-500/5"
                         style={{
                           background: !n.isRead ? 'var(--color-bg-primary)' : 'transparent',
-                          borderColor: 'var(--color-border)'
+                          borderColor: 'var(--color-border)',
                         }}
                       >
                         <span className="shrink-0 mt-0.5">{getNotifIcon(n.type, n.severity)}</span>
@@ -230,21 +214,25 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
                             <p className="text-[13px] font-bold text-[var(--color-text-primary)] truncate">{n.title}</p>
                             {!n.isRead && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />}
                           </div>
-                          <p className="text-[11px] text-[var(--color-text-secondary)] mt-0.5 line-clamp-2">{n.message}</p>
+                          <p className="text-[11px] text-[var(--color-text-secondary)] mt-0.5 line-clamp-2">
+                            {n.message}
+                          </p>
                           <p className="text-[10px] text-[var(--color-text-muted)] mt-1.5">{getTimeAgo(n.createdAt)}</p>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div className="py-10 text-center text-slate-500 text-[13px]">
-                      Không có thông báo nào
-                    </div>
+                    <div className="py-10 text-center text-slate-500 text-[13px]">Không có thông báo nào</div>
                   )}
                 </div>
 
                 {/* Footer */}
                 <div className="px-4 py-3 border-t text-center" style={{ borderColor: 'var(--color-border)' }}>
-                  <Link to="/debts" onClick={() => setNotifOpen(false)} className="text-[12px] text-blue-500 hover:text-blue-600 transition-colors font-bold uppercase tracking-wide">
+                  <Link
+                    to="/debts"
+                    onClick={() => setNotifOpen(false)}
+                    className="text-[12px] text-blue-500 hover:text-blue-600 transition-colors font-bold uppercase tracking-wide"
+                  >
                     Tất cả thông báo
                   </Link>
                 </div>
@@ -259,7 +247,10 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
         {/* Avatar / User dropdown */}
         <div className="relative" ref={avatarRef}>
           <button
-            onClick={() => { setAvatarOpen(v => !v); setNotifOpen(false); }}
+            onClick={() => {
+              setAvatarOpen((v) => !v);
+              setNotifOpen(false);
+            }}
             className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl hover:bg-slate-500/10 transition-all"
           >
             <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-[13px] font-bold text-white shadow-md shadow-blue-500/20">
@@ -293,7 +284,9 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
                       {user?.fullName?.charAt(0)?.toUpperCase() || 'U'}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[14px] font-bold text-[var(--color-text-primary)] truncate">{user?.fullName}</p>
+                      <p className="text-[14px] font-bold text-[var(--color-text-primary)] truncate">
+                        {user?.fullName}
+                      </p>
                       <p className="text-[12px] text-[var(--color-text-secondary)] truncate">{user?.email}</p>
                     </div>
                   </div>
@@ -305,19 +298,19 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
                     {
                       to: '/profile',
                       icon: <User size={16} />,
-                      label: 'Hồ sơ cá nhân'
+                      label: 'Hồ sơ cá nhân',
                     },
                     {
                       to: '/',
                       icon: <LayoutDashboard size={16} />,
-                      label: 'Dashboard'
+                      label: 'Dashboard',
                     },
                     {
                       to: '/investment',
                       icon: <TrendingUp size={16} />,
-                      label: 'Đầu tư'
+                      label: 'Đầu tư',
                     },
-                  ].map(item => (
+                  ].map((item) => (
                     <Link
                       key={item.to}
                       to={item.to}
