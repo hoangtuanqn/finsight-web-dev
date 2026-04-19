@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { debtAPI } from '../../api/index.js';
+import { debtAPI, userAPI } from '../../api/index.js';
 import { useAuth } from '../../context/AuthContext';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
 import { formatVND, formatPercent, calcDebtToIncomeRatio } from '../../utils/calculations';
-import { ClipboardList, DollarSign, TrendingDown, Bot, Lightbulb, Target, Zap, TrendingUp } from 'lucide-react';
+import { ClipboardList, DollarSign, TrendingDown, Bot, Lightbulb, Target, Zap, TrendingUp, Save, Check } from 'lucide-react';
 
 export default function RepaymentPlanPage() {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const defaultBudget = user?.extraBudget || 0;
 
   const [data, setData] = useState(null);
@@ -16,6 +16,8 @@ export default function RepaymentPlanPage() {
   const [loading, setLoading] = useState(true);
   const [extraBudget, setExtraBudget] = useState(defaultBudget);
   const [inputRaw, setInputRaw] = useState(String(defaultBudget));
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const SLIDER_MAX = 100000000;
 
   const load = (budget) => {
@@ -52,6 +54,19 @@ export default function RepaymentPlanPage() {
 
   const handleInputKeyDown = (e) => {
     if (e.key === 'Enter') e.target.blur();
+  };
+
+  const handleSaveBudget = async () => {
+    setSaving(true);
+    try {
+      await userAPI.updateProfile({ extraBudget });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (e) {
+      console.error('Save extraBudget error:', e);
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading && !data) return <PageSkeleton />;
@@ -116,18 +131,25 @@ export default function RepaymentPlanPage() {
               type="text"
               inputMode="numeric"
               placeholder="Nhập số tiền..."
-              value={inputRaw}
+              value={formatVND(inputRaw)}
               onChange={handleInputChange}
               onBlur={handleInputBlur}
               onKeyDown={handleInputKeyDown}
               className="input-field w-full pr-8 text-blue-400 font-semibold"
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-slate-500">đ</span>
           </div>
-          <div className="text-right shrink-0">
-            <p className="text-lg font-bold text-blue-400">{formatVND(extraBudget)}</p>
-            <p className="text-[10px] text-slate-600 mt-0.5">mỗi tháng</p>
-          </div>
+          <button
+            onClick={handleSaveBudget}
+            disabled={saving}
+            className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-semibold transition-all border ${
+              saved
+                ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+                : 'bg-blue-500/15 border-blue-500/30 text-blue-400 hover:bg-blue-500/25'
+            }`}
+          >
+            {saved ? <Check size={14} /> : <Save size={14} />}
+            {saved ? 'Đã lưu' : 'Lưu'}
+          </button>
         </div>
 
         {/* Slider tối đa 100tr */}

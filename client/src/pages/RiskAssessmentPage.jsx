@@ -7,6 +7,8 @@ import { TrendingUp, RefreshCw, Target, Flame, Shield } from 'lucide-react';
 
 const QUESTIONS = [
   {
+    id: 'reaction_drop',
+    category: 'Phản ứng thị trường',
     question: 'Nếu danh mục đầu tư giảm 20% trong 1 tháng, bạn sẽ?',
     options: [
       { text: 'Bán hết để cắt lỗ', score: 10 },
@@ -16,6 +18,8 @@ const QUESTIONS = [
     ],
   },
   {
+    id: 'goal',
+    category: 'Mục tiêu',
     question: 'Mục tiêu đầu tư chính của bạn là gì?',
     options: [
       { text: 'Bảo toàn vốn, không muốn mất tiền', score: 15 },
@@ -25,6 +29,8 @@ const QUESTIONS = [
     ],
   },
   {
+    id: 'horizon',
+    category: 'Thời gian',
     question: 'Khoảng thời gian đầu tư dự kiến?',
     options: [
       { text: 'Dưới 1 năm', score: 15 },
@@ -34,6 +40,8 @@ const QUESTIONS = [
     ],
   },
   {
+    id: 'experience',
+    category: 'Kinh nghiệm',
     question: 'Bạn có kinh nghiệm đầu tư tài chính không?',
     options: [
       { text: 'Chưa bao giờ đầu tư', score: 10 },
@@ -43,12 +51,69 @@ const QUESTIONS = [
     ],
   },
   {
+    id: 'allocation',
+    category: 'Tỉ lệ đầu tư',
     question: 'Tỉ lệ thu nhập bạn sẵn sàng đầu tư?',
     options: [
       { text: 'Dưới 10% — chỉ dư thì mới đầu tư', score: 15 },
       { text: '10-20% — dành riêng mỗi tháng', score: 40 },
       { text: '20-40% — đầu tư là ưu tiên', score: 65 },
       { text: 'Trên 40% — all-in', score: 90 },
+    ],
+  },
+  {
+    id: 'emergency_fund',
+    category: 'Quỹ khẩn cấp',
+    question: 'Quỹ khẩn cấp hiện tại của bạn đủ cho bao nhiêu tháng chi tiêu?',
+    options: [
+      { text: 'Không có quỹ khẩn cấp', score: 10 },
+      { text: 'Dưới 3 tháng', score: 30 },
+      { text: '3-6 tháng', score: 65 },
+      { text: 'Trên 6 tháng', score: 90 },
+    ],
+  },
+  {
+    id: 'income_stability',
+    category: 'Thu nhập',
+    question: 'Mức độ ổn định của thu nhập hàng tháng?',
+    options: [
+      { text: 'Không ổn định, thường xuyên biến động', score: 15 },
+      { text: 'Tương đối ổn định nhưng đôi khi thay đổi', score: 35 },
+      { text: 'Khá ổn định (lương cứng + thưởng)', score: 65 },
+      { text: 'Rất ổn định, có thêm thu nhập thụ động', score: 90 },
+    ],
+  },
+  {
+    id: 'loss_experience',
+    category: 'Kinh nghiệm thua lỗ',
+    question: 'Bạn đã từng thua lỗ khi đầu tư chưa? Cảm giác như thế nào?',
+    options: [
+      { text: 'Chưa, và tôi rất lo sợ điều đó', score: 10 },
+      { text: 'Chưa, nhưng tôi nghĩ mình sẽ bình tĩnh', score: 35 },
+      { text: 'Rồi, tôi hoảng loạn và bán ngay', score: 20 },
+      { text: 'Rồi, tôi giữ bình tĩnh và học từ sai lầm', score: 80 },
+    ],
+  },
+  {
+    id: 'debt_situation',
+    category: 'Tình trạng nợ',
+    question: 'Tình trạng nợ hiện tại của bạn?',
+    options: [
+      { text: 'Đang có nhiều nợ lãi cao (>30%/năm)', score: 10 },
+      { text: 'Có nợ vừa phải, đang trả đều', score: 35 },
+      { text: 'Chỉ còn khoản nợ nhỏ hoặc lãi thấp', score: 65 },
+      { text: 'Không có nợ', score: 90 },
+    ],
+  },
+  {
+    id: 'news_reaction',
+    category: 'Tâm lý',
+    question: 'Khi đọc tin "thị trường sắp sụp đổ", bạn phản ứng thế nào?',
+    options: [
+      { text: 'Bán hết tài sản ngay lập tức', score: 10 },
+      { text: 'Lo lắng và giảm tỉ trọng đầu tư', score: 30 },
+      { text: 'Theo dõi thêm, không hành động vội', score: 65 },
+      { text: 'Bỏ qua, tập trung vào chiến lược dài hạn', score: 90 },
     ],
   },
 ];
@@ -167,6 +232,11 @@ export default function RiskAssessmentPage() {
           transition={{ duration: 0.25 }}
           className="glass-card"
         >
+          {q.category && (
+            <span className="inline-block mb-3 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-[11px] font-semibold text-blue-400 uppercase tracking-wide">
+              {q.category}
+            </span>
+          )}
           <h2 className="text-[16px] font-semibold text-white mb-6 leading-relaxed">{q.question}</h2>
           <div className="space-y-2.5">
             {q.options.map((opt, i) => (
