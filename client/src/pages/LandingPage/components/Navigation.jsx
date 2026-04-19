@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, X, ChevronRight, LayoutDashboard, LogIn, Sparkles } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
-
 import { motion, AnimatePresence } from 'framer-motion';
 import { ToggleMode } from '../../../components/layout/components/ToggleMode';
+import { useDarkMode } from '../../../hooks/useDarkMode';
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [dark, setDark] = useDarkMode();
   const { token } = useAuth();
   const isLoggedIn = !!token;
 
@@ -28,7 +29,7 @@ export default function Navigation() {
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'py-4' : 'py-8'}`}>
       <div className={`max-w-7xl mx-auto px-6`}>
         <div className={`relative flex items-center justify-between px-6 py-3 rounded-2xl border transition-all duration-500 ${scrolled ? 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border-slate-200 dark:border-white/10 shadow-2xl' : 'bg-transparent border-transparent'}`}>
-
+          
           <Link to="/" className="flex items-center gap-2.5 group">
             <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-xl shadow-[0_0_20px_rgba(37,99,235,0.4)] group-hover:scale-110 transition-transform">
               F
@@ -49,7 +50,7 @@ export default function Navigation() {
           </div>
 
           <div className="hidden md:flex items-center gap-4">
-            <ToggleMode />
+            <ToggleMode dark={dark} setDark={setDark} />
             <div className="w-px h-6 bg-slate-200 dark:bg-white/10 mx-2" />
             {isLoggedIn ? (
               <Link to="/home" className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white font-black text-sm rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all hover:scale-105">
@@ -60,7 +61,7 @@ export default function Navigation() {
                 <Link to="/login" className="text-sm font-black text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white uppercase tracking-widest px-4 py-2">
                   Đăng nhập
                 </Link>
-                <Link to="/register" className="group relative flex items-center gap-2 px-6 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-950 font-black text-sm rounded-xl transition-all hover:scale-105 shadow-xl">
+                <Link to="/register" className="group relative flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white font-black text-sm rounded-xl transition-all hover:scale-105 shadow-xl">
                   Bắt đầu <Sparkles size={16} className="group-hover:rotate-12 transition-transform" />
                 </Link>
               </>
@@ -95,7 +96,7 @@ export default function Navigation() {
                 ))}
                 <hr className="border-slate-100 dark:border-white/5" />
                 <div className="flex flex-col gap-4">
-                  <ToggleMode />
+                  <ToggleMode dark={dark} setDark={setDark} />
                   {isLoggedIn ? (
                     <Link to="/home" className="flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white font-black rounded-2xl">
                       Dashboard <LayoutDashboard size={20} />
@@ -105,7 +106,7 @@ export default function Navigation() {
                       <Link to="/login" className="flex items-center justify-center gap-2 px-6 py-4 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-black rounded-2xl">
                         Đăng nhập <LogIn size={20} />
                       </Link>
-                      <Link to="/register" className="flex items-center justify-center gap-2 px-6 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-950 font-black rounded-2xl">
+                      <Link to="/register" className="flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white font-black rounded-2xl">
                         Bắt đầu ngay <ChevronRight size={20} />
                       </Link>
                     </>
