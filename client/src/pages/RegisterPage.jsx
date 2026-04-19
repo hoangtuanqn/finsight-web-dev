@@ -52,7 +52,7 @@ export default function RegisterPage() {
 
       <div className="relative z-10 min-h-screen flex items-center justify-center p-6">
         <div className="w-full max-w-7xl grid lg:grid-cols-2 gap-16 items-center">
-          
+
           {/* Left Side (Content) */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
@@ -64,12 +64,12 @@ export default function RegisterPage() {
               <Sparkles size={14} className="animate-spin-slow" />
               Intelligence ERA Protocol
             </div>
-            
+
             <h1 className="text-6xl font-black text-slate-900 dark:text-white leading-[1.1] mb-8 tracking-tighter">
               Bắt đầu hành trình <br />
               <GradientText from="from-purple-600" to="to-pink-500">Tài chính mới</GradientText>
             </h1>
-            
+
             <p className="text-xl text-slate-600 dark:text-slate-400 mb-12 max-w-lg font-medium leading-relaxed">
               Tạo định danh tài chính để truy cập vào hệ thống bóc tách nợ và phân bổ tài sản tự động. Bảo mật và an toàn tuyệt đối.
             </p>
@@ -97,7 +97,7 @@ export default function RegisterPage() {
             className="w-full max-w-md mx-auto relative group"
           >
             <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-500 rounded-[2.5rem] blur opacity-20 group-hover:opacity-30 transition duration-1000" />
-            
+
             <div className="relative bg-white/70 dark:bg-slate-900/40 backdrop-blur-2xl rounded-[2.5rem] border border-white dark:border-white/10 shadow-2xl p-10 lg:p-12">
               <div className="absolute top-8 right-8">
                 <ToggleMode dark={dark} setDark={setDark} />
@@ -125,7 +125,7 @@ export default function RegisterPage() {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] ml-1">Full Identity Name</label>
+                  <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] ml-1">Full Name</label>
                   <div className="relative group/input">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-blue-500 transition-colors"><User size={18} /></div>
                     <input
@@ -140,7 +140,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] ml-1">Node Email</label>
+                  <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] ml-1">Email</label>
                   <div className="relative group/input">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-blue-500 transition-colors"><Mail size={18} /></div>
                     <input
@@ -148,14 +148,14 @@ export default function RegisterPage() {
                       value={form.email}
                       onChange={e => update('email', e.target.value)}
                       className="w-full bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-12 py-3.5 text-slate-900 dark:text-white font-bold focus:border-blue-500 outline-none transition-all text-sm"
-                      placeholder="name@protocol.io"
+                      placeholder="Email của bạn"
                       required
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] ml-1">Secure Key</label>
+                  <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] ml-1">Password</label>
                   <div className="relative group/input">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-blue-500 transition-colors"><Lock size={18} /></div>
                     <input
@@ -163,7 +163,7 @@ export default function RegisterPage() {
                       value={form.password}
                       onChange={e => update('password', e.target.value)}
                       className="w-full bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-12 py-3.5 text-slate-900 dark:text-white font-bold focus:border-blue-500 outline-none transition-all text-sm"
-                      placeholder="Tối thiểu 6 ký tự"
+                      placeholder="Mật khẩu (tối thiểu 6 ký tự)"
                       required
                       minLength={6}
                     />
@@ -174,7 +174,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] ml-1">Confirm Key</label>
+                  <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] ml-1">Confirm Password</label>
                   <div className="relative group/input">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-blue-500 transition-colors"><Lock size={18} /></div>
                     <input
@@ -197,7 +197,7 @@ export default function RegisterPage() {
                     <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
                     <>
-                      Tạo tài khoản ngay <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                      Đăng ký ngay <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
                     </>
                   )}
                   <div className="absolute inset-0 bg-white/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
@@ -206,7 +206,7 @@ export default function RegisterPage() {
 
               <div className="mt-8 pt-8 border-t border-slate-100 dark:border-white/5 text-center">
                 <Link to="/login" className="text-xs font-black text-blue-500 uppercase tracking-widest hover:underline">
-                  Đã có Node? Quay lại Đăng nhập
+                  Đã có tài khoản? Quay lại Đăng nhập
                 </Link>
               </div>
             </div>
