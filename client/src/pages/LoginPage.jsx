@@ -43,7 +43,7 @@ export default function LoginPage() {
 
       <div className="relative z-10 min-h-screen flex items-center justify-center p-6">
         <div className="w-full max-w-7xl grid lg:grid-cols-2 gap-16 items-center">
-          
+
           {/* Left Side: Hero-style Content */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
@@ -55,12 +55,12 @@ export default function LoginPage() {
               <Sparkles size={14} className="animate-spin-slow" />
               Fintech Intelligence Protocol
             </div>
-            
+
             <h1 className="text-6xl font-black text-slate-900 dark:text-white leading-[1.1] mb-8 tracking-tighter">
-              Chào mừng bạn đến với <br />
-              <GradientText from="from-blue-600" to="to-cyan-500">FinSight Ecosystem</GradientText>
+              Chào mừng bạn đến với <span> </span>
+              <GradientText from="from-blue-600" to="to-cyan-500">FinSight</GradientText>
             </h1>
-            
+
             <p className="text-xl text-slate-600 dark:text-slate-400 mb-12 max-w-lg font-medium leading-relaxed">
               Giao thức quản lý tài chính thế hệ mới. Đăng nhập để tối ưu hóa nợ và gia tăng tài sản cùng trí tuệ nhân tạo.
             </p>
@@ -89,7 +89,7 @@ export default function LoginPage() {
           >
             {/* Card Glow Effect */}
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-[2.5rem] blur opacity-20 group-hover:opacity-30 transition duration-1000" />
-            
+
             <div className="relative bg-white/70 dark:bg-slate-900/40 backdrop-blur-2xl rounded-[2.5rem] border border-white dark:border-white/10 shadow-2xl p-10 lg:p-12">
               {/* Theme Toggle in Corner */}
               <div className="absolute top-8 right-8">
@@ -119,7 +119,7 @@ export default function LoginPage() {
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Identity Email</label>
+                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Email</label>
                   <div className="relative group/input">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-blue-500 transition-colors">
                       <Mail size={18} />
@@ -129,7 +129,7 @@ export default function LoginPage() {
                       value={email}
                       onChange={e => setEmail(e.target.value)}
                       className="w-full bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-12 py-4 text-slate-900 dark:text-white font-bold focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                      placeholder="name@example.com"
+                      placeholder="Email của bạn"
                       required
                     />
                   </div>
@@ -137,7 +137,7 @@ export default function LoginPage() {
 
                 <div className="space-y-2">
                   <div className="flex justify-between px-1">
-                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Access Key</label>
+                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Password</label>
                     <Link to="/forgot" className="text-xs font-bold text-blue-500 hover:underline">Quên mật khẩu?</Link>
                   </div>
                   <div className="relative group/input">
@@ -149,7 +149,7 @@ export default function LoginPage() {
                       value={password}
                       onChange={e => setPassword(e.target.value)}
                       className="w-full bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-12 py-4 text-slate-900 dark:text-white font-bold focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
-                      placeholder="••••••••"
+                      placeholder="Mật khẩu"
                       required
                     />
                     <button
@@ -171,7 +171,7 @@ export default function LoginPage() {
                     <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
                     <>
-                      Vào Dashboard <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                      Đăng nhập <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
                     </>
                   )}
                   <div className="absolute inset-0 bg-white/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
