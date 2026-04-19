@@ -17,8 +17,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 import { userAPI } from '../../api/index.js';
-import { ToggleMode } from './components/ToggleMode.jsx';
 import { useDarkMode } from '../../hooks/useDarkMode.js';
+import { ToggleMode } from './components/ToggleMode.jsx';
 
 /* ─── Dark mode hook (persisted to localStorage) ─── */
 

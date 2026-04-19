@@ -1,6 +1,5 @@
 @import "tailwindcss";
-
-/* ==========================================
+@custom-variant dark (&:is(.dark *));/* ==========================================
    FinSight — Premium Dark Mode Design System
    ========================================== */
 
@@ -1590,10 +1589,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
    ========================================== */
 
 /* ── Text: white & light-slate → dark on light bg ── */
-[data-theme='light'] .text-white {
-  color: var(--color-text-primary);
-}
-
 [data-theme='light'] .text-slate-300 {
   color: #334155; /* slate-700 — readable on white */
 }
@@ -1602,21 +1597,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
   color: #475569; /* slate-600 — readable on white */
 }
 
-/* Hover / group-hover variants that flip text to white */
-[data-theme='light'] .hover\:text-white:hover {
-  color: var(--color-text-primary);
-}
-
-[data-theme='light'] .hover\:text-slate-300:hover {
-  color: #334155;
-}
-
-/* group-hover:text-white (option cards in RiskAssessmentPage, etc.) */
-[data-theme='light'] .group:hover .group-hover\:text-white {
-  color: var(--color-text-primary);
-}
-
-/* ── Backgrounds: near-transparent white → subtle tint on light bg ── */
+/* Backgrounds: near-transparent white → subtle tint on light bg */
 /* On a white page rgba(255,255,255,0.02-0.06) is completely invisible.
    Replace with a faint dark tint so cards/panels have visible separation. */
 [data-theme='light'] .bg-white\/\[0\.02\] {
