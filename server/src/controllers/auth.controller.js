@@ -7,10 +7,6 @@ export async function register(req, res) {
   try {
     const { email, password, fullName } = req.body;
 
-    if (!email || !password || !fullName) {
-      return error(res, 'Email, password, and fullName are required', 400);
-    }
-
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
       return error(res, 'Email already registered', 409);
@@ -38,10 +34,6 @@ export async function register(req, res) {
 export async function login(req, res) {
   try {
     const { email, password } = req.body;
-
-    if (!email || !password) {
-      return error(res, 'Email and password are required', 400);
-    }
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {

@@ -9,6 +9,8 @@ import ScrollToTop from './components/layout/ScrollToTop';
 import PublicRoute from './components/layout/PublicRoute';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import QRConfirmPage from './pages/QRConfirmPage';
+import ProtectedRoute from './components/layout/ProtectedRoute';
 import DebtOverviewPage from './pages/debt/DebtOverviewPage';
 import AddDebtPage from './pages/debt/AddDebtPage';
 import DebtDetailPage from './pages/debt/DebtDetailPage';
@@ -41,6 +43,7 @@ export default function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
               <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+              <Route path="/qr-confirm" element={<ProtectedRoute><QRConfirmPage /></ProtectedRoute>} />
               <Route element={<Layout />}>
                 <Route path="/home" element={<DashboardPage />} />
                 <Route path="/debts" element={<DebtOverviewPage />} />

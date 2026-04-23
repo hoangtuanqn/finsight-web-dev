@@ -1,16 +1,13 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { debtGoalAPI } from '../../api/index.js';
 import { formatVND } from '../../utils/calculations';
 import { toast } from 'sonner';
+import { useDebtGoal, useDebtGoalMutations } from '../../hooks/useDebtQuery';
 import {
   Target, Trophy, Flag, CheckCircle2, Lock, Calendar, Zap,
   TrendingDown, AlertTriangle, Edit3, Trash2, Plus, ChevronRight,
 } from 'lucide-react';
 
-// ─────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────
 function formatDate(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
@@ -36,18 +33,12 @@ const MILESTONE_META = [
   { percent: 100, icon: Trophy,       label: 'Trả hết nợ! 🎉' },
 ];
 
-// ─────────────────────────────────────────────
-// Skeleton loader
-// ─────────────────────────────────────────────
 function SkeletonBlock({ h = 'h-24', className = '' }) {
   return (
     <div className={`rounded-3xl animate-pulse bg-white/5 ${h} ${className}`} />
   );
 }
 
-// ─────────────────────────────────────────────
-// GoalForm — set / edit goal
-// ─────────────────────────────────────────────
 function GoalForm({ existing, onSaved, onCancel }) {
   const minDate = new Date();
   minDate.setDate(minDate.getDate() + 1);
@@ -57,21 +48,19 @@ function GoalForm({ existing, onSaved, onCancel }) {
     existing?.targetDate ? existing.targetDate.split('T')[0] : '',
   );
   const [strategy, setStrategy] = useState(existing?.strategy || 'AVALANCHE');
-  const [saving, setSaving] = useState(false);
+  
+  const { upsertGoal, isUpserting: saving } = useDebtGoalMutations();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!targetDate) { toast.error('Vui lòng chọn ngày mục tiêu.'); return; }
-    setSaving(true);
-    try {
-      await debtGoalAPI.upsert({ targetDate, strategy });
-      toast.success(existing ? 'Đã cập nhật mục tiêu!' : 'Đã đặt mục tiêu trả nợ!');
-      onSaved();
-    } catch (err) {
-      toast.error(err.response?.data?.error || 'Lỗi khi lưu mục tiêu.');
-    } finally {
-      setSaving(false);
-    }
+    
+    upsertGoal({ targetDate, strategy }, {
+      onSuccess: () => {
+        toast.success(existing ? 'Đã cập nhật mục tiêu!' : 'Đã đặt mục tiêu trả nợ!');
+        onSaved();
+      }
+    });
   };
 
   return (
@@ -85,7 +74,6 @@ function GoalForm({ existing, onSaved, onCancel }) {
       <div className="absolute top-0 left-5 right-5 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent" />
       <div className="absolute -top-8 -right-8 w-28 h-28 rounded-full blur-3xl opacity-10 bg-violet-500" />
 
-      {/* Title */}
       <div className="flex items-center gap-2.5">
         <div className="w-9 h-9 rounded-xl bg-violet-500/15 flex items-center justify-center text-violet-400">
           <Target size={18} />
@@ -95,7 +83,6 @@ function GoalForm({ existing, onSaved, onCancel }) {
         </h2>
       </div>
 
-      {/* Date picker */}
       <div>
         <label className="block text-[11px] text-[var(--color-text-muted)] uppercase tracking-wider font-black mb-1.5">
           Mục tiêu trả hết nợ vào ngày
@@ -110,7 +97,6 @@ function GoalForm({ existing, onSaved, onCancel }) {
         />
       </div>
 
-      {/* Strategy selector */}
       <div>
         <label className="block text-[11px] text-[var(--color-text-muted)] uppercase tracking-wider font-black mb-2">
           Chiến lược trả nợ
@@ -147,7 +133,6 @@ function GoalForm({ existing, onSaved, onCancel }) {
         </div>
       </div>
 
-      {/* Actions */}
       <div className="flex gap-3 pt-1">
         <button
           type="submit"
@@ -170,9 +155,6 @@ function GoalForm({ existing, onSaved, onCancel }) {
   );
 }
 
-// ─────────────────────────────────────────────
-// MilestoneCard
-// ─────────────────────────────────────────────
 function MilestoneCard({ meta, data, delay }) {
   const { percent, icon: Icon, label } = meta;
   const { targetAmount, reached } = data;
@@ -228,40 +210,18 @@ function MilestoneCard({ meta, data, delay }) {
   );
 }
 
-// ─────────────────────────────────────────────
-// Main Page
-// ─────────────────────────────────────────────
 export default function DebtGoalPage() {
-  const [data,    setData]    = useState(null);
-  const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  const load = () => {
-    setLoading(true);
-    debtGoalAPI.get()
-      .then((res) => setData(res.data.data))
-      .catch(console.error)
-      .finally(() => setTimeout(() => setLoading(false), 300));
-  };
-
-  useEffect(() => { load(); }, []);
+  const { data, isLoading: loading } = useDebtGoal();
+  const { deleteGoal, isDeleting: deleting } = useDebtGoalMutations();
 
   const handleDelete = async () => {
     if (!window.confirm('Xóa mục tiêu trả nợ? Bạn có thể đặt lại bất cứ lúc nào.')) return;
-    setDeleting(true);
-    try {
-      await debtGoalAPI.delete();
-      toast.success('Đã xóa mục tiêu.');
-      load();
-    } catch (err) {
-      toast.error(err.response?.data?.error || 'Lỗi khi xóa.');
-    } finally {
-      setDeleting(false);
-    }
+    deleteGoal(null, {
+      onSuccess: () => toast.success('Đã xóa mục tiêu.')
+    });
   };
 
-  // ── Loading ──
   if (loading) {
     return (
       <div className="pb-8 space-y-6">
@@ -280,7 +240,6 @@ export default function DebtGoalPage() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-8 space-y-6">
-      {/* ── Header ── */}
       <div className="pt-2">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-violet-500/20 bg-violet-500/8 text-violet-400 text-[10px] font-black uppercase tracking-widest mb-3">
           <Target size={11} /> Mục tiêu trả nợ
@@ -289,13 +248,12 @@ export default function DebtGoalPage() {
         <p className="text-[var(--color-text-secondary)] text-sm mt-1">Đặt mục tiêu trả hết nợ và theo dõi tiến độ qua các cột mốc quan trọng</p>
       </div>
 
-      {/* ── Goal Form OR Goal Summary ── */}
       <AnimatePresence mode="wait">
         {showForm ? (
           <GoalForm
             key="form"
             existing={editing ? goal : null}
-            onSaved={() => { setEditing(false); load(); }}
+            onSaved={() => setEditing(false)}
             onCancel={editing ? () => setEditing(false) : null}
           />
         ) : (
@@ -350,7 +308,6 @@ export default function DebtGoalPage() {
         )}
       </AnimatePresence>
 
-      {/* ── Progress Bar ── */}
       {progress && (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -366,7 +323,6 @@ export default function DebtGoalPage() {
             </span>
           </div>
 
-          {/* Hero progress bar */}
           <div className="relative h-4 rounded-full bg-white/5 overflow-hidden mb-5">
             <motion.div
               initial={{ width: 0 }}
@@ -377,7 +333,6 @@ export default function DebtGoalPage() {
             />
           </div>
 
-          {/* 3 summary cards */}
           <div className="grid grid-cols-3 gap-3">
             {[
               { label: 'Tổng nợ gốc',   value: formatVND(progress.totalOriginal), color: 'text-[var(--color-text-primary)]' },
@@ -393,7 +348,6 @@ export default function DebtGoalPage() {
         </motion.div>
       )}
 
-      {/* ── Milestone Cards ── */}
       {milestones && (
         <div>
           <h3 className="text-[13px] font-black text-[var(--color-text-muted)] uppercase tracking-wider mb-3 flex items-center gap-2">
@@ -412,7 +366,6 @@ export default function DebtGoalPage() {
         </div>
       )}
 
-      {/* ── On-Track Status (only when goal set) ── */}
       {goal && onTrack && (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -431,19 +384,19 @@ export default function DebtGoalPage() {
           {(() => {
             const meta = STATUS_META[onTrack.status] || STATUS_META.ON_TRACK;
             const colorMap = {
-              emerald: { glow: 'via-emerald-500/50', bg: 'bg-emerald-500', badge: 'bg-emerald-500/15 text-emerald-300', Icon: meta.icon },
-              blue:    { glow: 'via-blue-500/50',    bg: 'bg-blue-500',    badge: 'bg-blue-500/15 text-blue-300',       Icon: meta.icon },
-              red:     { glow: 'via-red-500/50',     bg: 'bg-red-500',     badge: 'bg-red-500/15 text-red-300',         Icon: meta.icon },
+              emerald: { glow: 'via-emerald-500/50', bg: 'bg-emerald-500', badge: 'bg-emerald-500/15 text-emerald-300', icon: meta.icon },
+              blue:    { glow: 'via-blue-500/50',    bg: 'bg-blue-500',    badge: 'bg-blue-500/15 text-blue-300',       icon: meta.icon },
+              red:     { glow: 'via-red-500/50',     bg: 'bg-red-500',     badge: 'bg-red-500/15 text-red-300',         icon: meta.icon },
             };
             const cm = colorMap[meta.color];
-            const StatusIcon = cm.Icon;
+            const StatusIcon = cm.icon;
             return (
               <>
                 <div className={`absolute top-0 left-5 right-5 h-px bg-gradient-to-r from-transparent ${cm.glow} to-transparent`} />
                 <div className={`absolute -top-8 -right-8 w-24 h-24 rounded-full blur-3xl opacity-10 ${cm.bg}`} />
 
                 <div className="flex items-center gap-3 mb-5">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${cm.badge.replace('text-', 'text-').replace('bg-', 'bg-')}`} style={{ background: 'rgba(255,255,255,0.06)' }}>
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/5" style={{ background: 'rgba(255,255,255,0.06)' }}>
                     <StatusIcon size={18} className={cm.badge.split(' ')[1]} />
                   </div>
                   <div>
@@ -472,21 +425,18 @@ export default function DebtGoalPage() {
                   </div>
                 </div>
 
-                {/* Suggestion for BEHIND */}
                 {onTrack.status === 'BEHIND' && onTrack.requiredExtraBudget != null && (
                   <div className="mt-4 flex items-start gap-3 px-4 py-3.5 rounded-2xl border border-red-500/15 bg-red-500/6">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl" />
                     <AlertTriangle size={15} className="text-red-400 shrink-0 mt-0.5" />
                     <p className="text-[13px] text-red-300 leading-relaxed">
                       Để đạt mục tiêu, bạn cần trả thêm{' '}
                       <span className="font-black text-red-200">{formatVND(onTrack.requiredExtraBudget)}/tháng</span>.{' '}
                       Hãy điều chỉnh ngân sách ở trang{' '}
-                      <a href="/debts/repayment" className="underline hover:text-red-100 transition-colors">Kế hoạch trả nợ</a>.
+                      <Link to="/debts/repayment" className="underline hover:text-red-100 transition-colors">Kế hoạch trả nợ</Link>.
                     </p>
                   </div>
                 )}
 
-                {/* Ahead message */}
                 {onTrack.status === 'AHEAD' && (
                   <div className="mt-4 flex items-start gap-3 px-4 py-3.5 rounded-2xl border border-emerald-500/15 bg-emerald-500/6">
                     <CheckCircle2 size={15} className="text-emerald-400 shrink-0 mt-0.5" />
@@ -501,16 +451,15 @@ export default function DebtGoalPage() {
         </motion.div>
       )}
 
-      {/* ── Empty state — no debts at all ── */}
       {progress && progress.totalOriginal === 0 && (
         <div className="rounded-3xl border border-[var(--color-border)] p-16 text-center" style={{ background: 'var(--color-bg-card)' }}>
           <div className="w-16 h-16 rounded-2xl bg-slate-500/10 flex items-center justify-center mx-auto mb-4">
             <Target size={28} className="text-slate-500" />
           </div>
           <p className="text-[var(--color-text-muted)] font-medium mb-2">Chưa có khoản nợ nào</p>
-          <a href="/debts/add" className="inline-flex items-center gap-1.5 text-[12px] font-black text-violet-400 hover:text-violet-300 transition-colors">
+          <Link to="/debts/add" className="inline-flex items-center gap-1.5 text-[12px] font-black text-violet-400 hover:text-violet-300 transition-colors">
             <Plus size={13} /> Thêm khoản nợ đầu tiên <ChevronRight size={13} />
-          </a>
+          </Link>
         </div>
       )}
     </motion.div>
