@@ -10,14 +10,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
     "@react-oauth/google": "^0.13.5",
     "@tanstack/react-query": "^5.91.3",
     "axios": "^1.13.6",
     "driver.js": "^1.4.0",
     "framer-motion": "^12.38.0",
+    "joi": "^18.1.2",
     "lucide-react": "^1.8.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-hook-form": "^7.73.1",
     "react-is": "^19.2.5",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.13.1",
