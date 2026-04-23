@@ -271,6 +271,179 @@ class EmailService {
     return this.send(to, subject, html);
   }
 
+  async sendMilestoneCongrats(to, userName, percent, totalPaid, totalOriginal) {
+    const milestoneConfig = {
+      25:  { emoji: '🎯', color: '#f59e0b', title: 'Đã trả được 1/4 tổng nợ!',              message: 'Bước khởi đầu tuyệt vời — bạn đã đi được 25% chặng đường thoát nợ.' },
+      50:  { emoji: '🔥', color: '#3b82f6', title: 'Nửa đường rồi!',                         message: 'Ấn tượng! Bạn đã xóa được một nửa tổng nợ. Đà tốt, hãy tiếp tục!' },
+      75:  { emoji: '⚡', color: '#8b5cf6', title: 'Chỉ còn 25% nữa là xong!',               message: 'Gần về đích rồi! 75% tổng nợ đã được thanh toán — đừng dừng lại nhé.' },
+      100: { emoji: '🏆', color: '#22c55e', title: 'TRẮNG TAY NỢ — Tự do tài chính!',        message: 'Bạn đã làm được điều phi thường: trả hết 100% nợ! Đây là khoảnh khắc đáng tự hào.' },
+    };
+
+    const cfg       = milestoneConfig[percent] || { emoji: '🎉', color: '#10b981', title: `Đạt cột mốc ${percent}%!`, message: `Bạn đã trả được ${percent}% tổng nợ.` };
+    const fmt       = (n) => new Intl.NumberFormat('vi-VN').format(Math.round(n));
+    const remaining = Math.max(0, totalOriginal - totalPaid);
+    const barW      = Math.min(100, percent);
+
+    const subject = `${cfg.emoji} FinSight: ${cfg.title}`;
+    const html = `<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${subject}</title>
+</head>
+<!--[if mso]><body style="background:#0f172a;"><center><table width="700"><tr><td><![endif]-->
+<body style="margin:0;padding:0;background:#0f172a;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td align="center" style="padding:40px 16px;background:#0f172a;">
+
+      <!-- OUTER CARD 700px -->
+      <table role="presentation" width="700" cellpadding="0" cellspacing="0" border="0"
+             style="max-width:700px;width:100%;border-radius:20px;overflow:hidden;border:1px solid #334155;">
+        <tr>
+
+          <!-- ════ LEFT PANEL — hero (240px) ════ -->
+          <td width="240" valign="middle" align="center"
+              style="width:240px;background:linear-gradient(160deg,#0f172a 0%,#1e1b4b 100%);
+                     padding:40px 28px;border-right:1px solid #334155;
+                     border-left:4px solid ${cfg.color};">
+
+            <!-- Logo -->
+            <img src="https://i.ibb.co/84xLmWTK/LOGO.png"
+                 alt="FinSight" width="120"
+                 style="display:block;margin:0 auto 24px;height:auto;max-width:120px;">
+
+            <!-- Milestone emoji -->
+            <div style="font-size:52px;line-height:1;margin-bottom:16px;">${cfg.emoji}</div>
+
+            <!-- Title -->
+            <p style="margin:0 0 16px;font-size:16px;font-weight:900;color:#f8fafc;
+                      line-height:1.35;letter-spacing:-0.3px;text-align:center;">
+              ${cfg.title}
+            </p>
+
+            <!-- % badge -->
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0"
+                   style="margin:0 auto;">
+              <tr>
+                <td style="padding:6px 18px;border-radius:99px;
+                           background:${cfg.color}22;border:1px solid ${cfg.color}55;">
+                  <span style="font-size:14px;font-weight:800;color:${cfg.color};">
+                    ${percent}% hoàn thành
+                  </span>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Subtitle -->
+            <p style="margin:16px 0 0;font-size:11px;color:#64748b;text-align:center;">
+              FinSight ghi nhận cột mốc của bạn
+            </p>
+          </td>
+
+          <!-- ════ RIGHT PANEL — content ════ -->
+          <td valign="top" style="background:#1e293b;padding:36px 32px;">
+
+            <!-- Greeting -->
+            <p style="margin:0 0 20px;font-size:15px;color:#e2e8f0;line-height:1.7;">
+              Chào <strong style="color:#f8fafc;">${userName}</strong>,<br>
+              ${cfg.message}
+            </p>
+
+            <!-- Progress bar -->
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                   style="margin-bottom:6px;">
+              <tr>
+                <td style="font-size:11px;font-weight:700;color:#64748b;
+                           text-transform:uppercase;letter-spacing:0.5px;">
+                  Tiến độ tổng nợ
+                </td>
+                <td align="right" style="font-size:12px;font-weight:800;color:${cfg.color};">
+                  ${percent}%
+                </td>
+              </tr>
+            </table>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                   style="margin-bottom:20px;">
+              <tr>
+                <td style="background:#334155;border-radius:99px;height:8px;padding:0;">
+                  <table role="presentation" cellpadding="0" cellspacing="0"
+                         border="0" width="${barW}%">
+                    <tr>
+                      <td style="height:8px;border-radius:99px;
+                                 background:linear-gradient(90deg,#ef4444,#f97316,${cfg.color});">
+                        &nbsp;
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Stats — 3 columns -->
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                   border="0" style="margin-bottom:24px;">
+              <tr>
+                <td align="center" width="31%"
+                    style="background:#0f172a;border-radius:10px;border:1px solid #334155;
+                           padding:12px 6px;">
+                  <div style="font-size:14px;font-weight:800;color:${cfg.color};">
+                    ${fmt(totalPaid)}đ
+                  </div>
+                  <div style="font-size:10px;color:#64748b;margin-top:3px;">Đã trả</div>
+                </td>
+                <td width="3%"></td>
+                <td align="center" width="31%"
+                    style="background:#0f172a;border-radius:10px;border:1px solid #334155;
+                           padding:12px 6px;">
+                  <div style="font-size:14px;font-weight:800;color:#f8fafc;">
+                    ${fmt(totalOriginal)}đ
+                  </div>
+                  <div style="font-size:10px;color:#64748b;margin-top:3px;">Tổng gốc</div>
+                </td>
+                <td width="3%"></td>
+                <td align="center" width="31%"
+                    style="background:#0f172a;border-radius:10px;border:1px solid #334155;
+                           padding:12px 6px;">
+                  <div style="font-size:14px;font-weight:800;color:#f8fafc;">
+                    ${fmt(remaining)}đ
+                  </div>
+                  <div style="font-size:10px;color:#64748b;margin-top:3px;">Còn lại</div>
+                </td>
+              </tr>
+            </table>
+
+            <!-- CTA -->
+            <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/debts/goal"
+               style="display:block;padding:14px 24px;background:${cfg.color};
+                      color:#ffffff;text-decoration:none;border-radius:12px;
+                      font-weight:800;font-size:14px;text-align:center;">
+              Xem tiến độ trên FinSight →
+            </a>
+
+            <!-- Footer note -->
+            <p style="margin:20px 0 0;font-size:11px;color:#475569;text-align:center;">
+              &copy; 2026 FinSight Financial Platform — Đồng hành cùng hành trình tự do tài chính của bạn.
+            </p>
+          </td>
+
+        </tr>
+      </table>
+      <!-- END CARD -->
+
+    </td>
+  </tr>
+</table>
+<!--[if mso]></td></tr></table></center><![endif]-->
+
+</body>
+</html>`;
+
+    return this.send(to, subject, html);
+  }
+
   async send(to, subject, html) {
     try {
       // For Demo: If NO credentials, just log to console
