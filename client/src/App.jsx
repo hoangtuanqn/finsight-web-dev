@@ -15,6 +15,7 @@ import EditDebtPage from './pages/debt/EditDebtPage';
 import EarAnalysisPage from './pages/debt/EarAnalysisPage';
 import RepaymentPlanPage from './pages/debt/RepaymentPlanPage';
 import DtiAnalysisPage from './pages/debt/DtiAnalysisPage';
+import DebtGoalPage from './pages/debt/DebtGoalPage';
 import InvestmentPage from './pages/InvestmentPage';
 import RiskAssessmentPage from './pages/RiskAssessmentPage';
 import ProfilePage from './pages/ProfilePage';
@@ -43,6 +44,7 @@ export default function App() {
               <Route path="/debts" element={<DebtOverviewPage />} />
               <Route path="/debts/add" element={<AddDebtPage />} />
               <Route path="/debts/ear-analysis" element={<EarAnalysisPage />} />
+              <Route path="/debts/goal" element={<DebtGoalPage />} />
               <Route path="/debts/repayment" element={<RepaymentPlanPage />} />
               <Route path="/debts/dti" element={<DtiAnalysisPage />} />
               <Route path="/debts/:id" element={<DebtDetailPage />} />
