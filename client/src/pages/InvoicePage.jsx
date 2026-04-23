@@ -3,10 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   QrCode, Clock, CheckCircle2, XCircle, Copy, 
-  ArrowLeft, Loader2, Ban, Zap, Crown
+  ArrowLeft, Loader2, Ban, Zap, Crown, PartyPopper
 } from 'lucide-react';
 import { subscriptionAPI } from '../api/index.js';
 import { toast } from 'sonner';
+import { useSocket } from '../context/SocketContext';
 
 const STATUS_MAP = {
   PENDING:   { label: 'Chờ thanh toán', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', icon: Clock },
@@ -26,6 +27,9 @@ export default function InvoicePage() {
   const [tx, setTx] = useState(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const { socket } = useSocket();
 
   const fetchInvoice = useCallback(async () => {
     try {
@@ -53,13 +57,26 @@ export default function InvoicePage() {
         if (updated && updated.status !== 'PENDING') {
           setTx(updated);
           if (updated.status === 'PAID') {
-            toast.success('🎉 Thanh toán thành công! Gói đã được kích hoạt.');
+            setShowSuccessModal(true);
           }
         }
       } catch {}
     }, 10000);
     return () => clearInterval(interval);
   }, [tx, id]);
+
+  // Socket listener for real-time update
+  useEffect(() => {
+    if (!socket || !tx || tx.status !== 'PENDING') return;
+
+    const handleSubUpgraded = (data) => {
+      console.log('Socket event: subscription:upgraded', data);
+      setShowSuccessModal(true);
+    };
+
+    socket.on('subscription:upgraded', handleSubUpgraded);
+    return () => socket.off('subscription:upgraded', handleSubUpgraded);
+  }, [socket, tx]);
 
   const handleCancel = async () => {
     if (!window.confirm('Bạn có chắc muốn hủy hóa đơn này?')) return;
@@ -72,6 +89,21 @@ export default function InvoicePage() {
       toast.error('Không thể hủy hóa đơn');
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleVerify = async () => {
+    setVerifying(true);
+    try {
+      const res = await subscriptionAPI.verifyPayment();
+      toast.info(res.data?.data?.message || 'Đang kiểm tra...');
+      // After manual verify, we refresh the invoice once
+      const invRes = await subscriptionAPI.getInvoice(id);
+      setTx(invRes.data?.data?.transaction);
+    } catch {
+      toast.error('Có lỗi xảy ra khi kiểm tra');
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -214,11 +246,20 @@ export default function InvoicePage() {
 
           {/* Actions */}
           {tx.status === 'PENDING' && (
-            <div className="mt-8 flex gap-3">
+            <div className="mt-8 flex flex-col gap-3">
+              <button 
+                onClick={handleVerify}
+                disabled={verifying}
+                className="btn-primary w-full flex items-center justify-center gap-2"
+              >
+                {verifying ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+                Tôi đã chuyển tiền
+              </button>
+              
               <button 
                 onClick={handleCancel}
                 disabled={cancelling}
-                className="btn-secondary flex-1"
+                className="btn-secondary w-full"
               >
                 {cancelling ? <Loader2 size={16} className="animate-spin" /> : 'Hủy hóa đơn'}
               </button>
@@ -237,6 +278,36 @@ export default function InvoicePage() {
           )}
         </motion.div>
       </div>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+          />
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="relative z-10 glass-card max-w-sm w-full text-center py-10 px-8 border-emerald-500/30"
+          >
+            <div className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-6">
+              <PartyPopper size={40} className="text-emerald-400" />
+            </div>
+            <h2 className="text-2xl font-black mb-3">Thanh toán thành công!</h2>
+            <p className="text-[var(--color-text-secondary)] text-sm mb-8 leading-relaxed">
+              Tài khoản của bạn đã được nâng cấp. Chúc bạn có những trải nghiệm tuyệt vời cùng các tính năng Premium.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="btn-primary w-full py-4 font-bold"
+            >
+              Tiếp tục
+            </button>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
