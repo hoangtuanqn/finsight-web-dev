@@ -118,11 +118,18 @@ export const reportAPI = {
 // SUBSCRIPTION
 export const subscriptionAPI = {
   getMyPlan: () => api.get('/subscription/me'),
-  createInvoice: (data) => api.post('/subscription/invoice', data),
+  getPlans: () => api.get('/subscription/plans'),
+  createInvoice: (plan) => api.post('/subscription/invoice', { plan }),
   getInvoice: (id) => api.get(`/subscription/invoice/${id}`),
+  checkStatus: (id) => api.get(`/subscription/invoice/${id}/status`),
   getTransactions: () => api.get('/subscription/transactions'),
   cancelInvoice: (id) => api.post(`/subscription/invoice/${id}/cancel`),
   verifyPayment: () => api.post('/subscription/verify'),
+};
+
+export const articleAPI = {
+  getArticles: () => api.get('/articles'),
+  seedArticles: () => api.post('/articles/seed'),
 };
 
 export default api;

@@ -26,6 +26,7 @@ import DashboardPage from './pages/DashboardPage';
 import UpgradePage from './pages/UpgradePage';
 import InvoicePage from './pages/InvoicePage';
 import TransactionHistoryPage from './pages/TransactionHistoryPage';
+import KnowledgeBasePage from './pages/knowledge/KnowledgeBasePage';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30000, retry: 1 } },
@@ -46,6 +47,7 @@ export default function App() {
               <Route path="/qr-confirm" element={<ProtectedRoute><QRConfirmPage /></ProtectedRoute>} />
               <Route element={<Layout />}>
                 <Route path="/home" element={<DashboardPage />} />
+                <Route path="/knowledge" element={<KnowledgeBasePage />} />
                 <Route path="/debts" element={<DebtOverviewPage />} />
                 <Route path="/debts/add" element={<AddDebtPage />} />
                 <Route path="/debts/ear-analysis" element={<EarAnalysisPage />} />
