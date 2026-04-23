@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, CreditCard, Search, ClipboardList,
-  TrendingUp, Target, User, BarChart2, LogOut, ChevronRight,
+  TrendingUp, Target, User, BarChart2, LogOut, ChevronRight, Zap,
 } from 'lucide-react';
 
 const NAV_GROUPS = [
@@ -33,6 +33,12 @@ const NAV_GROUPS = [
     label: 'Tài khoản',
     items: [
       { id: 'tour-profile', to: '/profile', icon: User, label: 'Hồ sơ cá nhân', color: '#64748b', gradient: 'from-slate-500 to-slate-400' },
+    ],
+  },
+  {
+    label: 'Premium',
+    items: [
+      { id: 'tour-upgrade', to: '/upgrade', icon: Zap, label: 'Nâng cấp ngay', color: '#3b82f6', gradient: 'from-blue-600 to-cyan-500' },
     ],
   },
 ];
