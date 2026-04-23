@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { error } from '../utils/apiResponse.js';
 
 /**
@@ -12,7 +13,7 @@ export const validate = (schema, source = 'body') => {
       req[source] = validatedData; // Use validated/transformed data
       next();
     } catch (validationError) {
-      if (validationError.errors) {
+      if (validationError instanceof z.ZodError) {
         const errorMessage = validationError.errors
           .map((err) => err.message)
           .join(', ');
