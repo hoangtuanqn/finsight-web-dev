@@ -41,7 +41,8 @@ const getProgressStyle = (percent) => {
 };
 
 export default function DebtOverviewPage() {
-  const { data, isLoading } = useDebts();
+  const [statusFilter, setStatusFilter] = useState('ACTIVE');
+  const { data, isLoading } = useDebts(statusFilter);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('finsight_debt_view') || 'grid');
 
@@ -61,9 +62,11 @@ export default function DebtOverviewPage() {
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-red-500/20 bg-red-500/10 text-red-400 text-xs font-bold uppercase tracking-widest mb-4">
             <CreditCard size={14} /> Quản lý khoản nợ
           </div>
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-[var(--color-text-primary)]">
-            Danh sách khoản nợ
-          </h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-[var(--color-text-primary)]">
+              Danh sách khoản nợ
+            </h1>
+          </div>
           <p className="text-[var(--color-text-secondary)] text-base mt-2">Tổng quan và theo dõi các khoản nợ của bạn một cách trực quan.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -136,10 +139,32 @@ export default function DebtOverviewPage() {
         </div>
       )}
 
-      {debts.length > 0 && (
-        <div className="flex items-center justify-between pt-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <h2 className="text-xl font-extrabold text-[var(--color-text-primary)]">Chi tiết khoản nợ</h2>
           
+          <div className="flex items-center bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl p-1 shadow-sm overflow-x-auto">
+            {[
+              { id: 'ACTIVE', label: 'Đang nợ' },
+              { id: 'PAID', label: 'Đã tất toán' },
+              { id: 'TRASH', label: 'Thùng rác' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setStatusFilter(tab.id)}
+                className={`flex-shrink-0 px-4 py-1.5 text-sm font-bold rounded-lg transition-colors ${
+                  statusFilter === tab.id 
+                    ? 'bg-[var(--color-bg-card)] text-blue-500 shadow-sm border border-[var(--color-border)]/50' 
+                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                }`}
+              >
+                {tab.id === 'TRASH' && statusFilter === tab.id ? '🗑️ ' : ''}{tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        {debts.length > 0 && (
           <div className="hidden sm:flex items-center bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-xl p-1 shadow-sm">
             <button 
               onClick={() => setViewMode('grid')}
@@ -156,8 +181,8 @@ export default function DebtOverviewPage() {
               <List size={18} />
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {debts.length === 0 ? (
         <div className="rounded-3xl border border-[var(--color-border)] p-12 md:p-20 text-center" style={{ background: 'var(--color-bg-card)' }}>
