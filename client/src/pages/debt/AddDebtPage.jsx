@@ -130,18 +130,17 @@ function inputCls(hasError) {
 function PlatformPresets({ activePlatform, onSelect }) {
   return (
     <div className="mb-6">
-      <label className="input-label">Nền tảng</label>
+      <label className="block text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-2">Nền tảng</label>
       <div className="flex flex-wrap gap-2">
         {Object.entries(PLATFORM_PRESETS).map(([key, val]) => (
           <button
             key={key}
             type="button"
             onClick={() => onSelect(key)}
-            className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all border ${
-              activePlatform === key
-                ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'
-                : 'bg-white/[0.03] text-slate-500 border-white/[0.06] hover:bg-white/[0.06] hover:text-slate-400'
-            }`}
+            className="px-3 py-1.5 rounded-xl text-[12px] font-bold transition-all border cursor-pointer"
+            style={activePlatform === key
+              ? { background: 'rgba(59,130,246,0.12)', color: '#60a5fa', borderColor: 'rgba(59,130,246,0.35)', boxShadow: '0 0 10px rgba(59,130,246,0.15)' }
+              : { background: 'var(--color-bg-secondary)', color: 'var(--color-text-muted)', borderColor: 'var(--color-border)' }}
           >
             {val.name || 'Tự nhập'}
           </button>
@@ -311,29 +310,31 @@ function TermSection({ form, errors, update, actions }) {
 
 function CostPreviewCard({ apr, apy, ear }) {
   return (
-    <div className="glass-card sticky top-8">
-      <h3 className="text-[15px] font-semibold text-white mb-4 flex items-center gap-2">
-        <BarChart2 size={16} /> Xem trước chi phí
+    <div className="relative rounded-3xl border p-5 sticky top-24 overflow-hidden" style={{ background: 'var(--color-bg-card)', borderColor: 'rgba(239,68,68,0.18)', boxShadow: '0 4px 20px rgba(239,68,68,0.06)' }}>
+      <div className="absolute top-0 left-5 right-5 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
+      <div className="absolute -top-6 -right-6 w-20 h-20 rounded-full blur-2xl opacity-15 bg-red-500" />
+      <h3 className="text-[14px] font-black text-[var(--color-text-primary)] mb-5 flex items-center gap-2">
+        <BarChart2 size={15} className="text-red-400" /> Xem trước chi phí
       </h3>
       <div className="space-y-3">
         <div className="flex justify-between items-center">
-          <span className="text-sm text-slate-500">APR (quảng cáo)</span>
-          <span className="font-semibold text-blue-400">{formatPercent(apr)}</span>
+          <span className="text-[12px] text-[var(--color-text-muted)]">APR (quảng cáo)</span>
+          <span className="text-[13px] font-black text-blue-400">{formatPercent(apr)}</span>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-sm text-slate-500">APY (lãi kép)</span>
-          <span className="font-semibold text-purple-400">{formatPercent(apy)}</span>
+          <span className="text-[12px] text-[var(--color-text-muted)]">APY (lãi kép)</span>
+          <span className="text-[13px] font-black text-purple-400">{formatPercent(apy)}</span>
         </div>
-        <div className="h-px bg-white/[0.06]" />
+        <div className="h-px" style={{ background: 'var(--color-border)' }} />
         <div className="flex justify-between items-center">
-          <span className="text-sm text-slate-400 font-semibold">EAR (thực tế)</span>
-          <span className="text-xl font-bold text-red-400">{formatPercent(ear)}</span>
+          <span className="text-[13px] font-black text-[var(--color-text-primary)]">EAR (thực tế)</span>
+          <span className="text-xl font-black text-red-400">{formatPercent(ear)}</span>
         </div>
         {ear > apr && (
-          <div className="bg-red-500/8 border border-red-500/15 rounded-xl px-3 py-2.5">
-            <p className="text-[12px] text-red-400 flex items-center gap-1">
-              <AlertTriangle size={12} className="shrink-0" />
-              Chi phí ẩn: <span className="font-semibold">+{formatPercent(ear - apr)}</span> so với quảng cáo
+          <div className="flex items-start gap-2 px-3 py-2.5 rounded-2xl border border-red-500/20 bg-red-500/6">
+            <AlertTriangle size={13} className="text-red-400 shrink-0 mt-0.5" />
+            <p className="text-[12px] text-red-400 font-medium">
+              Chi phí ẩn: <span className="font-black">+{formatPercent(ear - apr)}</span> so với quảng cáo
             </p>
           </div>
         )}
@@ -385,22 +386,28 @@ export default function AddDebtPage() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-8 space-y-6">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm mb-6">
-        <Link to="/debts" className="text-slate-500 hover:text-slate-300 transition-colors">Quản lý nợ</Link>
-        <span className="text-slate-700">/</span>
-        <span className="text-slate-300">Thêm mới</span>
+      <div className="flex items-center gap-1.5 text-[12px] font-medium pt-2">
+        <Link to="/debts" className="text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors cursor-pointer">Quản lý nợ</Link>
+        <span className="text-[var(--color-border)]">/</span>
+        <span className="text-[var(--color-text-primary)] font-bold">Thêm mới</span>
       </div>
 
-      <h1 className="text-[22px] font-bold text-white mb-6 flex items-center gap-2">
-        <Plus size={20} /> Thêm khoản nợ mới
-      </h1>
+      <div>
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/20 bg-blue-500/8 text-blue-400 text-[10px] font-black uppercase tracking-widest mb-3">
+          <Plus size={11} /> Khoản nợ mới
+        </div>
+        <h1 className="text-3xl font-black tracking-tighter text-[var(--color-text-primary)]">Thêm khoản nợ mới</h1>
+        <p className="text-[var(--color-text-secondary)] text-sm mt-1">Nhập đầy đủ thông tin để tính toán EAR chính xác</p>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Form */}
         <div className="lg:col-span-2">
-          <div className="glass-card">
+          <div className="relative rounded-3xl border overflow-hidden" style={{ background: 'var(--color-bg-card)', borderColor: 'rgba(59,130,246,0.15)' }}>
+            <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-blue-500/30 to-transparent" />
+            <div className="p-6">
             <PlatformPresets activePlatform={form.platform} onSelect={applyPreset} />
 
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -412,19 +419,21 @@ export default function AddDebtPage() {
                 update={update}
                 actions={
                   <>
-                    <button type="submit" disabled={loading} className="btn-primary">
-                      {loading ? (
-                        <span className="flex items-center gap-2">
-                          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          Đang lưu...
-                        </span>
-                      ) : 'Thêm khoản nợ'}
+                    <button type="submit" disabled={loading}
+                      className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-sm transition-all shadow-lg shadow-blue-500/25 cursor-pointer disabled:opacity-60">
+                      {loading
+                        ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Đang lưu...</>
+                        : <><Plus size={14} /> Thêm khoản nợ</> }
                     </button>
-                    <button type="button" onClick={() => navigate('/debts')} className="btn-secondary">Hủy</button>
+                    <button type="button" onClick={() => navigate('/debts')}
+                      className="px-6 py-2.5 rounded-xl border border-[var(--color-border)] text-[var(--color-text-secondary)] font-bold text-sm hover:text-[var(--color-text-primary)] hover:border-[var(--color-text-muted)] transition-all cursor-pointer">
+                      Hủy
+                    </button>
                   </>
                 }
               />
             </form>
+            </div>
           </div>
         </div>
 

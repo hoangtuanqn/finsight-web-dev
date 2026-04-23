@@ -61,21 +61,21 @@ services:
       - /app/node_modules
     restart: always
 
-  client:
-    build:
-      context: ./client
-      dockerfile: Dockerfile
-    ports:
-      - "5173:5173"
-    environment:
-      - VITE_API_PROXY=http://server:5001
-      - VITE_API_URL=/api
-    depends_on:
-      - server
-    volumes:
-      - ./client:/app
-      - /app/node_modules
-    restart: always
+  # client:
+  #   build:
+  #     context: ./client
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "5173:5173"
+  #   environment:
+  #     - VITE_API_PROXY=http://server:5001
+  #     - VITE_API_URL=/api
+  #   depends_on:
+  #     - server
+  #   volumes:
+  #     - ./client:/app
+  #     - /app/node_modules
+  #   restart: always
 
 volumes:
   postgres_data:

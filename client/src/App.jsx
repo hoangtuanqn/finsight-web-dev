@@ -7,7 +7,6 @@ import Layout from './components/layout/Layout';
 import PublicRoute from './components/layout/PublicRoute';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import DashboardPage from './pages/DashboardPage';
 import DebtOverviewPage from './pages/debt/DebtOverviewPage';
 import AddDebtPage from './pages/debt/AddDebtPage';
 import DebtDetailPage from './pages/debt/DebtDetailPage';
@@ -18,6 +17,7 @@ import DtiAnalysisPage from './pages/debt/DtiAnalysisPage';
 import InvestmentPage from './pages/InvestmentPage';
 import RiskAssessmentPage from './pages/RiskAssessmentPage';
 import ProfilePage from './pages/ProfilePage';
+import DashboardPage from './pages/DashboardPage';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30000, retry: 1 } },

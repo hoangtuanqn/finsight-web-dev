@@ -4,252 +4,221 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { userAPI } from '../api/index.js';
 import { formatVND } from '../utils/calculations';
-import { User, Mail, DollarSign, TrendingDown, CheckCircle, Rocket, AlertTriangle, Target, Shield, Flame, Clock, Calendar, TrendingUp, Wallet, BarChart2, CreditCard } from 'lucide-react';
+import {
+  User, Mail, DollarSign, TrendingDown, CheckCircle, Rocket,
+  AlertTriangle, Target, Shield, Flame, Clock, Calendar, TrendingUp,
+  Wallet, BarChart2, CreditCard, ChevronRight,
+} from 'lucide-react';
 
 const HORIZON_OPTIONS = [
   { value: 'SHORT',  label: 'Ngắn hạn — dưới 1 năm' },
   { value: 'MEDIUM', label: 'Trung hạn — 1 đến 3 năm' },
   { value: 'LONG',   label: 'Dài hạn — trên 3 năm' },
 ];
-
 const HORIZON_LABEL = { SHORT: 'Ngắn hạn', MEDIUM: 'Trung hạn', LONG: 'Dài hạn' };
 const GOAL_LABEL = { GROWTH: 'Tăng trưởng tài sản', INCOME: 'Dòng tiền thụ động', STABILITY: 'Bảo toàn vốn', SPECULATION: 'Đầu cơ mạo hiểm' };
-
 const RISK_META = {
-  LOW:    { label: 'Thấp — An toàn',       color: '#10b981', Icon: Shield },
-  MEDIUM: { label: 'Vừa phải — Cân bằng', color: '#f59e0b', Icon: Target },
-  HIGH:   { label: 'Cao — Mạo hiểm',       color: '#ef4444', Icon: Flame },
+  LOW:    { label: 'Thấp — An toàn',       color: '#10b981', gradient: 'from-emerald-500 to-teal-400',  Icon: Shield },
+  MEDIUM: { label: 'Vừa phải — Cân bằng', color: '#f59e0b', gradient: 'from-amber-500 to-orange-400',  Icon: Target },
+  HIGH:   { label: 'Cao — Mạo hiểm',       color: '#ef4444', gradient: 'from-red-500 to-rose-400',      Icon: Flame  },
 };
+
+// ── Shared input style ─────────────────────────────────────────────────────────
+const INPUT = 'w-full px-4 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-[var(--color-text-primary)] text-sm outline-none focus:border-blue-500/60 transition-colors';
+const SELECT = INPUT + ' cursor-pointer';
+const LABEL = 'block text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-1.5';
+
+// ── Section header ─────────────────────────────────────────────────────────────
+function SectionHeader({ dot, label }) {
+  return (
+    <h3 className="text-[11px] font-black uppercase tracking-widest flex items-center gap-2 mb-4" style={{ color: dot }}>
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: dot }} />
+      {label}
+    </h3>
+  );
+}
 
 export default function ProfilePage() {
   const { user, setUser } = useAuth();
-  const [form, setForm] = useState({
-    fullName: '',
-    email: '',
-    monthlyIncome: 0,
-    extraBudget: 0,
-    capital: 0,
-    goal: 'GROWTH',
-    horizon: 'MEDIUM',
-    riskLevel: 'MEDIUM',
-    savingsRate: 6.0,
-    inflationRate: 3.5,
-  });
+  const [form, setForm] = useState({ fullName: '', email: '', monthlyIncome: 0, extraBudget: 0, capital: 0, goal: 'GROWTH', horizon: 'MEDIUM', riskLevel: 'MEDIUM', savingsRate: 6.0, inflationRate: 3.5 });
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      setForm({
-        fullName:      user.fullName || '',
-        email:         user.email || '',
-        monthlyIncome: user.monthlyIncome || 0,
-        extraBudget:   user.extraBudget || 0,
-        capital:       user.investorProfile?.capital || 0,
-        goal:          user.investorProfile?.goal || 'GROWTH',
-        horizon:       user.investorProfile?.horizon || 'MEDIUM',
-        riskLevel:     user.investorProfile?.riskLevel || 'MEDIUM',
-        savingsRate:   user.investorProfile?.savingsRate?.toString() ?? '6.0',
-        inflationRate: user.investorProfile?.inflationRate?.toString() ?? '3.5',
-      });
-    }
+    if (user) setForm({
+      fullName:      user.fullName || '',
+      email:         user.email || '',
+      monthlyIncome: user.monthlyIncome || 0,
+      extraBudget:   user.extraBudget || 0,
+      capital:       user.investorProfile?.capital || 0,
+      goal:          user.investorProfile?.goal || 'GROWTH',
+      horizon:       user.investorProfile?.horizon || 'MEDIUM',
+      riskLevel:     user.investorProfile?.riskLevel || 'MEDIUM',
+      savingsRate:   user.investorProfile?.savingsRate?.toString() ?? '6.0',
+      inflationRate: user.investorProfile?.inflationRate?.toString() ?? '3.5',
+    });
   }, [user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setSaved(false);
+    setLoading(true); setSaved(false);
     try {
-      const payload = {
-        ...form,
-        capital: parseFloat(form.capital) || 0,
-        monthlyIncome: parseFloat(form.monthlyIncome) || 0,
-        extraBudget: parseFloat(form.extraBudget) || 0,
-        savingsRate: parseFloat(form.savingsRate) || 0,
-        inflationRate: parseFloat(form.inflationRate) || 0,
-      };
+      const payload = { ...form, capital: parseFloat(form.capital)||0, monthlyIncome: parseFloat(form.monthlyIncome)||0, extraBudget: parseFloat(form.extraBudget)||0, savingsRate: parseFloat(form.savingsRate)||0, inflationRate: parseFloat(form.inflationRate)||0 };
       const res = await userAPI.updateProfile(payload);
       setUser(prev => ({ ...prev, ...res.data.data.user }));
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
   };
 
   const riskMeta    = RISK_META[user?.investorProfile?.riskLevel || 'MEDIUM'];
   const RiskIcon    = riskMeta.Icon;
   const riskScore   = user?.investorProfile?.riskScore;
-  const lastUpdated = user?.investorProfile?.lastUpdated
-    ? new Date(user.investorProfile.lastUpdated).toLocaleDateString('vi-VN')
-    : null;
+  const lastUpdated = user?.investorProfile?.lastUpdated ? new Date(user.investorProfile.lastUpdated).toLocaleDateString('vi-VN') : null;
   const hasCompletedQuiz = riskScore !== undefined && riskScore !== null;
+  const initials = (user?.fullName || 'U').split(' ').map(w => w[0]).slice(-2).join('').toUpperCase();
 
-  // Avatar initials
-  const initials = (user?.fullName || 'U')
-    .split(' ').map(w => w[0]).slice(-2).join('').toUpperCase();
+  const inp = (field, extra = {}) => ({
+    value: form[field] ?? '',
+    onChange: e => setForm(f => ({ ...f, [field]: e.target.value })),
+    className: INPUT,
+    ...extra,
+  });
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-10">
-      <div className="mb-6">
-        <h1 className="text-[22px] font-bold text-white flex items-center gap-2"><User size={20} /> Hồ sơ cá nhân</h1>
-        <p className="text-slate-500 text-sm mt-1">Cần hoàn thiện thông tin để hệ thống AI đánh giá tài chính chính xác nhất</p>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-10 space-y-6">
+      {/* ── Page Header ── */}
+      <div className="pt-2">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/20 bg-blue-500/8 text-blue-400 text-[10px] font-black uppercase tracking-widest mb-3">
+          <User size={11} /> Hồ sơ cá nhân
+        </div>
+        <h1 className="text-3xl font-black tracking-tighter text-[var(--color-text-primary)]">Hồ sơ của bạn</h1>
+        <p className="text-[var(--color-text-secondary)] text-sm mt-1">Hoàn thiện thông tin để AI đánh giá tài chính chính xác nhất</p>
       </div>
 
-      {/* 2-column layout */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
 
-        {/* ── LEFT: Form (2/3 width) ── */}
+        {/* ── LEFT: Form ── */}
         <div className="xl:col-span-2 space-y-4">
 
-          {/* Risk Assessment Banner */}
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`glass-card flex items-center justify-between gap-4 py-4 px-5 ${
-              hasCompletedQuiz ? '' : 'bg-amber-500/5 border-amber-500/20'
-            }`}
-            style={hasCompletedQuiz ? { borderColor: `${riskMeta.color}25` } : {}}
+          {/* Risk Quiz Banner */}
+          <div
+            className="flex items-center justify-between gap-4 px-5 py-4 rounded-2xl border relative overflow-hidden"
+            style={{ background: 'var(--color-bg-card)', borderColor: hasCompletedQuiz ? `${riskMeta.color}25` : 'rgba(245,158,11,0.25)' }}
           >
+            <div className="absolute top-0 left-5 right-5 h-px" style={{ background: `linear-gradient(90deg,transparent,${riskMeta.color}50,transparent)` }} />
             <div className="flex items-center gap-3">
-              <RiskIcon size={20} style={{ color: riskMeta.color }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${riskMeta.color}15` }}>
+                <RiskIcon size={18} style={{ color: riskMeta.color }} />
+              </div>
               <div>
-                <p className="text-sm font-semibold text-white">
+                <p className="text-[13px] font-bold text-[var(--color-text-primary)]">
                   Khẩu vị rủi ro: <span style={{ color: riskMeta.color }}>{riskMeta.label}</span>
                 </p>
                 {hasCompletedQuiz ? (
-                  <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1">
-                    <Target size={10} /> Điểm quiz: <span className="font-semibold text-white">{riskScore}/100</span>
-                    {lastUpdated && (<><span className="mx-1">·</span><Calendar size={10} /> Cập nhật: {lastUpdated}</>)}
+                  <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5 flex items-center gap-1">
+                    <Target size={10} /> Điểm: <strong>{riskScore}/100</strong>
+                    {lastUpdated && <><span className="mx-1">·</span><Calendar size={10} /> {lastUpdated}</>}
                   </p>
                 ) : (
-                  <p className="text-[11px] text-amber-400 mt-0.5">Chưa làm đánh giá rủi ro — đang dùng giá trị mặc định</p>
+                  <p className="text-[11px] text-amber-400 mt-0.5">Chưa làm đánh giá — đang dùng giá trị mặc định</p>
                 )}
               </div>
             </div>
-            <Link to="/risk-assessment" className="btn-ghost text-[12px] flex items-center gap-1.5 shrink-0">
-              <Target size={13} />
-              {hasCompletedQuiz ? 'Làm lại quiz' : 'Làm quiz ngay'}
+            <Link
+              to="/risk-assessment"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-black border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-text-muted)] transition-all shrink-0 cursor-pointer"
+            >
+              <Target size={13} /> {hasCompletedQuiz ? 'Làm lại quiz' : 'Làm quiz ngay'}
             </Link>
-          </motion.div>
+          </div>
 
-          {/* Main form card */}
-          <div className="glass-card">
-            {saved && (
-              <motion.div
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-emerald-500/8 border border-emerald-500/20 rounded-xl px-4 py-2.5 mb-5 text-sm text-emerald-400 flex items-center gap-2"
-              >
-                <CheckCircle size={16} /> Đã lưu thay đổi thành công!
-              </motion.div>
-            )}
+          {/* Main form */}
+          <div className="relative rounded-3xl border overflow-hidden" style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}>
+            <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-blue-500/30 to-transparent" />
+            <form onSubmit={handleSubmit} className="p-6 space-y-7">
+              {/* Success toast */}
+              {saved && (
+                <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-2 px-4 py-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/8 text-[13px] font-bold text-emerald-400">
+                  <CheckCircle size={15} /> Đã lưu thay đổi thành công!
+                </motion.div>
+              )}
 
-            <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Section 1: Thông tin cơ bản */}
+              {/* Section 1 */}
               <div className="space-y-4">
-                <h3 className="text-sm font-bold text-blue-400 uppercase tracking-widest flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400" /> Thông tin cơ bản
-                </h3>
+                <SectionHeader dot="#3b82f6" label="Thông tin cơ bản" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="input-label">Họ và tên</label>
-                    <div className="input-group">
-                      <span className="input-icon"><User size={16} /></span>
-                      <input className="input-field has-icon" value={form.fullName}
-                        onChange={e => setForm(f => ({ ...f, fullName: e.target.value }))} required />
+                    <label className={LABEL}>Họ và tên</label>
+                    <div className="relative">
+                      <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                      <input {...inp('fullName', { className: INPUT + ' pl-10', required: true, placeholder: 'Nguyễn Văn A' })} />
                     </div>
                   </div>
                   <div>
-                    <label className="input-label">Email nhận cảnh báo</label>
-                    <div className="input-group">
-                      <span className="input-icon"><Mail size={16} /></span>
-                      <input type="email" className="input-field has-icon" value={form.email}
-                        onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required />
+                    <label className={LABEL}>Email nhận cảnh báo</label>
+                    <div className="relative">
+                      <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                      <input type="email" {...inp('email', { className: INPUT + ' pl-10', required: true })} disabled />
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="h-px bg-white/5" />
+              <div className="h-px" style={{ background: 'var(--color-border)' }} />
 
-              {/* Section 2: Tài chính */}
+              {/* Section 2 */}
               <div className="space-y-4">
-                <h3 className="text-sm font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Tài chính & Thu nhập
-                </h3>
+                <SectionHeader dot="#10b981" label="Tài chính & Thu nhập" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="input-label text-[12px]">Thu nhập hằng tháng</label>
-                    <div className="input-group">
-                      <span className="input-icon"><DollarSign size={16} /></span>
-                      <input type="number" className="input-field has-icon"
-                        value={form.monthlyIncome || ''}
-                        placeholder="0"
-                        min="0"
-                        onChange={e => setForm(f => ({ ...f, monthlyIncome: Math.max(0, +e.target.value) || 0 }))} />
+                    <label className={LABEL}>Thu nhập hằng tháng</label>
+                    <div className="relative">
+                      <DollarSign size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                      <input type="number" {...inp('monthlyIncome', { className: INPUT + ' pl-10', min: 0, placeholder: '0' })} />
                     </div>
-                    <p className="text-[10px] text-slate-500 mt-1">{formatVND(form.monthlyIncome)}</p>
+                    <p className="text-[10px] text-[var(--color-text-muted)] mt-1.5">{formatVND(form.monthlyIncome)}</p>
                   </div>
                   <div>
-                    <label className="input-label text-[12px]">Ngân sách trả nợ thêm/tháng</label>
-                    <div className="input-group">
-                      <span className="input-icon"><TrendingDown size={16} /></span>
-                      <input type="number" className="input-field has-icon"
-                        value={form.extraBudget || ''}
-                        placeholder="0"
-                        min="0"
-                        onChange={e => setForm(f => ({ ...f, extraBudget: Math.max(0, +e.target.value) || 0 }))} />
+                    <label className={LABEL}>Trả nợ thêm mỗi tháng</label>
+                    <div className="relative">
+                      <TrendingDown size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                      <input type="number" {...inp('extraBudget', { className: INPUT + ' pl-10', min: 0, placeholder: '0' })} />
                     </div>
-                    <p className="text-[10px] text-slate-500 mt-1">{formatVND(form.extraBudget)}</p>
+                    <p className="text-[10px] text-[var(--color-text-muted)] mt-1.5">{formatVND(form.extraBudget)}</p>
                   </div>
                 </div>
                 <div>
-                  <label className="input-label text-[12px]">Số vốn đang có (Tổng tài sản)</label>
-                  <div className="input-group">
-                    <span className="input-icon"><DollarSign size={16} /></span>
-                    <input type="number" className="input-field has-icon"
-                      value={form.capital || ''}
-                      placeholder="Ví dụ: 100000000"
-                      min="0"
-                      onChange={e => setForm(f => ({ ...f, capital: Math.max(0, +e.target.value) || 0 }))} />
+                  <label className={LABEL}>Tổng vốn (Tổng tài sản)</label>
+                  <div className="relative">
+                    <Wallet size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                    <input type="number" {...inp('capital', { className: INPUT + ' pl-10', min: 0, placeholder: '100000000' })} />
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-1">{formatVND(form.capital)}</p>
+                  <p className="text-[10px] text-[var(--color-text-muted)] mt-1.5">{formatVND(form.capital)}</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="input-label text-[12px]">Lãi suất ngân hàng (%)</label>
-                    <div className="input-group">
-                      <span className="input-icon"><TrendingUp size={16} /></span>
-                      <input type="number" step="0.1" className="input-field has-icon" value={form.savingsRate}
-                        onChange={e => setForm(f => ({ ...f, savingsRate: e.target.value }))} />
-                    </div>
+                    <label className={LABEL}>Lãi suất ngân hàng (%)</label>
+                    <input type="number" step="0.1" {...inp('savingsRate')} />
                   </div>
                   <div>
-                    <label className="input-label text-[12px]">Mức lạm phát (Khấu trừ) (%)</label>
-                    <div className="input-group">
-                      <span className="input-icon"><TrendingDown size={16} /></span>
-                      <input type="number" step="0.1" className="input-field has-icon" value={form.inflationRate}
-                        onChange={e => setForm(f => ({ ...f, inflationRate: e.target.value }))} />
-                    </div>
+                    <label className={LABEL}>Mức lạm phát (%)</label>
+                    <input type="number" step="0.1" {...inp('inflationRate')} />
                   </div>
                 </div>
               </div>
 
-              <div className="h-px bg-white/5" />
+              <div className="h-px" style={{ background: 'var(--color-border)' }} />
 
-              {/* Section 3: Chiến lược đầu tư */}
+              {/* Section 3 */}
               <div className="space-y-4">
-                <h3 className="text-sm font-bold text-amber-400 uppercase tracking-widest flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> Chiến lược đầu tư
-                </h3>
+                <SectionHeader dot="#f59e0b" label="Chiến lược đầu tư" />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="input-label text-[12px]">Mục tiêu tài chính</label>
-                    <select className="input-field" value={form.goal}
-                      onChange={e => setForm(f => ({ ...f, goal: e.target.value }))}>
+                    <label className={LABEL}>Mục tiêu tài chính</label>
+                    <select className={SELECT} value={form.goal} onChange={e => setForm(f => ({ ...f, goal: e.target.value }))}>
                       <option value="GROWTH">Tăng trưởng tài sản</option>
                       <option value="INCOME">Tạo dòng tiền thụ động</option>
                       <option value="STABILITY">Bảo toàn vốn</option>
@@ -257,172 +226,138 @@ export default function ProfilePage() {
                     </select>
                   </div>
                   <div>
-                    <label className="input-label text-[12px] flex items-center gap-1">
-                      <Clock size={11} /> Thời hạn đầu tư
-                    </label>
-                    <select className="input-field" value={form.horizon}
-                      onChange={e => setForm(f => ({ ...f, horizon: e.target.value }))}>
-                      {HORIZON_OPTIONS.map(o => (
-                        <option key={o.value} value={o.value}>{o.label}</option>
-                      ))}
+                    <label className={LABEL}>Thời hạn đầu tư</label>
+                    <select className={SELECT} value={form.horizon} onChange={e => setForm(f => ({ ...f, horizon: e.target.value }))}>
+                      {HORIZON_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="input-label text-[12px] flex items-center gap-1.5">
-                      <RiskIcon size={11} style={{ color: riskMeta.color }} />
-                      Khẩu vị rủi ro
-                      {hasCompletedQuiz && <span className="text-[9px] text-slate-600">(từ quiz)</span>}
+                    <label className={LABEL}>
+                      Khẩu vị rủi ro {hasCompletedQuiz && <span className="normal-case font-normal text-[var(--color-text-muted)]">(từ quiz)</span>}
                     </label>
-                    <select className="input-field" value={form.riskLevel}
-                      onChange={e => setForm(f => ({ ...f, riskLevel: e.target.value }))}>
+                    <select className={SELECT} value={form.riskLevel} onChange={e => setForm(f => ({ ...f, riskLevel: e.target.value }))}>
                       <option value="LOW">Thấp — An toàn</option>
                       <option value="MEDIUM">Vừa phải — Cân bằng</option>
                       <option value="HIGH">Cao — Mạo hiểm</option>
                     </select>
-                    {hasCompletedQuiz && (
-                      <p className="text-[10px] text-slate-600 mt-1">
-                        Quiz đề xuất: <span style={{ color: riskMeta.color }} className="font-medium">{riskMeta.label}</span>
-                      </p>
-                    )}
+                    {hasCompletedQuiz && <p className="text-[10px] mt-1.5" style={{ color: riskMeta.color }}>Quiz đề xuất: {riskMeta.label}</p>}
                   </div>
                 </div>
                 {!hasCompletedQuiz && (
-                  <div className="bg-amber-500/5 border border-amber-500/15 rounded-xl px-4 py-3 text-sm text-amber-400 flex items-center gap-2">
-                    <AlertTriangle size={14} className="shrink-0" />
-                    Bạn chưa hoàn thành bài đánh giá rủi ro. Khẩu vị rủi ro sẽ chính xác hơn nếu bạn{' '}
-                    <Link to="/risk-assessment" className="underline font-semibold hover:text-amber-300 transition-colors">làm quiz 5 câu hỏi</Link>.
+                  <div className="flex items-start gap-3 px-4 py-3 rounded-2xl border border-amber-500/20 bg-amber-500/6">
+                    <AlertTriangle size={14} className="text-amber-400 shrink-0 mt-0.5" />
+                    <p className="text-[12px] text-amber-300">
+                      Chưa hoàn thành đánh giá rủi ro.{' '}
+                      <Link to="/risk-assessment" className="font-black underline hover:text-amber-200 transition-colors">Làm quiz ngay →</Link>
+                    </p>
                   </div>
                 )}
               </div>
 
-              <div className="pt-4 border-t border-white/6">
-                <button type="submit" disabled={loading} className="btn-primary w-full md:w-auto md:px-10">
-                  {loading ? (
-                    <span className="flex items-center gap-2">
-                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Đang lưu...
-                    </span>
-                  ) : <span className="flex items-center gap-2"><Rocket size={16} /> Lưu toàn bộ thông tin</span>}
+              {/* Submit */}
+              <div className="pt-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
+                <button type="submit" disabled={loading}
+                  className="flex items-center gap-2 px-8 py-3 rounded-xl bg-blue-600 text-white font-black text-sm hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/25 cursor-pointer disabled:opacity-60">
+                  {loading
+                    ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Đang lưu...</>
+                    : <><Rocket size={15} /> Lưu toàn bộ thông tin</>}
                 </button>
-                <p className="text-[11px] text-slate-500 mt-4">
-                  <AlertTriangle size={12} className="inline mr-1" />
-                  Cần cập nhật tối thiểu các thông tin trên để mở khóa tính năng <strong>Tư vấn AI</strong>
+                <p className="text-[11px] text-[var(--color-text-muted)] mt-3 flex items-center gap-1">
+                  <AlertTriangle size={11} /> Cần cập nhật tối thiểu các thông tin để mở khóa tính năng <strong>Tư vấn AI</strong>
                 </p>
               </div>
             </form>
           </div>
         </div>
 
-        {/* ── RIGHT: Summary Panel (1/3 width) ── */}
+        {/* ── RIGHT: Summary ── */}
         <div className="space-y-4">
-
-          {/* Avatar + Name card */}
-          <motion.div
-            initial={{ opacity: 0, x: 12 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            className="glass-card text-center py-6"
-          >
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-3"
-              style={{ background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)' }}
-            >
+          {/* Avatar card */}
+          <motion.div initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}
+            className="relative rounded-3xl border p-6 text-center overflow-hidden"
+            style={{ background: 'var(--color-bg-card)', borderColor: 'rgba(59,130,246,0.15)' }}>
+            <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-blue-500/30 to-transparent" />
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-black mx-auto mb-3 text-white"
+              style={{ background: 'linear-gradient(135deg,#3b82f6,#8b5cf6)', boxShadow: '0 0 24px rgba(59,130,246,0.4)' }}>
               {initials}
             </div>
-            <p className="font-semibold text-white text-[15px]">{user?.fullName || '—'}</p>
-            <p className="text-[12px] text-slate-500 mt-0.5">{user?.email || '—'}</p>
-            <div
-              className="inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full text-[11px] font-medium"
-              style={{ background: `${riskMeta.color}18`, color: riskMeta.color }}
-            >
+            <p className="font-black text-[var(--color-text-primary)] text-[15px]">{user?.fullName || '—'}</p>
+            <p className="text-[12px] text-[var(--color-text-muted)] mt-0.5">{user?.email || '—'}</p>
+            <div className="inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full text-[11px] font-black"
+              style={{ background: `${riskMeta.color}18`, color: riskMeta.color }}>
               <RiskIcon size={11} /> {riskMeta.label}
             </div>
           </motion.div>
 
-          {/* Tóm tắt hồ sơ */}
-          <motion.div
-            initial={{ opacity: 0, x: 12 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.15 }}
-            className="glass-card"
-          >
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Tóm tắt hồ sơ</p>
-            <div className="space-y-0 divide-y divide-white/5">
+          {/* Summary */}
+          <motion.div initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}
+            className="rounded-3xl border p-5" style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}>
+            <p className="text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-3">Tóm tắt hồ sơ</p>
+            <div className="divide-y" style={{ '--tw-divide-opacity': 1, borderColor: 'var(--color-border)' }}>
               {[
-                { icon: <DollarSign size={13} />, label: 'Thu nhập / tháng', value: formatVND(user?.monthlyIncome || 0), color: '#10b981' },
-                { icon: <TrendingDown size={13} />, label: 'Trả nợ thêm / tháng', value: formatVND(user?.extraBudget || 0), color: '#f59e0b' },
-                { icon: <Wallet size={13} />, label: 'Tổng vốn', value: formatVND(user?.investorProfile?.capital || 0), color: '#3b82f6' },
-                { icon: <TrendingUp size={13} />, label: 'Lãi gửi ngân hàng', value: `${user?.investorProfile?.savingsRate ?? 6.0}%`, color: '#06b6d4' },
-                { icon: <TrendingDown size={13} />, label: 'Mức lạm phát', value: `${user?.investorProfile?.inflationRate ?? 3.5}%`, color: '#ef4444' },
+                { icon: DollarSign, label: 'Thu nhập / tháng',    value: formatVND(user?.monthlyIncome || 0),              color: '#10b981' },
+                { icon: TrendingDown, label: 'Trả nợ thêm / tháng', value: formatVND(user?.extraBudget || 0),             color: '#f59e0b' },
+                { icon: Wallet, label: 'Tổng vốn',                value: formatVND(user?.investorProfile?.capital || 0),   color: '#3b82f6' },
+                { icon: TrendingUp, label: 'Lãi gửi ngân hàng',  value: `${user?.investorProfile?.savingsRate ?? 6.0}%`,   color: '#06b6d4' },
+                { icon: TrendingDown, label: 'Mức lạm phát',      value: `${user?.investorProfile?.inflationRate ?? 3.5}%`,color: '#ef4444' },
               ].map(row => (
                 <div key={row.label} className="flex items-center justify-between py-2.5">
-                  <span className="text-[12px] text-slate-500 flex items-center gap-1.5">
-                    <span style={{ color: row.color }}>{row.icon}</span>
-                    {row.label}
+                  <span className="text-[12px] text-[var(--color-text-muted)] flex items-center gap-1.5">
+                    <row.icon size={12} style={{ color: row.color }} /> {row.label}
                   </span>
-                  <span className="text-[12px] font-semibold text-white">{row.value}</span>
+                  <span className="text-[12px] font-bold text-[var(--color-text-primary)]">{row.value}</span>
                 </div>
               ))}
             </div>
           </motion.div>
 
-          {/* Chiến lược đầu tư summary */}
-          <motion.div
-            initial={{ opacity: 0, x: 12 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="glass-card"
-          >
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Chiến lược đầu tư</p>
-            <div className="space-y-0 divide-y divide-white/5">
+          {/* Strategy summary */}
+          <motion.div initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}
+            className="rounded-3xl border p-5" style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}>
+            <p className="text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-3">Chiến lược đầu tư</p>
+            <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
               {[
-                { icon: <Target size={13} />, label: 'Mục tiêu', value: GOAL_LABEL[user?.investorProfile?.goal || 'GROWTH'], color: '#8b5cf6' },
-                { icon: <Clock size={13} />, label: 'Thời hạn', value: HORIZON_LABEL[user?.investorProfile?.horizon || 'MEDIUM'], color: '#06b6d4' },
-                { icon: <RiskIcon size={13} />, label: 'Khẩu vị rủi ro', value: riskMeta.label, color: riskMeta.color },
-                ...(hasCompletedQuiz ? [{ icon: <BarChart2 size={13} />, label: 'Điểm quiz', value: `${riskScore}/100`, color: riskMeta.color }] : []),
-                ...(lastUpdated ? [{ icon: <Calendar size={13} />, label: 'Cập nhật', value: lastUpdated, color: '#64748b' }] : []),
+                { icon: Target, label: 'Mục tiêu',      value: GOAL_LABEL[user?.investorProfile?.goal || 'GROWTH'],         color: '#8b5cf6' },
+                { icon: Clock,  label: 'Thời hạn',      value: HORIZON_LABEL[user?.investorProfile?.horizon || 'MEDIUM'],   color: '#06b6d4' },
+                { icon: RiskIcon, label: 'Khẩu vị',     value: riskMeta.label,                                               color: riskMeta.color },
+                ...(hasCompletedQuiz ? [{ icon: BarChart2, label: 'Điểm quiz', value: `${riskScore}/100`, color: riskMeta.color }] : []),
+                ...(lastUpdated ? [{ icon: Calendar, label: 'Cập nhật', value: lastUpdated, color: '#64748b' }] : []),
               ].map(row => (
                 <div key={row.label} className="flex items-center justify-between py-2.5">
-                  <span className="text-[12px] text-slate-500 flex items-center gap-1.5">
-                    <span style={{ color: row.color }}>{row.icon}</span>
-                    {row.label}
+                  <span className="text-[12px] text-[var(--color-text-muted)] flex items-center gap-1.5">
+                    <row.icon size={12} style={{ color: row.color }} /> {row.label}
                   </span>
-                  <span className="text-[12px] font-semibold" style={{ color: row.color }}>{row.value}</span>
+                  <span className="text-[12px] font-bold" style={{ color: row.color }}>{row.value}</span>
                 </div>
               ))}
             </div>
           </motion.div>
 
           {/* Quick links */}
-          <motion.div
-            initial={{ opacity: 0, x: 12 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.25 }}
-            className="glass-card"
-          >
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Liên kết nhanh</p>
-            <div className="space-y-1.5">
+          <motion.div initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 }}
+            className="rounded-3xl border p-5" style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}>
+            <p className="text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-3">Liên kết nhanh</p>
+            <div className="space-y-1">
               {[
-                { to: '/risk-assessment', icon: <Target size={13} />, label: hasCompletedQuiz ? 'Làm lại quiz rủi ro' : 'Đánh giá rủi ro ngay', color: '#8b5cf6' },
-                { to: '/investment',      icon: <TrendingUp size={13} />, label: 'Phân bổ đầu tư AI',    color: '#3b82f6' },
-                { to: '/debts',           icon: <CreditCard size={13} />, label: 'Quản lý khoản nợ',     color: '#ef4444' },
-                { to: '/debts/dti',       icon: <BarChart2 size={13} />,  label: 'Phân tích DTI',        color: '#10b981' },
+                { to: '/risk-assessment', icon: Target,    label: hasCompletedQuiz ? 'Làm lại quiz rủi ro' : 'Đánh giá rủi ro ngay', color: '#8b5cf6' },
+                { to: '/investment',      icon: TrendingUp, label: 'Phân bổ đầu tư AI',    color: '#3b82f6' },
+                { to: '/debts',           icon: CreditCard, label: 'Quản lý khoản nợ',     color: '#ef4444' },
+                { to: '/debts/dti',       icon: BarChart2,  label: 'Phân tích DTI',        color: '#10b981' },
               ].map(link => (
                 <Link
                   key={link.to}
                   to={link.to}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors group"
+                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[12px] font-bold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-secondary)] transition-all group cursor-pointer"
                 >
-                  <span style={{ color: link.color }}>{link.icon}</span>
-                  <span className="text-[12px] text-slate-400 group-hover:text-white transition-colors">{link.label}</span>
+                  <link.icon size={13} style={{ color: link.color }} />
+                  <span className="flex-1">{link.label}</span>
+                  <ChevronRight size={12} className="text-[var(--color-text-muted)] group-hover:translate-x-0.5 transition-transform" />
                 </Link>
               ))}
             </div>
           </motion.div>
         </div>
-
       </div>
     </motion.div>
   );
 }
-

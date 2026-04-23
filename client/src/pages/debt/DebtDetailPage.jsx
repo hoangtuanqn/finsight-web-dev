@@ -6,18 +6,18 @@ import { debtAPI } from '../../api/index.js';
 import { formatVND, formatPercent } from '../../utils/calculations';
 import EARBreakdown from '../../components/debt/EARBreakdown';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
-import { Pencil, FileText, DollarSign, CheckCircle, ArrowLeft, Search, Trash2 } from 'lucide-react';
+import { Pencil, FileText, DollarSign, CheckCircle, ArrowLeft, Search, Trash2, ChevronRight } from 'lucide-react';
 
 export default function DebtDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [payForm, setPayForm] = useState({ amount: '', notes: '' });
-  const [paying, setPaying] = useState(false);
-  const [paySuccess, setPaySuccess] = useState(false);
+  const [data, setData]                   = useState(null);
+  const [loading, setLoading]             = useState(true);
+  const [payForm, setPayForm]             = useState({ amount: '', notes: '' });
+  const [paying, setPaying]               = useState(false);
+  const [paySuccess, setPaySuccess]       = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [deleting, setDeleting]           = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -26,7 +26,6 @@ export default function DebtDetailPage() {
       .catch(console.error)
       .finally(() => setTimeout(() => setLoading(false), 400));
   };
-
   useEffect(() => { load(); }, [id]);
 
   const handleDelete = async () => {
@@ -35,48 +34,36 @@ export default function DebtDetailPage() {
       await debtAPI.delete(id);
       toast.success(`Đã xóa khoản nợ "${debt?.name}"`);
       navigate('/debts');
-    } catch (err) {
-      toast.error('Xóa thất bại, vui lòng thử lại');
-      console.error(err);
-    } finally {
-      setDeleting(false);
-      setConfirmDelete(false);
-    }
+    } catch (err) { toast.error('Xóa thất bại, vui lòng thử lại'); console.error(err); }
+    finally { setDeleting(false); setConfirmDelete(false); }
   };
 
   const handlePayment = async (e) => {
     e.preventDefault();
     const amount = +payForm.amount;
-    if (!amount || amount <= 0) {
-      toast.error('Số tiền phải lớn hơn 0 ₫');
-      return;
-    }
-    if (amount > debt.balance) {
-      toast.error(`Số tiền không được vượt quá dư nợ hiện tại ( ${formatVND(debt.balance)} )`);
-      return;
-    }
-    setPaying(true);
-    setPaySuccess(false);
+    if (!amount || amount <= 0) { toast.error('Số tiền phải lớn hơn 0 ₫'); return; }
+    if (amount > debt.balance) { toast.error(`Số tiền không được vượt quá ${formatVND(debt.balance)}`); return; }
+    setPaying(true); setPaySuccess(false);
     try {
       await debtAPI.logPayment(id, { ...payForm, amount });
       setPayForm({ amount: '', notes: '' });
       setPaySuccess(true);
       setTimeout(() => setPaySuccess(false), 3000);
       load();
-    } catch (err) {
-      toast.error('Ghi nhận thất bại, vui lòng thử lại');
-      console.error(err);
-    } finally {
-      setPaying(false);
-    }
+    } catch (err) { toast.error('Ghi nhận thất bại, vui lòng thử lại'); console.error(err); }
+    finally { setPaying(false); }
   };
 
   if (loading) return <PageSkeleton />;
   if (!data) return (
-    <div className="text-center py-20">
-      <p className="text-3xl mb-3"><Search size={40} className="mx-auto text-slate-500" /></p>
-      <p className="text-slate-500">Không tìm thấy khoản nợ</p>
-      <Link to="/debts" className="btn-primary mt-4 inline-flex items-center gap-1.5"><ArrowLeft size={16} /> Quay lại</Link>
+    <div className="flex flex-col items-center justify-center py-24 gap-4">
+      <div className="w-16 h-16 rounded-2xl bg-slate-500/10 flex items-center justify-center">
+        <Search size={28} className="text-slate-500" />
+      </div>
+      <p className="text-[var(--color-text-muted)] font-medium">Không tìm thấy khoản nợ</p>
+      <Link to="/debts" className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-500 transition-all cursor-pointer">
+        <ArrowLeft size={15} /> Quay lại
+      </Link>
     </div>
   );
 
@@ -84,120 +71,96 @@ export default function DebtDetailPage() {
   const paidPercent = ((debt.originalAmount - debt.balance) / debt.originalAmount * 100).toFixed(0);
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-8 space-y-6">
 
       {/* ── Delete Confirm Modal ── */}
       {confirmDelete && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
-          onClick={() => setConfirmDelete(false)}
-        >
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}
+          onClick={() => setConfirmDelete(false)}>
           <motion.div
-            initial={{ opacity: 0, scale: 0.92 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="glass-card w-full max-w-sm text-center p-6"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="w-12 h-12 rounded-full bg-red-500/15 flex items-center justify-center mx-auto mb-4">
-              <Trash2 size={22} className="text-red-400" />
+            initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }}
+            className="relative w-full max-w-sm rounded-3xl border overflow-hidden text-center p-7"
+            style={{ background: 'var(--color-bg-card)', borderColor: 'rgba(239,68,68,0.25)' }}
+            onClick={e => e.stopPropagation()}>
+            <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
+            <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto mb-4" style={{ boxShadow: '0 0 20px rgba(239,68,68,0.2)' }}>
+              <Trash2 size={24} className="text-red-400" />
             </div>
-            <h3 className="text-[16px] font-bold text-white mb-2">Xóa khoản nợ?</h3>
-            <p className="text-sm text-slate-400 mb-6">
-              Khoản nợ <span className="font-semibold text-white">"{debt.name}"</span> sẽ bị xóa vĩnh viễn cùng toàn bộ lịch sử thanh toán. Hành động này không thể hoàn tác.
+            <h3 className="text-[16px] font-black text-[var(--color-text-primary)] mb-2">Xóa khoản nợ?</h3>
+            <p className="text-[13px] text-[var(--color-text-secondary)] mb-6 leading-relaxed">
+              Khoản nợ <strong className="text-[var(--color-text-primary)]">"{debt.name}"</strong> sẽ bị xóa vĩnh viễn cùng toàn bộ lịch sử thanh toán.
             </p>
             <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmDelete(false)}
-                className="flex-1 px-4 py-2.5 rounded-xl text-[13px] font-medium transition-all"
-                style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="flex-1 px-4 py-2.5 rounded-xl text-[13px] font-semibold bg-red-500 hover:bg-red-600 !text-white transition-all flex items-center justify-center gap-2"
-                style={{ color: '#ffffff' }}              >
-                {deleting
-                  ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Đang xóa...</>
-                  : <><Trash2 size={14} /> Xóa vĩnh viễn</>}
+              <button onClick={() => setConfirmDelete(false)} className="flex-1 py-2.5 rounded-xl text-[13px] font-bold border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-all cursor-pointer">Hủy</button>
+              <button onClick={handleDelete} disabled={deleting} className="flex-1 py-2.5 rounded-xl text-[13px] font-black bg-red-500 hover:bg-red-400 text-white transition-all flex items-center justify-center gap-2 cursor-pointer">
+                {deleting ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Đang xóa...</> : <><Trash2 size={14} /> Xóa vĩnh viễn</>}
               </button>
             </div>
           </motion.div>
         </div>
       )}
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm mb-6">
-        <Link to="/debts" className="text-slate-500 hover:text-slate-300 transition-colors">Quản lý nợ</Link>
-        <span className="text-slate-700">/</span>
-        <span className="text-slate-300">{debt.name}</span>
+
+      {/* ── Breadcrumb ── */}
+      <div className="flex items-center gap-1.5 text-[12px] font-medium pt-2">
+        <Link to="/debts" className="text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors cursor-pointer">Quản lý nợ</Link>
+        <ChevronRight size={13} className="text-[var(--color-border)]" />
+        <span className="text-[var(--color-text-primary)]">{debt.name}</span>
       </div>
 
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
+      {/* ── Page header ── */}
+      <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-[22px] font-bold text-white">{debt.name}</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {debt.platform} • {debt.rateType === 'FLAT' ? 'Lãi phẳng' : 'Dư nợ giảm dần'}
-          </p>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-red-500/20 bg-red-500/8 text-red-400 text-[10px] font-black uppercase tracking-widest mb-3">
+            <FileText size={11} /> Chi tiết khoản nợ
+          </div>
+          <h1 className="text-3xl font-black tracking-tighter text-[var(--color-text-primary)]">{debt.name}</h1>
+          <p className="text-[var(--color-text-secondary)] text-sm mt-1">{debt.platform} • {debt.rateType === 'FLAT' ? 'Lãi phẳng' : 'Dư nợ giảm dần'}</p>
         </div>
-        
         <div className="flex items-center gap-2">
-          <Link
-            to={`/debts/${id}/edit`}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-medium transition-all shadow-sm"
-            style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}
-          >
+          <Link to={`/debts/${id}/edit`}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-bold border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-text-muted)] transition-all cursor-pointer">
             <Pencil size={14} /> Chỉnh sửa
           </Link>
-          <button
-            onClick={() => setConfirmDelete(true)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-medium bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all"
-          >
+          <button onClick={() => setConfirmDelete(true)}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-bold bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/15 transition-all cursor-pointer">
             <Trash2 size={14} /> Xóa
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          {/* Key metrics */}
+        <div className="lg:col-span-2 space-y-5">
+          {/* KPI metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              { label: 'Dư nợ', value: formatVND(debt.balance), color: '#ef4444' },
-              { label: 'APR', value: formatPercent(debt.apr), color: '#3b82f6' },
-              { label: 'EAR thực tế', value: formatPercent(debt.ear), color: '#ef4444' },
-              { label: 'Còn lại', value: `${debt.remainingTerms} kỳ`, color: '#94a3b8' },
+              { label: 'Dư nợ',      value: formatVND(debt.balance),     color: '#ef4444', gradient: 'from-red-500 to-rose-400' },
+              { label: 'APR',         value: formatPercent(debt.apr),     color: '#3b82f6', gradient: 'from-blue-500 to-cyan-400' },
+              { label: 'EAR thực tế', value: formatPercent(debt.ear),    color: '#ef4444', gradient: 'from-red-500 to-rose-400' },
+              { label: 'Còn lại',     value: `${debt.remainingTerms} kỳ`,color: '#94a3b8', gradient: 'from-slate-400 to-slate-500' },
             ].map((item, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="glass-card text-center py-3"
-              >
-                <p className="text-[11px] text-slate-500 uppercase tracking-wide mb-1">{item.label}</p>
-                <p className="text-lg font-bold" style={{ color: item.color }}>{item.value}</p>
+              <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
+                className="relative rounded-2xl p-4 border overflow-hidden text-center"
+                style={{ background: 'var(--color-bg-card)', borderColor: `${item.color}20`, boxShadow: `0 4px 16px ${item.color}06` }}>
+                <div className="absolute top-0 left-3 right-3 h-px" style={{ background: `linear-gradient(90deg,transparent,${item.color}50,transparent)` }} />
+                <p className="text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-2">{item.label}</p>
+                <p className={`text-base font-black bg-gradient-to-r ${item.gradient} bg-clip-text text-transparent`}>{item.value}</p>
               </motion.div>
             ))}
           </div>
 
           {/* Progress */}
-          <div className="glass-card">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-slate-400">Tiến trình trả nợ</span>
-              <span className="text-sm font-semibold text-blue-400">{paidPercent}%</span>
+          <div className="rounded-3xl border p-5 relative overflow-hidden" style={{ background: 'var(--color-bg-card)', borderColor: 'rgba(59,130,246,0.15)' }}>
+            <div className="absolute top-0 left-5 right-5 h-px bg-gradient-to-r from-transparent via-blue-500/30 to-transparent" />
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-[13px] font-black text-[var(--color-text-primary)]">Tiến trình trả nợ</span>
+              <span className="text-[13px] font-black text-blue-400">{paidPercent}%</span>
             </div>
-            <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--color-border)' }}>
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.max(2, paidPercent)}%` }}
-                transition={{ duration: 1, ease: 'easeOut' }}
-                className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full"
-              />
+            <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--color-bg-secondary)' }}>
+              <motion.div initial={{ width: 0 }} animate={{ width: `${Math.max(2, paidPercent)}%` }} transition={{ duration: 1, ease: 'easeOut' }}
+                className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400" style={{ boxShadow: '0 0 8px rgba(59,130,246,0.5)' }} />
             </div>
-            <div className="flex justify-between text-[11px] text-slate-600 mt-2">
+            <div className="flex justify-between text-[11px] text-[var(--color-text-muted)] mt-2">
               <span>Đã trả: {formatVND(debt.originalAmount - debt.balance)}</span>
               <span>Gốc: {formatVND(debt.originalAmount)}</span>
             </div>
@@ -207,74 +170,76 @@ export default function DebtDetailPage() {
           <EARBreakdown breakdown={earBreakdown} />
 
           {/* Payment History */}
-          <div className="glass-card">
-            <h3 className="text-[15px] font-semibold text-white mb-4 flex items-center gap-2">
-              <FileText size={16} /> Lịch sử thanh toán
+          <div className="rounded-3xl border p-5" style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}>
+            <h3 className="text-[14px] font-black text-[var(--color-text-primary)] mb-4 flex items-center gap-2">
+              <FileText size={15} className="text-blue-400" /> Lịch sử thanh toán
             </h3>
             {paymentHistory?.length > 0 ? (
-              <div className="space-y-1">
+              <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
                 {paymentHistory.map(p => (
-                  <div key={p.id} className="flex items-center justify-between py-2.5 border-b last:border-0" style={{ borderColor: 'var(--color-border)' }}>
+                  <div key={p.id} className="flex items-center justify-between py-3">
                     <div>
-                      <p className="text-sm font-medium text-green-400">{formatVND(p.amount)}</p>
-                      <p className="text-[11px] text-slate-600">{new Date(p.paidAt).toLocaleDateString('vi-VN')}</p>
+                      <p className="text-[13px] font-black text-emerald-400">{formatVND(p.amount)}</p>
+                      <p className="text-[10px] text-[var(--color-text-muted)]">{new Date(p.paidAt).toLocaleDateString('vi-VN')}</p>
                     </div>
-                    {p.notes && <p className="text-[12px] text-slate-500">{p.notes}</p>}
+                    {p.notes && <p className="text-[12px] text-[var(--color-text-secondary)]">{p.notes}</p>}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-slate-600 text-center py-4">Chưa có thanh toán nào</p>
+              <div className="py-8 text-center">
+                <p className="text-[13px] text-[var(--color-text-muted)]">Chưa có thanh toán nào</p>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Sidebar — Payment */}
+        {/* ── Right: Payment ── */}
         <div>
-          <div className="glass-card sticky top-8">
-            <h3 className="text-[15px] font-semibold text-white mb-4 flex items-center gap-2">
-              <DollarSign size={16} /> Ghi nhận thanh toán
+          <div className="rounded-3xl border p-5 sticky top-24 relative overflow-hidden" style={{ background: 'var(--color-bg-card)', borderColor: 'rgba(16,185,129,0.15)' }}>
+            <div className="absolute top-0 left-5 right-5 h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
+            <h3 className="text-[14px] font-black text-[var(--color-text-primary)] mb-4 flex items-center gap-2">
+              <DollarSign size={15} className="text-emerald-400" /> Ghi nhận thanh toán
             </h3>
 
             {paySuccess && (
-              <div className="bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-2 mb-4 text-sm text-green-400 flex items-center gap-1.5">
-                <CheckCircle size={14} /> Ghi nhận thành công!</div>
+              <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-emerald-500/25 bg-emerald-500/8 text-[12px] font-bold text-emerald-400 mb-4">
+                <CheckCircle size={14} /> Ghi nhận thành công!
+              </div>
             )}
 
             <form onSubmit={handlePayment} className="space-y-4">
               <div>
-                <label className="input-label">Số tiền</label>
-                <input type="number" className="input-field" value={payForm.amount} onChange={e => setPayForm(f => ({ ...f, amount: e.target.value }))} placeholder="0" required />
+                <label className="block text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-1.5">Số tiền</label>
+                <input type="number" placeholder="0"
+                  className="w-full px-4 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-[var(--color-text-primary)] text-sm outline-none focus:border-emerald-500/60 transition-colors"
+                  value={payForm.amount} onChange={e => setPayForm(f => ({ ...f, amount: e.target.value }))} required />
               </div>
               <div>
-                <label className="input-label">Ghi chú</label>
-                <input className="input-field" value={payForm.notes} onChange={e => setPayForm(f => ({ ...f, notes: e.target.value }))} placeholder="Tuỳ chọn" />
+                <label className="block text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-1.5">Ghi chú</label>
+                <input placeholder="Tuỳ chọn"
+                  className="w-full px-4 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-[var(--color-text-primary)] text-sm outline-none focus:border-emerald-500/60 transition-colors"
+                  value={payForm.notes} onChange={e => setPayForm(f => ({ ...f, notes: e.target.value }))} />
               </div>
-              <button type="submit" disabled={paying} className="btn-primary w-full">
-                {paying ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Đang xử lý...
-                  </span>
-                ) : 'Ghi nhận'}
+              <button type="submit" disabled={paying}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm transition-all shadow-lg shadow-emerald-500/25 cursor-pointer">
+                {paying ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Đang xử lý...</> : 'Ghi nhận'}
               </button>
             </form>
 
             <div className="h-px my-5" style={{ background: 'var(--color-border)' }} />
 
-            <div className="space-y-2.5 text-sm">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Gốc ban đầu</span>
-                <span className="text-slate-300">{formatVND(debt.originalAmount)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Đã trả</span>
-                <span className="text-green-400">{formatVND(debt.originalAmount - debt.balance)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Ngày đáo hạn</span>
-                <span className="text-slate-300">Ngày {debt.dueDay} hàng tháng</span>
-              </div>
+            <div className="space-y-2.5">
+              {[
+                { label: 'Gốc ban đầu',   value: formatVND(debt.originalAmount),              vColor: 'var(--color-text-primary)' },
+                { label: 'Đã trả',         value: formatVND(debt.originalAmount - debt.balance), vColor: '#34d399' },
+                { label: 'Ngày đáo hạn',  value: `Ngày ${debt.dueDay} hàng tháng`,             vColor: 'var(--color-text-primary)' },
+              ].map(r => (
+                <div key={r.label} className="flex justify-between text-[12px]">
+                  <span className="text-[var(--color-text-muted)]">{r.label}</span>
+                  <span className="font-bold" style={{ color: r.vColor }}>{r.value}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>

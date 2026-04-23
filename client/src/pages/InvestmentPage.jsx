@@ -664,23 +664,24 @@ export default function InvestmentPage() {
       )}
 
       {/* ── Market Ticker ── */}
-      <div className="glass-card mb-6">
-        <h3 className="text-[12px] font-semibold mb-3 text-slate-500 uppercase tracking-wider flex items-center gap-1.5"><BarChart2 size={14} /> Thị trường</h3>
+      <div className="relative rounded-3xl border p-5 overflow-hidden" style={{ background: 'var(--color-bg-card)', borderColor: 'rgba(59,130,246,0.12)' }}>
+        <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-blue-500/25 to-transparent" />
+        <h3 className="text-[11px] font-black mb-4 text-[var(--color-text-muted)] uppercase tracking-widest flex items-center gap-1.5"><BarChart2 size={13} /> Thị trường <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /></h3>
         <div className="grid grid-cols-3 gap-4">
           {[
-            { label: 'Bitcoin',   value: prices.bitcoin?.price  ? `$${prices.bitcoin.price.toLocaleString()}`                 : '—', change: prices.bitcoin?.change24h },
-            { label: 'Ethereum',  value: prices.ethereum?.price ? `$${prices.ethereum.price.toLocaleString()}`                : '—', change: prices.ethereum?.change24h },
-            { label: 'Vàng SJC', value: prices.gold?.sell       ? `${prices.gold.sell.toLocaleString('vi-VN')} đ`            : '—', extra: prices.gold?.unit || '' },
+            { label: 'Bitcoin',   value: prices.bitcoin?.price  ? `$${prices.bitcoin.price.toLocaleString()}`       : '—', change: prices.bitcoin?.change24h },
+            { label: 'Ethereum',  value: prices.ethereum?.price ? `$${prices.ethereum.price.toLocaleString()}`      : '—', change: prices.ethereum?.change24h },
+            { label: 'Vàng SJC', value: prices.gold?.sell       ? `${prices.gold.sell.toLocaleString('vi-VN')} đ`  : '—', extra: prices.gold?.unit || '' },
           ].map((item, i) => (
             <div key={i} className="py-1">
-              <p className="text-[11px] text-slate-500 mb-0.5">{item.label}</p>
-              <p className="font-bold text-white text-[15px]">{item.value}</p>
+              <p className="text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-wider mb-1">{item.label}</p>
+              <p className="font-black text-[var(--color-text-primary)] text-[16px]">{item.value}</p>
               {item.change !== undefined && (
-                <p className={`text-[11px] font-medium ${(item.change || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                <p className={`text-[11px] font-bold mt-0.5 ${(item.change || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                   {(item.change || 0) >= 0 ? <TrendingUp size={11} className="inline" /> : <TrendingDown size={11} className="inline" />} {Math.abs(item.change || 0).toFixed(2)}%
                 </p>
               )}
-              {item.extra && <p className="text-[11px] text-slate-600">{item.extra}</p>}
+              {item.extra && <p className="text-[10px] text-[var(--color-text-muted)]">{item.extra}</p>}
             </div>
           ))}
         </div>
@@ -704,9 +705,11 @@ export default function InvestmentPage() {
 
       {/* ── AI Recommendation ── */}
       {recommendation && (
-        <div className="glass-card bg-blue-500/3 mb-6" style={{ borderColor: 'rgba(59, 130, 246, 0.12)' }}>
-          <p className="text-sm text-blue-300">
-            <Bot size={14} className="inline mr-1" /> <span className="font-semibold">AI phân tích:</span> {recommendation}
+        <div className="flex items-start gap-3 px-5 py-4 rounded-2xl border border-blue-500/15 bg-blue-500/5 relative overflow-hidden">
+          <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl bg-gradient-to-b from-blue-500 to-cyan-400" />
+          <Bot size={15} className="text-blue-400 shrink-0 mt-0.5 ml-1" />
+          <p className="text-[13px] text-blue-300 leading-relaxed">
+            <span className="font-black text-blue-200">AI phân tích: </span>{recommendation}
           </p>
         </div>
       )}
