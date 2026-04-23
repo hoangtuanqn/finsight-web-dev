@@ -1,38 +1,29 @@
-import Joi from 'joi';
+import { z } from 'zod';
 
 export const authSchemas = {
-  register: Joi.object({
-    fullName: Joi.string().required().min(2).max(50).messages({
-      'string.empty': 'Họ tên không được để trống',
-      'string.min': 'Họ tên phải có ít nhất 2 ký tự',
-      'string.max': 'Họ tên không được vượt quá 50 ký tự',
-      'any.required': 'Họ tên là bắt buộc'
-    }),
-    email: Joi.string().email().required().messages({
-      'string.email': 'Email không hợp lệ',
-      'string.empty': 'Email không được để trống',
-      'any.required': 'Email là bắt buộc'
-    }),
-    password: Joi.string().min(6).required().messages({
-      'string.min': 'Mật khẩu phải có ít nhất 6 ký tự',
-      'string.empty': 'Mật khẩu không được để trống',
-      'any.required': 'Mật khẩu là bắt buộc'
-    }),
-    confirmPassword: Joi.string().valid(Joi.ref('password')).required().messages({
-      'any.only': 'Mật khẩu xác nhận không khớp',
-      'any.required': 'Xác nhận mật khẩu là bắt buộc'
-    })
+  register: z.object({
+    fullName: z.string()
+      .min(1, 'Họ tên không được để trống')
+      .min(2, 'Họ tên phải có ít nhất 2 ký tự')
+      .max(50, 'Họ tên không được vượt quá 50 ký tự'),
+    email: z.string()
+      .min(1, 'Email không được để trống')
+      .email('Email không hợp lệ'),
+    password: z.string()
+      .min(1, 'Mật khẩu không được để trống')
+      .min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
+    confirmPassword: z.string()
+      .min(1, 'Xác nhận mật khẩu là bắt buộc')
+  }).refine((data) => data.password === data.confirmPassword, {
+    message: 'Mật khẩu xác nhận không khớp',
+    path: ['confirmPassword']
   }),
 
-  login: Joi.object({
-    email: Joi.string().email().required().messages({
-      'string.email': 'Email không hợp lệ',
-      'string.empty': 'Email không được để trống',
-      'any.required': 'Email là bắt buộc'
-    }),
-    password: Joi.string().required().messages({
-      'string.empty': 'Mật khẩu không được để trống',
-      'any.required': 'Mật khẩu là bắt buộc'
-    })
+  login: z.object({
+    email: z.string()
+      .min(1, 'Email không được để trống')
+      .email('Email không hợp lệ'),
+    password: z.string()
+      .min(1, 'Mật khẩu không được để trống')
   })
 };
