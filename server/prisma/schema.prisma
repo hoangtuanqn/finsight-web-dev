@@ -29,6 +29,7 @@ model User {
   notifications   Notification[]
   debtSnapshots   DebtSnapshot[]
   chatSessions    ChatSession[]
+  debtGoal        DebtGoal?
   transactions    Transaction[]
 
   @@map("users")
@@ -140,6 +141,17 @@ model DebtSnapshot {
   @@map("debt_snapshots")
 }
 
+model DebtGoal {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  targetDate DateTime
+  strategy   String   @default("AVALANCHE")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("debt_goals")
 // ── Subscription & Payment ──────────────────────────────────
 
 model Transaction {

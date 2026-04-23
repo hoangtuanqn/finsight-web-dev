@@ -55,6 +55,13 @@ export const debtAPI = {
   getDtiAnalysis: () => api.get('/debts/dti'),
 };
 
+// DEBT GOAL
+export const debtGoalAPI = {
+  get: () => api.get('/debts/goal'),
+  upsert: (data) => api.post('/debts/goal', data),
+  delete: () => api.delete('/debts/goal'),
+};
+
 // INVESTMENT
 export const investmentAPI = {
   getProfile: () => api.get('/investment/profile'),
