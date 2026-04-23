@@ -54,5 +54,10 @@ export const authSchemas = {
     riskLevel: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
     savingsRate: z.number().min(0).max(100).optional(),
     inflationRate: z.number().min(0).max(100).optional()
+  }),
+
+  payment: z.object({
+    amount: z.number().positive('Số tiền thanh toán phải lớn hơn 0'),
+    notes: z.string().max(200).optional()
   })
 };
