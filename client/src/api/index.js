@@ -51,11 +51,13 @@ export const userAPI = {
 
 // DEBTS
 export const debtAPI = {
+  getAll: (status) => api.get('/debts', { params: { status } }),
   getAll: (params) => api.get('/debts', { params }),
   create: (data) => api.post('/debts', data),
   getById: (id) => api.get(`/debts/${id}`),
   update: (id, data) => api.put(`/debts/${id}`, data),
-  delete: (id) => api.delete(`/debts/${id}`),
+  delete: (id, data) => api.delete(`/debts/${id}`, { data }),
+  restore: (id) => api.post(`/debts/${id}/restore`),
   logPayment: (id, data) => api.post(`/debts/${id}/payments`, data),
   getRepaymentPlan: (params) => api.get('/debts/repayment-plan', { params }),
   getEarAnalysis: () => api.get('/debts/ear-analysis'),
@@ -116,11 +118,18 @@ export const reportAPI = {
 // SUBSCRIPTION
 export const subscriptionAPI = {
   getMyPlan: () => api.get('/subscription/me'),
-  createInvoice: (data) => api.post('/subscription/invoice', data),
+  getPlans: () => api.get('/subscription/plans'),
+  createInvoice: (plan) => api.post('/subscription/invoice', { plan }),
   getInvoice: (id) => api.get(`/subscription/invoice/${id}`),
+  checkStatus: (id) => api.get(`/subscription/invoice/${id}/status`),
   getTransactions: () => api.get('/subscription/transactions'),
   cancelInvoice: (id) => api.post(`/subscription/invoice/${id}/cancel`),
   verifyPayment: () => api.post('/subscription/verify'),
+};
+
+export const articleAPI = {
+  getArticles: () => api.get('/articles'),
+  seedArticles: () => api.post('/articles/seed'),
 };
 
 export default api;

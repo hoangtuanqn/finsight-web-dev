@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, CreditCard, Search, ClipboardList,
-  TrendingUp, Target, User, BarChart2, LogOut, ChevronRight, Zap, Receipt, Crown
+  TrendingUp, Target, User, BarChart2, LogOut, ChevronRight, Zap, Receipt, Crown, BookOpen
 } from 'lucide-react';
 
 const NAV_GROUPS = [
@@ -11,6 +11,7 @@ const NAV_GROUPS = [
     label: 'Tổng quan',
     items: [
       { id: 'tour-dashboard',  to: '/home',  icon: LayoutDashboard, label: 'Dashboard',     end: true,  color: '#3b82f6', gradient: 'from-blue-500 to-cyan-400'     },
+      { id: 'tour-knowledge',  to: '/knowledge',  icon: BookOpen, label: 'Kiến thức',  color: '#6366f1', gradient: 'from-indigo-500 to-blue-400' },
     ],
   },
   {
