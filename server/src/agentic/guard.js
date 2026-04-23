@@ -1,44 +1,57 @@
 /**
  * Danh sách các từ khóa không liên quan đến tài chính (Off-topic).
  * Dùng để rào cản người dùng hỏi các câu hỏi tốn token AI vô ích.
+ * 
+ * LƯU Ý: Đã loại bỏ các từ khóa gây false positive cao:
+ * - "crush" (có thể là "crush khoản nợ")
+ * - "game" (có thể là "game plan trả nợ")
+ * - "bạn là ai" (user có quyền hỏi chatbot)
+ * - "javascript", "python" (có thể hỏi về fintech tool)
  */
 const OFF_TOPIC_KEYWORDS = [
   // Giải trí
   "phim hay", "nhạc", "bóng đá", "thể thao", "nấu ăn", "giải trí",
-  "truyện cười", "anime", "manga", "game", "esport",
+  "truyện cười", "anime", "manga", "esport",
   // Chính trị / xã hội
   "chính trị", "bầu cử", "đảng",
   // Cá nhân / tình cảm
-  "tình yêu", "người yêu", "crush", "hẹn hò", "ai đẹp hơn",
-  // Lập trình / kỹ thuật (không liên quan tài chính)
-  "mã code", "lập trình", "debug", "python", "javascript",
+  "tình yêu", "người yêu", "hẹn hò", "ai đẹp hơn",
   // Sáng tạo nội dung
   "viết thơ", "viết văn", "viết truyện", "rap", "hát",
-  "dịch giúp", "dịch sang",
+  "dịch sang",
   // Học tập không liên quan
   "làm bài tập", "giải toán", "vật lý", "hóa học",
   // Thời tiết / thông tin chung
-  "thời tiết", "mấy giờ", "hôm nay ngày mấy",
+  "thời tiết", "hôm nay ngày mấy",
   // Troll
-  "kể chuyện", "bạn là ai", "bạn có thật không",
+  "kể chuyện",
 ];
 
-const MAX_MESSAGE_LENGTH = 2000;
+/**
+ * Escape các ký tự đặc biệt trong regex để tránh lỗi khi tạo RegExp động.
+ * @param {string} str - Chuỗi cần escape.
+ * @returns {string} - Chuỗi đã được escape.
+ */
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 /**
  * Hàm kiểm tra an toàn (Guard) đầu vào của người dùng.
+ * Sử dụng word-boundary matching thay vì includes() để giảm false positive.
+ * VD: "crush khoản nợ" sẽ KHÔNG bị chặn bởi "crush" nếu "crush" nằm giữa câu.
+ * 
  * @param {string} message - Tin nhắn người dùng.
  * @returns {boolean} - Trả về true nếu tin nhắn vi phạm, false nếu an toàn.
  */
 export const checkIsOffTopicGuard = (message) => {
-  // Lớp bảo vệ 0: Chặn tin nhắn quá dài (chống tràn bộ nhớ / spam API)
-  if (message.length > MAX_MESSAGE_LENGTH) return true;
-
   const lowerMsg = message.toLowerCase();
   
-  // Lớp bảo vệ 1: So khớp từ khóa (Quét siêu tốc ~1ms)
+  // So khớp từ khóa với word boundary để tránh match giữa từ
+  // VD: "game" sẽ match "game online" nhưng KHÔNG match "gameplay tài chính"
   for (let kw of OFF_TOPIC_KEYWORDS) {
-    if (lowerMsg.includes(kw)) return true;
+    const regex = new RegExp(`(?:^|\\s|[,."'!?])${escapeRegex(kw)}(?:\\s|[,."'!?]|$)`, 'i');
+    if (regex.test(lowerMsg)) return true;
   }
   
   return false;

@@ -42,7 +42,7 @@ export const getUserDebtsTool = tool(
     // Cấu hình (Metadata) cho Tool. Quan trọng nhất là `description` và `schema`.
     // LLM sẽ dựa vào phần description này để QUYẾT ĐỊNH XEM CÓ NÊN GỌI TOOL HAY KHÔNG.
     name: "get_user_debts",
-    description: "Sử dụng khi cần kiểm tra tình trạng các khoản nợ của người dùng hiện tại (số lượng nợ, tổng dư nợ, tổng số tiền phải thanh toán tối thiểu). Bắt buộc phải có userId.",
+    description: "Sử dụng khi cần kiểm tra tình trạng các khoản nợ của người dùng hiện tại (số lượng nợ, tổng dư nợ, tổng số tiền phải thanh toán tối thiểu). userId được hệ thống tự động cung cấp.",
     schema: z.object({
       userId: z.string().describe("ID của người dùng"),
     }),
