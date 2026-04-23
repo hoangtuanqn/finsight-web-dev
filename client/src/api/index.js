@@ -75,6 +75,12 @@ export const investmentAPI = {
   getGoldPrices: () => api.get('/investment/gold-prices'),
   getSavingsRates: (params) => api.get('/investment/savings-rates', { params }),
   getBondsRates: (params) => api.get('/investment/bonds-rates', { params }),
+  // ── AI Strategy & User Portfolio ──
+  getStrategies: () => api.get('/investment/strategies'),
+  generateStrategy: () => api.post('/investment/strategies/generate'),
+  getPortfolio: () => api.get('/investment/portfolio'),
+  upsertPortfolio: (data) => api.post('/investment/portfolio', data),
+  updatePortfolio: (data) => api.put('/investment/portfolio', data),
 };
 
 // MARKET
