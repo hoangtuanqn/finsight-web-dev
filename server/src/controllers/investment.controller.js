@@ -2,6 +2,7 @@ import prisma from '../lib/prisma.js';
 import { success, error } from '../utils/apiResponse.js';
 import { getAllocation } from '../utils/calculations.js';
 import { fetchFearGreedIndex } from '../services/market.service.js';
+import { ASSET_CLASSES, RISK_CONFIG } from '../constants/investmentConstants.js';
 
 export async function getInvestorProfile(req, res) {
   try {
@@ -86,8 +87,15 @@ export async function getAllocationRecommendation(req, res) {
       { asset: 'Crypto', percentage: allocation.crypto, amount: profile.capital * allocation.crypto / 100 },
     ];
 
-    // Simple projection estimates
-    const rates = { savings: profile.savingsRate !== undefined ? profile.savingsRate / 100 : 0.06, gold: 0.08, stocks: 0.12, bonds: 0.07, crypto: 0.15 };
+    // Expected returns dựa trên dữ liệu thực tế VN 2024-2025 (từ ASSET_CLASSES constants)
+    // Crypto dùng baseCase (+20%) vì không có expected return ổn định — kèm note cảnh báo
+    const rates = {
+      savings: profile.savingsRate !== undefined ? profile.savingsRate / 100 : ASSET_CLASSES.savings.expectedReturn,
+      gold:    ASSET_CLASSES.gold.expectedReturn,    // 6.5% — CAGR vàng SJC 10 năm
+      stocks:  ASSET_CLASSES.stocks.expectedReturn,  // 10.0% — VN-Index CAGR 2014-2024
+      bonds:   ASSET_CLASSES.bonds.expectedReturn,   // 5.8% — TPCP kỳ hạn 5-10 năm 2024
+      crypto:  ASSET_CLASSES.crypto.baseCase,        // 20% baseCase (không phải average — quá biến động)
+    };
     const inflationRate = profile.inflationRate !== undefined ? profile.inflationRate / 100 : 0.035;
 
     const weightedReturn = (allocation.savings * rates.savings + allocation.gold * rates.gold +
@@ -128,6 +136,10 @@ export async function getAllocationRecommendation(req, res) {
       recommendation: allocation.recommendation,
       portfolioBreakdown,
       projection,
+      // Cảnh báo crypto nếu có phân bổ vào crypto — vì không có expected return ổn định
+      cryptoWarning: allocation.crypto > 0
+        ? `Crypto (${allocation.crypto}% danh mục) có thể dao động từ ${ASSET_CLASSES.crypto.bearCase * 100}% đến +${ASSET_CLASSES.crypto.bullCase * 100}% — không có lợi nhuận kỳ vọng ổn định. Chỉ đầu tư phần vốn chấp nhận mất hoàn toàn.`
+        : null,
     });
   } catch (err) {
     console.error('getAllocationRecommendation error:', err);
@@ -159,18 +171,36 @@ export async function submitRiskAssessment(req, res) {
       return error(res, 'Answers are required', 400);
     }
 
-    const totalScore = answers.reduce((sum, a) => sum + (a.score || 0), 0);
-    const avgScore = Math.round(totalScore / answers.length);
+    // Weighted scoring: câu hỏi hành vi thực tế quan trọng hơn câu hỏi thái độ
+    // answers[i].id = 'q1'...'q5', answers[i].score = 0-100
+    const weights = RISK_CONFIG.questionWeights; // { q1:1.0, q2:1.5, q3:2.0, q4:1.5, q5:1.0 }
+    let weightedSum = 0, totalWeight = 0;
+    answers.forEach((a, i) => {
+      const qId = a.id || `q${i + 1}`;
+      const w = weights[qId] ?? 1.0;
+      weightedSum += (a.score || 0) * w;
+      totalWeight += w;
+    });
+    const avgScore = totalWeight > 0 ? Math.round(weightedSum / totalWeight) : Math.round(answers.reduce((s, a) => s + (a.score || 0), 0) / answers.length);
 
+    // Risk level dùng ngưỡng từ RISK_CONFIG (score >= 65 → HIGH, >= 40 → MEDIUM, còn lại → LOW)
     let riskLevel = 'LOW';
     let riskDescription = 'Bạn ưu tiên bảo toàn vốn. Phân bổ tập trung vào tiết kiệm và vàng.';
-    if (avgScore > 60) {
+    if (avgScore >= RISK_CONFIG.thresholds.HIGH) {
       riskLevel = 'HIGH';
       riskDescription = 'Bạn sẵn sàng chấp nhận rủi ro cao để tối đa hóa lợi nhuận. Phân bổ nhiều vào chứng khoán và crypto.';
-    } else if (avgScore > 30) {
+    } else if (avgScore >= RISK_CONFIG.thresholds.MEDIUM) {
       riskLevel = 'MEDIUM';
       riskDescription = 'Bạn chấp nhận rủi ro vừa phải. Phân bổ cân bằng giữa các kênh đầu tư.';
     }
+
+    // Consistency check cơ bản: cảnh báo nếu câu trả lời có độ phân tán cao
+    const scores = answers.map(a => a.score || 0);
+    const mean = scores.reduce((s, v) => s + v, 0) / scores.length;
+    const stdDev = Math.sqrt(scores.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / scores.length);
+    const consistencyWarning = stdDev > 30
+      ? 'Câu trả lời của bạn có độ phân tán cao — một số câu mâu thuẫn nhau. Kết quả đã được xử lý theo trọng số để phản ánh tốt hơn.'
+      : null;
 
     // Update or create investor profile
     await prisma.investorProfile.upsert({
@@ -179,7 +209,7 @@ export async function submitRiskAssessment(req, res) {
       create: { userId: req.userId, riskScore: avgScore, riskLevel },
     });
 
-    return success(res, { riskScore: avgScore, riskLevel, riskDescription });
+    return success(res, { riskScore: avgScore, riskLevel, riskDescription, consistencyWarning });
   } catch (err) {
     console.error('submitRiskAssessment error:', err);
     return error(res, 'Internal server error');

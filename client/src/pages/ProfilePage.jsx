@@ -188,7 +188,7 @@ export default function ProfilePage() {
                         name="monthlyIncome"
                         control={control}
                         render={({ field }) => (
-                          <FormattedInput kind="integer" value={field.value} onValueChange={field.onChange} className={inputCls(errors.monthlyIncome) + ' pl-10'} placeholder="0" suffix="đ" />
+                          <FormattedInput kind="integer" value={field.value} onValueChange={v => field.onChange(v === '' ? 0 : Number(v))} className={inputCls(errors.monthlyIncome) + ' pl-10'} placeholder="0" suffix="đ" />
                         )}
                       />
                     </div>
@@ -202,7 +202,7 @@ export default function ProfilePage() {
                         name="extraBudget"
                         control={control}
                         render={({ field }) => (
-                          <FormattedInput kind="integer" value={field.value} onValueChange={field.onChange} className={inputCls(errors.extraBudget) + ' pl-10'} placeholder="0" suffix="đ" />
+                          <FormattedInput kind="integer" value={field.value} onValueChange={v => field.onChange(v === '' ? 0 : Number(v))} className={inputCls(errors.extraBudget) + ' pl-10'} placeholder="0" suffix="đ" />
                         )}
                       />
                     </div>
@@ -217,7 +217,7 @@ export default function ProfilePage() {
                       name="capital"
                       control={control}
                       render={({ field }) => (
-                        <FormattedInput kind="integer" value={field.value} onValueChange={field.onChange} className={inputCls(errors.capital) + ' pl-10'} placeholder="100000000" suffix="đ" />
+                        <FormattedInput kind="integer" value={field.value} onValueChange={v => field.onChange(v === '' ? 0 : Number(v))} className={inputCls(errors.capital) + ' pl-10'} placeholder="100000000" suffix="đ" />
                       )}
                     />
                   </div>
@@ -231,7 +231,7 @@ export default function ProfilePage() {
                         name="savingsRate"
                         control={control}
                         render={({ field }) => (
-                          <FormattedInput kind="decimal" value={field.value} onValueChange={field.onChange} className={inputCls(errors.savingsRate) + ' pl-10'} placeholder="6,0" suffix="%" />
+                          <FormattedInput kind="decimal" value={field.value} onValueChange={v => field.onChange(v === '' ? 0 : Number(v))} className={inputCls(errors.savingsRate) + ' pl-10'} placeholder="6,0" suffix="%" />
                         )}
                       />
                     </div>
@@ -244,7 +244,7 @@ export default function ProfilePage() {
                         name="inflationRate"
                         control={control}
                         render={({ field }) => (
-                          <FormattedInput kind="decimal" value={field.value} onValueChange={field.onChange} className={inputCls(errors.inflationRate) + ' pl-10'} placeholder="3,5" suffix="%" />
+                          <FormattedInput kind="decimal" value={field.value} onValueChange={v => field.onChange(v === '' ? 0 : Number(v))} className={inputCls(errors.inflationRate) + ' pl-10'} placeholder="3,5" suffix="%" />
                         )}
                       />
                     </div>
