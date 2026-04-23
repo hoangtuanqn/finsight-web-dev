@@ -22,4 +22,4 @@ EXPOSE 5001
 
 # Command to run the application (in dev mode as requested for easy demo)
 # Alternatively, use "npm start" for production if you have a start script
-CMD ["sh", "-c", "npx prisma db push && npm run dev"]
+CMD ["sh", "-c", "npx prisma db push"]
