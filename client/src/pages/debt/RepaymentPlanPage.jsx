@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { debtAPI, userAPI, debtGoalAPI } from '../../api/index.js';
 import { useAuth } from '../../context/AuthContext';
+import { useRepaymentPlan, useDebts, useDebtGoal } from '../../hooks/useDebtQuery';
+import { useUpdateProfile } from '../../hooks/useAuthQuery';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
 import FormattedInput from '../../components/common/FormattedInput';
 import { formatVND } from '../../utils/calculations';
@@ -13,9 +14,6 @@ import {
   CheckCircle2, XCircle, ArrowRight, Brain,
 } from 'lucide-react';
 
-// ─────────────────────────────────────────────────────────────
-// Strategy Explanation Modal
-// ─────────────────────────────────────────────────────────────
 const STRATEGY_CONTENT = {
   AVALANCHE: {
     name: 'Avalanche',
@@ -86,7 +84,6 @@ function StrategyModal({ type, onClose }) {
     description, howItWorks, pros, cons, bestFor, worstFor } = content;
 
   return (
-    // Backdrop
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -94,7 +91,6 @@ function StrategyModal({ type, onClose }) {
       className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
       onClick={onClose}
     >
-      {/* Panel */}
       <motion.div
         initial={{ opacity: 0, y: 60 }}
         animate={{ opacity: 1, y: 0 }}
@@ -107,13 +103,11 @@ function StrategyModal({ type, onClose }) {
         <div className={`absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent ${glowColor} to-transparent`} />
         <div className={`absolute -top-12 right-0 w-40 h-40 rounded-full blur-3xl opacity-10 ${bgGlow}`} />
 
-        {/* Mobile handle */}
         <div className="flex justify-center pt-3 pb-1 sm:hidden">
           <div className="w-10 h-1 rounded-full bg-white/20" />
         </div>
 
         <div className="p-6 pt-4">
-          {/* Header */}
           <div className="flex items-start justify-between mb-5">
             <div className="flex items-center gap-3">
               <div className={`w-11 h-11 rounded-2xl flex items-center justify-center bg-${color}-500/15 text-${color}-400`}>
@@ -132,12 +126,10 @@ function StrategyModal({ type, onClose }) {
             </button>
           </div>
 
-          {/* Description */}
           <p className="text-[13px] text-[var(--color-text-secondary)] leading-relaxed mb-5">
             {description}
           </p>
 
-          {/* How it works */}
           <div className={`rounded-2xl p-4 mb-4 bg-${color}-500/6 border border-${color}-500/15`}>
             <h3 className="text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-wider mb-3 flex items-center gap-1.5">
               <Brain size={11} /> Cách hoạt động
@@ -154,7 +146,6 @@ function StrategyModal({ type, onClose }) {
             </ol>
           </div>
 
-          {/* Pros / Cons */}
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div className="rounded-2xl p-3.5 bg-emerald-500/6 border border-emerald-500/15">
               <h3 className="text-[10px] font-black text-emerald-400 uppercase tracking-wider mb-2.5 flex items-center gap-1">
@@ -184,7 +175,6 @@ function StrategyModal({ type, onClose }) {
             </div>
           </div>
 
-          {/* Best for / Worst for */}
           <div className="space-y-2 mb-5">
             <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-xl bg-white/4 border border-white/6">
               <CheckCircle2 size={14} className="text-emerald-400 shrink-0 mt-0.5" />
@@ -214,7 +204,6 @@ function StrategyModal({ type, onClose }) {
   );
 }
 
-
 const TOOLTIP_STYLE = {
   background:   '#0f172a',
   border:       '1px solid rgba(255,255,255,0.08)',
@@ -225,75 +214,57 @@ const TOOLTIP_STYLE = {
 };
 
 export default function RepaymentPlanPage() {
-  const { user, setUser }     = useAuth();
-  const defaultBudget         = user?.extraBudget || 0;
+  const { user } = useAuth();
+  const defaultBudget = user?.extraBudget || 0;
 
-  const [data,         setData]        = useState(null);
-  const [debtSummary,  setDebtSummary] = useState(null);
-  const [allDebts,     setAllDebts]    = useState([]);
-  const [goalData,     setGoalData]    = useState(null);
-  const [loading,      setLoading]     = useState(true);
-  const [modal,        setModal]       = useState(null); // 'AVALANCHE' | 'SNOWBALL' | null
-  const [extraBudget,  setExtraBudget] = useState(defaultBudget);
-  const [budgetInput,  setBudgetInput] = useState(String(defaultBudget));
-  const [saving,       setSaving]      = useState(false);
-  const [saved,        setSaved]       = useState(false);
-  const SLIDER_MAX = 100000000;
+  const [extraBudget, setExtraBudget] = useState(defaultBudget);
+  const [budgetInput, setBudgetInput] = useState(String(defaultBudget));
+  const [modal, setModal] = useState(null);
+  const [saved, setSaved] = useState(false);
 
-  const load = (budget) => {
-    setLoading(true);
-    Promise.all([debtAPI.getRepaymentPlan({ extraBudget: budget }), debtAPI.getAll(), debtGoalAPI.get()])
-      .then(([planRes, allRes, goalRes]) => {
-        setData(planRes.data.data);
-        const allData = allRes.data.data;
-        setDebtSummary(allData?.summary || null);
-        setAllDebts(allData?.debts || []);
-        setGoalData(goalRes.data.data || null);
-      })
-      .catch(console.error)
-      .finally(() => setTimeout(() => setLoading(false), 400));
-  };
+  const { data: planData, isLoading: planLoading } = useRepaymentPlan(extraBudget);
+  const { data: debtsData, isLoading: debtsLoading } = useDebts();
+  const { data: goalData, isLoading: goalLoading } = useDebtGoal();
+  const { updateProfile, isUpdating: saving } = useUpdateProfile();
 
-  useEffect(() => { load(extraBudget); }, []);
-  useEffect(() => { setBudgetInput(String(defaultBudget)); }, [defaultBudget]);
+  const loading = planLoading || debtsLoading || goalLoading;
+
+  useEffect(() => {
+    setBudgetInput(String(defaultBudget));
+    setExtraBudget(defaultBudget);
+  }, [defaultBudget]);
 
   const commitBudgetValue = (rawValue) => {
     const numericValue = Math.min(100000000000, Math.max(0, parseInt(String(rawValue || '').replace(/\D/g, ''), 10) || 0));
     setBudgetInput(String(numericValue));
     setExtraBudget(numericValue);
-    load(numericValue);
   };
 
   const handleSliderChange = (value) => {
     const numericValue = Math.max(0, value);
     setBudgetInput(String(numericValue));
     setExtraBudget(numericValue);
-    load(numericValue);
   };
 
   const handleSaveBudget = async () => {
-    setSaving(true);
     try {
-      await userAPI.updateProfile({ extraBudget });
-      setUser(prev => ({ ...prev, extraBudget }));
+      await updateProfile({ extraBudget });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
+    } catch (e) {
+      console.error(e);
     }
-    catch (e) { console.error(e); }
-    finally { setSaving(false); }
   };
 
-  if (loading && !data) return <PageSkeleton />;
+  if (loading && !planData) return <PageSkeleton />;
 
-  const { avalanche, snowball, comparison, recommendation } = data || {};
+  const { avalanche, snowball, comparison, recommendation } = planData || {};
+  const debtSummary = debtsData?.summary;
+  const allDebts = debtsData?.debts || [];
   const monthlyIncome = debtSummary?.monthlyIncome ?? 0;
 
-  // Goal banner helpers
-  const goal      = goalData?.goal;
-  const onTrack   = goalData?.onTrack;
-  const progress  = goalData?.progress;
-  const milestones = goalData?.milestones || [];
-  const reachedCount = milestones.filter(m => m.reached).length;
+  const progress = goalData?.progress;
+  const reachedCount = goalData?.milestones?.filter(m => m.reached).length || 0;
 
   const timelineData = [];
   if (avalanche?.schedule && snowball?.schedule) {
@@ -316,7 +287,6 @@ export default function RepaymentPlanPage() {
   return (
     <>
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-8 space-y-6">
-      {/* ── Header ── */}
       <div className="pt-2">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-emerald-500/20 bg-emerald-500/8 text-emerald-400 text-[10px] font-black uppercase tracking-widest mb-3">
           <ClipboardList size={11} /> Kế hoạch trả nợ
@@ -325,9 +295,8 @@ export default function RepaymentPlanPage() {
         <p className="text-[var(--color-text-secondary)] text-sm mt-1">So sánh Avalanche vs Snowball để chọn chiến lược tối ưu</p>
       </div>
 
-      {/* ── Goal Linkage Banner ── */}
       {goalData && (
-        <Link to="/debts/goal">
+        <Link to="/debts/goal" className="block">
           <motion.div
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
@@ -336,7 +305,6 @@ export default function RepaymentPlanPage() {
           >
             <div className="absolute top-0 left-5 right-5 h-px bg-gradient-to-r from-transparent via-violet-500/40 to-transparent" />
 
-            {/* Progress mini ring area */}
             <div className="w-10 h-10 rounded-xl bg-violet-500/15 flex items-center justify-center text-violet-400 shrink-0">
               {reachedCount === 4 ? <Trophy size={18} /> : <Target size={18} />}
             </div>
@@ -344,23 +312,22 @@ export default function RepaymentPlanPage() {
             <div className="min-w-0">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <span className="text-[12px] font-black text-[var(--color-text-primary)]">Mục tiêu trả nợ</span>
-                {goal && (
+                {goalData.goal && (
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                    onTrack?.status === 'BEHIND'
+                    goalData.onTrack?.status === 'BEHIND'
                       ? 'bg-red-500/15 text-red-300'
-                      : onTrack?.status === 'AHEAD'
+                      : goalData.onTrack?.status === 'AHEAD'
                         ? 'bg-emerald-500/15 text-emerald-300'
                         : 'bg-blue-500/15 text-blue-300'
                   }`}>
-                    {onTrack?.status === 'BEHIND' ? 'Chậm tiến độ' : onTrack?.status === 'AHEAD' ? 'Vượt kế hoạch' : 'Đúng tiến độ'}
+                    {goalData.onTrack?.status === 'BEHIND' ? 'Chậm tiến độ' : goalData.onTrack?.status === 'AHEAD' ? 'Vượt kế hoạch' : 'Đúng tiến độ'}
                   </span>
                 )}
-                {!goal && (
+                {!goalData.goal && (
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-500/15 text-slate-400">Chưa đặt mục tiêu</span>
                 )}
               </div>
 
-              {/* Mini progress bar */}
               {progress && (
                 <div className="min-w-0">
                   <div className="h-1.5 rounded-full bg-white/5 overflow-hidden min-w-0">
@@ -375,7 +342,7 @@ export default function RepaymentPlanPage() {
                 </div>
               )}
 
-              {!goal && !progress && (
+              {!goalData.goal && !progress && (
                 <p className="text-[11px] text-[var(--color-text-muted)]">Đặt ngày mục tiêu để theo dõi tiến độ trả nợ</p>
               )}
             </div>
@@ -395,7 +362,6 @@ export default function RepaymentPlanPage() {
         </Link>
       )}
 
-      {/* ── Budget Panel ── */}
       <div className="relative rounded-3xl p-6 border overflow-hidden" style={{ background: 'var(--color-bg-card)', borderColor: 'rgba(59,130,246,0.15)' }}>
         <div className="absolute top-0 left-5 right-5 h-px bg-gradient-to-r from-transparent via-blue-500/40 to-transparent" />
         <div className="absolute -top-8 -right-8 w-28 h-28 rounded-full blur-3xl opacity-10 bg-blue-500" />
@@ -431,20 +397,20 @@ export default function RepaymentPlanPage() {
         </div>
 
         <input
-          type="range" min="0" max={SLIDER_MAX} step="500000"
-          value={Math.min(extraBudget, SLIDER_MAX)}
+          type="range" min="0" max="100000000" step="500000"
+          value={Math.min(extraBudget, 100000000)}
           onChange={e => handleSliderChange(+e.target.value)}
           className="w-full accent-blue-500"
         />
         <div className="flex justify-between text-[10px] text-[var(--color-text-muted)] mt-1.5">
           <span>0đ</span><span>25tr</span><span>50tr</span><span>75tr</span><span>100tr</span>
         </div>
-        {extraBudget > SLIDER_MAX && (
+        {extraBudget > 100000000 && (
           <p className="text-[11px] text-amber-400 mt-2 font-medium">Giá trị vượt thanh kéo — tính toán vẫn dùng đúng số bạn nhập.</p>
         )}
       </div>
 
-      {!data || !avalanche ? (
+      {!planData || !avalanche ? (
         <div className="rounded-3xl border border-[var(--color-border)] p-16 text-center" style={{ background: 'var(--color-bg-card)' }}>
           <div className="w-16 h-16 rounded-2xl bg-slate-500/10 flex items-center justify-center mx-auto mb-4">
             <ClipboardList size={28} className="text-slate-500" />
@@ -453,9 +419,7 @@ export default function RepaymentPlanPage() {
         </div>
       ) : (
         <>
-          {/* ── Strategy Cards ── */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Avalanche */}
             <motion.div
               initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
               className="relative rounded-3xl p-6 border overflow-hidden"
@@ -487,7 +451,6 @@ export default function RepaymentPlanPage() {
                   <p className="text-xl font-black text-red-400">{formatVND(avalanche.totalInterest)}</p>
                 </div>
               </div>
-              {/* Divider + priority list */}
               {allDebts.filter(d => d.balance > 0).length > 0 && (
                 <>
                   <div className="h-px bg-blue-500/10 mb-4" />
@@ -516,7 +479,6 @@ export default function RepaymentPlanPage() {
               )}
             </motion.div>
 
-            {/* Snowball */}
             <motion.div
               initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
               className="relative rounded-3xl p-6 border overflow-hidden"
@@ -548,7 +510,6 @@ export default function RepaymentPlanPage() {
                   <p className="text-xl font-black text-red-400">{formatVND(snowball.totalInterest)}</p>
                 </div>
               </div>
-              {/* Divider + priority list */}
               {allDebts.filter(d => d.balance > 0).length > 0 && (
                 <>
                   <div className="h-px bg-emerald-500/10 mb-4" />
@@ -578,7 +539,6 @@ export default function RepaymentPlanPage() {
             </motion.div>
           </div>
 
-          {/* ── Savings Banner ── */}
           {comparison?.savedInterest > 0 && (
             <div className="flex items-center gap-3 px-5 py-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/6 relative overflow-hidden">
               <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl bg-gradient-to-b from-emerald-500 to-teal-400" />
@@ -591,7 +551,6 @@ export default function RepaymentPlanPage() {
             </div>
           )}
 
-          {/* ── AI Recommendation ── */}
           {recommendation && (
             <div className="flex items-start gap-3 px-5 py-4 rounded-2xl border border-blue-500/15 bg-blue-500/5 relative overflow-hidden">
               <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl bg-gradient-to-b from-blue-500 to-cyan-400" />
@@ -602,7 +561,6 @@ export default function RepaymentPlanPage() {
             </div>
           )}
 
-          {/* ── Balance Timeline ── */}
           {timelineData.length > 0 && (
             <div className="relative rounded-3xl p-6 border overflow-hidden" style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}>
               <h3 className="text-[14px] font-black text-[var(--color-text-primary)] mb-5 flex items-center gap-2">
@@ -628,7 +586,6 @@ export default function RepaymentPlanPage() {
             </div>
           )}
 
-          {/* ── DTI Projection ── */}
           {timelineData.length > 0 && monthlyIncome > 0 && timelineData[0]?.avDti !== undefined && (
             <div className="relative rounded-3xl p-6 border overflow-hidden" style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}>
               <h3 className="text-[14px] font-black text-[var(--color-text-primary)] mb-1 flex items-center gap-2">
@@ -676,7 +633,6 @@ export default function RepaymentPlanPage() {
       )}
     </motion.div>
 
-    {/* ── Strategy Modal ── */}
     <AnimatePresence>
       {modal && (
         <StrategyModal

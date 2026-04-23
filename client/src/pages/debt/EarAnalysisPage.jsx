@@ -1,21 +1,12 @@
-import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { debtAPI } from '../../api/index.js';
+import { useEarAnalysis } from '../../hooks/useDebtQuery';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
 import EARBreakdown from '../../components/debt/EARBreakdown';
 import { formatVND, formatPercent } from '../../utils/calculations';
 import { BarChart2, Lightbulb, TrendingUp, AlertCircle } from 'lucide-react';
 
 export default function EarAnalysisPage() {
-  const [data, setData]       = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    debtAPI.getEarAnalysis()
-      .then(res => setData(res.data.data))
-      .catch(console.error)
-      .finally(() => setTimeout(() => setLoading(false), 500));
-  }, []);
+  const { data, isLoading: loading } = useEarAnalysis();
 
   if (loading) return <PageSkeleton />;
 
@@ -36,7 +27,6 @@ export default function EarAnalysisPage() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-8 space-y-6">
-      {/* ── Header ── */}
       <div className="pt-2">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-purple-500/20 bg-purple-500/8 text-purple-400 text-[10px] font-black uppercase tracking-widest mb-3">
           <BarChart2 size={11} /> Phân tích lãi suất
@@ -45,7 +35,6 @@ export default function EarAnalysisPage() {
         <p className="text-[var(--color-text-secondary)] text-sm mt-1">So sánh lãi suất quảng cáo vs chi phí thực tế từng khoản nợ</p>
       </div>
 
-      {/* ── Summary ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {SUMMARY.map((item, i) => (
           <motion.div
@@ -72,7 +61,6 @@ export default function EarAnalysisPage() {
         ))}
       </div>
 
-      {/* ── Hidden cost alert ── */}
       {data.summary.totalHiddenCost > 0 && (
         <div className="flex items-start gap-3 px-5 py-4 rounded-2xl border border-amber-500/20 bg-amber-500/6 relative overflow-hidden">
           <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl bg-gradient-to-b from-amber-500 to-orange-400" />
@@ -87,7 +75,6 @@ export default function EarAnalysisPage() {
         </div>
       )}
 
-      {/* ── Per-debt EAR ── */}
       <div className="space-y-4">
         {data.debts.map((debt, i) => (
           <motion.div
