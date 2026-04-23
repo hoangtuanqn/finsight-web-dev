@@ -1,6 +1,7 @@
 import React from 'react';
 import { ASSET_LABELS } from './InvestmentConstants';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { BASE_ALLOCATIONS, SENTIMENT_BANDS } from '../../constants/investmentConstants';
 
 /**
  * Calculates DeltaChip component for showing percentage changes
@@ -8,7 +9,7 @@ import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 export function DeltaChip({ current, previous }) {
   if (previous === undefined || previous === null) return null;
   const delta = +(current - previous).toFixed(1);
-  
+
   if (delta === 0) return (
     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-white/[0.05] text-slate-400 border border-white/10">
       <Minus size={10} /> 0%
@@ -27,29 +28,19 @@ export function DeltaChip({ current, previous }) {
 }
 
 /**
- * Explains the reasoning behind an asset allocation
+ * Explains the reasoning behind an asset allocation.
+ * Dùng BASE_ALLOCATIONS từ constants (single source of truth, không duplicate).
  */
 export function explainAsset(asset, pct, profile, sentimentValue) {
   const reasons = [];
   const riskLabel = { LOW: 'Thấp', MEDIUM: 'Trung bình', HIGH: 'Cao' }[profile?.riskLevel] || 'Trung bình';
-  const sentimentZone =
-    sentimentValue <= 24 ? 'Sợ hãi cực độ' :
-    sentimentValue <= 49 ? 'Sợ hãi' :
-    sentimentValue <= 74 ? 'Tham lam' : 'Tham lam cực độ';
-  
-  const sentimentKey =
-    sentimentValue <= 24 ? 'EXTREME_FEAR' :
-    sentimentValue <= 49 ? 'FEAR' :
-    sentimentValue === 50 ? 'NEUTRAL' :
-    sentimentValue <= 74 ? 'GREED' : 'EXTREME_GREED';
 
-  const BASE = {
-    LOW:    { EXTREME_FEAR: { savings:70, gold:20, bonds:10, stocks:0, crypto:0 }, FEAR: { savings:60, gold:25, bonds:15, stocks:0, crypto:0 }, NEUTRAL: { savings:50, gold:20, bonds:15, stocks:15, crypto:0 }, GREED: { savings:55, gold:20, bonds:15, stocks:10, crypto:0 }, EXTREME_GREED: { savings:65, gold:25, bonds:10, stocks:0, crypto:0 } },
-    MEDIUM: { EXTREME_FEAR: { savings:35, gold:30, bonds:10, stocks:25, crypto:0 }, FEAR: { savings:25, gold:25, bonds:10, stocks:35, crypto:5 }, NEUTRAL: { savings:20, gold:20, bonds:10, stocks:40, crypto:10 }, GREED: { savings:15, gold:15, bonds:10, stocks:45, crypto:15 }, EXTREME_GREED: { savings:30, gold:25, bonds:10, stocks:30, crypto:5 } },
-    HIGH:   { EXTREME_FEAR: { savings:10, gold:25, bonds:5, stocks:40, crypto:20 }, FEAR: { savings:10, gold:15, bonds:5, stocks:45, crypto:25 }, NEUTRAL: { savings:10, gold:15, bonds:0, stocks:40, crypto:35 }, GREED: { savings:10, gold:10, bonds:0, stocks:45, crypto:35 }, EXTREME_GREED: { savings:20, gold:20, bonds:0, stocks:35, crypto:25 } },
-  };
+  // Dùng SENTIMENT_BANDS để lấy label + labelVi (fix bug NEUTRAL band)
+  const band = SENTIMENT_BANDS.find(b => sentimentValue <= b.max) ?? SENTIMENT_BANDS[2];
+  const sentimentZone = band.labelVi;
 
-  const baseVal = BASE[profile?.riskLevel || 'MEDIUM']?.[sentimentKey]?.[asset] ?? 0;
+  // Dùng BASE_ALLOCATIONS từ constants thay vì object duplicate
+  const baseVal = BASE_ALLOCATIONS[profile?.riskLevel || 'MEDIUM']?.[asset] ?? 0;
   reasons.push({
     layer: 'Cơ sở',
     icon: 'Activity',
@@ -78,7 +69,7 @@ export function explainAsset(asset, pct, profile, sentimentValue) {
   }
 
   const g = profile?.goal;
-  if (g === 'STABILITY' && (asset === 'bonds')) {
+  if (g === 'STABILITY' && asset === 'bonds') {
     reasons.push({ layer: 'Mục tiêu', icon: 'Target', text: 'Mục tiêu Ổn định → tăng Trái phiếu' });
   }
   if (g === 'STABILITY' && (asset === 'crypto' || asset === 'stocks')) {
@@ -99,3 +90,4 @@ export const calcFV = (capital, monthlyAdd, rate, years) => {
   return capital * Math.pow(1 + rate, years) +
     (monthlyAdd || 0) * 12 * ((Math.pow(1 + rate, years) - 1) / rate);
 };
+
