@@ -226,6 +226,20 @@ const TOOLTIP_STYLE = {
 export default function RepaymentPlanPage() {
   const { user, setUser }     = useAuth();
   const defaultBudget         = user?.extraBudget || 0;
+  const inputRef              = useRef(null);
+  const displayBudgetInput    = (value) => value ? Number(value).toLocaleString('vi-VN') : '';
+  const moveCaretToEnd        = () => {
+    requestAnimationFrame(() => {
+      const input = inputRef.current;
+      if (!input) return;
+      const end = input.value.length;
+      input.setSelectionRange(end, end);
+    });
+  };
+  const formatBudgetInput     = (value) => {
+    if (!value) return '';
+    return `${Number(value).toLocaleString('vi-VN')} đ`;
+  };
 
   const [data,         setData]        = useState(null);
   const [debtSummary,  setDebtSummary] = useState(null);
@@ -256,8 +270,10 @@ export default function RepaymentPlanPage() {
   useEffect(() => { load(extraBudget); }, []);
 
   const handleBudgetChange = (val) => { const n = Math.max(0, val); setExtraBudget(n); setInputRaw(String(n)); load(n); };
-  const handleInputChange  = (e)   => { setInputRaw(e.target.value); };
-  const handleInputBlur    = ()    => { const n = Math.max(0, parseInt(inputRaw.replace(/\D/g, ''), 10) || 0); handleBudgetChange(n); };
+  const handleInputChange  = (e)   => { setInputRaw(e.target.value.replace(/\D/g, '')); moveCaretToEnd(); };
+  const handleInputBlur    = ()    => { const n = Math.max(0, parseInt(inputRaw, 10) || 0); handleBudgetChange(n); };
+  const handleInputFocus   = ()    => { moveCaretToEnd(); };
+  const handleInputClick   = ()    => { moveCaretToEnd(); };
   const handleInputKeyDown = (e)   => { if (e.key === 'Enter') e.target.blur(); };
 
   const handleSaveBudget = async () => {
@@ -390,10 +406,14 @@ export default function RepaymentPlanPage() {
           <div className="flex-1 relative">
             <input
               type="text" inputMode="numeric" placeholder="Nhập số tiền..."
-              value={formatVND(inputRaw)}
-              onChange={handleInputChange} onBlur={handleInputBlur} onKeyDown={handleInputKeyDown}
-              className="w-full px-4 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-blue-400 font-black text-[14px] outline-none focus:border-blue-500/50 transition-colors"
+              ref={inputRef}
+              value={displayBudgetInput(inputRaw)}
+              onChange={handleInputChange} onBlur={handleInputBlur} onFocus={handleInputFocus} onClick={handleInputClick} onKeyDown={handleInputKeyDown}
+              className="w-full px-4 pr-12 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-blue-400 font-black text-[14px] outline-none focus:border-blue-500/50 transition-colors"
             />
+            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-blue-400 font-black text-[14px]">
+              đ
+            </span>
           </div>
           <button
             onClick={handleSaveBudget} disabled={saving}
