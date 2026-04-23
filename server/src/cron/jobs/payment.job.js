@@ -48,6 +48,9 @@ export async function checkSepayPayments() {
       const now = new Date();
       const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // +30 days
 
+      // Số lượt chiến lược thưởng theo gói
+      const quotaBonus = invoice.plan === 'PROMAX' ? 50 : 20;
+
       await prisma.$transaction([
         prisma.transaction.update({
           where: { id: invoice.id },
@@ -55,14 +58,18 @@ export async function checkSepayPayments() {
         }),
         prisma.user.update({
           where: { id: invoice.userId },
-          data: { level: invoice.plan, levelExpiresAt: expiresAt },
+          data: {
+            level: invoice.plan,
+            levelExpiresAt: expiresAt,
+            strategyQuota: { increment: quotaBonus }, // Cộng thêm lượt tạo chiến lược
+          },
         }),
         prisma.notification.create({
           data: {
             userId: invoice.userId,
             type: 'UPGRADE_SUCCESS',
             title: `🎉 Nâng cấp ${invoice.plan} thành công!`,
-            message: `Tài khoản đã được nâng cấp lên gói ${invoice.plan}. Hiệu lực đến ${expiresAt.toLocaleDateString('vi-VN')}.`,
+            message: `Tài khoản đã được nâng cấp lên gói ${invoice.plan}. Bạn nhận thêm ${quotaBonus} lượt tạo chiến lược đầu tư. Hiệu lực đến ${expiresAt.toLocaleDateString('vi-VN')}.`,
             severity: 'INFO',
           },
         }),

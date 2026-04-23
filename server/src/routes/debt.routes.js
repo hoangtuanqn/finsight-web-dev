@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import {
-  getAllDebts, createDebt, getDebtById, updateDebt, deleteDebt,
+  getAllDebts, createDebt, getDebtById, updateDebt, deleteDebt, restoreDebt,
   logPayment, getRepaymentPlan, getEarAnalysis, getDtiAnalysis,
 } from '../controllers/debt.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
@@ -19,6 +19,7 @@ router.get('/dti', getDtiAnalysis);
 router.get('/:id', getDebtById);
 router.put('/:id', validate(authSchemas.debt), updateDebt);
 router.delete('/:id', deleteDebt);
+router.post('/:id/restore', restoreDebt);
 router.post('/:id/payments', validate(authSchemas.payment), logPayment);
 
 export default router;

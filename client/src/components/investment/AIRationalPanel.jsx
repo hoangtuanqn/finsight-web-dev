@@ -22,29 +22,27 @@ export default function AIRationalPanel({ allocation, profile, sentimentValue, p
   const sorted = Object.entries(allocation).sort(([, a], [, b]) => b - a);
 
   return (
-    <div className="bg-slate-900/60 backdrop-blur-xl border border-white/5 p-8 rounded-3xl shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5)] relative overflow-hidden">
-      {/* Ambient glow */}
+    <div className="bg-slate-900/60 backdrop-blur-xl border border-white/5 p-5 rounded-3xl shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5)] relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-500/5 to-transparent pointer-events-none" />
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 relative z-10">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-2xl shadow-[0_0_20px_rgba(59,130,246,0.15)]">
-            <Lightbulb size={24} className="text-blue-400" />
+      <div className="flex flex-row items-center justify-between gap-4 mb-5 relative z-10">
+        <div className="flex items-center gap-3">
+          <div className="p-1.5 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+            <Lightbulb size={15} className="text-blue-400" />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-white tracking-tight">Ma trận Quyết định AI</h3>
-            <p className="text-xs font-medium text-slate-400 mt-0.5">Phân tích logic mạng nơ-ron</p>
+            <h3 className="text-sm font-bold text-white tracking-tight">Ma trận Quyết định AI</h3>
+            <p className="text-[11px] text-slate-500">Phân tích logic mạng nơ-ron</p>
           </div>
         </div>
-        
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1.5">
           <Badge label="Rủi ro" value={riskLabel} color="amber" />
           <Badge label="Kỳ hạn" value={horizonLabel} color="blue" />
           <Badge label="Mục tiêu" value={goalLabel} color="purple" />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 relative z-10">
         {sorted.map(([asset, pct]) => {
           const Icon = ASSET_ICONS[asset];
           const reasons = explainAsset(asset, pct, profile, sentimentValue);
@@ -52,32 +50,31 @@ export default function AIRationalPanel({ allocation, profile, sentimentValue, p
           const breakdown = portfolioBreakdown.find(p => p.asset === ASSET_LABELS[asset]);
 
           return (
-            <div key={asset} className={`border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-all duration-300 rounded-2xl overflow-hidden ${isOpen ? 'ring-1 ring-blue-500/30 shadow-lg' : ''}`}>
+            <div key={asset} className={`border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-all duration-300 rounded-xl overflow-hidden ${isOpen ? 'ring-1 ring-blue-500/30' : ''}`}>
               <button
-                className="w-full flex items-center gap-4 px-5 py-4 text-left group"
+                className="w-full flex items-center gap-3 px-4 py-3 text-left group"
                 onClick={() => setOpenAsset(isOpen ? null : asset)}
               >
-                <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 group-hover:bg-blue-500/10 group-hover:border-blue-500/30 transition-all duration-300 shadow-sm">
-                  <Icon size={20} className="text-slate-400 group-hover:text-blue-400 transition-colors" />
+                <div className="p-2 rounded-lg bg-white/5 border border-white/5 group-hover:bg-blue-500/10 group-hover:border-blue-500/20 transition-all duration-300">
+                  <Icon size={15} className="text-slate-400 group-hover:text-blue-400 transition-colors" />
                 </div>
-                <div className="flex-1">
-                  <span className="text-xs font-semibold text-slate-400 block mb-1 group-hover:text-slate-300 transition-colors">
+                <div className="flex-1 min-w-0">
+                  <span className="text-[11px] font-semibold text-slate-400 block mb-1 group-hover:text-slate-300 transition-colors">
                     {ASSET_LABELS[asset]}
                   </span>
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl font-bold text-white tracking-tight">{pct}%</span>
-                    <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
-                      <motion.div 
+                  <div className="flex items-center gap-2">
+                    <span className="text-base font-bold text-white">{pct}%</span>
+                    <div className="flex-1 h-1 rounded-full bg-white/5 overflow-hidden">
+                      <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${pct}%` }}
-                        className="h-full bg-blue-500/80 rounded-full"
-                        style={{ boxShadow: '0 0 10px rgba(59,130,246,0.5)' }}
+                        className="h-full bg-blue-500/70 rounded-full"
                       />
                     </div>
                   </div>
                 </div>
-                <div className="w-8 h-8 rounded-full bg-white/[0.02] flex items-center justify-center group-hover:bg-white/[0.05] transition-colors">
-                   {isOpen ? <ChevronDown size={18} className="text-slate-300" /> : <ChevronRight size={18} className="text-slate-500" />}
+                <div className="shrink-0">
+                  {isOpen ? <ChevronDown size={14} className="text-slate-400" /> : <ChevronRight size={14} className="text-slate-600" />}
                 </div>
               </button>
 

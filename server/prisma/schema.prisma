@@ -21,6 +21,7 @@ model User {
   extraBudget     Float     @default(0)
   level           String    @default("BASIC") // BASIC | PRO | PROMAX
   levelExpiresAt  DateTime?
+  strategyQuota   Int       @default(10)      // Số lượt tạo chiến lược AI còn lại
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -31,6 +32,8 @@ model User {
   chatSessions    ChatSession[]
   debtGoal        DebtGoal?
   transactions    Transaction[]
+  aiStrategies    AIStrategy[]
+  userPortfolio   UserPortfolio?
 
   @@map("users")
 }
@@ -53,10 +56,17 @@ model Debt {
   termMonths       Int
   remainingTerms   Int
   startDate        DateTime?
-  status           String   @default("ACTIVE")
-  notes            String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  status                 String    @default("ACTIVE")
+  notes                  String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  // ── Smart Deletion System ──
+  deletedAt              DateTime? // Thời điểm user thực hiện xoá mềm
+  scheduledPurgeAt       DateTime? // Thời điểm Cronjob sẽ Hard Delete
+  deleteReason           String?   // Lý do xoá
+  deleteCommitment       Boolean   @default(false) // Trạng thái đã xác nhận rủi ro
+
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   payments Payment[]
@@ -233,4 +243,43 @@ model Article {
   updatedAt DateTime @updatedAt
 
   @@map("articles")
+// ── Investment Strategy ─────────────────────────────────────
+
+model AIStrategy {
+  id             String   @id @default(cuid())
+  userId         String
+  sentimentValue Int
+  sentimentLabel String
+  riskLevel      String
+  savings        Float
+  gold           Float
+  stocks         Float
+  bonds          Float
+  crypto         Float
+  recommendation String   @db.Text
+  createdAt      DateTime @default(now())
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userPortfolio UserPortfolio?
+
+  @@map("ai_strategies")
+}
+
+model UserPortfolio {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  sourceStrategyId String?   @unique
+  savings          Float
+  gold             Float
+  stocks           Float
+  bonds            Float
+  crypto           Float
+  notes            String?   @db.Text
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceStrategy AIStrategy? @relation(fields: [sourceStrategyId], references: [id])
+
+  @@map("user_portfolios")
 }
