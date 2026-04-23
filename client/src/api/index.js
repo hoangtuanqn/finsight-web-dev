@@ -51,11 +51,13 @@ export const userAPI = {
 
 // DEBTS
 export const debtAPI = {
+  getAll: (status) => api.get('/debts', { params: { status } }),
   getAll: (params) => api.get('/debts', { params }),
   create: (data) => api.post('/debts', data),
   getById: (id) => api.get(`/debts/${id}`),
   update: (id, data) => api.put(`/debts/${id}`, data),
-  delete: (id) => api.delete(`/debts/${id}`),
+  delete: (id, data) => api.delete(`/debts/${id}`, { data }),
+  restore: (id) => api.post(`/debts/${id}/restore`),
   logPayment: (id, data) => api.post(`/debts/${id}/payments`, data),
   getRepaymentPlan: (params) => api.get('/debts/repayment-plan', { params }),
   getEarAnalysis: () => api.get('/debts/ear-analysis'),
@@ -82,6 +84,12 @@ export const investmentAPI = {
   getGoldPrices: () => api.get('/investment/gold-prices'),
   getSavingsRates: (params) => api.get('/investment/savings-rates', { params }),
   getBondsRates: (params) => api.get('/investment/bonds-rates', { params }),
+  // ── AI Strategy & User Portfolio ──
+  getStrategies: () => api.get('/investment/strategies'),
+  generateStrategy: () => api.post('/investment/strategies/generate'),
+  getPortfolio: () => api.get('/investment/portfolio'),
+  upsertPortfolio: (data) => api.post('/investment/portfolio', data),
+  updatePortfolio: (data) => api.put('/investment/portfolio', data),
 };
 
 // MARKET
