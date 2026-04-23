@@ -44,7 +44,8 @@ export default function DebtOverviewPage() {
   const [filters, setFilters] = useState({
     platform: '',
     amountRange: '',
-    dueInDays: ''
+    dueInDays: '',
+    status: 'ACTIVE'
   });
   const [showFilters, setShowFilters] = useState(false);
   const { data, isLoading } = useDebts(filters);
@@ -59,7 +60,13 @@ export default function DebtOverviewPage() {
 
   const debts = data?.debts || [];
   const summary = data?.summary || {};
-  const hasActiveFilters = !!(filters.platform || filters.amountRange || filters.dueInDays);
+  const hasActiveFilters = !!(filters.platform || filters.amountRange || filters.dueInDays || filters.status !== 'ACTIVE');
+
+  const STATUS_TABS = [
+    { id: 'ACTIVE', label: 'Đang nợ' },
+    { id: 'PAID', label: 'Đã tất toán' },
+    { id: 'TRASH', label: 'Thùng rác' },
+  ];
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-8 space-y-8">
@@ -148,13 +155,46 @@ export default function DebtOverviewPage() {
       {(debts.length > 0 || hasActiveFilters) && (
         <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between pt-2 gap-4">
           <div className="flex items-center justify-between w-full xl:w-auto">
-            <h2 className="text-xl font-extrabold text-[var(--color-text-primary)]">Chi tiết khoản nợ</h2>
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-extrabold text-[var(--color-text-primary)]">Chi tiết khoản nợ</h2>
+              <div className="hidden md:flex bg-[var(--color-bg-secondary)] p-1 rounded-xl">
+                {STATUS_TABS.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setFilters(f => ({ ...f, status: tab.id }))}
+                    className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
+                      filters.status === tab.id
+                        ? 'bg-[var(--color-bg-card)] text-blue-500 shadow-sm'
+                        : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <button
               onClick={() => setShowFilters(!showFilters)}
               className="xl:hidden p-2 bg-[var(--color-bg-secondary)] rounded-xl border border-[var(--color-border)] flex items-center gap-2 text-sm font-semibold"
             >
               <Filter size={16} /> Lọc
             </button>
+          </div>
+
+          <div className="md:hidden flex w-full bg-[var(--color-bg-secondary)] p-1 rounded-xl">
+            {STATUS_TABS.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setFilters(f => ({ ...f, status: tab.id }))}
+                className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  filters.status === tab.id
+                    ? 'bg-[var(--color-bg-card)] text-blue-500 shadow-sm'
+                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
 
           <div className={`flex-col md:flex-row items-stretch md:items-center gap-3 w-full xl:w-auto ${showFilters ? 'flex' : 'hidden xl:flex'}`}>

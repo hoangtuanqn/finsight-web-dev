@@ -9,9 +9,19 @@ import {
 
 export async function getAllDebts(req, res) {
   try {
-    const { platform, amountRange, dueInDays } = req.query;
+    const { platform, amountRange, dueInDays, status } = req.query;
 
-    let whereClause = { userId: req.userId, status: 'ACTIVE' };
+    const filterStatus = status || 'ACTIVE'; // 'ACTIVE' | 'PAID' | 'TRASH'
+
+    let whereClause = { userId: req.userId };
+    let includeDeleted = false;
+
+    if (filterStatus === 'TRASH') {
+      whereClause.deletedAt = { not: null };
+      includeDeleted = true;
+    } else {
+      whereClause.status = filterStatus;
+    }
 
     if (platform) {
       whereClause.platform = platform;
@@ -26,6 +36,7 @@ export async function getAllDebts(req, res) {
     const user = await prisma.user.findUnique({ where: { id: req.userId } });
     let debts = await prisma.debt.findMany({
       where: whereClause,
+      includeDeleted,
       orderBy: { createdAt: 'desc' },
     });
 
@@ -124,6 +135,7 @@ export async function getDebtById(req, res) {
   try {
     const debt = await prisma.debt.findFirst({
       where: { id: req.params.id, userId: req.userId },
+      includeDeleted: true,
       include: { payments: { orderBy: { paidAt: 'desc' } } },
     });
     if (!debt) return error(res, 'Debt not found', 404);
