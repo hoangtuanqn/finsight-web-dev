@@ -18,6 +18,7 @@ import InvestmentPage from './pages/InvestmentPage';
 import RiskAssessmentPage from './pages/RiskAssessmentPage';
 import ProfilePage from './pages/ProfilePage';
 import DashboardPage from './pages/DashboardPage';
+import UpgradePage from './pages/UpgradePage';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30000, retry: 1 } },
@@ -45,6 +46,7 @@ export default function App() {
               <Route path="/investment" element={<InvestmentPage />} />
               <Route path="/risk-assessment" element={<RiskAssessmentPage />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/upgrade" element={<UpgradePage />} />
             </Route>
             <Route path="*" element={<Navigate to="/home" />} />
           </Routes>
