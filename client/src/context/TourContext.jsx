@@ -107,6 +107,16 @@ const STEPS = [
     },
   },
   {
+    element: '#tour-transactions',
+    popover: {
+      title: '🧾 Lịch sử giao dịch',
+      description:
+        'Theo dõi toàn bộ hóa đơn nâng cấp, trạng thái thanh toán và lịch sử giao dịch của bạn tại đây.',
+      side: 'right',
+      align: 'start',
+    },
+  },
+  {
     element: '#tour-header-notif',
     popover: {
       title: '🔔 Thông báo thông minh',
