@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { userAPI } from '../api/index.js';
-import { formatVND } from '../utils/calculations';
+import { formatDecimalInput, formatIntegerInput, formatPercent, formatVND, normalizeLocaleNumberInput } from '../utils/calculations';
 import {
   User, Mail, DollarSign, TrendingDown, CheckCircle, Rocket,
   AlertTriangle, Target, Shield, Flame, Clock, Calendar, TrendingUp,
@@ -83,6 +83,23 @@ export default function ProfilePage() {
     value: form[field] ?? '',
     onChange: e => setForm(f => ({ ...f, [field]: e.target.value })),
     className: INPUT,
+    ...extra,
+  });
+  const currencyInp = (field, extra = {}) => ({
+    value: formatIntegerInput(form[field]),
+    onChange: e => setForm(f => ({ ...f, [field]: e.target.value.replace(/\D/g, '') })),
+    className: INPUT + ' pl-10 pr-10',
+    inputMode: 'numeric',
+    ...extra,
+  });
+  const percentInp = (field, extra = {}) => ({
+    value: formatDecimalInput(form[field]),
+    onChange: (e) => {
+      const normalized = normalizeLocaleNumberInput(e.target.value);
+      setForm(f => ({ ...f, [field]: normalized }));
+    },
+    className: INPUT + ' pr-10',
+    inputMode: 'decimal',
     ...extra,
   });
 
@@ -177,35 +194,41 @@ export default function ProfilePage() {
                     <label className={LABEL}>Thu nhập hằng tháng</label>
                     <div className="relative">
                       <DollarSign size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
-                      <input type="number" {...inp('monthlyIncome', { className: INPUT + ' pl-10', min: 0, placeholder: '0' })} />
+                      <input type="text" {...currencyInp('monthlyIncome', { placeholder: '0' })} />
+                      <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] text-sm font-bold">đ</span>
                     </div>
-                    <p className="text-[10px] text-[var(--color-text-muted)] mt-1.5">{formatVND(form.monthlyIncome)}</p>
                   </div>
                   <div>
                     <label className={LABEL}>Trả nợ thêm mỗi tháng</label>
                     <div className="relative">
                       <TrendingDown size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
-                      <input type="number" {...inp('extraBudget', { className: INPUT + ' pl-10', min: 0, placeholder: '0' })} />
+                      <input type="text" {...currencyInp('extraBudget', { placeholder: '0' })} />
+                      <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] text-sm font-bold">đ</span>
                     </div>
-                    <p className="text-[10px] text-[var(--color-text-muted)] mt-1.5">{formatVND(form.extraBudget)}</p>
                   </div>
                 </div>
                 <div>
                   <label className={LABEL}>Tổng vốn (Tổng tài sản)</label>
                   <div className="relative">
                     <Wallet size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
-                    <input type="number" {...inp('capital', { className: INPUT + ' pl-10', min: 0, placeholder: '100000000' })} />
+                    <input type="text" {...currencyInp('capital', { placeholder: '100000000' })} />
+                    <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] text-sm font-bold">đ</span>
                   </div>
-                  <p className="text-[10px] text-[var(--color-text-muted)] mt-1.5">{formatVND(form.capital)}</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className={LABEL}>Lãi suất ngân hàng (%)</label>
-                    <input type="number" step="0.1" {...inp('savingsRate', { min: 0 })} />
+                    <div className="relative">
+                      <input type="text" {...percentInp('savingsRate', { placeholder: '6,0' })} />
+                      <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] text-sm font-bold">%</span>
+                    </div>
                   </div>
                   <div>
                     <label className={LABEL}>Mức lạm phát (%)</label>
-                    <input type="number" step="0.1" {...inp('inflationRate')} />
+                    <div className="relative">
+                      <input type="text" {...percentInp('inflationRate', { placeholder: '3,5' })} />
+                      <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] text-sm font-bold">%</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -298,8 +321,8 @@ export default function ProfilePage() {
                 { icon: DollarSign, label: 'Thu nhập / tháng',    value: formatVND(user?.monthlyIncome || 0),              color: '#10b981' },
                 { icon: TrendingDown, label: 'Trả nợ thêm / tháng', value: formatVND(user?.extraBudget || 0),             color: '#f59e0b' },
                 { icon: Wallet, label: 'Tổng vốn',                value: formatVND(user?.investorProfile?.capital || 0),   color: '#3b82f6' },
-                { icon: TrendingUp, label: 'Lãi gửi ngân hàng',  value: `${user?.investorProfile?.savingsRate ?? 6.0}%`,   color: '#06b6d4' },
-                { icon: TrendingDown, label: 'Mức lạm phát',      value: `${user?.investorProfile?.inflationRate ?? 3.5}%`,color: '#ef4444' },
+                { icon: TrendingUp, label: 'Lãi gửi ngân hàng',  value: formatPercent(user?.investorProfile?.savingsRate ?? 6.0),   color: '#06b6d4' },
+                { icon: TrendingDown, label: 'Mức lạm phát',      value: formatPercent(user?.investorProfile?.inflationRate ?? 3.5),color: '#ef4444' },
               ].map(row => (
                 <div key={row.label} className="flex items-center justify-between py-2.5">
                   <span className="text-[12px] text-[var(--color-text-muted)] flex items-center gap-1.5">
