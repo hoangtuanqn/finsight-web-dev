@@ -1,5 +1,6 @@
 import prisma from '../lib/prisma.js';
 import { success, error } from '../utils/apiResponse.js';
+import { checkSepayPayments } from '../cron/jobs/payment.job.js';
 
 const PLAN_PRICES = {
   PRO: 49000,
@@ -9,6 +10,12 @@ const PLAN_PRICES = {
 const BANK_NAME = process.env.SEPAY_BANK_NAME || 'MBBank';
 const BANK_ACCOUNT = process.env.SEPAY_BANK_ACCOUNT || '259876543210';
 const INVOICE_EXPIRY_HOURS = 24;
+
+const LEVEL_RANKS = {
+  BASIC: 0,
+  PRO: 1,
+  PROMAX: 2
+};
 
 function generateQrUrl(plan, amount, transferCode) {
   const encodedDes = encodeURIComponent(transferCode);
@@ -38,6 +45,15 @@ export async function createInvoice(req, res) {
     const { plan } = req.body;
     if (!plan || !PLAN_PRICES[plan]) {
       return error(res, 'Invalid plan. Must be PRO or PROMAX', 400);
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: { level: true }
+    });
+
+    if (user && LEVEL_RANKS[plan] <= LEVEL_RANKS[user.level]) {
+      return error(res, `Bạn đã ở cấp độ ${user.level} hoặc cao hơn.`, 400);
     }
 
     // Check for existing PENDING invoice (not expired)
@@ -138,6 +154,18 @@ export async function cancelInvoice(req, res) {
     return success(res, { transaction: updated });
   } catch (err) {
     console.error('cancelInvoice error:', err);
+    return error(res, 'Internal server error');
+  }
+}
+
+export async function verifyMyPayment(req, res) {
+  try {
+    // We run the full SePay check. 
+    // It will find any new transactions, update them, and emit socket events.
+    await checkSepayPayments();
+    return success(res, { message: 'Hệ thống đang kiểm tra giao dịch của bạn. Vui lòng đợi trong giây lát.' });
+  } catch (err) {
+    console.error('verifyMyPayment error:', err);
     return error(res, 'Internal server error');
   }
 }

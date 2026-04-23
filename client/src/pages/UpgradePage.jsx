@@ -80,6 +80,12 @@ const PLANS = [
   },
 ];
 
+const LEVEL_RANKS = {
+  BASIC: 0,
+  PRO: 1,
+  PROMAX: 2
+};
+
 export default function UpgradePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -98,7 +104,12 @@ export default function UpgradePage() {
   }, []);
 
   const handleUpgrade = async (planId) => {
-    if (planId === 'BASIC' || planId === currentLevel) return;
+    // Block if same level or lower level
+    if (LEVEL_RANKS[planId] <= LEVEL_RANKS[currentLevel]) {
+      toast.error('Bạn đã ở cấp độ này hoặc cao hơn.');
+      return;
+    }
+    
     setLoadingPlan(planId);
     try {
       const res = await subscriptionAPI.createInvoice({ plan: planId });
@@ -116,11 +127,17 @@ export default function UpgradePage() {
 
   const getButtonConfig = (plan) => {
     if (plan.id === currentLevel) {
-      return { text: 'Gói hiện tại', disabled: true, className: 'bg-slate-800/50 text-slate-400 cursor-not-allowed' };
+      return { text: 'Gói hiện tại', disabled: true, className: 'bg-emerald-500/10 text-emerald-500 cursor-not-allowed border-emerald-500/20' };
     }
+    
+    if (LEVEL_RANKS[plan.id] < LEVEL_RANKS[currentLevel]) {
+      return { text: 'Cấp độ thấp hơn', disabled: true, className: 'bg-slate-800/50 text-slate-400 cursor-not-allowed' };
+    }
+
     if (plan.id === 'BASIC') {
       return { text: 'Gói miễn phí', disabled: true, className: 'bg-slate-800/50 text-slate-400 cursor-not-allowed' };
     }
+    
     if (plan.id === 'PROMAX') {
       return { text: 'Trải nghiệm tối đa', disabled: false, className: 'btn-primary bg-gradient-to-r from-amber-500 to-orange-600 border-none' };
     }
