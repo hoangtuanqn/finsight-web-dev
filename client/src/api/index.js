@@ -85,4 +85,12 @@ export const agenticAPI = {
   deleteSession: (id) => api.delete(`/agentic/sessions/${id}`),
 };
 
+// REPORTS
+export const reportAPI = {
+  exportReport: (format) => api.get('/reports/export', { 
+    params: { format },
+    responseType: 'blob' 
+  }),
+};
+
 export default api;

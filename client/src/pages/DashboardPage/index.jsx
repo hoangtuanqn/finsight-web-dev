@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
@@ -13,6 +14,7 @@ import DueDebts     from './components/DueDebts';
 import TopDebts     from './components/TopDebts';
 import PlatformPie  from './components/PlatformPie';
 import DTIMetrics   from './components/DTIMetrics';
+import ExportReportModal from '../../components/debt/ExportReportModal';
 
 // ─── Derived metric helpers ───────────────────────────────────────
 
@@ -75,6 +77,7 @@ function SectionLabel({ label }) {
 export default function DashboardPage() {
   const { user }          = useAuth();
   const { data, loading } = useDashboardData();
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   if (loading) return <PageSkeleton />;
 
@@ -154,7 +157,7 @@ export default function DashboardPage() {
 
       {/* ── Quick Actions ── */}
       <motion.div variants={fadeUp} className="relative z-10">
-        <QuickActions />
+        <QuickActions onExportClick={() => setIsExportModalOpen(true)} />
       </motion.div>
 
       {/* ── Charts Row ── */}
@@ -188,6 +191,11 @@ export default function DashboardPage() {
           </div>
         </div>
       </motion.div>
+
+      <ExportReportModal 
+        isOpen={isExportModalOpen} 
+        onClose={() => setIsExportModalOpen(false)} 
+      />
     </motion.div>
   );
 }
