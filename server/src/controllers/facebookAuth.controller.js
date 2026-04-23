@@ -24,7 +24,12 @@ export async function facebookLogin(req, res) {
     if (!user) {
       // Create new user
       user = await prisma.user.create({
-        data: { email, fullName: name, avatar: avatarUrl, facebookId: id },
+        data: { 
+          email, 
+          fullName: name || email.split('@')[0], 
+          avatar: avatarUrl, 
+          facebookId: id 
+        },
       });
     } else {
       // Merge account

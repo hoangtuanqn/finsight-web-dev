@@ -26,7 +26,12 @@ export async function googleLogin(req, res) {
     if (!user) {
       // Create new user, auto-login
       user = await prisma.user.create({
-        data: { email, fullName: name, avatar: picture, googleId: sub },
+        data: { 
+          email, 
+          fullName: name || email.split('@')[0], 
+          avatar: picture || null, 
+          googleId: sub 
+        },
       });
     } else {
       // Merge account if missing googleId or avatar
