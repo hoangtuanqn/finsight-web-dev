@@ -7,6 +7,7 @@ dotenv.config();
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import debtRoutes from './routes/debt.routes.js';
+import debtGoalRoutes from './routes/debt-goal.routes.js';
 import investmentRoutes from './routes/investment.routes.js';
 import marketRoutes from './routes/market.routes.js';
 import agenticRoutes from './routes/agentic.routes.js';
@@ -36,6 +37,7 @@ app.use(express.json()); // No more Base64 images, back to default text payload
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/debts/goal', debtGoalRoutes);
 app.use('/api/debts', debtRoutes);
 app.use('/api/investment', investmentRoutes);
 app.use('/api/market', marketRoutes);
