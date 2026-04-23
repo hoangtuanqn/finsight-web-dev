@@ -3,11 +3,11 @@ import { debtAPI } from '../api';
 import { queryKeys } from '../api/queryKeys';
 import { toast } from 'sonner';
 
-export function useDebts(status = 'ACTIVE') {
+export function useDebts(filters) {
   return useQuery({
-    queryKey: [...queryKeys.DEBTS.ALL, status],
+    queryKey: [...queryKeys.DEBTS.ALL, filters],
     queryFn: async () => {
-      const res = await debtAPI.getAll(status);
+      const res = await debtAPI.getAll(filters);
       return res.data.data;
     }
   });
