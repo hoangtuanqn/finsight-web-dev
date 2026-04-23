@@ -1,0 +1,92 @@
+import { useQuery } from '@tanstack/react-query';
+import { investmentAPI } from '../api';
+import { queryKeys } from '../api/queryKeys';
+
+// Cache 10 phút — dữ liệu giá tài sản thay đổi chậm, không cần refetch mỗi lần vào trang
+const ASSET_PRICE_STALE_TIME = 10 * 60 * 1000; // 10 phút
+
+// gcTime = 10 phút — xóa khỏi bộ nhớ đúng 10 phút sau lần fetch, kể cả khi user không dùng
+// Khi user quay lại trong vòng 10p → dùng cache ngay. Qua 10p → fetch lại.
+const ASSET_PRICE_GC_TIME = 10 * 60 * 1000;
+
+export function useCryptoPrices(riskLevel = 'MEDIUM') {
+  return useQuery({
+    queryKey: queryKeys.INVESTMENT.CRYPTO_PRICES(riskLevel),
+    queryFn: async () => {
+      const res = await investmentAPI.getCryptoPrices({ riskLevel });
+      return res.data.data;
+    },
+    staleTime: ASSET_PRICE_STALE_TIME,
+    gcTime:    ASSET_PRICE_GC_TIME,
+  });
+}
+
+export function useStockPrices(riskLevel = 'MEDIUM') {
+  return useQuery({
+    queryKey: queryKeys.INVESTMENT.STOCK_PRICES(riskLevel),
+    queryFn: async () => {
+      const res = await investmentAPI.getStockPrices({ riskLevel });
+      return res.data.data;
+    },
+    staleTime: ASSET_PRICE_STALE_TIME,
+    gcTime:    ASSET_PRICE_GC_TIME,
+  });
+}
+
+export function useGoldPrices() {
+  return useQuery({
+    queryKey: queryKeys.INVESTMENT.GOLD_PRICES(),
+    queryFn: async () => {
+      const res = await investmentAPI.getGoldPrices();
+      return res.data.data;
+    },
+    staleTime: ASSET_PRICE_STALE_TIME,
+    gcTime:    ASSET_PRICE_GC_TIME,
+  });
+}
+
+export function useSavingsRates(riskLevel = 'MEDIUM') {
+  return useQuery({
+    queryKey: queryKeys.INVESTMENT.SAVINGS_RATES(riskLevel),
+    queryFn: async () => {
+      const res = await investmentAPI.getSavingsRates({ riskLevel });
+      return res.data.data;
+    },
+    staleTime: ASSET_PRICE_STALE_TIME,
+    gcTime:    ASSET_PRICE_GC_TIME,
+  });
+}
+
+export function useBondsRates(riskLevel = 'MEDIUM') {
+  return useQuery({
+    queryKey: queryKeys.INVESTMENT.BONDS_RATES(riskLevel),
+    queryFn: async () => {
+      const res = await investmentAPI.getBondsRates({ riskLevel });
+      return res.data.data;
+    },
+    staleTime: ASSET_PRICE_STALE_TIME,
+    gcTime:    ASSET_PRICE_GC_TIME,
+  });
+}
+
+export function useInvestmentStrategies() {
+  return useQuery({
+    queryKey: queryKeys.INVESTMENT.STRATEGIES,
+    queryFn: async () => {
+      const res = await investmentAPI.getStrategies();
+      return res.data.data ?? [];
+    },
+    staleTime: 5 * 60 * 1000, // 5 phút
+  });
+}
+
+export function useInvestmentPortfolio() {
+  return useQuery({
+    queryKey: queryKeys.INVESTMENT.PORTFOLIO,
+    queryFn: async () => {
+      const res = await investmentAPI.getPortfolio();
+      return res.data.data ?? null;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
