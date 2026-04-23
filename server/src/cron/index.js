@@ -14,18 +14,25 @@ class CronManager {
     
     console.log('⏰ Initializing Background Cron Jobs Manager...');
 
-    // Job 1: General Background Jobs (Every minute for Demo/Dev)
-    // In production: '0 0 * * *' for daily midnight or appropriate interval
+    // Job 1: 10-second check for SePay payments
+    setInterval(async () => {
+      try {
+        await checkSepayPayments();
+      } catch (error) {
+        console.error('❌ 10s SePay Cron Error:', error);
+      }
+    }, 10000);
+
+    // Job 2: General Background Jobs (Every minute for Demo/Dev)
     cron.schedule('* * * * *', async () => {
       try {
         await Promise.allSettled([
           checkDueDebtsAndDominoRisk(),
           checkMarketSentimentChanges(),
-          checkSepayPayments(),
           expirePendingInvoices()
         ]);
       } catch (error) {
-        console.error('❌ General Cron Job Error:', error);
+        console.error('❌ Minute Cron Job Error:', error);
       }
     });
 

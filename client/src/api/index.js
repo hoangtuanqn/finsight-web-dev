@@ -92,6 +92,7 @@ export const subscriptionAPI = {
   getInvoice: (id) => api.get(`/subscription/invoice/${id}`),
   getTransactions: () => api.get('/subscription/transactions'),
   cancelInvoice: (id) => api.post(`/subscription/invoice/${id}/cancel`),
+  verifyPayment: () => api.post('/subscription/verify'),
 };
 
 export default api;

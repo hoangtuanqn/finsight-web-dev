@@ -44,6 +44,13 @@ const NAV_GROUPS = [
   },
 ];
 
+function getRemainingDays(date) {
+  if (!date) return 0;
+  const diff = new Date(date).getTime() - new Date().getTime();
+  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+  return days > 0 ? days : 0;
+}
+
 export default function Sidebar({ isCollapsed, width, onClose, isMobile }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -105,7 +112,6 @@ export default function Sidebar({ isCollapsed, width, onClose, isMobile }) {
             <div className="px-2 space-y-0.5">
               {group.items
                 .filter(item => item.icon)
-                .filter(item => !(item.id === 'tour-upgrade' && user?.level === 'PROMAX'))
                 .map((item) => (
                 <NavLink
                   key={item.to}
@@ -181,6 +187,75 @@ export default function Sidebar({ isCollapsed, width, onClose, isMobile }) {
 
       {/* Bottom divider */}
       <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent shrink-0 mx-3" />
+
+      {/* ── Subscription Status ── */}
+      {!isCollapsed && user?.level && (
+        <div className="px-4 py-3 shrink-0">
+          <div className="relative group p-3 rounded-2xl bg-gradient-to-br from-blue-600/10 to-cyan-500/5 border border-blue-500/20 overflow-hidden">
+            {/* Background elements */}
+            <div className="absolute -top-4 -right-4 w-12 h-12 bg-blue-500/10 rounded-full blur-xl group-hover:bg-blue-500/20 transition-all duration-500" />
+            
+            <div className="relative flex flex-col gap-2.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+                    user.level === 'PROMAX' ? 'bg-amber-500/20 text-amber-500' : 
+                    user.level === 'PRO' ? 'bg-blue-500/20 text-blue-500' : 
+                    'bg-slate-500/20 text-slate-500'
+                  }`}>
+                    {user.level === 'PROMAX' ? <Crown size={14} /> : 
+                     user.level === 'PRO' ? <Zap size={14} /> : 
+                     <User size={14} />}
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-black tracking-tight text-[var(--color-text-primary)]">
+                      {user.level === 'PROMAX' ? 'PRO MAX' : user.level === 'PRO' ? 'PRO PLAN' : 'BASIC PLAN'}
+                    </p>
+                    <p className="text-[9px] text-[var(--color-text-muted)] font-medium">
+                      {user.level === 'BASIC' ? 'Miễn phí trọn đời' : 'Gói trả phí'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {user.level !== 'BASIC' && user.levelExpiresAt && (() => {
+                const expiresAt = new Date(user.levelExpiresAt).getTime();
+                const now = new Date().getTime();
+                const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+                const remaining = expiresAt - now;
+                const progress = Math.max(0, Math.min(100, (remaining / thirtyDaysInMs) * 100));
+                
+                return (
+                  <div className="flex flex-col gap-1.5">
+                    <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${progress}%` }}
+                        className="h-full bg-gradient-to-r from-blue-500 to-cyan-400"
+                      />
+                    </div>
+                    <div className="flex justify-between items-center text-[9px] text-[var(--color-text-muted)]">
+                      <span>Thời hạn:</span>
+                      <span className="font-bold text-blue-400">
+                        Còn {getRemainingDays(user.levelExpiresAt)} ngày
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {user.level !== 'PROMAX' && (
+                <button 
+                  onClick={() => navigate('/upgrade')}
+                  className="w-full py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-[10px] font-bold transition-all duration-200 shadow-lg shadow-blue-500/25 active:scale-95"
+                >
+                  Nâng cấp ngay
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── User footer ── */}
       <div className="relative p-3 shrink-0">

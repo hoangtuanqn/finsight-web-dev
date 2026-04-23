@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { 
-  QrCode, Clock, CheckCircle2, XCircle, Copy, 
+   Clock, CheckCircle2, XCircle, Copy, 
   ArrowLeft, Loader2, Ban, Zap, Crown, PartyPopper
 } from 'lucide-react';
 import { subscriptionAPI } from '../api/index.js';
 import { toast } from 'sonner';
 import { useSocket } from '../context/SocketContext';
-
+import { motion } from 'framer-motion';
+  
 const STATUS_MAP = {
   PENDING:   { label: 'Chờ thanh toán', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', icon: Clock },
   PAID:      { label: 'Đã thanh toán', color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', icon: CheckCircle2 },
