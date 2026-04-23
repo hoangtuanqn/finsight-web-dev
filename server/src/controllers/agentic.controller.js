@@ -34,6 +34,13 @@ export async function chatWithAgent(req, res) {
   try {
     let finalMessage = message.trim();
     
+    // Detect client disconnect để abort Agent sớm, tiết kiệm token LLM
+    let clientDisconnected = false;
+    req.on('close', () => {
+      clientDisconnected = true;
+      console.log('[SSE] Client disconnected, suppressing further writes');
+    });
+
     // Nếu Client có gửi kèm text bóc tách từ hình ảnh (OCR)
     // -> Gộp nội dung OCR vào chung với câu hỏi của người dùng để làm ngữ cảnh cho AI
     if (ocrText) {
@@ -41,7 +48,7 @@ export async function chatWithAgent(req, res) {
       console.log(`[OCR] Browser extracted ${ocrText.length} chars, injected into prompt.`);
     }
 
-    // Chạy Agent cốt lõi
+    // Chạy Agent cốt lõi với abort signal
     const result = await runAgenticChat(
       req.userId,
       finalMessage,
@@ -49,13 +56,18 @@ export async function chatWithAgent(req, res) {
       
       // Callback 1: Nhận từng từ (token) từ LLM và đẩy thẳng về Client
       (token) => {
+        if (clientDisconnected) return; // Không gửi nếu client đã ngắt
         res.write(`data: ${JSON.stringify({ token })}\n\n`);
       },
       
       // Callback 2: Cập nhật trạng thái công cụ (Ví dụ: "Đang tính DTI...")
       (status) => {
+        if (clientDisconnected) return; // Không gửi nếu client đã ngắt
         res.write(`data: ${JSON.stringify({ status })}\n\n`);
-      }
+      },
+
+      // Callback 3: Abort signal — trả về true khi client disconnect
+      () => clientDisconnected
     );
 
     // Gửi sự kiện "done" khi AI đã trả lời xong toàn bộ

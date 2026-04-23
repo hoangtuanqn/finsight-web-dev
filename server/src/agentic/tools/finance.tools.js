@@ -34,7 +34,7 @@ export const getUserProfileTool = tool(
   },
   {
     name: "get_user_profile",
-    description: "Sử dụng khi cần lấy thông tin thu nhập (income), ngân sách dư (extraBudget) và hồ sơ rủi ro (risk level) của người dùng hiện tại.",
+    description: "Sử dụng khi cần lấy thông tin thu nhập (income), ngân sách dư (extraBudget) và hồ sơ rủi ro (risk level) của người dùng hiện tại. userId được hệ thống tự động cung cấp.",
     schema: z.object({
       userId: z.string().describe("ID của người dùng"),
     }),
@@ -82,7 +82,7 @@ export const simulateDtiTool = tool(
   },
   {
     name: "simulate_dti",
-    description: "Sử dụng khi tính toán (What-If) xem nếu thêm một khoản vay thì tỷ lệ nợ trên thu nhập (DTI) cảnh báo ở mức nào.",
+    description: "Sử dụng khi tính toán (What-If) xem nếu thêm một khoản vay thì tỷ lệ nợ trên thu nhập (DTI) cảnh báo ở mức nào. userId được hệ thống tự động cung cấp.",
     schema: z.object({
       userId: z.string(),
       additionalDebt: z.number().optional().describe("Dư nợ vay thêm (VNĐ)"),
