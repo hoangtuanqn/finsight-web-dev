@@ -235,8 +235,35 @@ const INVESTMENT_SUGGESTIONS = {
 
 // ─── Investment Suggestions Panel ────────────────────────────────────────────
 
-function InvestmentSuggestionsPanel({ allocation }) {
+function InvestmentSuggestionsPanel({ allocation, riskLevel = 'MEDIUM' }) {
   const [openTab, setOpenTab] = useState(null);
+
+  const [cryptoCoins, setCryptoCoins] = useState([]);
+  const [cryptoIntro, setCryptoIntro] = useState('');
+  const [cryptoLoading, setCryptoLoading] = useState(false);
+  const [cryptoError, setCryptoError] = useState(false);
+
+  const [stockItems, setStockItems] = useState([]);
+  const [stockIntro, setStockIntro] = useState('');
+  const [stockLoading, setStockLoading] = useState(false);
+  const [stockError, setStockError] = useState(false);
+
+  const [goldItems, setGoldItems] = useState([]);
+  const [goldIntro, setGoldIntro] = useState('');
+  const [goldLoading, setGoldLoading] = useState(false);
+  const [goldError, setGoldError] = useState(false);
+
+  const [savingsItems, setSavingsItems] = useState([]);
+  const [savingsIntro, setSavingsIntro] = useState('');
+  const [savingsUpdatedAt, setSavingsUpdatedAt] = useState('');
+  const [savingsLoading, setSavingsLoading] = useState(false);
+  const [savingsError, setSavingsError] = useState(false);
+
+  const [bondItems, setBondItems] = useState([]);
+  const [bondIntro, setBondIntro] = useState('');
+  const [bondUpdatedAt, setBondUpdatedAt] = useState('');
+  const [bondLoading, setBondLoading] = useState(false);
+  const [bondError, setBondError] = useState(false);
 
   // Chỉ hiển thị các asset có tỷ trọng > 0, sắp xếp theo tỷ trọng giảm dần
   const activeAssets = Object.entries(allocation)
@@ -246,6 +273,83 @@ function InvestmentSuggestionsPanel({ allocation }) {
   // Mở tab đầu tiên (tỷ trọng cao nhất) mặc định
   const defaultTab = activeAssets[0]?.[0] ?? null;
   const active = openTab ?? defaultTab;
+
+  // Fetch coin đã scored từ server khi tab crypto active
+  useEffect(() => {
+    if (active !== 'crypto') return;
+    if (cryptoCoins.length > 0 || cryptoLoading) return;
+    setCryptoLoading(true);
+    setCryptoError(false);
+    investmentAPI.getCryptoPrices({ riskLevel })
+      .then((res) => {
+        setCryptoCoins(res.data?.data?.coins ?? []);
+        setCryptoIntro(res.data?.data?.intro || '');
+      })
+      .catch(() => setCryptoError(true))
+      .finally(() => setCryptoLoading(false));
+  }, [active, riskLevel]);
+
+  // Fetch cổ phiếu đã scored từ server khi tab stocks active
+  useEffect(() => {
+    if (active !== 'stocks') return;
+    if (stockItems.length > 0 || stockLoading) return;
+    setStockLoading(true);
+    setStockError(false);
+    investmentAPI.getStockPrices({ riskLevel })
+      .then((res) => {
+        setStockItems(res.data?.data?.stocks ?? []);
+        setStockIntro(res.data?.data?.intro || '');
+      })
+      .catch(() => setStockError(true))
+      .finally(() => setStockLoading(false));
+  }, [active, riskLevel]);
+
+  // Fetch giá vàng khi tab gold active
+  useEffect(() => {
+    if (active !== 'gold') return;
+    if (goldItems.length > 0 || goldLoading) return;
+    setGoldLoading(true);
+    setGoldError(false);
+    investmentAPI.getGoldPrices()
+      .then((res) => {
+        setGoldItems(res.data?.data?.goldItems ?? []);
+        setGoldIntro(res.data?.data?.intro || '');
+      })
+      .catch(() => setGoldError(true))
+      .finally(() => setGoldLoading(false));
+  }, [active]);
+
+  // Fetch lãi suất tiết kiệm khi tab savings active
+  useEffect(() => {
+    if (active !== 'savings') return;
+    if (savingsItems.length > 0 || savingsLoading) return;
+    setSavingsLoading(true);
+    setSavingsError(false);
+    investmentAPI.getSavingsRates({ riskLevel })
+      .then((res) => {
+        setSavingsItems(res.data?.data?.savingsItems ?? []);
+        setSavingsIntro(res.data?.data?.intro || '');
+        setSavingsUpdatedAt(res.data?.data?.updatedAt || '');
+      })
+      .catch(() => setSavingsError(true))
+      .finally(() => setSavingsLoading(false));
+  }, [active, riskLevel]);
+
+  // Fetch trái phiếu khi tab bonds active
+  useEffect(() => {
+    if (active !== 'bonds') return;
+    if (bondItems.length > 0 || bondLoading) return;
+    setBondLoading(true);
+    setBondError(false);
+    investmentAPI.getBondsRates({ riskLevel })
+      .then((res) => {
+        setBondItems(res.data?.data?.bondItems ?? []);
+        setBondIntro(res.data?.data?.intro || '');
+        setBondUpdatedAt(res.data?.data?.updatedAt || '');
+      })
+      .catch(() => setBondError(true))
+      .finally(() => setBondLoading(false));
+  }, [active, riskLevel]);
 
   const badgeCls = (color) => ({
     amber:   'bg-amber-500/15 text-amber-400 border-amber-500/20',
@@ -299,14 +403,316 @@ function InvestmentSuggestionsPanel({ allocation }) {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
           >
-            {/* Intro */}
-            <p className="text-[12px] text-slate-400 mb-4 leading-relaxed px-1">
-              {suggestion.intro}
-            </p>
+            {/* Intro — phân tích thị trường nổi bật */}
+            {(() => {
+              const introText = (active === 'crypto' && cryptoIntro) ? cryptoIntro
+                : (active === 'stocks' && stockIntro) ? stockIntro
+                : (active === 'gold' && goldIntro) ? goldIntro
+                : (active === 'savings' && savingsIntro) ? savingsIntro
+                : (active === 'bonds' && bondIntro) ? bondIntro
+                : suggestion.intro;
+              const isDynamic = (active === 'crypto' && !!cryptoIntro)
+                || (active === 'stocks' && !!stockIntro)
+                || (active === 'gold' && !!goldIntro)
+                || (active === 'savings' && !!savingsIntro)
+                || (active === 'bonds' && !!bondIntro);
+              return isDynamic ? (
+                <div className="mb-4 px-3 py-3 rounded-xl border"
+                  style={{ background: suggestion.color + '10', borderColor: suggestion.color + '30' }}>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: suggestion.color }}>
+                      📊 Phân tích thị trường
+                    </span>
+                  </div>
+                  <p className="text-[13px] font-medium text-white leading-relaxed">{introText}</p>
+                </div>
+              ) : (
+                <p className="text-[12px] text-slate-400 mb-4 leading-relaxed px-1">{introText}</p>
+              );
+            })()}
 
             {/* Cards */}
             <div className="space-y-2 mb-4">
-              {suggestion.items.map((item, i) => (
+              {/* ── Bonds tab: render trái phiếu từ server ── */}
+              {active === 'bonds' && bondLoading && (
+                <div className="flex items-center justify-center py-6 gap-2 text-slate-500 text-[12px]">
+                  <span className="animate-spin">⏳</span> Đang tải dữ liệu trái phiếu...
+                </div>
+              )}
+              {active === 'bonds' && bondError && !bondLoading && (
+                <p className="text-[11px] text-amber-500/70 px-1 mb-1">⚠️ Không tải được — hiển thị danh sách mặc định</p>
+              )}
+              {active === 'bonds' && !bondLoading && bondItems.length > 0 && bondItems.map((item, i) => {
+                const changeColor = (item.change ?? 0) >= 0 ? 'text-red-400' : 'text-emerald-400'; // bond yield tăng = giá TP giảm
+                const changeLabel = item.change != null
+                  ? `${item.change >= 0 ? '+' : ''}${item.change.toFixed(2)}bp` : '';
+                const BOND_ICONS = { us10y: '🌐' };
+                const icon = BOND_ICONS[item.id] || (item.id?.startsWith('gov_') ? '🏛️' : '📊');
+                return (
+                  <div key={item.id}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors`}
+                    style={item.highlight
+                      ? { background: suggestion.color + '12', borderColor: suggestion.color + '35' }
+                      : { background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)' }}
+                  >
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[15px] shrink-0"
+                      style={{ background: suggestion.color + '20', border: `1px solid ${suggestion.color}30` }}>
+                      {icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[13px] font-semibold text-white">{item.name}</span>
+                        {item.badge && (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${badgeCls(item.badgeColor)}`}>
+                            {item.badge}
+                          </span>
+                        )}
+                        <span className="text-[10px] text-slate-600 bg-white/[0.04] px-1.5 py-0.5 rounded-md">
+                          {item.tag}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">{item.note}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-[13px] font-bold block" style={{ color: suggestion.color }}>{item.rateLabel}</span>
+                      {changeLabel && <span className={`text-[10px] font-semibold ${changeColor}`}>{changeLabel}</span>}
+                    </div>
+                  </div>
+                );
+              })}
+              {active === 'bonds' && !bondLoading && bondItems.length > 0 && bondUpdatedAt && (
+                <p className="text-[10px] text-slate-600 mt-1 px-1">📅 TPCP cập nhật: {bondUpdatedAt} · Yield tăng → giá TP hiện hành giảm (ngược chiều)</p>
+              )}
+
+              {/* ── Savings tab: render lãi suất từ server ── */}
+              {active === 'savings' && savingsLoading && (
+                <div className="flex items-center justify-center py-6 gap-2 text-slate-500 text-[12px]">
+                  <span className="animate-spin">⏳</span> Đang tải bảng lãi suất...
+                </div>
+              )}
+              {active === 'savings' && savingsError && !savingsLoading && (
+                <p className="text-[11px] text-amber-500/70 px-1 mb-1">⚠️ Không tải được — hiển thị danh sách mặc định</p>
+              )}
+              {active === 'savings' && !savingsLoading && savingsItems.length > 0 && (
+                <>
+                  {/* Bảng so sánh lãi suất các kỳ hạn */}
+                  <div className="mb-3 overflow-x-auto rounded-xl border border-white/[0.06]">
+                    <table className="w-full text-[11px]">
+                      <thead>
+                        <tr className="border-b border-white/[0.05]" style={{ background: suggestion.color + '15' }}>
+                          <th className="text-left px-3 py-2 font-semibold text-slate-300">Ngân hàng</th>
+                          <th className="text-center px-2 py-2 text-slate-400">1T</th>
+                          <th className="text-center px-2 py-2 text-slate-400">3T</th>
+                          <th className="text-center px-2 py-2 text-slate-400">6T</th>
+                          <th className="text-center px-2 py-2 text-slate-400">12T</th>
+                          <th className="text-center px-2 py-2 text-slate-400">24T</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {savingsItems.map((bank, i) => {
+                          const maxRate = Math.max(bank.allRates.t1, bank.allRates.t3, bank.allRates.t6, bank.allRates.t12, bank.allRates.t24);
+                          return (
+                            <tr key={bank.id} className={`border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors ${i === 0 ? 'bg-white/[0.02]' : ''}`}>
+                              <td className="px-3 py-2">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-semibold text-white">{bank.name}</span>
+                                  {bank.badge && <span className={`text-[9px] font-bold px-1 py-0.5 rounded border ${badgeCls(bank.badgeColor)}`}>{bank.badge}</span>}
+                                </div>
+                              </td>
+                              {['t1','t3','t6','t12','t24'].map(t => (
+                                <td key={t} className={`text-center px-2 py-2 font-mono tabular-nums ${bank.allRates[t] === maxRate ? 'font-bold' : ''}`}
+                                  style={{ color: bank.allRates[t] === maxRate ? suggestion.color : '#94a3b8' }}>
+                                  {bank.allRates[t]}%
+                                </td>
+                              ))}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  {/* Cards chi tiết top 3 */}
+                  {savingsItems.slice(0, 3).map((bank, i) => (
+                    <div key={bank.id}
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] transition-colors">
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[12px] font-bold text-white shrink-0"
+                        style={{ background: suggestion.color + '20', border: `1px solid ${suggestion.color}30` }}>
+                        {bank.name.slice(0, 3)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[13px] font-semibold text-white">{bank.name}</span>
+                          {bank.badge && <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${badgeCls(bank.badgeColor)}`}>{bank.badge}</span>}
+                          <span className="text-[10px] text-slate-600 bg-white/[0.04] px-1.5 py-0.5 rounded-md">{bank.tag}</span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">{bank.note}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-[14px] font-bold block" style={{ color: suggestion.color }}>{bank.rateLabel}</span>
+                        <span className="text-[10px] text-slate-600">{bank.rateCounterLabel}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {/* Ngày cập nhật */}
+                  {savingsUpdatedAt && (
+                    <p className="text-[10px] text-slate-600 mt-2 px-1">📅 Lãi suất cập nhật: {savingsUpdatedAt} · Gửi online thường cao hơn quầy 0.2%</p>
+                  )}
+                </>
+              )}
+
+              {/* ── Gold tab: render động từ server ── */}
+              {active === 'gold' && goldLoading && (
+                <div className="flex items-center justify-center py-6 gap-2 text-slate-500 text-[12px]">
+                  <span className="animate-spin">⏳</span> Đang lấy giá vàng thực...
+                </div>
+              )}
+              {active === 'gold' && goldError && !goldLoading && (
+                <p className="text-[11px] text-amber-500/70 px-1 mb-1">⚠️ Không lấy được giá vàng thực — hiển thị danh sách mặc định</p>
+              )}
+              {active === 'gold' && !goldLoading && goldItems.length > 0 && goldItems.map((item, i) => {
+                const changeColor = (item.change24h ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400';
+                const changeLabel = item.id === 'saving_gold' ? '' :
+                  `${(item.change24h ?? 0) >= 0 ? '+' : ''}${(item.change24h ?? 0).toFixed(2)}%`;
+                const GOLD_ICONS = { world: '🌍', sjc: '🥇', nhan: '💍', etf_gold: '📊', saving_gold: '💰' };
+                return (
+                  <div key={item.id}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors ${item.highlight ? '' : 'bg-white/[0.02] border-white/[0.05] hover:bg-white/[0.04]'}`}
+                    style={item.highlight ? { background: suggestion.color + '12', borderColor: suggestion.color + '35' } : {}}
+                  >
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[16px] shrink-0"
+                      style={{ background: suggestion.color + '20', border: `1px solid ${suggestion.color}30` }}>
+                      {GOLD_ICONS[item.id] || '🥇'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[13px] font-semibold text-white">{item.name}</span>
+                        {item.badge && (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${badgeCls(item.badgeColor)}`}>
+                            {item.badge}
+                          </span>
+                        )}
+                        <span className="text-[10px] text-slate-600 bg-white/[0.04] px-1.5 py-0.5 rounded-md">
+                          {item.tag}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">{item.note}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-[13px] font-bold block" style={{ color: suggestion.color }}>{item.priceLabel}</span>
+                      {changeLabel && <span className={`text-[10px] font-semibold ${changeColor}`}>{changeLabel}</span>}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* ── Stocks tab: render động từ server ── */}
+              {active === 'stocks' && stockLoading && (
+                <div className="flex items-center justify-center py-6 gap-2 text-slate-500 text-[12px]">
+                  <span className="animate-spin">⏳</span> Đang lấy dữ liệu từ sàn HOSE...
+                </div>
+              )}
+              {active === 'stocks' && stockError && !stockLoading && (
+                <p className="text-[11px] text-amber-500/70 px-1 mb-1">⚠️ Không lấy được dữ liệu thị trường — hiển thị danh sách mặc định</p>
+              )}
+              {active === 'stocks' && !stockLoading && stockItems.length > 0 && stockItems.map((stock, i) => {
+                const changeColor = stock.change24h >= 0 ? 'text-emerald-400' : 'text-red-400';
+                const changeLabel = `${stock.change24h >= 0 ? '+' : ''}${stock.change24h.toFixed(2)}%`;
+                const priceLabel = stock.price?.toLocaleString('vi-VN') + 'đ';
+                const pos = Math.round((stock.posIn52w ?? 0.5) * 100);
+                return (
+                  <div key={stock.ticker}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-[13px] font-bold text-white"
+                      style={{ background: suggestion.color + '20', border: `1px solid ${suggestion.color}30` }}>
+                      {stock.name.charAt(0)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[13px] font-semibold text-white">{stock.name}</span>
+                        {stock.badge && (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${badgeCls(stock.badgeColor)}`}>
+                            {stock.badge}
+                          </span>
+                        )}
+                        <span className="text-[10px] text-slate-600 bg-white/[0.04] px-1.5 py-0.5 rounded-md">
+                          {stock.tag}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">{stock.note}</p>
+                      {/* Thanh vị trí giá trong range 52 tuần */}
+                      <div className="mt-1.5 flex items-center gap-1.5">
+                        <span className="text-[9px] text-slate-600 shrink-0">52W</span>
+                        <div className="flex-1 h-1 rounded-full bg-white/[0.06] relative">
+                          <div className="absolute top-0 left-0 h-full rounded-full"
+                            style={{ width: `${pos}%`, background: suggestion.color + '80' }} />
+                          <div className="absolute w-2 h-2 rounded-full border border-white/30"
+                            style={{ left: `${pos}%`, top: '50%', transform: 'translate(-50%,-50%)', background: suggestion.color }} />
+                        </div>
+                        <span className="text-[9px] text-slate-600 shrink-0">{pos}%</span>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-[13px] font-bold block" style={{ color: suggestion.color }}>{priceLabel}</span>
+                      <span className={`text-[10px] font-semibold ${changeColor}`}>{changeLabel}</span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* ── Crypto tab ── */}
+              {/* Loading skeleton cho crypto */}
+              {active === 'crypto' && cryptoLoading && (
+                <div className="flex items-center justify-center py-6 gap-2 text-slate-500 text-[12px]">
+                  <span className="animate-spin">⏳</span> Đang phân tích top 100 coins từ CoinGecko...
+                </div>
+              )}
+              {active === 'crypto' && cryptoError && !cryptoLoading && (
+                <p className="text-[11px] text-amber-500/70 px-1 mb-1">⚠️ Không tải được dữ liệu thị trường — hiển thị danh sách mặc định</p>
+              )}
+
+              {/* Crypto tab: render coin động từ server */}
+              {active === 'crypto' && !cryptoLoading && cryptoCoins.length > 0 && cryptoCoins.map((coin, i) => {
+                const changeColor = coin.change24h >= 0 ? 'text-emerald-400' : 'text-red-400';
+                const changeLabel = `${coin.change24h >= 0 ? '+' : ''}${coin.change24h.toFixed(2)}%`;
+                return (
+                  <div
+                    key={coin.id}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 overflow-hidden"
+                      style={{ background: suggestion.color + '20', border: `1px solid ${suggestion.color}30` }}>
+                      {coin.image
+                        ? <img src={coin.image} alt={coin.symbol} className="w-7 h-7 rounded-full" />
+                        : <span className="text-[11px] font-bold text-white">{coin.symbol?.slice(0,3)}</span>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[13px] font-semibold text-white">{coin.name}</span>
+                        <span className="text-[10px] font-bold text-slate-500">{coin.symbol}</span>
+                        {coin.badge && (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${badgeCls(coin.badgeColor)}`}>
+                            {coin.badge}
+                          </span>
+                        )}
+                        <span className="text-[10px] text-slate-600 bg-white/[0.04] px-1.5 py-0.5 rounded-md">
+                          {coin.tag}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">{coin.note}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-[13px] font-bold block" style={{ color: suggestion.color }}>
+                        {coin.id === 'usd-coin' ? '$1.00' : `$${coin.price?.toLocaleString('en-US', { maximumFractionDigits: coin.price > 100 ? 0 : 4 })}`}
+                      </span>
+                      <span className={`text-[10px] font-semibold ${changeColor}`}>{changeLabel} 24h</span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Không còn tab nào hardcode — bonds đã dynamic */}
+              {active !== 'crypto' && active !== 'stocks' && active !== 'gold' && active !== 'savings' && active !== 'bonds' && suggestion.items.map((item, i) => (
                 <div
                   key={i}
                   className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:bg-white/[0.04] transition-colors"
@@ -773,7 +1179,7 @@ export default function InvestmentPage() {
 
       {/* ── Investment Suggestions ── */}
       <div className="mb-6">
-        <InvestmentSuggestionsPanel allocation={derivedAllocation} />
+        <InvestmentSuggestionsPanel allocation={derivedAllocation} riskLevel={mockProfile?.riskLevel || 'MEDIUM'} />
       </div>
 
       {/* ── Projection Chart ── */}

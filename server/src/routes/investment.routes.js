@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   getInvestorProfile, createInvestorProfile, updateInvestorProfile,
   getAllocationRecommendation, getAllocationHistory, submitRiskAssessment,
+  getCryptoPrices, getStockPrices, getGoldPrices, getSavingsRates, getBondsRates,
 } from '../controllers/investment.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 
@@ -15,5 +16,10 @@ router.put('/profile', updateInvestorProfile);
 router.get('/allocation', getAllocationRecommendation);
 router.get('/history', getAllocationHistory);
 router.post('/risk-assessment', submitRiskAssessment);
+router.get('/crypto-prices', getCryptoPrices);
+router.get('/stock-prices', getStockPrices);
+router.get('/gold-prices', getGoldPrices);
+router.get('/savings-rates', getSavingsRates);
+router.get('/bonds-rates', getBondsRates);
 
 export default router;
