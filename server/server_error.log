@@ -1,0 +1,68 @@
+[2026-04-23T14:20:36.394Z] getMyPlan error: PrismaClientValidationError: 
+Invalid `prisma.user.findUnique()` invocation:
+
+{
+  where: {
+    id: "cmobiag6y0000roykj56q8ymy"
+  },
+  select: {
+    level: true,
+    ~~~~~
+    levelExpiresAt: true,
+?   id?: true,
+?   email?: true,
+?   password?: true,
+?   googleId?: true,
+?   facebookId?: true,
+?   avatar?: true,
+?   fullName?: true,
+?   monthlyIncome?: true,
+?   extraBudget?: true,
+?   createdAt?: true,
+?   updatedAt?: true,
+?   debts?: true,
+?   investorProfile?: true,
+?   notifications?: true,
+?   debtSnapshots?: true,
+?   chatSessions?: true,
+?   debtGoal?: true,
+?   _count?: true
+  }
+}
+
+Unknown field `level` for select statement on model `User`. Available options are marked with ?.
+[2026-04-23T14:20:36.403Z] getMyPlan error: PrismaClientValidationError: 
+Invalid `prisma.user.findUnique()` invocation:
+
+{
+  where: {
+    id: "cmobiag6y0000roykj56q8ymy"
+  },
+  select: {
+    level: true,
+    ~~~~~
+    levelExpiresAt: true,
+?   id?: true,
+?   email?: true,
+?   password?: true,
+?   googleId?: true,
+?   facebookId?: true,
+?   avatar?: true,
+?   fullName?: true,
+?   monthlyIncome?: true,
+?   extraBudget?: true,
+?   createdAt?: true,
+?   updatedAt?: true,
+?   debts?: true,
+?   investorProfile?: true,
+?   notifications?: true,
+?   debtSnapshots?: true,
+?   chatSessions?: true,
+?   debtGoal?: true,
+?   _count?: true
+  }
+}
+
+Unknown field `level` for select statement on model `User`. Available options are marked with ?.
+[2026-04-23T14:20:37.261Z] getTransactions error: TypeError: Cannot read properties of undefined (reading 'findMany')
+[2026-04-23T14:20:37.268Z] getTransactions error: TypeError: Cannot read properties of undefined (reading 'findMany')
