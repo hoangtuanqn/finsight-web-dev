@@ -1,0 +1,132 @@
+═══════════════════════════════════════════════════════════════════════════════
+DETAILED STOCKS OBJECT BREAKDOWN
+File: client/src/pages/InvestmentPage.jsx (Lines 201-211)
+═══════════════════════════════════════════════════════════════════════════════
+
+EXACT CONTENT (Copy-pasted from lines 201-211):
+
+stocks: {
+  label: 'Chứng khoán', icon: '📈', color: '#10b981',
+  intro: 'Đầu tư cổ phiếu VN-Index — ưu tiên cổ phiếu bluechip và ETF để giảm rủi ro cá biệt.',
+  items: [
+    { name: 'VNM (Vinamilk)',   tag: 'Tiêu dùng',    rate: 'Cổ tức ~5%/năm',   note: 'Cổ phiếu phòng thủ, cổ tức đều, ít biến động',     badge: 'An toàn',    badgeColor: 'blue'    },
+    { name: 'FPT Corporation',  tag: 'Công nghệ',    rate: 'Tăng trưởng 20%+', note: 'Dẫn đầu công nghệ VN, mảng offshore tăng mạnh',    badge: 'Tăng trưởng', badgeColor: 'emerald' },
+    { name: 'VCB (Vietcombank)', tag: 'Ngân hàng',  rate: 'ROE ~20%',          note: 'Ngân hàng lớn nhất, tỷ lệ nợ xấu thấp, ổn định',  badge: 'Bluechip',   badgeColor: 'amber'   },
+    { name: 'E1VFVN30 (ETF)',   tag: 'ETF',          rate: 'Theo VN30',        note: 'Đầu tư thụ động, phân tán rủi ro tự động, phí thấp', badge: 'Khuyên dùng', badgeColor: 'amber'  },
+    { name: 'HPG (Hòa Phát)',   tag: 'Thép/BĐS',    rate: 'P/E thấp ~8x',     note: 'Doanh nghiệp lớn nhất ngành thép, biên lợi nhuận tốt', badge: '',          badgeColor: ''        },
+  ],
+  tips: ['Không bỏ hết vào 1 mã — đa dạng ít nhất 5-7 cổ phiếu', 'ETF là lựa chọn tốt nhất cho người mới bắt đầu', 'DCA (mua đều hàng tháng) giúp giảm rủi ro giá bình quân'],
+},
+
+═══════════════════════════════════════════════════════════════════════════════
+ITEM-BY-ITEM BREAKDOWN
+═══════════════════════════════════════════════════════════════════════════════
+
+ITEM 1: VNM (Vinamilk)
+─────────────────────────────────────────────────────────────────────────────
+name:        "VNM (Vinamilk)"
+tag:         "Tiêu dùng" (Consumer)
+rate:        "Cổ tức ~5%/năm" (Dividend ~5%/year)
+note:        "Cổ phiếu phòng thủ, cổ tức đều, ít biến động"
+             (Defensive stock, stable dividend, low volatility)
+badge:       "An toàn" (Safe)
+badgeColor:  "blue"
+
+ITEM 2: FPT Corporation
+─────────────────────────────────────────────────────────────────────────────
+name:        "FPT Corporation"
+tag:         "Công nghệ" (Technology)
+rate:        "Tăng trưởng 20%+" (Growth 20%+)
+note:        "Dẫn đầu công nghệ VN, mảng offshore tăng mạnh"
+             (Vietnam's tech leader, strong offshore business growth)
+badge:       "Tăng trưởng" (Growth)
+badgeColor:  "emerald"
+
+ITEM 3: VCB (Vietcombank)
+─────────────────────────────────────────────────────────────────────────────
+name:        "VCB (Vietcombank)"
+tag:         "Ngân hàng" (Banking)
+rate:        "ROE ~20%" (Return on Equity ~20%)
+note:        "Ngân hàng lớn nhất, tỷ lệ nợ xấu thấp, ổn định"
+             (Largest bank, low NPL ratio, stable)
+badge:       "Bluechip"
+badgeColor:  "amber"
+
+ITEM 4: E1VFVN30 (ETF)
+─────────────────────────────────────────────────────────────────────────────
+name:        "E1VFVN30 (ETF)"
+tag:         "ETF" (Exchange Traded Fund)
+rate:        "Theo VN30" (Tracks VN30 Index)
+note:        "Đầu tư thụ động, phân tán rủi ro tự động, phí thấp"
+             (Passive investing, auto risk diversification, low fees)
+badge:       "Khuyên dùng" (Recommended)
+badgeColor:  "amber"
+
+ITEM 5: HPG (Hòa Phát)
+─────────────────────────────────────────────────────────────────────────────
+name:        "HPG (Hòa Phát)"
+tag:         "Thép/BĐS" (Steel/Real Estate)
+rate:        "P/E thấp ~8x" (Low P/E Ratio ~8x)
+note:        "Doanh nghiệp lớn nhất ngành thép, biên lợi nhuận tốt"
+             (Largest steel company, good profit margin)
+badge:       "" (no badge)
+badgeColor:  "" (no color)
+
+═══════════════════════════════════════════════════════════════════════════════
+TIPS SECTION (3 tips)
+═══════════════════════════════════════════════════════════════════════════════
+
+TIP 1: "Không bỏ hết vào 1 mã — đa dạng ít nhất 5-7 cổ phiếu"
+       (Don't put everything in one stock — diversify among at least 5-7 stocks)
+
+TIP 2: "ETF là lựa chọn tốt nhất cho người mới bắt đầu"
+       (ETF is the best option for beginners)
+
+TIP 3: "DCA (mua đều hàng tháng) giúp giảm rủi ro giá bình quân"
+       (Dollar-cost averaging (monthly purchase) reduces average cost risk)
+
+═══════════════════════════════════════════════════════════════════════════════
+METADATA
+═══════════════════════════════════════════════════════════════════════════════
+
+Asset Label:     "Chứng khoán" (Securities/Stocks)
+Icon:            "📈" (upward trend chart emoji)
+Color:           "#10b981" (emerald-500 green)
+Intro Text:      "Đầu tư cổ phiếu VN-Index — ưu tiên cổ phiếu bluechip 
+                  và ETF để giảm rủi ro cá biệt."
+                 (Invest in VN-Index stocks — prioritize bluechip stocks 
+                  and ETF to reduce idiosyncratic risk)
+
+Total Items:     5 stocks
+Total Tips:      3 tips
+Suggested Badge Colors: blue, emerald, amber (no purple used for stocks)
+
+═══════════════════════════════════════════════════════════════════════════════
+USAGE IN CODE
+═══════════════════════════════════════════════════════════════════════════════
+
+Location in INVESTMENT_SUGGESTIONS object:
+  - Line 177: Main const starts
+  - Lines 178-189: savings asset
+  - Lines 190-200: gold asset
+  - Lines 201-211: stocks asset ← YOU ARE HERE
+  - Lines 213-222: bonds asset
+  - Lines 223-234: crypto asset
+
+Rendered by:
+  - InvestmentSuggestionsPanel component (line 238)
+  - When active === 'stocks' (tab selected)
+  - Lines 379-408: Maps over suggestion.items
+  - Each item becomes a card with:
+    * Icon/number in left circle
+    * Name, badge, tag on left side
+    * Description below name
+    * Rate value on right side
+
+Crypto comparison:
+  - Stocks: HARDCODED items array
+  - Crypto: DYNAMIC from API (getCryptoPrices endpoint)
+  - Both use same rendering logic (lines 379-408 and 339-376)
+
+═══════════════════════════════════════════════════════════════════════════════
+END
