@@ -33,6 +33,13 @@ export const authAPI = {
   logout: () => api.post('/auth/logout'),
 };
 
+export const qrAPI = {
+  generate: () => api.get('/auth/qr/generate'),
+  checkStatus: (token) => api.get(`/auth/qr/status/${token}`),
+  markScanned: (data) => api.post('/auth/qr/scanned', data),
+  confirm: (data) => api.post('/auth/qr/confirm', data),
+};
+
 // USER
 export const userAPI = {
   getProfile: () => api.get('/users/profile'),
@@ -45,6 +52,7 @@ export const userAPI = {
 // DEBTS
 export const debtAPI = {
   getAll: (status) => api.get('/debts', { params: { status } }),
+  getAll: (params) => api.get('/debts', { params }),
   create: (data) => api.post('/debts', data),
   getById: (id) => api.get(`/debts/${id}`),
   update: (id, data) => api.put(`/debts/${id}`, data),
@@ -76,6 +84,12 @@ export const investmentAPI = {
   getGoldPrices: () => api.get('/investment/gold-prices'),
   getSavingsRates: (params) => api.get('/investment/savings-rates', { params }),
   getBondsRates: (params) => api.get('/investment/bonds-rates', { params }),
+  // ── AI Strategy & User Portfolio ──
+  getStrategies: () => api.get('/investment/strategies'),
+  generateStrategy: () => api.post('/investment/strategies/generate'),
+  getPortfolio: () => api.get('/investment/portfolio'),
+  upsertPortfolio: (data) => api.post('/investment/portfolio', data),
+  updatePortfolio: (data) => api.put('/investment/portfolio', data),
 };
 
 // MARKET
