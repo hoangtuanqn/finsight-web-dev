@@ -97,9 +97,12 @@ function PortfolioHealthCard({ allocation, projection, profile }) {
     const barColor = score >= 70 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444';
     return (
       <div className="space-y-1">
-        <div className="flex items-center justify-between">
-          <span className="text-[12px] text-slate-400 flex items-center gap-1.5">{icon} {label}</span>
-          <span className="text-[12px] font-bold text-white">{score}</span>
+        <div className="flex items-center justify-between gap-3">
+          <span className="min-w-0 flex-1 text-[12px] text-slate-400 flex items-center gap-1.5">
+            <span className="shrink-0">{icon}</span>
+            <span className="truncate">{label}</span>
+          </span>
+          <span className="w-8 shrink-0 text-right text-[12px] font-bold text-white">{score}</span>
         </div>
         <div className="h-1.5 bg-white/[0.05] rounded-full overflow-hidden">
           <motion.div
@@ -120,7 +123,7 @@ function PortfolioHealthCard({ allocation, projection, profile }) {
       <h3 className="text-[13px] font-bold text-white mb-4 flex items-center gap-2 uppercase tracking-wide">
         <HeartPulse size={14} className="text-blue-400" /> Sức khoẻ danh mục
       </h3>
-      <div className="flex items-center gap-5 mb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-5 mb-5">
         {/* Ring gauge */}
         <div className="relative shrink-0 w-[100px] h-[100px]">
           <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
@@ -142,7 +145,7 @@ function PortfolioHealthCard({ allocation, projection, profile }) {
             <span className="text-[10px] text-slate-500">/100</span>
           </div>
         </div>
-        <div>
+        <div className="min-w-0">
           <p className="text-[18px] font-bold text-white leading-tight">{scoreLabel}</p>
           <p className="text-[11px] text-slate-500 mt-1">CAGR 10 năm: {(cagr * 100).toFixed(1)}%/năm</p>
           <p className="text-[11px] text-slate-500">Thực (sau lạm phát): {((cagr - inflationRate) * 100).toFixed(1)}%/năm</p>
@@ -1073,15 +1076,15 @@ export default function InvestmentPage() {
       <div className="relative rounded-3xl border p-5 overflow-hidden" style={{ background: 'var(--color-bg-card)', borderColor: 'rgba(59,130,246,0.12)' }}>
         <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-blue-500/25 to-transparent" />
         <h3 className="text-[11px] font-black mb-4 text-[var(--color-text-muted)] uppercase tracking-widest flex items-center gap-1.5"><BarChart2 size={13} /> Thị trường <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /></h3>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
             { label: 'Bitcoin',   value: prices.bitcoin?.price  ? `$${prices.bitcoin.price.toLocaleString()}`       : '—', change: prices.bitcoin?.change24h },
             { label: 'Ethereum',  value: prices.ethereum?.price ? `$${prices.ethereum.price.toLocaleString()}`      : '—', change: prices.ethereum?.change24h },
             { label: 'Vàng SJC', value: prices.gold?.sell       ? `${prices.gold.sell.toLocaleString('vi-VN')} đ`  : '—', extra: prices.gold?.unit || '' },
           ].map((item, i) => (
-            <div key={i} className="py-1">
+            <div key={i} className="py-1 min-w-0">
               <p className="text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-wider mb-1">{item.label}</p>
-              <p className="font-black text-[var(--color-text-primary)] text-[16px]">{item.value}</p>
+              <p className="font-black text-[var(--color-text-primary)] text-[16px] break-words">{item.value}</p>
               {item.change !== undefined && (
                 <p className={`text-[11px] font-bold mt-0.5 ${(item.change || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                   {(item.change || 0) >= 0 ? <TrendingUp size={11} className="inline" /> : <TrendingDown size={11} className="inline" />} {Math.abs(item.change || 0).toFixed(2)}%
@@ -1098,10 +1101,19 @@ export default function InvestmentPage() {
         <div className="glass-card">
           <h3 className="text-[12px] font-semibold mb-4 text-center text-slate-500 uppercase tracking-wider flex items-center justify-center gap-1.5"><Thermometer size={14} /> Fear & Greed Index</h3>
           <SentimentGauge value={sentiment.value || 50} />
-          <div className="mt-3 space-y-1.5 text-sm">
-            <div className="flex justify-between"><span className="text-slate-500">Tâm lý</span><span className="text-white font-medium">{sentiment.labelVi || 'Trung lập'}</span></div>
-            <div className="flex justify-between"><span className="text-slate-500">Giá trị</span><span className="text-white font-medium">{sentiment.value || 50}/100</span></div>
-            <div className="flex justify-between"><span className="text-slate-500">Tổng danh mục</span><span className="text-blue-400 font-medium">{formatVND(capital)}</span></div>
+          <div className="mt-3 space-y-2 text-sm">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 rounded-xl bg-white/[0.02] px-3 py-2">
+              <span className="text-slate-500">Tâm lý</span>
+              <span className="text-white font-medium text-right whitespace-nowrap">{sentiment.labelVi || 'Trung lập'}</span>
+            </div>
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 rounded-xl bg-white/[0.02] px-3 py-2">
+              <span className="text-slate-500">Giá trị</span>
+              <span className="text-white font-medium text-right whitespace-nowrap">{sentiment.value || 50}/100</span>
+            </div>
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 rounded-xl bg-white/[0.02] px-3 py-2">
+              <span className="text-slate-500">Tổng danh mục</span>
+              <span className="text-blue-400 font-medium text-right whitespace-nowrap">{formatVND(capital)}</span>
+            </div>
           </div>
         </div>
         <div className="md:col-span-2">
@@ -1143,21 +1155,21 @@ export default function InvestmentPage() {
             {portfolioBreakdown.filter(p => p.percentage > 0).map((p, i) => {
               const assetKey = Object.entries(ASSET_LABELS).find(([, v]) => v === p.asset)?.[0];
               return (
-                <div key={i} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
+                <div key={i} className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] gap-y-2 sm:gap-x-5 rounded-xl bg-white/[0.02] px-3 py-2.5">
+                  <div className="flex items-center gap-2.5 min-w-0">
                     <div className="w-2.5 h-2.5 rounded-sm" style={{ background: COLORS[i % COLORS.length] }} />
-                    <span className="text-sm text-slate-300">{p.asset}</span>
+                    <span className="text-sm text-slate-300 truncate">{p.asset}</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-[auto_minmax(120px,auto)] items-center gap-y-1 sm:gap-x-4 justify-start sm:justify-end sm:border-l sm:border-white/8 sm:pl-4">
                     {assetKey && curr && prev && (
                       <DeltaChip
                         current={curr[assetKey] ?? p.percentage}
                         previous={prev[assetKey] ?? null}
                       />
                     )}
-                    <div className="text-right">
+                    <div className="text-left sm:text-right shrink-0 min-w-[112px]">
                       <p className="text-sm font-semibold text-white">{p.percentage}%</p>
-                      <p className="text-[11px] text-slate-500">{formatVND(p.amount)}</p>
+                      <p className="text-[11px] text-slate-500 whitespace-nowrap">{formatVND(p.amount)}</p>
                     </div>
                   </div>
                 </div>
