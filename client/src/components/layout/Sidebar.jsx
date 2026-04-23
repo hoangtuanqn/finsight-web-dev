@@ -64,31 +64,14 @@ export default function Sidebar({ isCollapsed, width, onClose, isMobile }) {
 
       {/* ── Logo ── */}
       <div className="relative px-4 h-[89px] flex items-center shrink-0">
-        <div className="flex items-center gap-3">
-          {/* Glowing logo mark */}
-          <div
-            className="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-black text-lg shrink-0 bg-gradient-to-br from-blue-500 to-cyan-400"
-            style={{ boxShadow: '0 0 20px rgba(59,130,246,0.45), 0 4px 12px rgba(59,130,246,0.3)' }}
-          >
-            F
-          </div>
-          <AnimatePresence>
-            {!isCollapsed && (
-              <motion.div
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -8 }}
-                transition={{ duration: 0.2 }}
-              >
-                <span className="text-xl font-black tracking-tighter bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent whitespace-nowrap">
-                  FinSight
-                </span>
-                <p className="text-[9px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest -mt-0.5">
-                  Finance Intelligence
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+        <div className="flex items-center justify-center gap-3 w-full">
+          {!isCollapsed ? (
+            <a href="/home">
+              <img src="https://i.ibb.co/84xLmWTK/LOGO.png" alt="FinSight Logo" className="h-16 w-50" />
+            </a>
+          ) : (
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-black text-lg shrink-0 bg-gradient-to-br from-blue-500 to-cyan-400" style={{ boxShadow: '0 0 20px rgba(59,130,246,0.45)' }}>F</div>
+          )}
         </div>
       </div>
 
@@ -122,7 +105,7 @@ export default function Sidebar({ isCollapsed, width, onClose, isMobile }) {
                   title={isCollapsed ? item.label : ''}
                   onClick={() => isMobile && onClose?.()}
                   className={({ isActive }) =>
-                    `relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all duration-200 group cursor-pointer ${
+                    `relative flex items-center gap-3  w-full px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all duration-200 group cursor-pointer ${
                       isActive ? 'text-white' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
                     }`
                   }
