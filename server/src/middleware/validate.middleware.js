@@ -1,29 +1,25 @@
 import { error } from '../utils/apiResponse.js';
 
-export function validate(schema) {
+/**
+ * Middleware to validate request data using a Joi schema.
+ * @param {import('joi').Schema} schema - Joi schema object
+ * @param {string} source - Source of data (body, query, params)
+ */
+export const validate = (schema, source = 'body') => {
   return (req, res, next) => {
-    const errors = [];
-    for (const [field, rules] of Object.entries(schema)) {
-      const value = req.body[field];
-      if (rules.required && (value === undefined || value === null || value === '')) {
-        errors.push(`${field} is required`);
-      }
-      if (value !== undefined && rules.type === 'number' && typeof value !== 'number') {
-        errors.push(`${field} must be a number`);
-      }
-      if (value !== undefined && rules.type === 'string' && typeof value !== 'string') {
-        errors.push(`${field} must be a string`);
-      }
-      if (value !== undefined && rules.min !== undefined && value < rules.min) {
-        errors.push(`${field} must be at least ${rules.min}`);
-      }
-      if (value !== undefined && rules.max !== undefined && value > rules.max) {
-        errors.push(`${field} must be at most ${rules.max}`);
-      }
+    const { error: validationError } = schema.validate(req[source], {
+      abortEarly: false,
+      allowUnknown: true,
+      stripUnknown: true,
+    });
+
+    if (validationError) {
+      const errorMessage = validationError.details
+        .map((detail) => detail.message.replace(/"/g, ''))
+        .join(', ');
+      return error(res, errorMessage, 400);
     }
-    if (errors.length > 0) {
-      return error(res, errors.join(', '), 400);
-    }
+
     next();
   };
-}
+};

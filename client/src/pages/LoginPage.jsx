@@ -21,6 +21,17 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Email không hợp lệ');
+      return;
+    }
+    if (!password) {
+      setError('Vui lòng nhập mật khẩu');
+      return;
+    }
+
     setLoading(true);
     try {
       await login(email, password);
