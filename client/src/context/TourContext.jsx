@@ -97,6 +97,26 @@ const STEPS = [
     },
   },
   {
+    element: '#tour-upgrade',
+    popover: {
+      title: '💎 Nâng cấp tài khoản',
+      description:
+        'Khám phá sức mạnh của AI với các gói Pro và Pro Max. Mở khóa phân bổ đầu tư thông minh, Chatbot không giới hạn và OCR nhận diện hóa đơn.',
+      side: 'right',
+      align: 'start',
+    },
+  },
+  {
+    element: '#tour-transactions',
+    popover: {
+      title: '🧾 Lịch sử giao dịch',
+      description:
+        'Theo dõi toàn bộ hóa đơn nâng cấp, trạng thái thanh toán và lịch sử giao dịch của bạn tại đây.',
+      side: 'right',
+      align: 'start',
+    },
+  },
+  {
     element: '#tour-header-notif',
     popover: {
       title: '🔔 Thông báo thông minh',
