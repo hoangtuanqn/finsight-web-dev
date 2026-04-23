@@ -24,6 +24,9 @@ function getUrgency(daysUntil) {
 }
 
 export default function DueDebts({ dueThisWeek = [] }) {
+  const displayedDebts = dueThisWeek.slice(0, 5);
+  const totalCount = dueThisWeek.length;
+
   return (
     <div
       className="relative rounded-3xl p-6 h-full flex flex-col overflow-hidden border"
@@ -46,15 +49,15 @@ export default function DueDebts({ dueThisWeek = [] }) {
             to="/debts"
             className="flex items-center gap-1 text-[11px] font-bold text-blue-400 hover:text-blue-300 transition-colors shrink-0 group"
           >
-            Xem tất cả <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+            Xem tất cả {totalCount > 0 ? `(${totalCount})` : ''} <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
           </Link>
         }
       />
 
       <div className="flex-1 flex flex-col">
-        {dueThisWeek.length > 0 ? (
+        {displayedDebts.length > 0 ? (
           <div className="space-y-2">
-            {dueThisWeek.map((d, i) => {
+            {displayedDebts.map((d, i) => {
               const { level, label } = getUrgency(d.daysUntil);
               const u = URGENCY[level];
               return (
