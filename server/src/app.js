@@ -19,6 +19,7 @@ import debtGoalRoutes from './routes/debt-goal.routes.js';
 import investmentRoutes from './routes/investment.routes.js';
 import marketRoutes from './routes/market.routes.js';
 import agenticRoutes from './routes/agentic.routes.js';
+import reportRoutes from './routes/report.routes.js';
 import subscriptionRoutes from './routes/subscription.routes.js';
 import cronManager from './cron/index.js';
 import { initSocket } from './utils/socket.js';
@@ -55,6 +56,7 @@ app.use('/api/debts', debtRoutes);
 app.use('/api/investment', investmentRoutes);
 app.use('/api/market', marketRoutes);
 app.use('/api/agentic', agenticRoutes);
+app.use('/api/reports', reportRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 
 // Health check
@@ -72,7 +74,7 @@ server.listen(PORT, () => {
   console.log(`🚀 FinSight API running at http://localhost:${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
   console.log(`🔌 Socket.io initialized`);
-  
+
   // Initialize background jobs
   cronManager.init();
 });
