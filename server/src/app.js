@@ -20,7 +20,6 @@ import investmentRoutes from './routes/investment.routes.js';
 import marketRoutes from './routes/market.routes.js';
 import agenticRoutes from './routes/agentic.routes.js';
 import reportRoutes from './routes/report.routes.js';
-import cronService from './services/cron.service.js';
 import subscriptionRoutes from './routes/subscription.routes.js';
 import cronManager from './cron/index.js';
 import { initSocket } from './utils/socket.js';
