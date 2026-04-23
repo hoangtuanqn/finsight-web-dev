@@ -10,6 +10,8 @@ import { AlertTriangle, Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles, ShieldChe
 import { GradientText, Spotlight } from './LandingPage/components/Shared';
 import { ToggleMode } from '../components/layout/components/ToggleMode';
 import { useDarkMode } from '../hooks/useDarkMode';
+import QRCodeLogin from '../components/auth/QRCodeLogin';
+import { QrCode, Monitor } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Email không được để trống').email('Email không hợp lệ'),
@@ -20,9 +22,10 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, setToken, setUser } = useAuth();
   const navigate = useNavigate();
   const [dark, setDark] = useDarkMode();
+  const [loginMode, setLoginMode] = useState('email'); // 'email' or 'qr'
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(loginSchema),
@@ -40,6 +43,13 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const onQRSuccess = (data) => {
+    setToken(data.accessToken);
+    setUser(data.user);
+    localStorage.setItem('finsight_token', data.accessToken);
+    setTimeout(() => navigate('/home'), 1000);
   };
 
   return (
@@ -129,15 +139,21 @@ export default function LoginPage() {
 
               <SocialLoginButtons setError={setServerError} />
 
-              <div className="flex items-center gap-4 mb-6 opacity-60">
+              <div className="flex items-center gap-4 mb-8 opacity-60">
                  <div className="flex-1 border-t border-slate-300 dark:border-slate-700"></div>
-                 <div className="text-xs font-bold uppercase text-slate-500 whitespace-nowrap">Hoặc bằng Email</div>
+                 <button 
+                  onClick={() => setLoginMode(loginMode === 'email' ? 'qr' : 'email')}
+                  className="flex items-center gap-2 px-4 py-2 rounded-full border border-blue-500/20 bg-blue-500/5 text-[10px] font-black uppercase tracking-widest text-blue-500 hover:bg-blue-500/10 transition-all cursor-pointer"
+                 >
+                   {loginMode === 'email' ? <><QrCode size={14} /> Đăng nhập qua QR</> : <><Monitor size={14} /> Đăng nhập qua Email</>}
+                 </button>
                  <div className="flex-1 border-t border-slate-300 dark:border-slate-700"></div>
               </div>
 
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Email</label>
+              {loginMode === 'email' ? (
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Email</label>
                   <div className="relative group/input">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-blue-500 transition-colors">
                       <Mail size={18} />
@@ -193,6 +209,11 @@ export default function LoginPage() {
                   <div className="absolute inset-0 bg-white/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl pointer-events-none" />
                 </button>
               </form>
+              ) : (
+                <div className="py-2">
+                  <QRCodeLogin onLoginSuccess={onQRSuccess} />
+                </div>
+              )}
 
               <div className="mt-10 pt-8 border-t border-slate-100 dark:border-white/5 text-center">
                 <p className="text-slate-500 dark:text-slate-400 font-bold mb-4">
