@@ -2,12 +2,10 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { debtAPI } from '../../api/index.js';
+import { useDebtMutations } from '../../hooks/useDebtQuery';
 import FormattedInput from '../../components/common/FormattedInput';
 import { calcEAR, calcAPY, formatPercent } from '../../utils/calculations';
 import { Plus, AlertTriangle, BarChart2 } from 'lucide-react';
-
-// ─── Constants ────────────────────────────────────────────────────────────────
 
 const PLATFORM_PRESETS = {
   SPAYLATER:   { name: 'SPayLater',     apr: 18, rateType: 'FLAT',     feeProcessing: 0, feeInsurance: 0,   feeManagement: 0   },
@@ -24,9 +22,6 @@ const INITIAL_FORM = {
   minPayment: '', dueDay: 15, termMonths: 12, startDate: '',
 };
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-// Tính số kỳ còn lại dựa vào ngày vay và kỳ hạn
 function calcRemainingTerms(startDate, termMonths) {
   if (!startDate || !termMonths) return null;
   const start = new Date(startDate);
@@ -35,63 +30,32 @@ function calcRemainingTerms(startDate, termMonths) {
   return Math.max(0, termMonths - monthsPassed);
 }
 
-// ─── Validation ───────────────────────────────────────────────────────────────
-
-// Trả về object { field: 'message' } cho từng lỗi
 function validateForm(form) {
   const errors = {};
 
-  if (!form.name.trim())
-    errors.name = 'Vui lòng nhập tên khoản vay.';
-
-  if (!form.originalAmount || +form.originalAmount <= 0)
-    errors.originalAmount = 'Số tiền gốc phải lớn hơn 0.';
-
-  if (form.balance === '' || +form.balance <= 0)
+  if (!form.name.trim()) errors.name = 'Vui lòng nhập tên khoản vay.';
+  if (!form.originalAmount || +form.originalAmount <= 0) errors.originalAmount = 'Số tiền gốc phải lớn hơn 0.';
+  if (form.balance === '' || +form.balance <= 0) {
     errors.balance = 'Dư nợ hiện tại phải lớn hơn 0.';
-  else if (+form.balance > +form.originalAmount)
+  } else if (+form.balance > +form.originalAmount) {
     errors.balance = 'Dư nợ không được lớn hơn số tiền gốc.';
-
-  if (form.minPayment === '' || +form.minPayment <= 0)
+  }
+  if (form.minPayment === '' || +form.minPayment <= 0) {
     errors.minPayment = 'Số tiền trả tối thiểu/tháng phải lớn hơn 0.';
-  else if (form.balance !== '' && +form.minPayment > +form.balance)
+  } else if (form.balance !== '' && +form.minPayment > +form.balance) {
     errors.minPayment = 'Số tiền trả tối thiểu không được lớn hơn dư nợ hiện tại.';
-
-  if (+form.apr < 0)
-    errors.apr = 'Lãi suất APR không được âm.';
-  else if (+form.apr > 100)
-    errors.apr = 'Lãi suất APR không được vượt quá 100%.';
-
-  if (+form.feeProcessing < 0)
-    errors.feeProcessing = 'Phí xử lý không được âm.';
-  else if (+form.feeProcessing > 100)
-    errors.feeProcessing = 'Phí xử lý không được vượt quá 100%.';
-
-  if (+form.feeInsurance < 0)
-    errors.feeInsurance = 'Phí bảo hiểm không được âm.';
-  else if (+form.feeInsurance > 100)
-    errors.feeInsurance = 'Phí bảo hiểm không được vượt quá 100%.';
-
-  if (+form.feeManagement < 0)
-    errors.feeManagement = 'Phí quản lý không được âm.';
-  else if (+form.feeManagement > 100)
-    errors.feeManagement = 'Phí quản lý không được vượt quá 100%.';
-
-  if (!form.startDate)
+  }
+  if (+form.apr < 0 || +form.apr > 100) errors.apr = 'Lãi suất APR không hợp lệ.';
+  if (!form.startDate) {
     errors.startDate = 'Vui lòng chọn ngày vay.';
-  else if (new Date(form.startDate) > new Date())
+  } else if (new Date(form.startDate) > new Date()) {
     errors.startDate = 'Ngày vay không được ở tương lai.';
-
-  if (form.termMonths <= 0)
-    errors.termMonths = 'Kỳ hạn phải lớn hơn 0.';
-
-  if (form.dueDay < 1 || form.dueDay > 31)
-    errors.dueDay = 'Ngày đáo hạn phải từ 1 đến 31.';
+  }
+  if (form.termMonths <= 0) errors.termMonths = 'Kỳ hạn phải lớn hơn 0.';
+  if (form.dueDay < 1 || form.dueDay > 31) errors.dueDay = 'Ngày đáo hạn phải từ 1 đến 31.';
 
   return errors;
 }
-
-// ─── Payload builder ──────────────────────────────────────────────────────────
 
 function buildPayload(form) {
   const remainingTerms = calcRemainingTerms(form.startDate, +form.termMonths);
@@ -108,9 +72,6 @@ function buildPayload(form) {
   };
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-// Text lỗi hiển thị dưới ô input
 function FieldError({ message }) {
   if (!message) return null;
   return (
@@ -121,13 +82,9 @@ function FieldError({ message }) {
   );
 }
 
-// Thêm class border đỏ khi có lỗi
 function inputCls(hasError) {
   return `input-field ${hasError ? 'border-red-500/60 focus:border-red-500' : ''}`;
 }
-
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function PlatformPresets({ activePlatform, onSelect }) {
   return (
@@ -320,17 +277,14 @@ function CostPreviewCard({ apr, apy, ear }) {
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 export default function AddDebtPage() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const { createDebt, isCreating } = useDebtMutations();
   const [form, setForm] = useState(INITIAL_FORM);
   const [errors, setErrors] = useState({});
 
   const update = (field, val) => {
     setForm(f => ({ ...f, [field]: val }));
-    // Xóa lỗi của field ngay khi user bắt đầu sửa
     if (errors[field]) setErrors(e => ({ ...e, [field]: undefined }));
   };
 
@@ -349,22 +303,16 @@ export default function AddDebtPage() {
       toast.error('Vui lòng kiểm tra lại thông tin.');
       return;
     }
-    setErrors({});
-    setLoading(true);
     try {
-      await debtAPI.create(buildPayload(form));
-      toast.success('Thêm khoản nợ thành công!');
+      await createDebt(buildPayload(form));
       navigate('/debts');
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Thêm nợ thất bại');
-    } finally {
-      setLoading(false);
+      console.error(err);
     }
   };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-8 space-y-6">
-      {/* Breadcrumb */}
       <div className="flex items-center gap-1.5 text-[12px] font-medium pt-2">
         <Link to="/debts" className="text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors cursor-pointer">Quản lý nợ</Link>
         <span className="text-[var(--color-border)]">/</span>
@@ -380,7 +328,6 @@ export default function AddDebtPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Form */}
         <div className="lg:col-span-2">
           <div className="relative rounded-3xl border overflow-hidden" style={{ background: 'var(--color-bg-card)', borderColor: 'rgba(59,130,246,0.15)' }}>
             <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-blue-500/30 to-transparent" />
@@ -396,9 +343,9 @@ export default function AddDebtPage() {
                 update={update}
                 actions={
                   <>
-                    <button type="submit" disabled={loading}
+                    <button type="submit" disabled={isCreating}
                       className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-sm transition-all shadow-lg shadow-blue-500/25 cursor-pointer disabled:opacity-60">
-                      {loading
+                      {isCreating
                         ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Đang lưu...</>
                         : <><Plus size={14} /> Thêm khoản nợ</> }
                     </button>
@@ -414,7 +361,6 @@ export default function AddDebtPage() {
           </div>
         </div>
 
-        {/* Live cost preview */}
         <div>
           <CostPreviewCard apr={+form.apr || 0} apy={apy} ear={ear} />
         </div>
