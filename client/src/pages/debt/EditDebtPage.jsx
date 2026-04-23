@@ -55,6 +55,7 @@ export default function EditDebtPage() {
   });
 
   const formValues = watch();
+  const toNumberValue = (value) => (value === '' ? 0 : Number(value));
 
   useEffect(() => {
     if (data?.debt) {
@@ -164,7 +165,7 @@ export default function EditDebtPage() {
                     name="originalAmount"
                     control={control}
                     render={({ field }) => (
-                      <FormattedInput kind="integer" value={field.value} onValueChange={field.onChange} className={inputCls(errors.originalAmount)} placeholder="0" suffix="đ" />
+                      <FormattedInput kind="integer" value={field.value} onValueChange={(value) => field.onChange(toNumberValue(value))} className={inputCls(errors.originalAmount)} placeholder="0" suffix="đ" />
                     )}
                   />
                   {errors.originalAmount && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={11} /> {errors.originalAmount.message}</p>}
@@ -178,7 +179,7 @@ export default function EditDebtPage() {
                     name="balance"
                     control={control}
                     render={({ field }) => (
-                      <FormattedInput kind="integer" value={field.value} onValueChange={field.onChange} className={inputCls(errors.balance)} placeholder="0" suffix="đ" />
+                      <FormattedInput kind="integer" value={field.value} onValueChange={(value) => field.onChange(toNumberValue(value))} className={inputCls(errors.balance)} placeholder="0" suffix="đ" />
                     )}
                   />
                   {errors.balance && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={11} /> {errors.balance.message}</p>}
@@ -189,7 +190,7 @@ export default function EditDebtPage() {
                     name="apr"
                     control={control}
                     render={({ field }) => (
-                      <FormattedInput kind="decimal" value={field.value} onValueChange={field.onChange} className={inputCls(errors.apr)} placeholder="0" suffix="%" />
+                      <FormattedInput kind="decimal" value={field.value} onValueChange={(value) => field.onChange(toNumberValue(value))} className={inputCls(errors.apr)} placeholder="0" suffix="%" />
                     )}
                   />
                   {errors.apr && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={11} /> {errors.apr.message}</p>}
@@ -210,7 +211,7 @@ export default function EditDebtPage() {
                     name="minPayment"
                     control={control}
                     render={({ field }) => (
-                      <FormattedInput kind="integer" value={field.value} onValueChange={field.onChange} className={inputCls(errors.minPayment)} placeholder="0" suffix="đ" />
+                      <FormattedInput kind="integer" value={field.value} onValueChange={(value) => field.onChange(toNumberValue(value))} className={inputCls(errors.minPayment)} placeholder="0" suffix="đ" />
                     )}
                   />
                   {errors.minPayment && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={11} /> {errors.minPayment.message}</p>}
@@ -227,7 +228,7 @@ export default function EditDebtPage() {
                     name="feeProcessing"
                     control={control}
                     render={({ field }) => (
-                      <FormattedInput kind="decimal" value={field.value} onValueChange={field.onChange} className={inputCls(errors.feeProcessing)} placeholder="0" suffix="%" />
+                      <FormattedInput kind="decimal" value={field.value} onValueChange={(value) => field.onChange(toNumberValue(value))} className={inputCls(errors.feeProcessing)} placeholder="0" suffix="%" />
                     )}
                   />
                 </div>
@@ -237,7 +238,7 @@ export default function EditDebtPage() {
                     name="feeInsurance"
                     control={control}
                     render={({ field }) => (
-                      <FormattedInput kind="decimal" value={field.value} onValueChange={field.onChange} className={inputCls(errors.feeInsurance)} placeholder="0" suffix="%" />
+                      <FormattedInput kind="decimal" value={field.value} onValueChange={(value) => field.onChange(toNumberValue(value))} className={inputCls(errors.feeInsurance)} placeholder="0" suffix="%" />
                     )}
                   />
                 </div>
@@ -247,7 +248,7 @@ export default function EditDebtPage() {
                     name="feeManagement"
                     control={control}
                     render={({ field }) => (
-                      <FormattedInput kind="decimal" value={field.value} onValueChange={field.onChange} className={inputCls(errors.feeManagement)} placeholder="0" suffix="%" />
+                      <FormattedInput kind="decimal" value={field.value} onValueChange={(value) => field.onChange(toNumberValue(value))} className={inputCls(errors.feeManagement)} placeholder="0" suffix="%" />
                     )}
                   />
                 </div>
