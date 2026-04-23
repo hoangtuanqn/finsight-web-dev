@@ -156,7 +156,7 @@ export default function AddDebtPage() {
                         <FormattedInput
                           kind="integer"
                           value={field.value}
-                          onValueChange={field.onChange}
+                          onValueChange={v => field.onChange(v === '' ? 0 : Number(v))}
                           className={inputCls(errors.originalAmount)}
                           placeholder="0"
                           suffix="đ"
@@ -177,7 +177,7 @@ export default function AddDebtPage() {
                         <FormattedInput
                           kind="integer"
                           value={field.value}
-                          onValueChange={field.onChange}
+                          onValueChange={v => field.onChange(v === '' ? 0 : Number(v))}
                           className={inputCls(errors.balance)}
                           placeholder="0"
                           suffix="đ"
@@ -195,7 +195,7 @@ export default function AddDebtPage() {
                         <FormattedInput
                           kind="decimal"
                           value={field.value}
-                          onValueChange={field.onChange}
+                          onValueChange={v => field.onChange(v === '' ? 0 : Number(v))}
                           className={inputCls(errors.apr)}
                           placeholder="0"
                           suffix="%"
@@ -223,7 +223,7 @@ export default function AddDebtPage() {
                         <FormattedInput
                           kind="integer"
                           value={field.value}
-                          onValueChange={field.onChange}
+                          onValueChange={v => field.onChange(v === '' ? 0 : Number(v))}
                           className={inputCls(errors.minPayment)}
                           placeholder="0"
                           suffix="đ"
@@ -243,7 +243,7 @@ export default function AddDebtPage() {
                       name="feeProcessing"
                       control={control}
                       render={({ field }) => (
-                        <FormattedInput kind="decimal" value={field.value} onValueChange={field.onChange} className={inputCls(errors.feeProcessing)} placeholder="0" suffix="%" />
+                        <FormattedInput kind="decimal" value={field.value} onValueChange={v => field.onChange(v === '' ? 0 : Number(v))} className={inputCls(errors.feeProcessing)} placeholder="0" suffix="%" />
                       )}
                     />
                   </div>
@@ -253,7 +253,7 @@ export default function AddDebtPage() {
                       name="feeInsurance"
                       control={control}
                       render={({ field }) => (
-                        <FormattedInput kind="decimal" value={field.value} onValueChange={field.onChange} className={inputCls(errors.feeInsurance)} placeholder="0" suffix="%" />
+                        <FormattedInput kind="decimal" value={field.value} onValueChange={v => field.onChange(v === '' ? 0 : Number(v))} className={inputCls(errors.feeInsurance)} placeholder="0" suffix="%" />
                       )}
                     />
                   </div>
@@ -263,7 +263,7 @@ export default function AddDebtPage() {
                       name="feeManagement"
                       control={control}
                       render={({ field }) => (
-                        <FormattedInput kind="decimal" value={field.value} onValueChange={field.onChange} className={inputCls(errors.feeManagement)} placeholder="0" suffix="%" />
+                        <FormattedInput kind="decimal" value={field.value} onValueChange={v => field.onChange(v === '' ? 0 : Number(v))} className={inputCls(errors.feeManagement)} placeholder="0" suffix="%" />
                       )}
                     />
                   </div>
