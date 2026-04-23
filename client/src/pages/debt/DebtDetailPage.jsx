@@ -2,12 +2,20 @@ import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { useDebt, useDebtMutations } from '../../hooks/useDebtQuery';
 import { formatVND, formatPercent } from '../../utils/calculations';
 import EARBreakdown from '../../components/debt/EARBreakdown';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
-import { Pencil, FileText, DollarSign, CheckCircle, ArrowLeft, Search, Trash2, ChevronRight, Calendar } from 'lucide-react';
+import { Pencil, FileText, DollarSign, CheckCircle, ArrowLeft, Search, Trash2, ChevronRight, Calendar, AlertTriangle } from 'lucide-react';
 import { generateGoogleCalendarLink } from '../../utils/calendar';
+
+const paymentSchema = z.object({
+  amount: z.number().positive('Số tiền phải lớn hơn 0 ₫'),
+  notes: z.string().optional()
+});
 
 export default function DebtDetailPage() {
   const { id } = useParams();
@@ -15,9 +23,13 @@ export default function DebtDetailPage() {
   const { data, isLoading } = useDebt(id);
   const { deleteDebt, logPayment, isDeleting, isLogging } = useDebtMutations();
 
-  const [payForm, setPayForm] = useState({ amount: '', notes: '' });
   const [paySuccess, setPaySuccess] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const { register, handleSubmit, reset, formState: { errors } } = useForm({
+    resolver: zodResolver(paymentSchema),
+    defaultValues: { amount: '', notes: '' }
+  });
 
   const handleDelete = async () => {
     try {
@@ -30,15 +42,15 @@ export default function DebtDetailPage() {
     }
   };
 
-  const handlePayment = async (e) => {
-    e.preventDefault();
-    const amount = +payForm.amount;
-    if (!amount || amount <= 0) { toast.error('Số tiền phải lớn hơn 0 ₫'); return; }
-    if (amount > data.debt.balance) { toast.error(`Số tiền không được vượt quá ${formatVND(data.debt.balance)}`); return; }
+  const onPaymentSubmit = async (formData) => {
+    if (formData.amount > data.debt.balance) {
+      toast.error(`Số tiền không được vượt quá ${formatVND(data.debt.balance)}`);
+      return;
+    }
 
     try {
-      await logPayment({ id, data: { ...payForm, amount } });
-      setPayForm({ amount: '', notes: '' });
+      await logPayment({ id, data: formData });
+      reset();
       setPaySuccess(true);
       setTimeout(() => setPaySuccess(false), 3000);
     } catch (err) {
@@ -206,21 +218,27 @@ export default function DebtDetailPage() {
               </div>
             )}
 
-            <form onSubmit={handlePayment} className="space-y-4">
+            <form onSubmit={handleSubmit(onPaymentSubmit)} className="space-y-4">
               <div>
                 <label className="block text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-1.5">Số tiền</label>
-                <input type="number" placeholder="0"
-                  className="w-full px-4 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-[var(--color-text-primary)] text-sm outline-none focus:border-emerald-500/60 transition-colors"
-                  value={payForm.amount} onChange={e => setPayForm(f => ({ ...f, amount: e.target.value }))} required />
+                <input
+                  type="number"
+                  placeholder="0"
+                  className={`w-full px-4 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] text-sm outline-none focus:border-emerald-500/60 transition-colors ${errors.amount ? 'border-red-500/60 focus:border-red-500' : 'border-[var(--color-border)]'}`}
+                  {...register('amount', { valueAsNumber: true })}
+                />
+                {errors.amount && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={11} /> {errors.amount.message}</p>}
               </div>
               <div>
                 <label className="block text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-1.5">Ghi chú</label>
-                <input placeholder="Tuỳ chọn"
+                <input
+                  placeholder="Tuỳ chọn"
                   className="w-full px-4 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-[var(--color-text-primary)] text-sm outline-none focus:border-emerald-500/60 transition-colors"
-                  value={payForm.notes} onChange={e => setPayForm(f => ({ ...f, notes: e.target.value }))} />
+                  {...register('notes')}
+                />
               </div>
               <button type="submit" disabled={isLogging}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm transition-all shadow-lg shadow-emerald-500/25 cursor-pointer">
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm transition-all shadow-lg shadow-emerald-500/25 cursor-pointer disabled:opacity-60">
                 {isLogging ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Đang xử lý...</> : 'Ghi nhận'}
               </button>
             </form>
