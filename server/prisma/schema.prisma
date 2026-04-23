@@ -219,3 +219,18 @@ model FinanceKnowledge {
 
   @@map("finance_knowledge")
 }
+
+model Article {
+  id        String   @id @default(cuid())
+  title     String
+  author    String   @default("FinSight Team")
+  date      String
+  imageUrl  String
+  excerpt   String
+  content   String   @db.Text
+  category  String   @default("STORY")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("articles")
+}

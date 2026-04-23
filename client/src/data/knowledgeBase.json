@@ -1,0 +1,104 @@
+{
+  "terms": [
+    {
+      "id": "principal",
+      "term": "Principal (Tiền vay gốc)",
+      "definition": "Số tiền thực tế bạn vay ban đầu từ ngân hàng hoặc tổ chức tín dụng, chưa bao gồm tiền lãi hay bất kỳ loại phí nào phát sinh trong quá trình vay."
+    },
+    {
+      "id": "apr",
+      "term": "APR (Annual Percentage Rate)",
+      "definition": "Lãi suất danh nghĩa hàng năm được công bố trên hợp đồng. Đây là con số cơ bản dùng để tính tiền lãi nhưng chưa phản ánh đầy đủ các chi phí thực tế như phí quản lý hay phí bảo hiểm."
+    },
+    {
+      "id": "fee",
+      "term": "FEE (Phí phát sinh)",
+      "definition": "Các khoản chi phí phụ ngoài lãi suất mà người vay phải chịu như: phí thẩm định hồ sơ, phí bảo hiểm khoản vay, phí quản lý tài khoản hoặc phí phạt trả nợ trước hạn."
+    },
+    {
+      "id": "ear",
+      "term": "EAR (Effective Annual Rate)",
+      "definition": "Lãi suất thực tế bạn phải trả sau khi đã cộng gộp cả lãi suất danh nghĩa (APR) và tất cả các loại phí phát sinh. EAR phản ánh chi phí vay thực sự của bạn."
+    },
+    {
+      "id": "dti",
+      "term": "DTI (Debt-to-Income Ratio)",
+      "definition": "Tỷ lệ Nợ trên Thu nhập. Đây là chỉ số đo lường gánh nặng nợ so với tổng thu nhập hàng tháng. Tỷ lệ an toàn thường dưới 40%, trên 50% là mức báo động nguy hiểm."
+    },
+    {
+      "id": "min-payment",
+      "term": "Min Payment (Thanh toán tối thiểu)",
+      "definition": "Số tiền nhỏ nhất bạn bắt buộc phải trả mỗi kỳ để không bị phạt vi phạm hợp đồng hoặc bị đánh dấu nợ xấu trên hệ thống tín dụng (CIC)."
+    },
+    {
+      "id": "remaining-balance",
+      "term": "Remaining Balance (Dư nợ còn lại)",
+      "definition": "Số tiền nợ gốc thực tế bạn còn phải trả tính đến thời điểm hiện tại. Con số này sẽ giảm dần mỗi khi bạn thực hiện một khoản thanh toán hợp lệ."
+    },
+    {
+      "id": "avalanche",
+      "term": "Phương pháp Avalanche (Tuyết lở)",
+      "definition": "Chiến lược trả nợ ưu tiên thanh toán khoản vay có lãi suất thực tế (EAR) cao nhất trước để giảm thiểu tối đa số tiền lãi phải trả trong dài hạn."
+    },
+    {
+      "id": "snowball",
+      "term": "Phương pháp Snowball (Cầu tuyết)",
+      "definition": "Chiến lược trả nợ ưu tiên thanh toán khoản vay có số dư nhỏ nhất trước để tạo động lực tâm lý thông qua các 'chiến thắng' nhanh chóng khi xóa sổ từng khoản nợ."
+    },
+    {
+      "id": "fear-greed",
+      "term": "Fear & Greed Index",
+      "definition": "Chỉ số tâm lý thị trường đo lường từ 0 đến 100. Dưới 25 là sợ hãi cực độ (cơ hội mua), trên 75 là tham lam cực độ (nguy cơ bong bóng)."
+    },
+    {
+      "id": "compound-interest",
+      "term": "Compound Interest (Lãi kép)",
+      "definition": "Tiền lãi được tính dựa trên cả số tiền gốc ban đầu và số tiền lãi tích lũy từ các kỳ trước đó. Đây là 'kỳ quan thứ 8' giúp tài sản tăng trưởng phi mã."
+    },
+    {
+      "id": "inflation",
+      "term": "Inflation (Lạm phát)",
+      "definition": "Sự gia tăng mức giá chung của hàng hóa và dịch vụ theo thời gian, dẫn đến sự sụt giảm sức mua của đồng tiền."
+    },
+    {
+      "id": "credit-score",
+      "term": "Credit Score (Điểm tín dụng)",
+      "definition": "Chỉ số đánh giá độ tin cậy của một cá nhân trong việc trả nợ. Điểm cao giúp bạn dễ dàng vay vốn với lãi suất ưu đãi hơn."
+    },
+    {
+      "id": "asset-allocation",
+      "term": "Asset Allocation (Phân bổ tài sản)",
+      "definition": "Chiến lược chia nhỏ vốn đầu tư vào các loại tài sản khác nhau (như cổ phiếu, trái phiếu, vàng, tiền mặt) để cân bằng rủi ro và lợi nhuận."
+    },
+    {
+      "id": "liquidity",
+      "term": "Liquidity (Tính thanh khoản)",
+      "definition": "Khả năng chuyển đổi một loại tài sản thành tiền mặt một cách nhanh chóng mà không làm ảnh hưởng nhiều đến giá thị trường của nó."
+    },
+    {
+      "id": "bull-market",
+      "term": "Bull Market (Thị trường bò)",
+      "definition": "Trạng thái thị trường khi giá các loại tài sản (thường là cổ phiếu) đang trên đà tăng trưởng mạnh mẽ và nhà đầu tư có tâm lý lạc quan."
+    },
+    {
+      "id": "bear-market",
+      "term": "Bear Market (Thị trường gấu)",
+      "definition": "Trạng thái thị trường khi giá các loại tài sản sụt giảm liên tục (thường giảm trên 20%) và nhà đầu tư có tâm lý bi quan, sợ hãi."
+    },
+    {
+      "id": "diversification",
+      "term": "Diversification (Đa dạng hóa)",
+      "definition": "Kỹ thuật giảm thiểu rủi ro bằng cách không tập trung toàn bộ vốn vào một khoản đầu tư duy nhất, hay còn gọi là 'không bỏ trứng vào cùng một giỏ'."
+    },
+    {
+      "id": "due-date",
+      "term": "Due Date (Ngày đáo hạn)",
+      "definition": "Ngày cuối cùng bạn phải thực hiện nghĩa vụ thanh toán cho một khoản nợ hoặc nhận lại vốn từ một khoản đầu tư định kỳ."
+    },
+    {
+      "id": "grace-period",
+      "term": "Grace Period (Thời gian ân hạn)",
+      "definition": "Khoảng thời gian sau ngày đến hạn mà người vay vẫn chưa bị tính lãi phạt hay bị coi là quá hạn nếu thực hiện thanh toán trong tầm này."
+    }
+  ]
+}
