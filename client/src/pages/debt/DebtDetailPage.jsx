@@ -11,6 +11,7 @@ import EARBreakdown from '../../components/debt/EARBreakdown';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
 import { Pencil, FileText, DollarSign, CheckCircle, ArrowLeft, Search, Trash2, ChevronRight, Calendar, AlertTriangle } from 'lucide-react';
 import { generateGoogleCalendarLink } from '../../utils/calendar';
+import DebtFluctuationChart from '../../components/debt/DebtFluctuationChart';
 
 const paymentSchema = z.object({
   amount: z.number().positive('Số tiền phải lớn hơn 0 ₫'),
@@ -226,6 +227,8 @@ export default function DebtDetailPage() {
           </div>
 
           <EARBreakdown breakdown={earBreakdown} />
+          
+          <DebtFluctuationChart data={data.chartData} />
 
           <div className="rounded-3xl border p-5" style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}>
             <h3 className="text-[14px] font-black text-[var(--color-text-primary)] mb-4 flex items-center gap-2">
