@@ -19,6 +19,6 @@ router.get('/dti', getDtiAnalysis);
 router.get('/:id', getDebtById);
 router.put('/:id', validate(authSchemas.debt), updateDebt);
 router.delete('/:id', deleteDebt);
-router.post('/:id/payments', logPayment);
+router.post('/:id/payments', validate(authSchemas.payment), logPayment);
 
 export default router;
