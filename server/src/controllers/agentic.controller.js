@@ -4,11 +4,13 @@ import { runAgenticChat } from '../agentic/agent.js';
 
 /**
  * POST /api/agentic/chat
- * SSE streaming chat endpoint with tool status events + OCR support
+ * Cổng giao tiếp chính của Chatbot. Sử dụng Server-Sent Events (SSE) để stream
+ * dữ liệu từng chữ về cho Client, tạo hiệu ứng AI đang gõ phím chân thực.
  */
 export async function chatWithAgent(req, res) {
   const { message, sessionId, ocrText } = req.body;
 
+  // Kiểm tra tính hợp lệ của tin nhắn
   if (!message || typeof message !== 'string' || message.trim().length === 0) {
     return error(res, 'Message is required', 400);
   }
@@ -17,40 +19,47 @@ export async function chatWithAgent(req, res) {
     return error(res, 'Message too long (max 2000 characters)', 400);
   }
 
-  // Set SSE headers
+  // Cấu hình Headers cho kết nối SSE (Streaming)
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
-  res.setHeader('X-Accel-Buffering', 'no');
+  res.setHeader('X-Accel-Buffering', 'no'); // Tắt buffer của Nginx nếu có
   res.flushHeaders();
 
-  // SSE heartbeat to keep connection alive (every 15s)
+  // Tạo nhịp đập (Heartbeat) mỗi 15 giây để giữ kết nối SSE không bị ngắt bởi trình duyệt
   const heartbeat = setInterval(() => {
     res.write(`:ping\n\n`);
   }, 15000);
 
   try {
     let finalMessage = message.trim();
+    
+    // Nếu Client có gửi kèm text bóc tách từ hình ảnh (OCR)
+    // -> Gộp nội dung OCR vào chung với câu hỏi của người dùng để làm ngữ cảnh cho AI
     if (ocrText) {
       finalMessage = `[Nội dung tài liệu đính kèm (OCR):\n${ocrText}]\n\nYêu cầu của tôi: ${message.trim()}`;
       console.log(`[OCR] Browser extracted ${ocrText.length} chars, injected into prompt.`);
     }
 
+    // Chạy Agent cốt lõi
     const result = await runAgenticChat(
       req.userId,
       finalMessage,
       sessionId || null,
-      // onToken callback — stream each token chunk
+      
+      // Callback 1: Nhận từng từ (token) từ LLM và đẩy thẳng về Client
       (token) => {
         res.write(`data: ${JSON.stringify({ token })}\n\n`);
       },
-      // onToolStatus callback — stream tool execution status
+      
+      // Callback 2: Cập nhật trạng thái công cụ (Ví dụ: "Đang tính DTI...")
       (status) => {
         res.write(`data: ${JSON.stringify({ status })}\n\n`);
       }
     );
 
-    // Send final "done" event with metadata
+    // Gửi sự kiện "done" khi AI đã trả lời xong toàn bộ
+    // Kèm theo metadata để UI hiển thị chức năng (như bật Popup thêm nợ)
     res.write(`data: ${JSON.stringify({
       done: true,
       sessionId: result.sessionId,
@@ -60,19 +69,20 @@ export async function chatWithAgent(req, res) {
 
   } catch (err) {
     console.error('chatWithAgent error:', err);
+    // Báo lỗi cho Client nếu luồng stream bị hỏng
     res.write(`data: ${JSON.stringify({
       done: true,
       error: 'Hệ thống gặp sự cố, vui lòng thử lại sau.',
     })}\n\n`);
   } finally {
-    clearInterval(heartbeat);
-    res.end();
+    clearInterval(heartbeat); // Dừng nhịp đập khi kết thúc
+    res.end(); // Đóng luồng kết nối HTTP
   }
 }
 
 /**
  * GET /api/agentic/sessions
- * List all chat sessions for current user
+ * Lấy danh sách toàn bộ các đoạn hội thoại cũ của User này.
  */
 export async function getSessions(req, res) {
   try {
@@ -97,7 +107,7 @@ export async function getSessions(req, res) {
 
 /**
  * GET /api/agentic/sessions/:id
- * Get message history for a specific session
+ * Lấy chi tiết toàn bộ tin nhắn trong một đoạn hội thoại cụ thể.
  */
 export async function getSessionMessages(req, res) {
   try {
@@ -129,7 +139,7 @@ export async function getSessionMessages(req, res) {
 
 /**
  * DELETE /api/agentic/sessions/:id
- * Delete a chat session and all its messages (cascade)
+ * Xóa một đoạn hội thoại và toàn bộ tin nhắn bên trong (Cascade Delete).
  */
 export async function deleteSession(req, res) {
   try {
