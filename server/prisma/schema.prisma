@@ -156,8 +156,6 @@ model DebtGoal {
 
 // ── Subscription & Payment ──────────────────────────────────
 
-}
-
 model Transaction {
   id           String    @id @default(cuid())
   userId       String
