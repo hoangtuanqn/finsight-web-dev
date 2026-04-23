@@ -81,3 +81,6 @@ Unknown field `level` for select statement on model `User`. Available options ar
 [2026-04-23T14:45:18.626Z] getDebtGoal error: TypeError: Cannot read properties of undefined (reading 'findUnique')
 [2026-04-23T16:16:36.756Z] getDebtGoal error: TypeError: Cannot read properties of undefined (reading 'findUnique')
 [2026-04-23T16:16:36.774Z] getDebtGoal error: TypeError: Cannot read properties of undefined (reading 'findUnique')
+[2026-04-23T16:17:33.387Z] getDebtGoal error: TypeError: Cannot read properties of undefined (reading 'findUnique')
+[2026-04-23T16:17:33.396Z] getDebtGoal error: TypeError: Cannot read properties of undefined (reading 'findUnique')
+[2026-04-23T16:17:35.439Z] getDebtGoal error: TypeError: Cannot read properties of undefined (reading 'findUnique')
