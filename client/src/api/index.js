@@ -33,6 +33,13 @@ export const authAPI = {
   logout: () => api.post('/auth/logout'),
 };
 
+export const qrAPI = {
+  generate: () => api.get('/auth/qr/generate'),
+  checkStatus: (token) => api.get(`/auth/qr/status/${token}`),
+  markScanned: (data) => api.post('/auth/qr/scanned', data),
+  confirm: (data) => api.post('/auth/qr/confirm', data),
+};
+
 // USER
 export const userAPI = {
   getProfile: () => api.get('/users/profile'),
