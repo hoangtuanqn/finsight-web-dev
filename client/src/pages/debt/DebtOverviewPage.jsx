@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { debtAPI } from '../../api/index.js';
 import { formatVND, formatPercent } from '../../utils/calculations';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
+import ExportReportModal from '../../components/debt/ExportReportModal';
 import {
   CreditCard, BarChart2, ClipboardList, Plus,
   AlertOctagon, AlertTriangle, PartyPopper, FileText, Home, TrendingUp, ChevronRight,
@@ -36,6 +37,7 @@ const SUMMARY_CARDS = (summary) => [
 export default function DebtOverviewPage() {
   const [data, setData]     = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const fetchDebts = () => {
     debtAPI.getAll()
@@ -78,6 +80,12 @@ export default function DebtOverviewPage() {
           <Link to="/debts/repayment" className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--color-border)] text-[12px] font-bold text-[var(--color-text-secondary)] hover:text-blue-400 hover:border-blue-500/30 transition-all cursor-pointer">
             <ClipboardList size={13} /> Kế hoạch
           </Link>
+          <button 
+            onClick={() => setIsExportModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--color-border)] text-[12px] font-bold text-[var(--color-text-secondary)] hover:text-emerald-400 hover:border-emerald-500/30 transition-all cursor-pointer"
+          >
+            <FileText size={13} /> Xuất báo cáo
+          </button>
           <Link to="/debts/add" className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-[13px] font-bold hover:bg-blue-500 transition-all cursor-pointer shadow-lg shadow-blue-500/25">
             <Plus size={14} /> Thêm nợ
           </Link>
@@ -211,6 +219,11 @@ export default function DebtOverviewPage() {
           ))}
         </div>
       )}
+
+      <ExportReportModal 
+        isOpen={isExportModalOpen} 
+        onClose={() => setIsExportModalOpen(false)} 
+      />
     </motion.div>
   );
 }
