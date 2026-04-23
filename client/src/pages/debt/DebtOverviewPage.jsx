@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { debtAPI } from '../../api/index.js';
+import { useDebts } from '../../hooks/useDebtQuery';
 import { formatVND, formatPercent } from '../../utils/calculations';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
 import ExportReportModal from '../../components/debt/ExportReportModal';
@@ -41,8 +41,7 @@ const getProgressStyle = (percent) => {
 };
 
 export default function DebtOverviewPage() {
-  const [data, setData]     = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading } = useDebts();
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('finsight_debt_view') || 'grid');
 
@@ -50,27 +49,13 @@ export default function DebtOverviewPage() {
     localStorage.setItem('finsight_debt_view', viewMode);
   }, [viewMode]);
 
-  const fetchDebts = () => {
-    debtAPI.getAll()
-      .then(res => setData(res.data.data))
-      .catch(console.error);
-  };
-
-  useEffect(() => {
-    fetchDebts();
-    const timer = setTimeout(() => setLoading(false), 500);
-    window.addEventListener('Finsight:DebtUpdated', fetchDebts);
-    return () => { clearTimeout(timer); window.removeEventListener('Finsight:DebtUpdated', fetchDebts); };
-  }, []);
-
-  if (loading) return <PageSkeleton />;
+  if (isLoading) return <PageSkeleton />;
 
   const debts   = data?.debts   || [];
   const summary = data?.summary || {};
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-8 space-y-8">
-      {/* ── Header ── */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 pt-2">
         <div>
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-red-500/20 bg-red-500/10 text-red-400 text-xs font-bold uppercase tracking-widest mb-4">
@@ -103,7 +88,6 @@ export default function DebtOverviewPage() {
         </div>
       </div>
 
-      {/* ── Summary Cards ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
         {SUMMARY_CARDS(summary).map((item, i) => (
           <motion.div
@@ -132,7 +116,6 @@ export default function DebtOverviewPage() {
         ))}
       </div>
 
-      {/* ── Domino Alerts ── */}
       {summary.dominoAlerts?.length > 0 && (
         <div className="space-y-3">
           {summary.dominoAlerts.map((a, i) => (
@@ -153,12 +136,10 @@ export default function DebtOverviewPage() {
         </div>
       )}
 
-      {/* ── Debt Cards Header & Toggle ── */}
       {debts.length > 0 && (
         <div className="flex items-center justify-between pt-2">
           <h2 className="text-xl font-extrabold text-[var(--color-text-primary)]">Chi tiết khoản nợ</h2>
           
-          {/* View Mode Toggle */}
           <div className="hidden sm:flex items-center bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-xl p-1 shadow-sm">
             <button 
               onClick={() => setViewMode('grid')}
@@ -178,7 +159,6 @@ export default function DebtOverviewPage() {
         </div>
       )}
 
-      {/* ── Debt Cards ── */}
       {debts.length === 0 ? (
         <div className="rounded-3xl border border-[var(--color-border)] p-12 md:p-20 text-center" style={{ background: 'var(--color-bg-card)' }}>
           <div className="w-20 h-20 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto mb-6">
@@ -220,7 +200,6 @@ export default function DebtOverviewPage() {
 
                   {viewMode === 'grid' ? (
                     <>
-                      {/* Header: Icon, Name & Status */}
                       <div className="flex items-start justify-between mb-5">
                         <div className="flex items-center gap-3.5">
                           <div className="w-11 h-11 rounded-2xl bg-[var(--color-bg-secondary)] flex items-center justify-center shrink-0 text-[var(--color-text-secondary)] shadow-inner">
@@ -236,7 +215,6 @@ export default function DebtOverviewPage() {
                         </span>
                       </div>
 
-                      {/* Balance */}
                       <div className="mb-6">
                         <p className="text-xs text-[var(--color-text-muted)] font-medium mb-1">Số dư hiện tại</p>
                         <p className="text-3xl font-black bg-gradient-to-br from-red-400 via-rose-500 to-pink-600 bg-clip-text text-transparent">
@@ -244,7 +222,6 @@ export default function DebtOverviewPage() {
                         </p>
                       </div>
 
-                      {/* Key Details */}
                       <div className="space-y-3 mb-6 bg-[var(--color-bg-secondary)] rounded-2xl p-4 border border-[var(--color-border)]">
                         {[
                           { label: 'APR', value: formatPercent(debt.apr), color: 'text-blue-400' },
@@ -260,7 +237,6 @@ export default function DebtOverviewPage() {
                         ))}
                       </div>
 
-                      {/* Progress */}
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <p className="text-xs font-semibold text-[var(--color-text-primary)]">Tiến độ trả nợ</p>
@@ -279,7 +255,6 @@ export default function DebtOverviewPage() {
                         </div>
                       </div>
                       
-                      {/* View Details Hint */}
                       <div className="mt-5 pt-4 border-t border-[var(--color-border)] flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <span className="text-xs font-semibold text-blue-400">Xem chi tiết khoản nợ</span>
                         <ChevronRight size={16} className="text-blue-400 group-hover:translate-x-1 transition-transform" />
@@ -287,7 +262,6 @@ export default function DebtOverviewPage() {
                     </>
                   ) : (
                     <div className="flex flex-col xl:flex-row xl:items-center gap-5 w-full">
-                      {/* Icon, Name & Status */}
                       <div className="flex flex-1 items-start xl:items-center gap-4 xl:min-w-[280px]">
                         <div className="w-12 h-12 rounded-2xl bg-[var(--color-bg-secondary)] flex items-center justify-center shrink-0 shadow-inner text-[var(--color-text-secondary)] border border-[var(--color-border)]/50">
                           {PLATFORM_ICONS[debt.platform] || <FileText size={22} />}
@@ -304,7 +278,6 @@ export default function DebtOverviewPage() {
                       </div>
 
                       <div className="flex flex-col md:flex-row md:items-center gap-6 xl:gap-8 flex-[2] bg-[var(--color-bg-secondary)]/40 xl:bg-transparent p-4 xl:p-0 rounded-2xl">
-                        {/* Balance */}
                         <div className="md:w-[200px] shrink-0">
                           <p className="text-xs text-[var(--color-text-muted)] font-medium mb-1">Số dư hiện tại</p>
                           <p className="text-2xl md:text-3xl font-black bg-gradient-to-br from-red-400 via-rose-500 to-pink-600 bg-clip-text text-transparent">
@@ -312,7 +285,6 @@ export default function DebtOverviewPage() {
                           </p>
                         </div>
 
-                        {/* Details Row */}
                         <div className="flex-1 flex gap-4 md:gap-8 justify-between xl:justify-start">
                           <div>
                             <p className="text-xs text-[var(--color-text-muted)] font-medium mb-1">Trả / tháng</p>
@@ -329,7 +301,6 @@ export default function DebtOverviewPage() {
                         </div>
                       </div>
 
-                      {/* Progress */}
                       <div className="xl:w-[220px] shrink-0">
                         <div className="flex items-center justify-between mb-2">
                           <p className="text-xs font-semibold text-[var(--color-text-primary)]">Tiến độ trả nợ</p>
@@ -346,7 +317,6 @@ export default function DebtOverviewPage() {
                         </div>
                       </div>
                       
-                      {/* Arrow for Desktop List */}
                       <div className="hidden xl:flex shrink-0 w-8 justify-end border-l border-[var(--color-border)] pl-4">
                         <ChevronRight size={20} className="text-[var(--color-text-muted)] group-hover:text-blue-400 group-hover:translate-x-1 transition-transform" />
                       </div>
