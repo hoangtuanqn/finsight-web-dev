@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useForm } from 'react-hook-form';
+import { joiResolver } from '@hookform/resolvers/joi';
+import Joi from 'joi';
 import { useAuth } from '../context/AuthContext';
 import SocialLoginButtons from '../components/auth/SocialLoginButtons';
 import { AlertTriangle, Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles, ShieldCheck, Zap, ChevronRight } from 'lucide-react';
@@ -8,36 +11,39 @@ import { GradientText, Spotlight } from './LandingPage/components/Shared';
 import { ToggleMode } from '../components/layout/components/ToggleMode';
 import { useDarkMode } from '../hooks/useDarkMode';
 
+const loginSchema = Joi.object({
+  email: Joi.string().email({ tlds: { allow: false } }).required().messages({
+    'string.email': 'Email không hợp lệ',
+    'string.empty': 'Email không được để trống',
+    'any.required': 'Email là bắt buộc'
+  }),
+  password: Joi.string().required().messages({
+    'string.empty': 'Mật khẩu không được để trống',
+    'any.required': 'Mật khẩu là bắt buộc'
+  })
+});
+
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [serverError, setServerError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
   const [dark, setDark] = useDarkMode();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    resolver: joiResolver(loginSchema),
+    defaultValues: { email: '', password: '' }
+  });
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError('Email không hợp lệ');
-      return;
-    }
-    if (!password) {
-      setError('Vui lòng nhập mật khẩu');
-      return;
-    }
-
+  const onSubmit = async (data) => {
+    setServerError('');
     setLoading(true);
     try {
-      await login(email, password);
+      await login(data.email, data.password);
       navigate('/home');
     } catch (err) {
-      setError(err.response?.data?.error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+      setServerError(err.response?.data?.error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
     } finally {
       setLoading(false);
     }
@@ -117,18 +123,18 @@ export default function LoginPage() {
                 <p className="text-slate-500 dark:text-slate-400 font-medium">Tiếp tục hành trình tài chính của bạn</p>
               </div>
 
-              {error && (
+              {serverError && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   className="bg-red-500/10 border border-red-500/20 rounded-2xl px-5 py-4 mb-8 text-sm text-red-500 dark:text-red-400 flex items-start gap-3"
                 >
                   <AlertTriangle size={18} className="shrink-0" />
-                  <span className="font-bold">{error}</span>
+                  <span className="font-bold">{serverError}</span>
                 </motion.div>
               )}
 
-              <SocialLoginButtons setError={setError} />
+              <SocialLoginButtons setError={setServerError} />
 
               <div className="flex items-center gap-4 mb-6 opacity-60">
                  <div className="flex-1 border-t border-slate-300 dark:border-slate-700"></div>
@@ -136,7 +142,7 @@ export default function LoginPage() {
                  <div className="flex-1 border-t border-slate-300 dark:border-slate-700"></div>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Email</label>
                   <div className="relative group/input">
@@ -144,14 +150,13 @@ export default function LoginPage() {
                       <Mail size={18} />
                     </div>
                     <input
+                      {...register('email')}
                       type="email"
-                      value={email}
-                      onChange={e => setEmail(e.target.value)}
-                      className="w-full bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-12 py-4 text-slate-900 dark:text-white font-bold focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                      className={`w-full bg-slate-100/50 dark:bg-white/5 border rounded-2xl px-12 py-4 text-slate-900 dark:text-white font-bold focus:ring-4 focus:ring-blue-500/10 outline-none transition-all ${errors.email ? 'border-red-500 focus:border-red-500' : 'border-slate-200 dark:border-white/10 focus:border-blue-500'}`}
                       placeholder="Email của bạn"
-                      required
                     />
                   </div>
+                  {errors.email && <p className="text-[11px] font-bold text-red-500 ml-1">{errors.email.message}</p>}
                 </div>
 
                 <div className="space-y-2">
@@ -164,12 +169,10 @@ export default function LoginPage() {
                       <Lock size={18} />
                     </div>
                     <input
+                      {...register('password')}
                       type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      className="w-full bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-12 py-4 text-slate-900 dark:text-white font-bold focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                      className={`w-full bg-slate-100/50 dark:bg-white/5 border rounded-2xl px-12 py-4 text-slate-900 dark:text-white font-bold focus:ring-4 focus:ring-blue-500/10 outline-none transition-all ${errors.password ? 'border-red-500 focus:border-red-500' : 'border-slate-200 dark:border-white/10 focus:border-blue-500'}`}
                       placeholder="Mật khẩu"
-                      required
                     />
                     <button
                       type="button"
@@ -179,12 +182,13 @@ export default function LoginPage() {
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
+                  {errors.password && <p className="text-[11px] font-bold text-red-500 ml-1">{errors.password.message}</p>}
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading}
-                  className="group relative w-full flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 text-white font-bold rounded-2xl shadow-[0_0_30px_rgba(37,99,235,0.3)] hover:shadow-[0_0_50px_rgba(37,99,235,0.5)] transition-all disabled:opacity-70"
+                  className="group relative w-full flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 text-white font-bold rounded-2xl shadow-[0_0_30px_rgba(37,99,235,0.3)] hover:shadow-[0_0_50px_rgba(37,99,235,0.5)] transition-all disabled:opacity-70 cursor-pointer"
                 >
                   {loading ? (
                     <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -193,7 +197,7 @@ export default function LoginPage() {
                       Đăng nhập <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
                     </>
                   )}
-                  <div className="absolute inset-0 bg-white/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
+                  <div className="absolute inset-0 bg-white/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl pointer-events-none" />
                 </button>
               </form>
 
