@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { debtAPI } from '../../api/index.js';
+import { useDebt, useDebtMutations } from '../../hooks/useDebtQuery';
 import { calcEAR, calcAPY, formatPercent } from '../../utils/calculations';
 import { Pencil, AlertTriangle, BarChart2 } from 'lucide-react';
 
@@ -15,62 +15,28 @@ const PLATFORM_PRESETS = {
   CUSTOM: { name: '', apr: 0, rateType: 'FLAT', feeProcessing: 0, feeInsurance: 0, feeManagement: 0 },
 };
 
-// ─── Validation ───────────────────────────────────────────────────────────────
-
 function validateForm(form) {
   const errors = {};
 
-  if (!form.name || !String(form.name).trim())
-    errors.name = 'Vui lòng nhập tên khoản vay.';
-
-  if (!form.originalAmount || +form.originalAmount <= 0)
-    errors.originalAmount = 'Số tiền gốc phải lớn hơn 0.';
-
-  if (form.balance === '' || form.balance === null || +form.balance < 0)
+  if (!form.name || !String(form.name).trim()) errors.name = 'Vui lòng nhập tên khoản vay.';
+  if (!form.originalAmount || +form.originalAmount <= 0) errors.originalAmount = 'Số tiền gốc phải lớn hơn 0.';
+  if (form.balance === '' || form.balance === null || +form.balance < 0) {
     errors.balance = 'Dư nợ hiện tại không được âm.';
-  else if (+form.balance > +form.originalAmount)
+  } else if (+form.balance > +form.originalAmount) {
     errors.balance = 'Dư nợ không được lớn hơn số tiền gốc.';
-
-  if (!form.minPayment || +form.minPayment <= 0)
+  }
+  if (!form.minPayment || +form.minPayment <= 0) {
     errors.minPayment = 'Số tiền trả tối thiểu/tháng phải lớn hơn 0.';
-  else if (+form.balance > 0 && +form.minPayment > +form.balance)
+  } else if (+form.balance > 0 && +form.minPayment > +form.balance) {
     errors.minPayment = 'Số tiền trả tối thiểu không được lớn hơn dư nợ hiện tại.';
-
-  if (+form.apr < 0)
-    errors.apr = 'Lãi suất APR không được âm.';
-  else if (+form.apr > 100)
-    errors.apr = 'Lãi suất APR không được vượt quá 100%.';
-
-  if (+form.feeProcessing < 0)
-    errors.feeProcessing = 'Phí xử lý không được âm.';
-  else if (+form.feeProcessing > 100)
-    errors.feeProcessing = 'Phí xử lý không được vượt quá 100%.';
-
-  if (+form.feeInsurance < 0)
-    errors.feeInsurance = 'Phí bảo hiểm không được âm.';
-  else if (+form.feeInsurance > 100)
-    errors.feeInsurance = 'Phí bảo hiểm không được vượt quá 100%.';
-
-  if (+form.feeManagement < 0)
-    errors.feeManagement = 'Phí quản lý không được âm.';
-  else if (+form.feeManagement > 100)
-    errors.feeManagement = 'Phí quản lý không được vượt quá 100%.';
-
-  if (!form.termMonths || +form.termMonths <= 0)
-    errors.termMonths = 'Kỳ hạn phải lớn hơn 0.';
-
-  if (+form.remainingTerms < 0)
-    errors.remainingTerms = 'Kỳ còn lại không được âm.';
-  else if (+form.remainingTerms > +form.termMonths)
-    errors.remainingTerms = 'Kỳ còn lại không được lớn hơn kỳ hạn.';
-
-  if (+form.dueDay < 1 || +form.dueDay > 31)
-    errors.dueDay = 'Ngày đáo hạn phải từ 1 đến 31.';
+  }
+  if (+form.apr < 0 || +form.apr > 100) errors.apr = 'Lãi suất APR không hợp lệ.';
+  if (!form.termMonths || +form.termMonths <= 0) errors.termMonths = 'Kỳ hạn phải lớn hơn 0.';
+  if (+form.remainingTerms < 0 || +form.remainingTerms > +form.termMonths) errors.remainingTerms = 'Kỳ còn lại không hợp lệ.';
+  if (+form.dueDay < 1 || +form.dueDay > 31) errors.dueDay = 'Ngày đáo hạn phải từ 1 đến 31.';
 
   return errors;
 }
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function FieldError({ message }) {
   if (!message) return null;
@@ -86,13 +52,12 @@ function inputCls(hasError) {
   return `input-field ${hasError ? 'border-red-500/60 focus:border-red-500' : ''}`;
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 export default function EditDebtPage() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(true);
+  const { data, isLoading: fetching } = useDebt(id);
+  const { updateDebt, isUpdating } = useDebtMutations();
+
   const [errors, setErrors] = useState({});
   const [form, setForm] = useState({
     name: '', platform: 'CUSTOM', originalAmount: 0, balance: 0, apr: 18, rateType: 'FLAT',
@@ -101,34 +66,26 @@ export default function EditDebtPage() {
   });
 
   useEffect(() => {
-    const fetchDebt = async () => {
-      try {
-        const res = await debtAPI.getById(id);
-        const debt = res.data.data.debt;
-        setForm({
-          name: debt.name,
-          platform: debt.platform,
-          originalAmount: debt.originalAmount,
-          balance: debt.balance,
-          apr: debt.apr,
-          rateType: debt.rateType,
-          feeProcessing: debt.feeProcessing,
-          feeInsurance: debt.feeInsurance,
-          feeManagement: debt.feeManagement,
-          feePenaltyPerDay: debt.feePenaltyPerDay,
-          minPayment: debt.minPayment,
-          dueDay: debt.dueDay,
-          termMonths: debt.termMonths,
-          remainingTerms: debt.remainingTerms,
-        });
-      } catch (err) {
-        toast.error('Không thể tải thông tin khoản nợ');
-      } finally {
-        setFetching(false);
-      }
-    };
-    fetchDebt();
-  }, [id]);
+    if (data?.debt) {
+      const { debt } = data;
+      setForm({
+        name: debt.name,
+        platform: debt.platform,
+        originalAmount: debt.originalAmount,
+        balance: debt.balance,
+        apr: debt.apr,
+        rateType: debt.rateType,
+        feeProcessing: debt.feeProcessing,
+        feeInsurance: debt.feeInsurance,
+        feeManagement: debt.feeManagement,
+        feePenaltyPerDay: debt.feePenaltyPerDay,
+        minPayment: debt.minPayment,
+        dueDay: debt.dueDay,
+        termMonths: debt.termMonths,
+        remainingTerms: debt.remainingTerms,
+      });
+    }
+  }, [data]);
 
   const update = (field, val) => {
     setForm(f => ({ ...f, [field]: val }));
@@ -151,28 +108,26 @@ export default function EditDebtPage() {
       toast.error('Vui lòng kiểm tra lại thông tin.');
       return;
     }
-    setErrors({});
-    setLoading(true);
     try {
-      await debtAPI.update(id, {
-        ...form,
-        originalAmount: +form.originalAmount,
-        balance:        +form.balance,
-        apr:            +form.apr,
-        feeProcessing:  +form.feeProcessing  || 0,
-        feeInsurance:   +form.feeInsurance   || 0,
-        feeManagement:  +form.feeManagement  || 0,
-        minPayment:     +form.minPayment,
-        dueDay:         Math.round(+form.dueDay),
-        termMonths:     Math.round(+form.termMonths),
-        remainingTerms: Math.round(+form.remainingTerms),
+      await updateDebt({
+        id,
+        data: {
+          ...form,
+          originalAmount: +form.originalAmount,
+          balance:        +form.balance,
+          apr:            +form.apr,
+          feeProcessing:  +form.feeProcessing  || 0,
+          feeInsurance:   +form.feeInsurance   || 0,
+          feeManagement:  +form.feeManagement  || 0,
+          minPayment:     +form.minPayment,
+          dueDay:         Math.round(+form.dueDay),
+          termMonths:     Math.round(+form.termMonths),
+          remainingTerms: Math.round(+form.remainingTerms),
+        }
       });
-      toast.success('Cập nhật khoản nợ thành công!');
       navigate(`/debts/${id}`);
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Cập nhật nợ thất bại');
-    } finally {
-      setLoading(false);
+      console.error(err);
     }
   };
 
@@ -199,7 +154,6 @@ export default function EditDebtPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <div className="glass-card">
-            {/* Platform presets */}
             <div className="mb-6">
               <label className="input-label">Nền tảng</label>
               <div className="flex flex-wrap gap-2">
@@ -221,7 +175,6 @@ export default function EditDebtPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Row 1 */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="input-label">Tên khoản vay</label>
@@ -235,7 +188,6 @@ export default function EditDebtPage() {
                 </div>
               </div>
 
-              {/* Row 2 */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="input-label">Dư nợ hiện tại</label>
@@ -249,7 +201,6 @@ export default function EditDebtPage() {
                 </div>
               </div>
 
-              {/* Row 3 */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="input-label">Hình thức tính lãi</label>
@@ -268,7 +219,6 @@ export default function EditDebtPage() {
               <div className="h-px bg-white/[0.06] my-2" />
               <p className="text-[12px] text-slate-500 font-medium uppercase tracking-wide">Phí ẩn</p>
 
-              {/* Row fees */}
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="input-label">Phí xử lý (%)</label>
@@ -287,7 +237,6 @@ export default function EditDebtPage() {
                 </div>
               </div>
 
-              {/* Row term */}
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="input-label">Kỳ hạn (tháng)</label>
@@ -307,8 +256,8 @@ export default function EditDebtPage() {
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button type="submit" disabled={loading} className="btn-primary">
-                  {loading ? (
+                <button type="submit" disabled={isUpdating} className="btn-primary">
+                  {isUpdating ? (
                     <span className="flex items-center gap-2">
                       <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       Đang lưu...
@@ -321,7 +270,6 @@ export default function EditDebtPage() {
           </div>
         </div>
 
-        {/* Cost preview */}
         <div>
           <div className="glass-card sticky top-8">
             <h3 className="text-[15px] font-semibold text-white mb-4 flex items-center gap-2">

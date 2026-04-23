@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { debtAPI } from '../../api/index.js';
+import { useDtiAnalysis } from '../../hooks/useDebtQuery';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
 import { formatVND, formatPercent } from '../../utils/calculations';
 import { TrendingUp, Lightbulb, AlertTriangle, AlertOctagon, CheckCircle, Info } from 'lucide-react';
@@ -28,15 +27,7 @@ const ZONES = [
 ];
 
 export default function DtiAnalysisPage() {
-  const [data,    setData]    = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    debtAPI.getDtiAnalysis()
-      .then(res => setData(res.data.data))
-      .catch(console.error)
-      .finally(() => setTimeout(() => setLoading(false), 400));
-  }, []);
+  const { data, isLoading: loading } = useDtiAnalysis();
 
   if (loading) return <PageSkeleton />;
 
@@ -56,7 +47,6 @@ export default function DtiAnalysisPage() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-8 space-y-6">
-      {/* ── Page Header ── */}
       <div className="pt-2">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-cyan-500/20 bg-cyan-500/8 text-cyan-400 text-[10px] font-black uppercase tracking-widest mb-3">
           <TrendingUp size={11} /> Phân tích tài chính
@@ -65,7 +55,6 @@ export default function DtiAnalysisPage() {
         <p className="text-[var(--color-text-secondary)] text-sm mt-1">Tỷ lệ nợ trên thu nhập — chỉ số sức khoẻ tài chính của bạn</p>
       </div>
 
-      {/* ── KPI Cards ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
           { label: 'DTI Hiện Tại',          value: formatPercent(summary.dtiRatio),         color: zone.color, gradient: zone.gradient,                 desc: zone.label },
@@ -89,7 +78,6 @@ export default function DtiAnalysisPage() {
         ))}
       </div>
 
-      {/* ── DTI Zone Bar ── */}
       <motion.div
         initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
         className="relative rounded-3xl p-6 border overflow-hidden"
@@ -98,7 +86,6 @@ export default function DtiAnalysisPage() {
         <div className="absolute top-0 left-5 right-5 h-px" style={{ background: `linear-gradient(90deg,transparent,${zone.color}50,transparent)` }} />
         <p className="text-[13px] font-black text-[var(--color-text-primary)] mb-5">Thang đo DTI</p>
 
-        {/* Segmented bar */}
         <div className="relative h-4 rounded-full overflow-hidden flex mb-2">
           {ZONES.map((z) => (
             <div key={z.label} style={{ width: `${z.to - z.from}%`, background: z.color, opacity: 0.75 }} />
@@ -123,7 +110,6 @@ export default function DtiAnalysisPage() {
         </div>
       </motion.div>
 
-      {/* ── Zone Alert ── */}
       <motion.div
         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
         className="flex items-start gap-3 px-5 py-4 rounded-2xl border relative overflow-hidden"
@@ -136,7 +122,6 @@ export default function DtiAnalysisPage() {
         </p>
       </motion.div>
 
-      {/* ── Per-Debt Breakdown ── */}
       {breakdown.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
@@ -175,7 +160,6 @@ export default function DtiAnalysisPage() {
         </motion.div>
       )}
 
-      {/* ── What-If ── */}
       {summary.zone !== 'SAFE' && (
         <motion.div
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }}
@@ -214,7 +198,6 @@ export default function DtiAnalysisPage() {
         </motion.div>
       )}
 
-      {/* ── Safe Zone congrats ── */}
       {summary.zone === 'SAFE' && (
         <motion.div
           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
