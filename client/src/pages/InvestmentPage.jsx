@@ -653,21 +653,14 @@ export default function InvestmentPage() {
                 </div>
               )}
 
+              {/* ── Chiến lược của tôi (inline) ── */}
+              <MyPortfolioSection portfolio={portfolio} onUpdate={handleUpdatePortfolio} />
+
               <AllocationEngine pieData={pieData} portfolioBreakdown={portfolioBreakdown} history={[]} />
               <AIRationalPanel allocation={activeAllocation} profile={mockProfile} sentimentValue={sentimentValue} portfolioBreakdown={portfolioBreakdown} />
               <WealthProjection projectionData={projectionData} mockProfile={mockProfile} />
               <SmartAssetGuide allocation={activeAllocation} riskLevel={mockProfile?.riskLevel || 'MEDIUM'} />
             </div>
-
-            {/* ── UserPortfolio — Chiến lược của tôi ── */}
-            <section>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em]">Danh mục cá nhân</span>
-                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-              </div>
-              <MyPortfolioSection portfolio={portfolio} onUpdate={handleUpdatePortfolio} />
-            </section>
 
             {/* ── Bảng lịch sử chiến lược AI ── */}
             <section>
