@@ -68,6 +68,48 @@ export function calcDebtToIncomeRatio(totalMonthlyDebtPayments, monthlyIncome) {
   return (totalMonthlyDebtPayments / monthlyIncome) * 100;
 }
 
+export function formatNumber(value, options = {}) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return '0';
+  return new Intl.NumberFormat('vi-VN', options).format(number);
+}
+
+export function normalizeLocaleNumberInput(value) {
+  if (value === null || value === undefined) return '';
+  const raw = String(value);
+  const hasTrailingSeparator = /[,.]$/.test(raw);
+  const normalized = String(value)
+    .replace(/\s/g, '')
+    .replace(/,/g, '.')
+    .replace(/[^0-9.-]/g, '');
+  const isNegative = normalized.startsWith('-');
+  const unsigned = normalized.replace(/-/g, '');
+  const [integerPart = '', ...decimalParts] = unsigned.split('.');
+  const decimalPart = decimalParts.join('');
+  if (decimalPart) return `${isNegative ? '-' : ''}${integerPart}.${decimalPart}`;
+  if (hasTrailingSeparator) return `${isNegative ? '-' : ''}${integerPart}.`;
+  return `${isNegative ? '-' : ''}${integerPart}`;
+}
+
+export function formatIntegerInput(value) {
+  const digits = String(value ?? '').replace(/\D/g, '');
+  return digits ? formatNumber(digits) : '';
+}
+
+export function formatDecimalInput(value, decimals = 2) {
+  const normalized = normalizeLocaleNumberInput(value);
+  if (!normalized) return '';
+
+  const isNegative = normalized.startsWith('-');
+  const unsigned = normalized.replace('-', '');
+  const [integerPart = '', decimalPart = ''] = unsigned.split('.');
+  const formattedInteger = integerPart ? formatNumber(integerPart) : '0';
+  const trimmedDecimal = decimalPart.slice(0, decimals);
+  const hasTrailingSeparator = normalized.endsWith('.') && !trimmedDecimal;
+
+  return `${isNegative ? '-' : ''}${formattedInteger}${trimmedDecimal ? `,${trimmedDecimal}` : hasTrailingSeparator ? ',' : ''}`;
+}
+
 export function detectDominoRisk(debts, monthlyIncome) {
   const alerts = [];
   const totalMin = debts.reduce((sum, d) => sum + d.minPayment, 0);
@@ -189,5 +231,5 @@ export function formatVND(amount) {
 }
 
 export function formatPercent(value, decimals = 1) {
-  return `${value.toFixed(decimals)}%`;
+  return `${formatNumber(value, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}%`;
 }
