@@ -27,6 +27,8 @@ export const authAPI = {
   login: (data) => api.post('/auth/login', data),
   googleLogin: (data) => api.post('/auth/google', data),
   getGoogleConfig: () => api.get('/auth/google-config'),
+  facebookLogin: (data) => api.post('/auth/facebook', data),
+  getFacebookConfig: () => api.get('/auth/facebook-config'),
   me: () => api.get('/auth/me'),
   logout: () => api.post('/auth/logout'),
 };

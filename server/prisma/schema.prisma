@@ -14,6 +14,7 @@ model User {
   email         String   @unique
   password      String?
   googleId      String?  @unique
+  facebookId    String?  @unique
   avatar        String?
   fullName      String
   monthlyIncome Float    @default(0)
