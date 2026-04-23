@@ -44,11 +44,12 @@ export const userAPI = {
 
 // DEBTS
 export const debtAPI = {
-  getAll: () => api.get('/debts'),
+  getAll: (status) => api.get('/debts', { params: { status } }),
   create: (data) => api.post('/debts', data),
   getById: (id) => api.get(`/debts/${id}`),
   update: (id, data) => api.put(`/debts/${id}`, data),
-  delete: (id) => api.delete(`/debts/${id}`),
+  delete: (id, data) => api.delete(`/debts/${id}`, { data }),
+  restore: (id) => api.post(`/debts/${id}/restore`),
   logPayment: (id, data) => api.post(`/debts/${id}/payments`, data),
   getRepaymentPlan: (params) => api.get('/debts/repayment-plan', { params }),
   getEarAnalysis: () => api.get('/debts/ear-analysis'),

@@ -3,11 +3,11 @@ import { debtAPI } from '../api';
 import { queryKeys } from '../api/queryKeys';
 import { toast } from 'sonner';
 
-export function useDebts() {
+export function useDebts(status = 'ACTIVE') {
   return useQuery({
-    queryKey: queryKeys.DEBTS.ALL,
+    queryKey: [...queryKeys.DEBTS.ALL, status],
     queryFn: async () => {
-      const res = await debtAPI.getAll();
+      const res = await debtAPI.getAll(status);
       return res.data.data;
     }
   });
@@ -49,10 +49,18 @@ export function useDebtMutations() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: debtAPI.delete,
+    mutationFn: ({ id, data }) => debtAPI.delete(id, data),
     onSuccess: () => {
       invalidate();
-      toast.success('Đã xóa khoản nợ');
+      toast.success('Đã chuyển khoản nợ vào thùng rác');
+    }
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: debtAPI.restore,
+    onSuccess: () => {
+      invalidate();
+      toast.success('Đã khôi phục khoản nợ');
     }
   });
 
@@ -69,10 +77,12 @@ export function useDebtMutations() {
     createDebt: createMutation.mutateAsync,
     updateDebt: updateMutation.mutateAsync,
     deleteDebt: deleteMutation.mutateAsync,
+    restoreDebt: restoreMutation.mutateAsync,
     logPayment: logPaymentMutation.mutateAsync,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,
+    isRestoring: restoreMutation.isPending,
     isLogging: logPaymentMutation.isPending
   };
 }
