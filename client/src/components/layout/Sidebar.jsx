@@ -25,7 +25,7 @@ const NAV_GROUPS = [
   {
     label: 'Phân tích',
     items: [
-      { id: 'tour-investment', to: '/investment',      icon: TrendingUp, label: 'Đầu tư AI',       color: '#f59e0b', gradient: 'from-amber-500 to-orange-400' },
+      { id: 'tour-investment', to: '/investment',      icon: TrendingUp, label: 'Cố vấn đầu tư',       color: '#f59e0b', gradient: 'from-amber-500 to-orange-400' },
       { id: 'tour-risk',       to: '/risk-assessment', icon: Target,     label: 'Đánh giá rủi ro', color: '#f43f5e', gradient: 'from-rose-500 to-pink-400'   },
     ],
   },

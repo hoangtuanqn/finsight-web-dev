@@ -152,7 +152,10 @@ model DebtGoal {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("debt_goals")
+}
+
 // ── Subscription & Payment ──────────────────────────────────
+
 
 model Transaction {
   id           String    @id @default(cuid())

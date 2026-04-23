@@ -6,18 +6,19 @@ import { debtAPI } from '../../api/index.js';
 import { formatVND, formatPercent } from '../../utils/calculations';
 import EARBreakdown from '../../components/debt/EARBreakdown';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
-import { Pencil, FileText, DollarSign, CheckCircle, ArrowLeft, Search, Trash2, ChevronRight } from 'lucide-react';
+import { Pencil, FileText, DollarSign, CheckCircle, ArrowLeft, Search, Trash2, ChevronRight, Calendar } from 'lucide-react';
+import { generateGoogleCalendarLink } from '../../utils/calendar';
 
 export default function DebtDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [data, setData]                   = useState(null);
-  const [loading, setLoading]             = useState(true);
-  const [payForm, setPayForm]             = useState({ amount: '', notes: '' });
-  const [paying, setPaying]               = useState(false);
-  const [paySuccess, setPaySuccess]       = useState(false);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [payForm, setPayForm] = useState({ amount: '', notes: '' });
+  const [paying, setPaying] = useState(false);
+  const [paySuccess, setPaySuccess] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleting, setDeleting]           = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -118,6 +119,21 @@ export default function DebtDetailPage() {
           <p className="text-[var(--color-text-secondary)] text-sm mt-1">{debt.platform} • {debt.rateType === 'FLAT' ? 'Lãi phẳng' : 'Dư nợ giảm dần'}</p>
         </div>
         <div className="flex items-center gap-2">
+          <a
+            href={generateGoogleCalendarLink({
+              name: debt.name,
+              amount: debt.minPayment,
+              dueDay: debt.dueDay,
+              platform: debt.platform,
+              id: debt.id
+            })}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-bold border border-blue-500/20 bg-blue-500/5 text-blue-400 hover:bg-blue-500/10 transition-all cursor-pointer"
+            title="Thêm nhắc nhở vào Google Calendar"
+          >
+            <Calendar size={14} /> Đặt lịch nhắc nợ
+          </a>
           <Link to={`/debts/${id}/edit`}
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-bold border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-text-muted)] transition-all cursor-pointer">
             <Pencil size={14} /> Chỉnh sửa
@@ -134,10 +150,10 @@ export default function DebtDetailPage() {
           {/* KPI metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              { label: 'Dư nợ',      value: formatVND(debt.balance),     color: '#ef4444', gradient: 'from-red-500 to-rose-400' },
-              { label: 'APR',         value: formatPercent(debt.apr),     color: '#3b82f6', gradient: 'from-blue-500 to-cyan-400' },
-              { label: 'EAR thực tế', value: formatPercent(debt.ear),    color: '#ef4444', gradient: 'from-red-500 to-rose-400' },
-              { label: 'Còn lại',     value: `${debt.remainingTerms} kỳ`,color: '#94a3b8', gradient: 'from-slate-400 to-slate-500' },
+              { label: 'Dư nợ', value: formatVND(debt.balance), color: '#ef4444', gradient: 'from-red-500 to-rose-400' },
+              { label: 'APR', value: formatPercent(debt.apr), color: '#3b82f6', gradient: 'from-blue-500 to-cyan-400' },
+              { label: 'EAR thực tế', value: formatPercent(debt.ear), color: '#ef4444', gradient: 'from-red-500 to-rose-400' },
+              { label: 'Còn lại', value: `${debt.remainingTerms} kỳ`, color: '#94a3b8', gradient: 'from-slate-400 to-slate-500' },
             ].map((item, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
                 className="relative rounded-2xl p-4 border overflow-hidden text-center"
@@ -231,9 +247,9 @@ export default function DebtDetailPage() {
 
             <div className="space-y-2.5">
               {[
-                { label: 'Gốc ban đầu',   value: formatVND(debt.originalAmount),              vColor: 'var(--color-text-primary)' },
-                { label: 'Đã trả',         value: formatVND(debt.originalAmount - debt.balance), vColor: '#34d399' },
-                { label: 'Ngày đáo hạn',  value: `Ngày ${debt.dueDay} hàng tháng`,             vColor: 'var(--color-text-primary)' },
+                { label: 'Gốc ban đầu', value: formatVND(debt.originalAmount), vColor: 'var(--color-text-primary)' },
+                { label: 'Đã trả', value: formatVND(debt.originalAmount - debt.balance), vColor: '#34d399' },
+                { label: 'Ngày đáo hạn', value: `Ngày ${debt.dueDay} hàng tháng`, vColor: 'var(--color-text-primary)' },
               ].map(r => (
                 <div key={r.label} className="flex justify-between text-[12px]">
                   <span className="text-[var(--color-text-muted)]">{r.label}</span>

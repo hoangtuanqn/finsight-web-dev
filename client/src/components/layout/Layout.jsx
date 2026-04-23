@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet, Navigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import Footer from './Footer';
 import { useAuth } from '../../context/AuthContext';
 import MockMarketControl from '../common/MockMarketControl';
 import AIChatbotModal from '../chat/AIChatbotModal';
@@ -87,8 +88,12 @@ export default function Layout() {
           />
 
           <main className="flex-1 overflow-y-auto pt-[89px]">
-            <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-              <Outlet />
+            <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto flex flex-col min-h-full">
+              <div className="flex-1">
+                <Outlet />
+              </div>
+
+              <Footer />
             </div>
           </main>
         </div>
