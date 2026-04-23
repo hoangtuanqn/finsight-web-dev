@@ -18,37 +18,33 @@ export async function checkSepayPayments() {
 
     const transactions = response.data?.transactions || [];
 
-    for (const tx of transactions) {
-      const content = (tx.transaction_content || '').toUpperCase().trim();
-      
-      // Match pattern: UPGRADE PRO <userId> [suffix]
-      const match = content.match(/UPGRADE\s+(PRO|PROMAX)\s+(\S+)(?:\s+(\S+))?/);
-      if (!match) continue;
+    // Fetch all pending invoices once to match against SePay records
+    const pendingInvoices = await prisma.transaction.findMany({
+      where: { status: 'PENDING' },
+    });
 
-      const plan = match[1];
-      const userId = match[2];
-      const suffix = match[3];
-      const transferCode = suffix ? `UPGRADE ${plan} ${userId} ${suffix}` : `UPGRADE ${plan} ${userId}`;
+    if (pendingInvoices.length === 0 && transactions.length === 0) return;
+
+    for (const tx of transactions) {
+      const content = (tx.transaction_content || '').toUpperCase();
       const sepayRefId = String(tx.id);
 
-      // Skip if already processed
+      // 1. Skip if already processed
       const alreadyProcessed = await prisma.transaction.findFirst({
         where: { sepayRef: sepayRefId },
       });
       if (alreadyProcessed) continue;
 
-      // Find matching PENDING invoice by transferCode
-      const invoice = await prisma.transaction.findFirst({
-        where: {
-          transferCode: { contains: transferCode, mode: 'insensitive' },
-          status: 'PENDING',
-          amount: { lte: parseFloat(tx.amount_in || 0) },
-        },
-      });
+      // 2. Find matching invoice (transferCode is contained in SePay content)
+      const amountIn = parseFloat(tx.amount_in || 0);
+      const invoice = pendingInvoices.find(inv => 
+        content.includes(inv.transferCode.toUpperCase()) &&
+        amountIn >= inv.amount
+      );
 
       if (!invoice) continue;
 
-      // Activate subscription
+      // 3. Activate subscription
       const now = new Date();
       const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // +30 days
 
@@ -59,30 +55,30 @@ export async function checkSepayPayments() {
         }),
         prisma.user.update({
           where: { id: invoice.userId },
-          data: { level: plan, levelExpiresAt: expiresAt },
+          data: { level: invoice.plan, levelExpiresAt: expiresAt },
         }),
         prisma.notification.create({
           data: {
             userId: invoice.userId,
             type: 'UPGRADE_SUCCESS',
-            title: `🎉 Nâng cấp ${plan} thành công!`,
-            message: `Tài khoản đã được nâng cấp lên gói ${plan}. Hiệu lực đến ${expiresAt.toLocaleDateString('vi-VN')}.`,
+            title: `🎉 Nâng cấp ${invoice.plan} thành công!`,
+            message: `Tài khoản đã được nâng cấp lên gói ${invoice.plan}. Hiệu lực đến ${expiresAt.toLocaleDateString('vi-VN')}.`,
             severity: 'INFO',
           },
         }),
       ]);
 
-      console.log(`[SePay] ✅ Activated ${plan} for User ${invoice.userId} (SePay ref: ${sepayRefId})`);
+      console.log(`[SePay] ✅ Activated ${invoice.plan} for User ${invoice.userId} (Ref: ${sepayRefId})`);
       
-      // Emit socket event to the user
+      // 4. Emit socket event
       try {
         const io = getIO();
         io.to(`user_${invoice.userId}`).emit('subscription:upgraded', { 
-          level: plan, 
-          message: `Tài khoản đã được nâng cấp lên gói ${plan}.`
+          level: invoice.plan, 
+          message: `Tài khoản đã được nâng cấp lên gói ${invoice.plan}.`
         });
       } catch (e) {
-        console.error('[SePay] Failed to emit socket event:', e.message);
+        console.error('[SePay] Socket emit failed:', e.message);
       }
     }
   } catch (err) {
