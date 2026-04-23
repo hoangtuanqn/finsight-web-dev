@@ -59,5 +59,14 @@ export const authSchemas = {
   payment: z.object({
     amount: z.number().positive('Số tiền thanh toán phải lớn hơn 0'),
     notes: z.string().max(200).optional()
+  }),
+
+  qrScanned: z.object({
+    qrToken: z.string().uuid('Token QR không hợp lệ')
+  }),
+
+  qrConfirm: z.object({
+    qrToken: z.string().uuid('Token QR không hợp lệ'),
+    action: z.enum(['approve', 'reject'])
   })
 };
