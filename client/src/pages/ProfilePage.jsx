@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { userAPI } from '../api/index.js';
-import { formatDecimalInput, formatIntegerInput, formatPercent, formatVND, normalizeLocaleNumberInput } from '../utils/calculations';
+import FormattedInput from '../components/common/FormattedInput';
+import { formatPercent, formatVND } from '../utils/calculations';
 import {
   User, Mail, DollarSign, TrendingDown, CheckCircle, Rocket,
   AlertTriangle, Target, Shield, Flame, Clock, Calendar, TrendingUp,
@@ -86,18 +87,15 @@ export default function ProfilePage() {
     ...extra,
   });
   const currencyInp = (field, extra = {}) => ({
-    value: formatIntegerInput(form[field]),
+    value: form[field] ?? '',
     onChange: e => setForm(f => ({ ...f, [field]: e.target.value.replace(/\D/g, '') })),
     className: INPUT + ' pl-10 pr-10',
     inputMode: 'numeric',
     ...extra,
   });
   const percentInp = (field, extra = {}) => ({
-    value: formatDecimalInput(form[field]),
-    onChange: (e) => {
-      const normalized = normalizeLocaleNumberInput(e.target.value);
-      setForm(f => ({ ...f, [field]: normalized }));
-    },
+    value: form[field] ?? '',
+    onChange: (e) => setForm(f => ({ ...f, [field]: e.target.value })),
     className: INPUT + ' pr-10',
     inputMode: 'decimal',
     ...extra,
@@ -194,7 +192,7 @@ export default function ProfilePage() {
                     <label className={LABEL}>Thu nhập hằng tháng</label>
                     <div className="relative">
                       <DollarSign size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
-                      <input type="text" {...currencyInp('monthlyIncome', { placeholder: '0' })} />
+                      <FormattedInput kind="integer" value={form.monthlyIncome} onValueChange={(value) => setForm(f => ({ ...f, monthlyIncome: value }))} className={INPUT + ' pl-10'} placeholder="0" suffix="đ" />
                       <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] text-sm font-bold">đ</span>
                     </div>
                   </div>
