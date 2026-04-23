@@ -1,20 +1,39 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, BarChart2, Info, ArrowUpRight, Clock, AlertTriangle } from 'lucide-react';
 import { INVESTMENT_SUGGESTIONS } from './InvestmentConstants.js';
-import { investmentAPI } from '../../api';
+import {
+  useCryptoPrices,
+  useStockPrices,
+  useGoldPrices,
+  useSavingsRates,
+  useBondsRates,
+} from '../../hooks/useInvestmentQuery';
+
+// Hook gộp — trả về {items, intro, updatedAt, loading, error} cho từng asset
+// Mỗi hook cache 10 phút trong React Query: vào lại trong 10p → dùng cache, qua 10p → fetch lại
+function useAssetData(asset, riskLevel) {
+  const crypto  = useCryptoPrices(riskLevel);
+  const stocks  = useStockPrices(riskLevel);
+  const gold    = useGoldPrices();
+  const savings = useSavingsRates(riskLevel);
+  const bonds   = useBondsRates(riskLevel);
+
+  const queryMap = { crypto, stocks, gold, savings, bonds };
+  const q = queryMap[asset] ?? { data: null, isLoading: false, isError: false };
+
+  const payload = q.data;
+  return {
+    items:     payload?.coins || payload?.stocks || payload?.goldItems || payload?.savingsItems || payload?.bondItems || [],
+    intro:     payload?.intro || '',
+    updatedAt: payload?.updatedAt || '',
+    loading:   q.isLoading,
+    error:     q.isError,
+  };
+}
 
 export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
   const [openTab, setOpenTab] = useState(null);
-  
-  // Data states
-  const [data, setData] = useState({
-    crypto: { items: [], intro: '', loading: false, error: false },
-    stocks: { items: [], intro: '', loading: false, error: false },
-    gold: { items: [], intro: '', loading: false, error: false },
-    savings: { items: [], intro: '', loading: false, error: false },
-    bonds: { items: [], intro: '', loading: false, error: false },
-  });
 
   const activeAssets = Object.entries(allocation)
     .filter(([, pct]) => pct > 0)
@@ -22,42 +41,8 @@ export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
 
   const active = openTab ?? activeAssets[0]?.[0] ?? null;
 
-  const fetchData = async (asset) => {
-    if (data[asset].items.length > 0 || data[asset].loading) return;
-    
-    setData(prev => ({ ...prev, [asset]: { ...prev[asset], loading: true, error: false } }));
-    
-    try {
-      let res;
-      switch(asset) {
-        case 'crypto': res = await investmentAPI.getCryptoPrices({ riskLevel }); break;
-        case 'stocks': res = await investmentAPI.getStockPrices({ riskLevel }); break;
-        case 'gold': res = await investmentAPI.getGoldPrices(); break;
-        case 'savings': res = await investmentAPI.getSavingsRates({ riskLevel }); break;
-        case 'bonds': res = await investmentAPI.getBondsRates({ riskLevel }); break;
-        default: return;
-      }
-      
-      const payload = res.data.data;
-      setData(prev => ({
-        ...prev,
-        [asset]: {
-          items: payload.coins || payload.stocks || payload.goldItems || payload.savingsItems || payload.bondItems || [],
-          intro: payload.intro || '',
-          updatedAt: payload.updatedAt || '',
-          loading: false,
-          error: false
-        }
-      }));
-    } catch (e) {
-      setData(prev => ({ ...prev, [asset]: { ...prev[asset], loading: false, error: true } }));
-    }
-  };
-
-  useEffect(() => {
-    if (active) fetchData(active);
-  }, [active, riskLevel]);
-
+  // Dữ liệu active tab — React Query tự cache 10 phút, không fetch lại khi vào/ra trang
+  const activeData = useAssetData(active, riskLevel);
   const suggestion = active ? INVESTMENT_SUGGESTIONS[active] : null;
 
   return (
@@ -119,19 +104,19 @@ export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
                 <span className="text-xs font-semibold text-slate-400">Phân tích bối cảnh thị trường</span>
               </div>
               <p className="text-sm font-medium text-slate-200 leading-relaxed">
-                {data[active].intro || suggestion.intro}
+                {activeData.intro || suggestion.intro}
               </p>
             </div>
 
             {/* Content Area */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
-              {data[active].loading ? (
+              {activeData.loading ? (
                 <div className="col-span-2 py-16 flex flex-col items-center justify-center gap-4 text-slate-400">
                   <div className="w-16 h-1.5 rounded-full bg-white/5 relative overflow-hidden">
-                    <motion.div 
-                      animate={{ x: ['-100%', '100%'] }} 
+                    <motion.div
+                      animate={{ x: ['-100%', '100%'] }}
                       transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-                      className="absolute inset-0 rounded-full" 
+                      className="absolute inset-0 rounded-full"
                       style={{ background: suggestion.color }}
                     />
                   </div>
@@ -139,7 +124,7 @@ export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
                 </div>
               ) : (
                 <>
-                  {(data[active].items.length > 0 ? data[active].items : suggestion.items).map((item, i) => (
+                  {(activeData.items.length > 0 ? activeData.items : suggestion.items).map((item, i) => (
                     <AssetCard key={i} item={item} color={suggestion.color} type={active} />
                   ))}
                 </>
@@ -166,7 +151,7 @@ export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
                 <div className="flex items-center gap-2 text-slate-500 bg-white/[0.02] px-3 py-1.5 rounded-full border border-white/5">
                   <Clock size={12} />
                   <span className="text-xs font-semibold">
-                    Cập nhật: {data[active].updatedAt || 'Real-time'}
+                    Cập nhật: {activeData.updatedAt || 'Real-time'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-amber-500/80 bg-amber-500/10 px-3 py-1.5 rounded-full border border-amber-500/20">
