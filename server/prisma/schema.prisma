@@ -56,10 +56,17 @@ model Debt {
   termMonths       Int
   remainingTerms   Int
   startDate        DateTime?
-  status           String   @default("ACTIVE")
-  notes            String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  status                 String    @default("ACTIVE")
+  notes                  String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  // ── Smart Deletion System ──
+  deletedAt              DateTime? // Thời điểm user thực hiện xoá mềm
+  scheduledPurgeAt       DateTime? // Thời điểm Cronjob sẽ Hard Delete
+  deleteReason           String?   // Lý do xoá
+  deleteCommitment       Boolean   @default(false) // Trạng thái đã xác nhận rủi ro
+
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   payments Payment[]
@@ -223,6 +230,19 @@ model FinanceKnowledge {
   @@map("finance_knowledge")
 }
 
+model Article {
+  id        String   @id @default(cuid())
+  title     String
+  author    String   @default("FinSight Team")
+  date      String
+  imageUrl  String
+  excerpt   String
+  content   String   @db.Text
+  category  String   @default("STORY")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("articles")
 // ── Investment Strategy ─────────────────────────────────────
 
 model AIStrategy {

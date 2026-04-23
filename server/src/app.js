@@ -21,6 +21,7 @@ import marketRoutes from './routes/market.routes.js';
 import agenticRoutes from './routes/agentic.routes.js';
 import reportRoutes from './routes/report.routes.js';
 import subscriptionRoutes from './routes/subscription.routes.js';
+import articleRoutes from './routes/article.routes.js';
 import cronManager from './cron/index.js';
 import { initSocket } from './utils/socket.js';
 
@@ -58,6 +59,7 @@ app.use('/api/market', marketRoutes);
 app.use('/api/agentic', agenticRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/subscription', subscriptionRoutes);
+app.use('/api/articles', articleRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

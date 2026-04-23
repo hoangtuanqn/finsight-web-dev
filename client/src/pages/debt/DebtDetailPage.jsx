@@ -11,6 +11,7 @@ import EARBreakdown from '../../components/debt/EARBreakdown';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
 import { Pencil, FileText, DollarSign, CheckCircle, ArrowLeft, Search, Trash2, ChevronRight, Calendar, AlertTriangle } from 'lucide-react';
 import { generateGoogleCalendarLink } from '../../utils/calendar';
+import DebtFluctuationChart from '../../components/debt/DebtFluctuationChart';
 
 const paymentSchema = z.object({
   amount: z.number().positive('Số tiền phải lớn hơn 0 ₫'),
@@ -21,7 +22,7 @@ export default function DebtDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { data, isLoading } = useDebt(id);
-  const { deleteDebt, logPayment, isDeleting, isLogging } = useDebtMutations();
+  const { deleteDebt, restoreDebt, logPayment, isDeleting, isRestoring, isLogging } = useDebtMutations();
 
   const [paySuccess, setPaySuccess] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -31,9 +32,9 @@ export default function DebtDetailPage() {
     defaultValues: { amount: '', notes: '' }
   });
 
-  const handleDelete = async () => {
+  const handleDelete = async (reason, isCommitted) => {
     try {
-      await deleteDebt(id);
+      await deleteDebt({ id, data: { reason, isCommitted } });
       navigate('/debts');
     } catch (err) {
       console.error(err);
@@ -89,14 +90,40 @@ export default function DebtDetailPage() {
             <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto mb-4" style={{ boxShadow: '0 0 20px rgba(239,68,68,0.2)' }}>
               <Trash2 size={24} className="text-red-400" />
             </div>
-            <h3 className="text-[16px] font-black text-[var(--color-text-primary)] mb-2">Xóa khoản nợ?</h3>
-            <p className="text-[13px] text-[var(--color-text-secondary)] mb-6 leading-relaxed">
-              Khoản nợ <strong className="text-[var(--color-text-primary)]">"{debt.name}"</strong> sẽ bị xóa vĩnh viễn cùng toàn bộ lịch sử thanh toán.
+            <h3 className="text-[16px] font-black text-[var(--color-text-primary)] mb-2">Chuyển vào thùng rác?</h3>
+            <p className="text-[13px] text-[var(--color-text-secondary)] mb-4 leading-relaxed">
+              Khoản nợ <strong className="text-[var(--color-text-primary)]">"{debt.name}"</strong> sẽ được chuyển vào thùng rác và tự động xoá vĩnh viễn sau 30 ngày.
             </p>
+
+            {debt.balance > 0 && (
+              <div className="text-left mb-6 space-y-3">
+                <input
+                  type="text"
+                  placeholder="Lý do xoá khoản nợ này?"
+                  className="w-full px-3 py-2 rounded-lg text-sm border bg-[var(--color-bg-secondary)] border-[var(--color-border)] outline-none focus:border-red-500/50"
+                  id="deleteReason"
+                />
+                <label className="flex items-start gap-2 text-xs text-[var(--color-text-muted)] cursor-pointer">
+                  <input type="checkbox" id="deleteCommit" className="mt-0.5" />
+                  <span>Tôi hiểu việc xoá khoản nợ đang vay sẽ làm sai lệch phân tích DTI và EAR.</span>
+                </label>
+              </div>
+            )}
+
             <div className="flex gap-3">
               <button onClick={() => setConfirmDelete(false)} className="flex-1 py-2.5 rounded-xl text-[13px] font-bold border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-all cursor-pointer">Hủy</button>
-              <button onClick={handleDelete} disabled={isDeleting} className="flex-1 py-2.5 rounded-xl text-[13px] font-black bg-red-500 hover:bg-red-400 text-white transition-all flex items-center justify-center gap-2 cursor-pointer">
-                {isDeleting ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Đang xóa...</> : <><Trash2 size={14} /> Xóa vĩnh viễn</>}
+              <button onClick={() => {
+                const reason = document.getElementById('deleteReason')?.value;
+                const isCommitted = document.getElementById('deleteCommit')?.checked;
+                
+                if (debt.balance > 0 && (!reason || !isCommitted)) {
+                  toast.error('Vui lòng nhập lý do và xác nhận rủi ro');
+                  return;
+                }
+                
+                handleDelete(reason, isCommitted);
+              }} disabled={isDeleting} className="flex-1 py-2.5 rounded-xl text-[13px] font-black bg-red-500 hover:bg-red-400 text-white transition-all flex items-center justify-center gap-2 cursor-pointer">
+                {isDeleting ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Đang xử lý...</> : <><Trash2 size={14} /> Xoá nợ</>}
               </button>
             </div>
           </motion.div>
@@ -109,6 +136,13 @@ export default function DebtDetailPage() {
         <span className="text-[var(--color-text-primary)]">{debt.name}</span>
       </div>
 
+      {debt.deletedAt && (
+        <div className="flex items-center gap-2 px-4 py-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-sm font-semibold text-amber-500">
+          <AlertTriangle size={18} />
+          Khoản nợ này đang nằm trong thùng rác và sẽ bị xóa vĩnh viễn sau 30 ngày.
+        </div>
+      )}
+
       <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-red-500/20 bg-red-500/8 text-red-400 text-[10px] font-black uppercase tracking-widest mb-3">
@@ -118,29 +152,42 @@ export default function DebtDetailPage() {
           <p className="text-[var(--color-text-secondary)] text-sm mt-1">{debt.platform} • {debt.rateType === 'FLAT' ? 'Lãi phẳng' : 'Dư nợ giảm dần'}</p>
         </div>
         <div className="flex items-center gap-2">
-          <a
-            href={generateGoogleCalendarLink({
-              name: debt.name,
-              amount: debt.minPayment,
-              dueDay: debt.dueDay,
-              platform: debt.platform,
-              id: debt.id
-            })}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-bold border border-blue-500/20 bg-blue-500/5 text-blue-400 hover:bg-blue-500/10 transition-all cursor-pointer"
-            title="Thêm nhắc nhở vào Google Calendar"
-          >
-            <Calendar size={14} /> Đặt lịch nhắc nợ
-          </a>
-          <Link to={`/debts/${id}/edit`}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-bold border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-text-muted)] transition-all cursor-pointer">
-            <Pencil size={14} /> Chỉnh sửa
-          </Link>
-          <button onClick={() => setConfirmDelete(true)}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-bold bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/15 transition-all cursor-pointer">
-            <Trash2 size={14} /> Xóa
-          </button>
+          {debt.deletedAt ? (
+            <button onClick={async () => {
+              await restoreDebt(id);
+              toast.success('Đã khôi phục khoản nợ');
+            }}
+              disabled={isRestoring}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-bold bg-amber-500 hover:bg-amber-400 text-white transition-all cursor-pointer">
+              {isRestoring ? 'Đang khôi phục...' : 'Khôi phục khoản nợ'}
+            </button>
+          ) : (
+            <>
+              <a
+                href={generateGoogleCalendarLink({
+                  name: debt.name,
+                  amount: debt.minPayment,
+                  dueDay: debt.dueDay,
+                  platform: debt.platform,
+                  id: debt.id
+                })}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-bold border border-blue-500/20 bg-blue-500/5 text-blue-400 hover:bg-blue-500/10 transition-all cursor-pointer"
+                title="Thêm nhắc nhở vào Google Calendar"
+              >
+                <Calendar size={14} /> Đặt lịch nhắc nợ
+              </a>
+              <Link to={`/debts/${id}/edit`}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-bold border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-text-muted)] transition-all cursor-pointer">
+                <Pencil size={14} /> Chỉnh sửa
+              </Link>
+              <button onClick={() => setConfirmDelete(true)}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-bold bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/15 transition-all cursor-pointer">
+                <Trash2 size={14} /> Xóa
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -180,6 +227,8 @@ export default function DebtDetailPage() {
           </div>
 
           <EARBreakdown breakdown={earBreakdown} />
+          
+          <DebtFluctuationChart data={data.chartData} />
 
           <div className="rounded-3xl border p-5" style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}>
             <h3 className="text-[14px] font-black text-[var(--color-text-primary)] mb-4 flex items-center gap-2">
@@ -218,30 +267,38 @@ export default function DebtDetailPage() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit(onPaymentSubmit)} className="space-y-4">
-              <div>
-                <label className="block text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-1.5">Số tiền</label>
-                <input
-                  type="number"
-                  placeholder="0"
-                  className={`w-full px-4 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] text-sm outline-none focus:border-emerald-500/60 transition-colors ${errors.amount ? 'border-red-500/60 focus:border-red-500' : 'border-[var(--color-border)]'}`}
-                  {...register('amount', { valueAsNumber: true })}
-                />
-                {errors.amount && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={11} /> {errors.amount.message}</p>}
+            {debt.deletedAt ? (
+              <div className="py-6 text-center">
+                <p className="text-[13px] font-medium text-[var(--color-text-muted)] mb-2">
+                  Bạn không thể ghi nhận thanh toán cho khoản nợ trong thùng rác.
+                </p>
               </div>
-              <div>
-                <label className="block text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-1.5">Ghi chú</label>
-                <input
-                  placeholder="Tuỳ chọn"
-                  className="w-full px-4 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-[var(--color-text-primary)] text-sm outline-none focus:border-emerald-500/60 transition-colors"
-                  {...register('notes')}
-                />
-              </div>
-              <button type="submit" disabled={isLogging}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm transition-all shadow-lg shadow-emerald-500/25 cursor-pointer disabled:opacity-60">
-                {isLogging ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Đang xử lý...</> : 'Ghi nhận'}
-              </button>
-            </form>
+            ) : (
+              <form onSubmit={handleSubmit(onPaymentSubmit)} className="space-y-4">
+                <div>
+                  <label className="block text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-1.5">Số tiền</label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    className={`w-full px-4 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] text-sm outline-none focus:border-emerald-500/60 transition-colors ${errors.amount ? 'border-red-500/60 focus:border-red-500' : 'border-[var(--color-border)]'}`}
+                    {...register('amount', { valueAsNumber: true })}
+                  />
+                  {errors.amount && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={11} /> {errors.amount.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-1.5">Ghi chú</label>
+                  <input
+                    placeholder="Tuỳ chọn"
+                    className="w-full px-4 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-[var(--color-text-primary)] text-sm outline-none focus:border-emerald-500/60 transition-colors"
+                    {...register('notes')}
+                  />
+                </div>
+                <button type="submit" disabled={isLogging}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm transition-all shadow-lg shadow-emerald-500/25 cursor-pointer disabled:opacity-60">
+                  {isLogging ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Đang xử lý...</> : 'Ghi nhận'}
+                </button>
+              </form>
+            )}
 
             <div className="h-px my-5" style={{ background: 'var(--color-border)' }} />
 

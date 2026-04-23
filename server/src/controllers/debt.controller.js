@@ -9,9 +9,19 @@ import {
 
 export async function getAllDebts(req, res) {
   try {
-    const { platform, amountRange, dueInDays } = req.query;
+    const { platform, amountRange, dueInDays, status } = req.query;
 
-    let whereClause = { userId: req.userId, status: 'ACTIVE' };
+    const filterStatus = status || 'ACTIVE'; // 'ACTIVE' | 'PAID' | 'TRASH'
+
+    let whereClause = { userId: req.userId };
+    let includeDeleted = false;
+
+    if (filterStatus === 'TRASH') {
+      whereClause.deletedAt = { not: null };
+      includeDeleted = true;
+    } else {
+      whereClause.status = filterStatus;
+    }
 
     if (platform) {
       whereClause.platform = platform;
@@ -26,6 +36,7 @@ export async function getAllDebts(req, res) {
     const user = await prisma.user.findUnique({ where: { id: req.userId } });
     let debts = await prisma.debt.findMany({
       where: whereClause,
+      includeDeleted,
       orderBy: { createdAt: 'desc' },
     });
 
@@ -93,23 +104,23 @@ export async function createDebt(req, res) {
   try {
     const debt = await prisma.debt.create({
       data: {
-        userId:          req.userId,
-        name:            String(req.body.name).trim(),
-        platform:        req.body.platform ?? 'CUSTOM',
-        originalAmount:  +req.body.originalAmount,
-        balance:         +req.body.balance,
-        apr:             +req.body.apr,
-        rateType:        req.body.rateType ?? 'FLAT',
-        feeProcessing:   +req.body.feeProcessing  || 0,
-        feeInsurance:    +req.body.feeInsurance   || 0,
-        feeManagement:   +req.body.feeManagement  || 0,
+        userId: req.userId,
+        name: String(req.body.name).trim(),
+        platform: req.body.platform ?? 'CUSTOM',
+        originalAmount: +req.body.originalAmount,
+        balance: +req.body.balance,
+        apr: +req.body.apr,
+        rateType: req.body.rateType ?? 'FLAT',
+        feeProcessing: +req.body.feeProcessing || 0,
+        feeInsurance: +req.body.feeInsurance || 0,
+        feeManagement: +req.body.feeManagement || 0,
         feePenaltyPerDay: +req.body.feePenaltyPerDay || 0,
-        minPayment:      +req.body.minPayment,
-        dueDay:          Math.round(+req.body.dueDay),
-        termMonths:      Math.round(+req.body.termMonths),
-        remainingTerms:  Math.round(remainingTerms),
-        startDate:       new Date(startDate),
-        notes:           req.body.notes ?? null,
+        minPayment: +req.body.minPayment,
+        dueDay: Math.round(+req.body.dueDay),
+        termMonths: Math.round(+req.body.termMonths),
+        remainingTerms: Math.round(remainingTerms),
+        startDate: new Date(startDate),
+        notes: req.body.notes ?? null,
       },
     });
     await invalidateCache([`user:${req.userId}:*`]);
@@ -124,6 +135,7 @@ export async function getDebtById(req, res) {
   try {
     const debt = await prisma.debt.findFirst({
       where: { id: req.params.id, userId: req.userId },
+      includeDeleted: true,
       include: { payments: { orderBy: { paidAt: 'desc' } } },
     });
     if (!debt) return error(res, 'Debt not found', 404);
@@ -139,7 +151,40 @@ export async function getDebtById(req, res) {
       totalEAR: ear,
     };
 
-    return success(res, { debt: { ...debt, apy, ear }, earBreakdown, paymentHistory: debt.payments });
+    const sortedPayments = [...debt.payments].sort((a, b) => new Date(a.paidAt) - new Date(b.paidAt));
+    let currentBalance = debt.originalAmount;
+    const chartData = [];
+    
+    chartData.push({
+      date: debt.startDate || debt.createdAt,
+      balance: currentBalance,
+      label: 'Gốc'
+    });
+
+    sortedPayments.forEach(p => {
+      currentBalance = Math.max(0, currentBalance - p.amount);
+      chartData.push({
+        date: p.paidAt,
+        balance: currentBalance,
+        label: 'Đã trả',
+        amount: p.amount
+      });
+    });
+
+    if (currentBalance > 0 && !debt.deletedAt) {
+      chartData.push({
+        date: new Date(),
+        balance: currentBalance,
+        label: 'Hiện tại'
+      });
+    }
+
+    return success(res, { 
+      debt: { ...debt, apy, ear }, 
+      earBreakdown, 
+      paymentHistory: debt.payments,
+      chartData 
+    });
   } catch (err) {
     console.error('getDebtById error:', err);
     return error(res, 'Internal server error');
@@ -164,14 +209,82 @@ export async function updateDebt(req, res) {
 
 export async function deleteDebt(req, res) {
   try {
-    await prisma.debt.deleteMany({ where: { id: req.params.id, userId: req.userId } });
+    const { reason, isCommitted } = req.body || {};
+
+    // Use includeDeleted: true in case they are trying to delete something already deleted (though it shouldn't happen)
+    const debt = await prisma.debt.findFirst({
+      where: { id: req.params.id, userId: req.userId },
+      includeDeleted: true
+    });
+
+    if (!debt) return error(res, 'Debt not found', 404);
+    if (debt.deletedAt) return error(res, 'Khoản nợ này đã nằm trong thùng rác', 400);
+
+    let scheduledPurgeAt = new Date();
+    scheduledPurgeAt.setDate(scheduledPurgeAt.getDate() + 30);
+
+    if (debt.balance > 0) {
+      if (!reason || !isCommitted) {
+        return error(res, 'Yêu cầu nhập lý do và cam kết rủi ro.', 400);
+      }
+
+      await prisma.debt.update({
+        where: { id: debt.id },
+        data: {
+          deletedAt: new Date(),
+          scheduledPurgeAt,
+          deleteReason: reason,
+          deleteCommitment: true
+        }
+      });
+    } else {
+      await prisma.debt.update({
+        where: { id: debt.id },
+        data: {
+          deletedAt: new Date(),
+          scheduledPurgeAt,
+          deleteReason: 'CLEAN_UP_SETTLED_DEBT',
+          deleteCommitment: false
+        }
+      });
+    }
+
     await invalidateCache([`user:${req.userId}:*`]);
-    return success(res, { message: 'Debt deleted' });
+    return success(res, { message: 'Khoản nợ đã được chuyển vào thùng rác.' });
   } catch (err) {
     console.error('deleteDebt error:', err);
     return error(res, 'Internal server error');
   }
 }
+
+export async function restoreDebt(req, res) {
+  try {
+    const debt = await prisma.debt.findFirst({
+      where: { id: req.params.id, userId: req.userId },
+      includeDeleted: true
+    });
+
+    if (!debt) return error(res, 'Debt not found', 404);
+    if (!debt.deletedAt) return error(res, 'Khoản nợ này không nằm trong thùng rác', 400);
+
+    await prisma.debt.update({
+      where: { id: debt.id },
+      data: {
+        deletedAt: null,
+        scheduledPurgeAt: null,
+        deleteReason: null,
+        deleteCommitment: false
+      }
+    });
+
+    await invalidateCache([`user:${req.userId}:*`]);
+    return success(res, { message: 'Đã khôi phục khoản nợ thành công.' });
+  } catch (err) {
+    console.error('restoreDebt error:', err);
+    return error(res, 'Internal server error');
+  }
+}
+
 
 export async function logPayment(req, res) {
   try {
@@ -199,15 +312,15 @@ export async function logPayment(req, res) {
     // ── Milestone check ────────────────────────────────────
     try {
       const allDebts = await prisma.debt.findMany({ where: { userId: req.userId } });
-      const user     = await prisma.user.findUnique({ where: { id: req.userId }, select: { email: true, fullName: true } });
+      const user = await prisma.user.findUnique({ where: { id: req.userId }, select: { email: true, fullName: true } });
 
       const totalOriginal = allDebts.reduce((s, d) => s + d.originalAmount, 0);
       if (totalOriginal > 0 && user?.email) {
         // Tính totalPaid trước và sau thanh toán vừa rồi
-        const totalCurrentAfter  = allDebts.reduce((s, d) => s + (d.id === debt.id ? updatedDebt.balance : d.balance), 0);
+        const totalCurrentAfter = allDebts.reduce((s, d) => s + (d.id === debt.id ? updatedDebt.balance : d.balance), 0);
         const totalCurrentBefore = totalCurrentAfter + amount; // hoàn ngược lại
         const paidBefore = totalOriginal - totalCurrentBefore;
-        const paidAfter  = totalOriginal - totalCurrentAfter;
+        const paidAfter = totalOriginal - totalCurrentAfter;
 
         const MILESTONES = [25, 50, 75, 100];
         for (const pct of MILESTONES) {
@@ -218,8 +331,8 @@ export async function logPayment(req, res) {
             await prisma.notification.create({
               data: {
                 userId: req.userId,
-                type:   'MILESTONE',
-                title:  `🎉 Đạt cột mốc ${pct}% tổng nợ!`,
+                type: 'MILESTONE',
+                title: `🎉 Đạt cột mốc ${pct}% tổng nợ!`,
                 message: `Bạn đã trả được ${pct}% tổng số nợ gốc (${new Intl.NumberFormat('vi-VN').format(Math.round(paidAfter))}đ / ${new Intl.NumberFormat('vi-VN').format(Math.round(totalOriginal))}đ). Tuyệt vời!`,
                 severity: pct === 100 ? 'INFO' : 'INFO',
               },
@@ -301,8 +414,8 @@ export async function getDtiAnalysis(req, res) {
 
     const zone =
       dtiRatio > 50 ? 'CRITICAL' :
-      dtiRatio > 35 ? 'WARNING' :
-      dtiRatio > 20 ? 'CAUTION' : 'SAFE';
+        dtiRatio > 35 ? 'WARNING' :
+          dtiRatio > 20 ? 'CAUTION' : 'SAFE';
 
     const breakdown = debts.map(d => ({
       id: d.id,

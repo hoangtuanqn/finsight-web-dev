@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import { checkSepayPayments, expirePendingInvoices } from './jobs/payment.job.js';
 import { checkExpiredSubscriptions } from './jobs/subscription.job.js';
-import { checkDueDebtsAndDominoRisk } from './jobs/debt.job.js';
+import { checkDueDebtsAndDominoRisk, purgeSoftDeletedDebts } from './jobs/debt.job.js';
 import { checkMarketSentimentChanges } from './jobs/market.job.js';
 
 class CronManager {
@@ -36,12 +36,15 @@ class CronManager {
       }
     });
 
-    // Job 2: Subscription Expiry (Daily at 00:05)
+    // Job 3: Subscription Expiry & Garbage Collection (Daily at 00:05)
     cron.schedule('5 0 * * *', async () => {
       try {
-        await checkExpiredSubscriptions();
+        await Promise.allSettled([
+          checkExpiredSubscriptions(),
+          purgeSoftDeletedDebts()
+        ]);
       } catch (error) {
-        console.error('❌ Subscription Expiry Cron Error:', error);
+        console.error('❌ Daily Maintenance Cron Error:', error);
       }
     });
 
