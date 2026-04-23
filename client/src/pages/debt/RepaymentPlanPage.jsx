@@ -327,7 +327,7 @@ export default function RepaymentPlanPage() {
 
       {/* ── Goal Linkage Banner ── */}
       {goalData && (
-        <Link to="/debts/goal">
+        <Link to="/debts/goal" className="block">
           <motion.div
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
