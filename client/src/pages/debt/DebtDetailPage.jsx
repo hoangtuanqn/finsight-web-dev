@@ -1,60 +1,52 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { debtAPI } from '../../api/index.js';
+import { useDebt, useDebtMutations } from '../../hooks/useDebtQuery';
 import { formatVND, formatPercent } from '../../utils/calculations';
 import EARBreakdown from '../../components/debt/EARBreakdown';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
-import { Pencil, FileText, DollarSign, CheckCircle, ArrowLeft, Search, Trash2, ChevronRight } from 'lucide-react';
+import { Pencil, FileText, DollarSign, CheckCircle, ArrowLeft, Search, Trash2, ChevronRight, Calendar } from 'lucide-react';
+import { generateGoogleCalendarLink } from '../../utils/calendar';
 
 export default function DebtDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [data, setData]                   = useState(null);
-  const [loading, setLoading]             = useState(true);
-  const [payForm, setPayForm]             = useState({ amount: '', notes: '' });
-  const [paying, setPaying]               = useState(false);
-  const [paySuccess, setPaySuccess]       = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleting, setDeleting]           = useState(false);
+  const { data, isLoading } = useDebt(id);
+  const { deleteDebt, logPayment, isDeleting, isLogging } = useDebtMutations();
 
-  const load = () => {
-    setLoading(true);
-    debtAPI.getById(id)
-      .then(res => setData(res.data.data))
-      .catch(console.error)
-      .finally(() => setTimeout(() => setLoading(false), 400));
-  };
-  useEffect(() => { load(); }, [id]);
+  const [payForm, setPayForm] = useState({ amount: '', notes: '' });
+  const [paySuccess, setPaySuccess] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const handleDelete = async () => {
-    setDeleting(true);
     try {
-      await debtAPI.delete(id);
-      toast.success(`Đã xóa khoản nợ "${debt?.name}"`);
+      await deleteDebt(id);
       navigate('/debts');
-    } catch (err) { toast.error('Xóa thất bại, vui lòng thử lại'); console.error(err); }
-    finally { setDeleting(false); setConfirmDelete(false); }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setConfirmDelete(false);
+    }
   };
 
   const handlePayment = async (e) => {
     e.preventDefault();
     const amount = +payForm.amount;
     if (!amount || amount <= 0) { toast.error('Số tiền phải lớn hơn 0 ₫'); return; }
-    if (amount > debt.balance) { toast.error(`Số tiền không được vượt quá ${formatVND(debt.balance)}`); return; }
-    setPaying(true); setPaySuccess(false);
+    if (amount > data.debt.balance) { toast.error(`Số tiền không được vượt quá ${formatVND(data.debt.balance)}`); return; }
+
     try {
-      await debtAPI.logPayment(id, { ...payForm, amount });
+      await logPayment({ id, data: { ...payForm, amount } });
       setPayForm({ amount: '', notes: '' });
       setPaySuccess(true);
       setTimeout(() => setPaySuccess(false), 3000);
-      load();
-    } catch (err) { toast.error('Ghi nhận thất bại, vui lòng thử lại'); console.error(err); }
-    finally { setPaying(false); }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  if (loading) return <PageSkeleton />;
+  if (isLoading) return <PageSkeleton />;
   if (!data) return (
     <div className="flex flex-col items-center justify-center py-24 gap-4">
       <div className="w-16 h-16 rounded-2xl bg-slate-500/10 flex items-center justify-center">
@@ -72,8 +64,6 @@ export default function DebtDetailPage() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-8 space-y-6">
-
-      {/* ── Delete Confirm Modal ── */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}
@@ -93,22 +83,20 @@ export default function DebtDetailPage() {
             </p>
             <div className="flex gap-3">
               <button onClick={() => setConfirmDelete(false)} className="flex-1 py-2.5 rounded-xl text-[13px] font-bold border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-all cursor-pointer">Hủy</button>
-              <button onClick={handleDelete} disabled={deleting} className="flex-1 py-2.5 rounded-xl text-[13px] font-black bg-red-500 hover:bg-red-400 text-white transition-all flex items-center justify-center gap-2 cursor-pointer">
-                {deleting ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Đang xóa...</> : <><Trash2 size={14} /> Xóa vĩnh viễn</>}
+              <button onClick={handleDelete} disabled={isDeleting} className="flex-1 py-2.5 rounded-xl text-[13px] font-black bg-red-500 hover:bg-red-400 text-white transition-all flex items-center justify-center gap-2 cursor-pointer">
+                {isDeleting ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Đang xóa...</> : <><Trash2 size={14} /> Xóa vĩnh viễn</>}
               </button>
             </div>
           </motion.div>
         </div>
       )}
 
-      {/* ── Breadcrumb ── */}
       <div className="flex items-center gap-1.5 text-[12px] font-medium pt-2">
         <Link to="/debts" className="text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors cursor-pointer">Quản lý nợ</Link>
         <ChevronRight size={13} className="text-[var(--color-border)]" />
         <span className="text-[var(--color-text-primary)]">{debt.name}</span>
       </div>
 
-      {/* ── Page header ── */}
       <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-red-500/20 bg-red-500/8 text-red-400 text-[10px] font-black uppercase tracking-widest mb-3">
@@ -118,6 +106,21 @@ export default function DebtDetailPage() {
           <p className="text-[var(--color-text-secondary)] text-sm mt-1">{debt.platform} • {debt.rateType === 'FLAT' ? 'Lãi phẳng' : 'Dư nợ giảm dần'}</p>
         </div>
         <div className="flex items-center gap-2">
+          <a
+            href={generateGoogleCalendarLink({
+              name: debt.name,
+              amount: debt.minPayment,
+              dueDay: debt.dueDay,
+              platform: debt.platform,
+              id: debt.id
+            })}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-bold border border-blue-500/20 bg-blue-500/5 text-blue-400 hover:bg-blue-500/10 transition-all cursor-pointer"
+            title="Thêm nhắc nhở vào Google Calendar"
+          >
+            <Calendar size={14} /> Đặt lịch nhắc nợ
+          </a>
           <Link to={`/debts/${id}/edit`}
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-bold border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-text-muted)] transition-all cursor-pointer">
             <Pencil size={14} /> Chỉnh sửa
@@ -131,13 +134,12 @@ export default function DebtDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-5">
-          {/* KPI metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              { label: 'Dư nợ',      value: formatVND(debt.balance),     color: '#ef4444', gradient: 'from-red-500 to-rose-400' },
-              { label: 'APR',         value: formatPercent(debt.apr),     color: '#3b82f6', gradient: 'from-blue-500 to-cyan-400' },
-              { label: 'EAR thực tế', value: formatPercent(debt.ear),    color: '#ef4444', gradient: 'from-red-500 to-rose-400' },
-              { label: 'Còn lại',     value: `${debt.remainingTerms} kỳ`,color: '#94a3b8', gradient: 'from-slate-400 to-slate-500' },
+              { label: 'Dư nợ', value: formatVND(debt.balance), color: '#ef4444', gradient: 'from-red-500 to-rose-400' },
+              { label: 'APR', value: formatPercent(debt.apr), color: '#3b82f6', gradient: 'from-blue-500 to-cyan-400' },
+              { label: 'EAR thực tế', value: formatPercent(debt.ear), color: '#ef4444', gradient: 'from-red-500 to-rose-400' },
+              { label: 'Còn lại', value: `${debt.remainingTerms} kỳ`, color: '#94a3b8', gradient: 'from-slate-400 to-slate-500' },
             ].map((item, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
                 className="relative rounded-2xl p-4 border overflow-hidden text-center"
@@ -149,7 +151,6 @@ export default function DebtDetailPage() {
             ))}
           </div>
 
-          {/* Progress */}
           <div className="rounded-3xl border p-5 relative overflow-hidden" style={{ background: 'var(--color-bg-card)', borderColor: 'rgba(59,130,246,0.15)' }}>
             <div className="absolute top-0 left-5 right-5 h-px bg-gradient-to-r from-transparent via-blue-500/30 to-transparent" />
             <div className="flex justify-between items-center mb-3">
@@ -166,10 +167,8 @@ export default function DebtDetailPage() {
             </div>
           </div>
 
-          {/* EAR Breakdown */}
           <EARBreakdown breakdown={earBreakdown} />
 
-          {/* Payment History */}
           <div className="rounded-3xl border p-5" style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}>
             <h3 className="text-[14px] font-black text-[var(--color-text-primary)] mb-4 flex items-center gap-2">
               <FileText size={15} className="text-blue-400" /> Lịch sử thanh toán
@@ -194,7 +193,6 @@ export default function DebtDetailPage() {
           </div>
         </div>
 
-        {/* ── Right: Payment ── */}
         <div>
           <div className="rounded-3xl border p-5 sticky top-24 relative overflow-hidden" style={{ background: 'var(--color-bg-card)', borderColor: 'rgba(16,185,129,0.15)' }}>
             <div className="absolute top-0 left-5 right-5 h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
@@ -221,9 +219,9 @@ export default function DebtDetailPage() {
                   className="w-full px-4 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-[var(--color-text-primary)] text-sm outline-none focus:border-emerald-500/60 transition-colors"
                   value={payForm.notes} onChange={e => setPayForm(f => ({ ...f, notes: e.target.value }))} />
               </div>
-              <button type="submit" disabled={paying}
+              <button type="submit" disabled={isLogging}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm transition-all shadow-lg shadow-emerald-500/25 cursor-pointer">
-                {paying ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Đang xử lý...</> : 'Ghi nhận'}
+                {isLogging ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Đang xử lý...</> : 'Ghi nhận'}
               </button>
             </form>
 
@@ -231,9 +229,9 @@ export default function DebtDetailPage() {
 
             <div className="space-y-2.5">
               {[
-                { label: 'Gốc ban đầu',   value: formatVND(debt.originalAmount),              vColor: 'var(--color-text-primary)' },
-                { label: 'Đã trả',         value: formatVND(debt.originalAmount - debt.balance), vColor: '#34d399' },
-                { label: 'Ngày đáo hạn',  value: `Ngày ${debt.dueDay} hàng tháng`,             vColor: 'var(--color-text-primary)' },
+                { label: 'Gốc ban đầu', value: formatVND(debt.originalAmount), vColor: 'var(--color-text-primary)' },
+                { label: 'Đã trả', value: formatVND(debt.originalAmount - debt.balance), vColor: '#34d399' },
+                { label: 'Ngày đáo hạn', value: `Ngày ${debt.dueDay} hàng tháng`, vColor: 'var(--color-text-primary)' },
               ].map(r => (
                 <div key={r.label} className="flex justify-between text-[12px]">
                   <span className="text-[var(--color-text-muted)]">{r.label}</span>
