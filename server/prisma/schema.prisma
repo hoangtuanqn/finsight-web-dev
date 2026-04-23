@@ -21,6 +21,7 @@ model User {
   extraBudget     Float     @default(0)
   level           String    @default("BASIC") // BASIC | PRO | PROMAX
   levelExpiresAt  DateTime?
+  strategyQuota   Int       @default(10)      // Số lượt tạo chiến lược AI còn lại
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -31,6 +32,8 @@ model User {
   chatSessions    ChatSession[]
   debtGoal        DebtGoal?
   transactions    Transaction[]
+  aiStrategies    AIStrategy[]
+  userPortfolio   UserPortfolio?
 
   @@map("users")
 }
@@ -218,4 +221,45 @@ model FinanceKnowledge {
   createdAt DateTime                    @default(now())
 
   @@map("finance_knowledge")
+}
+
+// ── Investment Strategy ─────────────────────────────────────
+
+model AIStrategy {
+  id             String   @id @default(cuid())
+  userId         String
+  sentimentValue Int
+  sentimentLabel String
+  riskLevel      String
+  savings        Float
+  gold           Float
+  stocks         Float
+  bonds          Float
+  crypto         Float
+  recommendation String   @db.Text
+  createdAt      DateTime @default(now())
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userPortfolio UserPortfolio?
+
+  @@map("ai_strategies")
+}
+
+model UserPortfolio {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  sourceStrategyId String?   @unique
+  savings          Float
+  gold             Float
+  stocks           Float
+  bonds            Float
+  crypto           Float
+  notes            String?   @db.Text
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceStrategy AIStrategy? @relation(fields: [sourceStrategyId], references: [id])
+
+  @@map("user_portfolios")
 }
