@@ -20,6 +20,7 @@ import RepaymentPlanPage from './pages/debt/RepaymentPlanPage';
 import DtiAnalysisPage from './pages/debt/DtiAnalysisPage';
 import DebtGoalPage from './pages/debt/DebtGoalPage';
 import InvestmentPage from './pages/InvestmentPage';
+import MyPortfolioPage from './pages/MyPortfolioPage';
 import RiskAssessmentPage from './pages/RiskAssessmentPage';
 import ProfilePage from './pages/ProfilePage';
 import DashboardPage from './pages/DashboardPage';
@@ -57,6 +58,7 @@ export default function App() {
                 <Route path="/debts/:id" element={<DebtDetailPage />} />
                 <Route path="/debts/:id/edit" element={<EditDebtPage />} />
                 <Route path="/investment" element={<InvestmentPage />} />
+                <Route path="/investment/my-portfolio" element={<MyPortfolioPage />} />
                 <Route path="/risk-assessment" element={<RiskAssessmentPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/upgrade" element={<UpgradePage />} />

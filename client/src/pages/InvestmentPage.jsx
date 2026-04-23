@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, Target, Bot, Sparkles, Zap, BookOpen, ChevronRight, X, Save, CheckCircle2, AlertCircle } from 'lucide-react';
+import { TrendingUp, Target, Bot, Sparkles, Zap, BookOpen, ChevronRight, X, Save, CheckCircle2, AlertCircle, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { investmentAPI, marketAPI } from '../api/index.js';
 import { useAuth } from '../context/AuthContext';
@@ -414,6 +414,7 @@ function MyPortfolioSection({ portfolio, onUpdate }) {
 // ─── Main Page ────────────────────────────────────────────────
 export default function InvestmentPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [strategies,           setStrategies]           = useState([]);
   const [portfolio,            setPortfolio]            = useState(null);
@@ -484,14 +485,15 @@ export default function InvestmentPage() {
   // ── Lưu / cập nhật UserPortfolio ─────────────────────────
   const handleUpsertPortfolio = useCallback(async (data) => {
     try {
-      const res = await investmentAPI.upsertPortfolio(data);
-      setPortfolio(res.data.data);
+      await investmentAPI.upsertPortfolio(data);
       setApplyTarget(null);
-      toast.success('Đã lưu chiến lược của bạn!');
+      toast.success('Đã áp dụng chiến lược! Đang chuyển sang trang của bạn…');
+      // Chuyển sang trang chiến lược cá nhân sau 600ms để toast kịp hiển thị
+      setTimeout(() => navigate('/investment/my-portfolio'), 600);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Lưu thất bại');
     }
-  }, []);
+  }, [navigate]);
 
   const handleUpdatePortfolio = useCallback(async (data) => {
     try {
@@ -593,6 +595,16 @@ export default function InvestmentPage() {
             </button>
 
             <Link
+              to="/investment/my-portfolio"
+              className="group flex items-center gap-2.5 px-5 py-2.5 bg-[var(--color-bg-card)] border border-white/10 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all duration-300 rounded-full shadow-sm"
+            >
+              <User size={14} className="text-emerald-400 group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-primary)]">
+                Chiến lược của tôi
+              </span>
+            </Link>
+
+            <Link
               to="/risk-assessment"
               className="group flex items-center gap-2.5 px-5 py-2.5 bg-[var(--color-bg-card)] border border-white/10 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all duration-300 rounded-full shadow-sm"
             >
@@ -653,8 +665,22 @@ export default function InvestmentPage() {
                 </div>
               )}
 
-              {/* ── Chiến lược của tôi (inline) ── */}
-              <MyPortfolioSection portfolio={portfolio} onUpdate={handleUpdatePortfolio} />
+              {/* ── Chiến lược của tôi → trang riêng ── */}
+              <Link
+                to="/investment/my-portfolio"
+                className="flex items-center justify-between px-5 py-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-blue-500/20 hover:bg-blue-500/[0.03] transition-all duration-300 group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                    <Target size={15} className="text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white">Chiến lược của tôi</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Xem % phân bổ & số tiền chi tiết</p>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-slate-500 group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all" />
+              </Link>
 
               <AllocationEngine pieData={pieData} portfolioBreakdown={portfolioBreakdown} history={[]} />
               <AIRationalPanel allocation={activeAllocation} profile={mockProfile} sentimentValue={sentimentValue} portfolioBreakdown={portfolioBreakdown} />
