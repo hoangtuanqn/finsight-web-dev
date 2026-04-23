@@ -66,6 +66,7 @@ export default function AddDebtPage() {
   });
 
   const formValues = watch();
+  const toNumberValue = (value) => (value === '' ? 0 : Number(value));
 
   const applyPreset = (platform) => {
     const preset = PLATFORM_PRESETS[platform];
@@ -156,7 +157,7 @@ export default function AddDebtPage() {
                         <FormattedInput
                           kind="integer"
                           value={field.value}
-                          onValueChange={v => field.onChange(v === '' ? 0 : Number(v))}
+                          onValueChange={(value) => field.onChange(toNumberValue(value))}
                           className={inputCls(errors.originalAmount)}
                           placeholder="0"
                           suffix="đ"
@@ -177,7 +178,7 @@ export default function AddDebtPage() {
                         <FormattedInput
                           kind="integer"
                           value={field.value}
-                          onValueChange={v => field.onChange(v === '' ? 0 : Number(v))}
+                          onValueChange={(value) => field.onChange(toNumberValue(value))}
                           className={inputCls(errors.balance)}
                           placeholder="0"
                           suffix="đ"
@@ -195,7 +196,7 @@ export default function AddDebtPage() {
                         <FormattedInput
                           kind="decimal"
                           value={field.value}
-                          onValueChange={v => field.onChange(v === '' ? 0 : Number(v))}
+                          onValueChange={(value) => field.onChange(toNumberValue(value))}
                           className={inputCls(errors.apr)}
                           placeholder="0"
                           suffix="%"
@@ -223,7 +224,7 @@ export default function AddDebtPage() {
                         <FormattedInput
                           kind="integer"
                           value={field.value}
-                          onValueChange={v => field.onChange(v === '' ? 0 : Number(v))}
+                          onValueChange={(value) => field.onChange(toNumberValue(value))}
                           className={inputCls(errors.minPayment)}
                           placeholder="0"
                           suffix="đ"
@@ -243,7 +244,7 @@ export default function AddDebtPage() {
                       name="feeProcessing"
                       control={control}
                       render={({ field }) => (
-                        <FormattedInput kind="decimal" value={field.value} onValueChange={v => field.onChange(v === '' ? 0 : Number(v))} className={inputCls(errors.feeProcessing)} placeholder="0" suffix="%" />
+                        <FormattedInput kind="decimal" value={field.value} onValueChange={(value) => field.onChange(toNumberValue(value))} className={inputCls(errors.feeProcessing)} placeholder="0" suffix="%" />
                       )}
                     />
                   </div>
@@ -253,7 +254,7 @@ export default function AddDebtPage() {
                       name="feeInsurance"
                       control={control}
                       render={({ field }) => (
-                        <FormattedInput kind="decimal" value={field.value} onValueChange={v => field.onChange(v === '' ? 0 : Number(v))} className={inputCls(errors.feeInsurance)} placeholder="0" suffix="%" />
+                        <FormattedInput kind="decimal" value={field.value} onValueChange={(value) => field.onChange(toNumberValue(value))} className={inputCls(errors.feeInsurance)} placeholder="0" suffix="%" />
                       )}
                     />
                   </div>
@@ -263,7 +264,7 @@ export default function AddDebtPage() {
                       name="feeManagement"
                       control={control}
                       render={({ field }) => (
-                        <FormattedInput kind="decimal" value={field.value} onValueChange={v => field.onChange(v === '' ? 0 : Number(v))} className={inputCls(errors.feeManagement)} placeholder="0" suffix="%" />
+                        <FormattedInput kind="decimal" value={field.value} onValueChange={(value) => field.onChange(toNumberValue(value))} className={inputCls(errors.feeManagement)} placeholder="0" suffix="%" />
                       )}
                     />
                   </div>
