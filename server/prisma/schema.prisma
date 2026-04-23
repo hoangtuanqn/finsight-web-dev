@@ -12,7 +12,9 @@ datasource db {
 model User {
   id            String   @id @default(cuid())
   email         String   @unique
-  password      String
+  password      String?
+  googleId      String?  @unique
+  avatar        String?
   fullName      String
   monthlyIncome Float    @default(0)
   extraBudget   Float    @default(0)
