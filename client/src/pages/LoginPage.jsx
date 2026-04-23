@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../context/AuthContext';
+import { toast } from 'sonner';
 import SocialLoginButtons from '../components/auth/SocialLoginButtons';
 import { AlertTriangle, Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles, ShieldCheck, Zap, ChevronRight } from 'lucide-react';
 import { GradientText, Spotlight } from './LandingPage/components/Shared';
@@ -22,10 +23,12 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, setToken, setUser } = useAuth();
+  const { login, setUser } = useAuth();
   const navigate = useNavigate();
   const [dark, setDark] = useDarkMode();
   const [loginMode, setLoginMode] = useState('email'); // 'email' or 'qr'
+  const [searchParams] = useSearchParams();
+  const redirect = searchParams.get('redirect') || '/home';
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(loginSchema),
@@ -37,7 +40,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(data.email, data.password);
-      navigate('/home');
+      navigate(redirect);
     } catch (err) {
       setServerError(err.response?.data?.error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
     } finally {
@@ -46,10 +49,10 @@ export default function LoginPage() {
   };
 
   const onQRSuccess = (data) => {
-    setToken(data.accessToken);
-    setUser(data.user);
     localStorage.setItem('finsight_token', data.accessToken);
-    setTimeout(() => navigate('/home'), 1000);
+    setUser(data.user);
+    toast.success('Đăng nhập thành công qua QR Code!');
+    setTimeout(() => navigate(redirect), 1500);
   };
 
   return (

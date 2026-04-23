@@ -1,4 +1,3 @@
-import qrcode from 'qrcode';
 import { v4 as uuidv4 } from 'uuid';
 import redis from '../lib/redis.js';
 import jwt from 'jsonwebtoken';
@@ -23,13 +22,8 @@ export async function generateQR(req, res) {
       userId: null
     }));
 
-    // QR Content Format: finsight://qr-login?token=UUID&ts=TIMESTAMP
-    const qrContent = `finsight://qr-login?token=${qrToken}&ts=${Date.now()}`;
-    const qrImage = await qrcode.toDataURL(qrContent);
-
     return success(res, {
       qrToken,
-      qrImage,
       expiresAt
     });
   } catch (err) {
