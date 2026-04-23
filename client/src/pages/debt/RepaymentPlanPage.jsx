@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { debtAPI, userAPI, debtGoalAPI } from '../../api/index.js';
 import { useAuth } from '../../context/AuthContext';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
+import FormattedInput from '../../components/common/FormattedInput';
 import { formatVND } from '../../utils/calculations';
 import {
   ClipboardList, DollarSign, TrendingDown, Bot, Lightbulb, Target, Zap, TrendingUp,
@@ -226,20 +227,6 @@ const TOOLTIP_STYLE = {
 export default function RepaymentPlanPage() {
   const { user, setUser }     = useAuth();
   const defaultBudget         = user?.extraBudget || 0;
-  const inputRef              = useRef(null);
-  const displayBudgetInput    = (value) => value ? Number(value).toLocaleString('vi-VN') : '';
-  const moveCaretToEnd        = () => {
-    requestAnimationFrame(() => {
-      const input = inputRef.current;
-      if (!input) return;
-      const end = input.value.length;
-      input.setSelectionRange(end, end);
-    });
-  };
-  const formatBudgetInput     = (value) => {
-    if (!value) return '';
-    return `${Number(value).toLocaleString('vi-VN')} đ`;
-  };
 
   const [data,         setData]        = useState(null);
   const [debtSummary,  setDebtSummary] = useState(null);
@@ -248,7 +235,7 @@ export default function RepaymentPlanPage() {
   const [loading,      setLoading]     = useState(true);
   const [modal,        setModal]       = useState(null); // 'AVALANCHE' | 'SNOWBALL' | null
   const [extraBudget,  setExtraBudget] = useState(defaultBudget);
-  const [inputRaw,     setInputRaw]    = useState(String(defaultBudget));
+  const [budgetInput,  setBudgetInput] = useState(String(defaultBudget));
   const [saving,       setSaving]      = useState(false);
   const [saved,        setSaved]       = useState(false);
   const SLIDER_MAX = 100000000;
@@ -268,17 +255,30 @@ export default function RepaymentPlanPage() {
   };
 
   useEffect(() => { load(extraBudget); }, []);
+  useEffect(() => { setBudgetInput(String(defaultBudget)); }, [defaultBudget]);
 
-  const handleBudgetChange = (val) => { const n = Math.max(0, val); setExtraBudget(n); setInputRaw(String(n)); load(n); };
-  const handleInputChange  = (e)   => { setInputRaw(e.target.value.replace(/\D/g, '')); moveCaretToEnd(); };
-  const handleInputBlur    = ()    => { const n = Math.max(0, parseInt(inputRaw, 10) || 0); handleBudgetChange(n); };
-  const handleInputFocus   = ()    => { moveCaretToEnd(); };
-  const handleInputClick   = ()    => { moveCaretToEnd(); };
-  const handleInputKeyDown = (e)   => { if (e.key === 'Enter') e.target.blur(); };
+  const commitBudgetValue = (rawValue) => {
+    const numericValue = Math.min(100000000000, Math.max(0, parseInt(String(rawValue || '').replace(/\D/g, ''), 10) || 0));
+    setBudgetInput(String(numericValue));
+    setExtraBudget(numericValue);
+    load(numericValue);
+  };
+
+  const handleSliderChange = (value) => {
+    const numericValue = Math.max(0, value);
+    setBudgetInput(String(numericValue));
+    setExtraBudget(numericValue);
+    load(numericValue);
+  };
 
   const handleSaveBudget = async () => {
     setSaving(true);
-    try { await userAPI.updateProfile({ extraBudget }); setSaved(true); setTimeout(() => setSaved(false), 2500); }
+    try {
+      await userAPI.updateProfile({ extraBudget });
+      setUser(prev => ({ ...prev, extraBudget }));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    }
     catch (e) { console.error(e); }
     finally { setSaving(false); }
   };
@@ -298,7 +298,7 @@ export default function RepaymentPlanPage() {
   const timelineData = [];
   if (avalanche?.schedule && snowball?.schedule) {
     const maxMonths = Math.max(avalanche.months, snowball.months, 1);
-    for (let m = 0; m <= Math.min(maxMonths, 24); m++) {
+    for (let m = 0; m < Math.min(maxMonths, 24); m++) {
       const av = avalanche.schedule[m], sn = snowball.schedule[m];
       const avBalance = av ? av.payments.reduce((s, p) => s + p.balance, 0) : 0;
       const snBalance = sn ? sn.payments.reduce((s, p) => s + p.balance, 0) : 0;
@@ -331,7 +331,7 @@ export default function RepaymentPlanPage() {
           <motion.div
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-4 px-5 py-4 rounded-2xl border cursor-pointer transition-all hover:border-violet-500/40 hover:bg-violet-500/8 relative overflow-hidden"
+            className="grid grid-cols-[auto_minmax(0,1fr)] md:grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-5 py-4 rounded-2xl border cursor-pointer transition-all hover:border-violet-500/40 hover:bg-violet-500/8 relative overflow-hidden"
             style={{ background: 'var(--color-bg-card)', borderColor: 'rgba(139,92,246,0.2)' }}
           >
             <div className="absolute top-0 left-5 right-5 h-px bg-gradient-to-r from-transparent via-violet-500/40 to-transparent" />
@@ -341,8 +341,8 @@ export default function RepaymentPlanPage() {
               {reachedCount === 4 ? <Trophy size={18} /> : <Target size={18} />}
             </div>
 
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <span className="text-[12px] font-black text-[var(--color-text-primary)]">Mục tiêu trả nợ</span>
                 {goal && (
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
@@ -362,8 +362,8 @@ export default function RepaymentPlanPage() {
 
               {/* Mini progress bar */}
               {progress && (
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
+                <div className="min-w-0">
+                  <div className="h-1.5 rounded-full bg-white/5 overflow-hidden min-w-0">
                     <div
                       className="h-full rounded-full transition-all"
                       style={{
@@ -372,12 +372,6 @@ export default function RepaymentPlanPage() {
                       }}
                     />
                   </div>
-                  <span className="text-[11px] font-black text-[var(--color-text-muted)] shrink-0">
-                    {progress.percentPaid.toFixed(1)}%
-                  </span>
-                  <span className="text-[11px] text-[var(--color-text-muted)] shrink-0">
-                    · {reachedCount}/4 milestone
-                  </span>
                 </div>
               )}
 
@@ -386,7 +380,17 @@ export default function RepaymentPlanPage() {
               )}
             </div>
 
-            <ChevronRight size={16} className="text-[var(--color-text-muted)] shrink-0" />
+            {progress && (
+              <div className="hidden md:flex min-w-[104px] flex-col items-end gap-0.5 border-l border-white/8 pl-4 text-right">
+                <p className="text-[11px] font-black text-[var(--color-text-muted)] whitespace-nowrap">
+                  {progress.percentPaid.toFixed(1)}%
+                </p>
+                <p className="text-[11px] text-[var(--color-text-muted)] whitespace-nowrap">
+                  {reachedCount}/4 milestone
+                </p>
+              </div>
+            )}
+            <ChevronRight size={16} className="hidden md:block text-[var(--color-text-muted)] shrink-0" />
           </motion.div>
         </Link>
       )}
@@ -402,22 +406,22 @@ export default function RepaymentPlanPage() {
           <span className="text-[13px] font-black text-[var(--color-text-primary)]">Ngân sách trả thêm mỗi tháng</span>
         </div>
 
-        <div className="flex items-center gap-3 mb-5">
+        <div className="flex flex-col md:flex-row md:items-center gap-3 mb-5">
           <div className="flex-1 relative">
-            <input
-              type="text" inputMode="numeric" placeholder="Nhập số tiền..."
-              ref={inputRef}
-              value={displayBudgetInput(inputRaw)}
-              onChange={handleInputChange} onBlur={handleInputBlur} onFocus={handleInputFocus} onClick={handleInputClick} onKeyDown={handleInputKeyDown}
-              className="w-full px-4 pr-12 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-blue-400 font-black text-[14px] outline-none focus:border-blue-500/50 transition-colors"
+            <FormattedInput
+              kind="integer"
+              value={budgetInput}
+              onValueChange={setBudgetInput}
+              onCommitValue={commitBudgetValue}
+              maxValue={100000000000}
+              placeholder="Nhập số tiền..."
+              suffix="đ"
+              className="w-full px-4 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-blue-400 font-black text-[14px] outline-none focus:border-blue-500/50 transition-colors"
             />
-            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-blue-400 font-black text-[14px]">
-              đ
-            </span>
           </div>
           <button
             onClick={handleSaveBudget} disabled={saving}
-            className={`shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-black transition-all border cursor-pointer ${
+            className={`shrink-0 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-[12px] font-black transition-all border cursor-pointer md:min-w-[96px] ${
               saved ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'bg-blue-500/15 border-blue-500/30 text-blue-400 hover:bg-blue-500/25'
             }`}
           >
@@ -429,7 +433,7 @@ export default function RepaymentPlanPage() {
         <input
           type="range" min="0" max={SLIDER_MAX} step="500000"
           value={Math.min(extraBudget, SLIDER_MAX)}
-          onChange={e => handleBudgetChange(+e.target.value)}
+          onChange={e => handleSliderChange(+e.target.value)}
           className="w-full accent-blue-500"
         />
         <div className="flex justify-between text-[10px] text-[var(--color-text-muted)] mt-1.5">

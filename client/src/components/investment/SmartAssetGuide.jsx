@@ -1,0 +1,229 @@
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Sparkles, BarChart2, Info, ArrowUpRight, Clock, AlertTriangle } from 'lucide-react';
+import { INVESTMENT_SUGGESTIONS } from './InvestmentConstants.js';
+import { investmentAPI } from '../../api';
+
+export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
+  const [openTab, setOpenTab] = useState(null);
+  
+  // Data states
+  const [data, setData] = useState({
+    crypto: { items: [], intro: '', loading: false, error: false },
+    stocks: { items: [], intro: '', loading: false, error: false },
+    gold: { items: [], intro: '', loading: false, error: false },
+    savings: { items: [], intro: '', loading: false, error: false },
+    bonds: { items: [], intro: '', loading: false, error: false },
+  });
+
+  const activeAssets = Object.entries(allocation)
+    .filter(([, pct]) => pct > 0)
+    .sort(([, a], [, b]) => b - a);
+
+  const active = openTab ?? activeAssets[0]?.[0] ?? null;
+
+  const fetchData = async (asset) => {
+    if (data[asset].items.length > 0 || data[asset].loading) return;
+    
+    setData(prev => ({ ...prev, [asset]: { ...prev[asset], loading: true, error: false } }));
+    
+    try {
+      let res;
+      switch(asset) {
+        case 'crypto': res = await investmentAPI.getCryptoPrices({ riskLevel }); break;
+        case 'stocks': res = await investmentAPI.getStockPrices({ riskLevel }); break;
+        case 'gold': res = await investmentAPI.getGoldPrices(); break;
+        case 'savings': res = await investmentAPI.getSavingsRates({ riskLevel }); break;
+        case 'bonds': res = await investmentAPI.getBondsRates({ riskLevel }); break;
+        default: return;
+      }
+      
+      const payload = res.data.data;
+      setData(prev => ({
+        ...prev,
+        [asset]: {
+          items: payload.coins || payload.stocks || payload.goldItems || payload.savingsItems || payload.bondItems || [],
+          intro: payload.intro || '',
+          updatedAt: payload.updatedAt || '',
+          loading: false,
+          error: false
+        }
+      }));
+    } catch (e) {
+      setData(prev => ({ ...prev, [asset]: { ...prev[asset], loading: false, error: true } }));
+    }
+  };
+
+  useEffect(() => {
+    if (active) fetchData(active);
+  }, [active, riskLevel]);
+
+  const suggestion = active ? INVESTMENT_SUGGESTIONS[active] : null;
+
+  return (
+    <div className="bg-slate-900/60 backdrop-blur-xl border border-white/5 p-8 rounded-3xl shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5)] relative overflow-hidden">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8 relative z-10">
+        <div>
+          <h3 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.15)]">
+               <Sparkles size={20} className="text-amber-500" /> 
+            </div>
+            Hướng dẫn Đầu tư Thông minh
+          </h3>
+          <p className="text-sm font-medium text-slate-400 mt-2">Khuyến nghị đầu tư theo thời gian thực</p>
+        </div>
+        
+        {/* Asset tabs */}
+        <div className="flex flex-wrap gap-2 bg-white/[0.02] p-1.5 rounded-full border border-white/5">
+          {activeAssets.map(([asset, pct]) => {
+            const sg = INVESTMENT_SUGGESTIONS[asset];
+            const isActive = active === asset;
+            return (
+              <button
+                key={asset}
+                onClick={() => setOpenTab(asset)}
+                className={`relative px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-300 ${
+                  isActive ? 'text-white shadow-md' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                }`}
+              >
+                {isActive && (
+                  <motion.div 
+                    layoutId="activeAssetTab" 
+                    className="absolute inset-0 rounded-full border border-white/10" 
+                    style={{ background: `${sg.color}20` }}
+                  />
+                )}
+                <span className="relative z-10 flex items-center gap-2">
+                  <sg.icon size={14} style={{ color: isActive ? sg.color : 'currentColor' }} />
+                  {sg.label}
+                  <span className="opacity-60 text-[10px] bg-black/20 px-1.5 py-0.5 rounded-md">{pct}%</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <AnimatePresence mode="wait">
+        {active && (
+          <motion.div
+            key={active}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            className="relative z-10"
+          >
+            {/* Market Context Banner */}
+            <div className="mb-8 p-6 rounded-2xl bg-white/[0.02] border border-white/5 relative overflow-hidden group">
+              <div className="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl transition-all duration-500" style={{ background: suggestion.color, boxShadow: `0 0 15px ${suggestion.color}` }} />
+              <div className="flex items-center gap-2 mb-2">
+                <BarChart2 size={16} style={{ color: suggestion.color }} />
+                <span className="text-xs font-semibold text-slate-400">Phân tích bối cảnh thị trường</span>
+              </div>
+              <p className="text-lg font-medium text-slate-200 leading-relaxed">
+                {data[active].intro || suggestion.intro}
+              </p>
+            </div>
+
+            {/* Content Area */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+              {data[active].loading ? (
+                <div className="col-span-2 py-16 flex flex-col items-center justify-center gap-4 text-slate-400">
+                  <div className="w-16 h-1.5 rounded-full bg-white/5 relative overflow-hidden">
+                    <motion.div 
+                      animate={{ x: ['-100%', '100%'] }} 
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                      className="absolute inset-0 rounded-full" 
+                      style={{ background: suggestion.color }}
+                    />
+                  </div>
+                  <span className="text-xs font-semibold animate-pulse">Đang đồng bộ dữ liệu...</span>
+                </div>
+              ) : (
+                <>
+                  {(data[active].items.length > 0 ? data[active].items : suggestion.items).map((item, i) => (
+                    <AssetCard key={i} item={item} color={suggestion.color} type={active} />
+                  ))}
+                </>
+              )}
+            </div>
+
+            {/* Pro Tips Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              {suggestion.tips.map((tip, i) => (
+                <div key={i} className="p-5 rounded-2xl bg-white/[0.01] border border-white/5 flex gap-4 group hover:border-white/10 hover:bg-white/[0.02] transition-all duration-300">
+                  <div className="shrink-0 w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-xs font-bold text-slate-400 group-hover:text-white group-hover:bg-blue-500/20 transition-all duration-300 shadow-sm">
+                    {i + 1}
+                  </div>
+                  <p className="text-sm font-medium text-slate-400 group-hover:text-slate-200 transition-colors leading-relaxed">
+                    {tip}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* Disclaimer & Update Info */}
+            <div className="mt-8 flex flex-col md:flex-row md:items-center justify-between gap-4 pt-6 border-t border-white/5">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2 text-slate-500 bg-white/[0.02] px-3 py-1.5 rounded-full border border-white/5">
+                  <Clock size={12} />
+                  <span className="text-xs font-semibold">
+                    Cập nhật: {data[active].updatedAt || 'Real-time'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-amber-500/80 bg-amber-500/10 px-3 py-1.5 rounded-full border border-amber-500/20">
+                  <AlertTriangle size={12} />
+                  <span className="text-xs font-semibold">Giao thức rủi ro cao</span>
+                </div>
+              </div>
+              <p className="text-xs font-semibold text-slate-500">Phân tích độc quyền bởi FinSight</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function AssetCard({ item, color, type }) {
+  const name = item.name;
+  const tag = item.tag;
+  const rate = item.rate || item.rateLabel || (item.price ? `${item.price.toLocaleString()}đ` : '');
+  const note = item.note;
+  const badge = item.badge;
+  const badgeColor = item.badgeColor;
+
+  return (
+    <div className="bg-white/[0.02] border border-white/5 p-5 rounded-2xl group hover:border-white/10 transition-all duration-300 hover:bg-white/[0.04] hover:-translate-y-1 hover:shadow-lg relative overflow-hidden">
+      {/* Subtle hover glow */}
+      <div className="absolute top-0 right-0 w-32 h-32 opacity-0 group-hover:opacity-10 transition-opacity duration-500 blur-2xl rounded-full" style={{ background: color, transform: 'translate(30%, -30%)' }} />
+      
+      <div className="flex justify-between items-start mb-4 relative z-10">
+        <div>
+          <div className="flex items-center gap-3 mb-1.5">
+            <h4 className="text-base font-bold text-white tracking-tight group-hover:text-blue-300 transition-colors">{name}</h4>
+            {badge && (
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                badgeColor === 'emerald' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
+                badgeColor === 'amber' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                badgeColor === 'purple' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' :
+                'bg-blue-500/10 text-blue-400 border-blue-500/20'
+              }`}>
+                {badge}
+              </span>
+            )}
+          </div>
+          <span className="text-xs font-semibold text-slate-500">{tag}</span>
+        </div>
+        <div className="text-right flex flex-col items-end">
+          <span className="text-xl font-bold tracking-tight" style={{ color }}>{rate}</span>
+          <div className="p-1 rounded-full bg-white/5 mt-1 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
+             <ArrowUpRight size={14} className="text-white" />
+          </div>
+        </div>
+      </div>
+      <p className="text-xs font-medium text-slate-400 leading-relaxed relative z-10">{note}</p>
+    </div>
+  );
+}
