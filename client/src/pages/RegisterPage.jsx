@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
-import { joiResolver } from '@hookform/resolvers/joi';
-import Joi from 'joi';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { useAuth } from '../context/AuthContext';
 import { AlertTriangle, User, Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles, ShieldCheck, Zap, ChevronRight } from 'lucide-react';
 import SocialLoginButtons from '../components/auth/SocialLoginButtons';
@@ -11,27 +11,22 @@ import { GradientText, Spotlight } from './LandingPage/components/Shared';
 import { ToggleMode } from '../components/layout/components/ToggleMode';
 import { useDarkMode } from '../hooks/useDarkMode';
 
-const registerSchema = Joi.object({
-  fullName: Joi.string().min(2).max(50).required().messages({
-    'string.empty': 'Họ tên không được để trống',
-    'string.min': 'Họ tên phải có ít nhất 2 ký tự',
-    'string.max': 'Họ tên không được vượt quá 50 ký tự',
-    'any.required': 'Họ tên là bắt buộc'
-  }),
-  email: Joi.string().email({ tlds: { allow: false } }).required().messages({
-    'string.email': 'Email không hợp lệ',
-    'string.empty': 'Email không được để trống',
-    'any.required': 'Email là bắt buộc'
-  }),
-  password: Joi.string().min(6).required().messages({
-    'string.min': 'Mật khẩu phải có ít nhất 6 ký tự',
-    'string.empty': 'Mật khẩu không được để trống',
-    'any.required': 'Mật khẩu là bắt buộc'
-  }),
-  confirmPassword: Joi.string().valid(Joi.ref('password')).required().messages({
-    'any.only': 'Mật khẩu xác nhận không khớp',
-    'any.required': 'Xác nhận mật khẩu là bắt buộc'
-  })
+const registerSchema = z.object({
+  fullName: z.string()
+    .min(1, 'Họ tên không được để trống')
+    .min(2, 'Họ tên phải có ít nhất 2 ký tự')
+    .max(50, 'Họ tên không được vượt quá 50 ký tự'),
+  email: z.string()
+    .min(1, 'Email không được để trống')
+    .email('Email không hợp lệ'),
+  password: z.string()
+    .min(1, 'Mật khẩu không được để trống')
+    .min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
+  confirmPassword: z.string()
+    .min(1, 'Xác nhận mật khẩu là bắt buộc')
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Mật khẩu xác nhận không khớp',
+  path: ['confirmPassword']
 });
 
 export default function RegisterPage() {
@@ -43,7 +38,7 @@ export default function RegisterPage() {
   const [dark, setDark] = useDarkMode();
 
   const { register, handleSubmit, formState: { errors } } = useForm({
-    resolver: joiResolver(registerSchema),
+    resolver: zodResolver(registerSchema),
     defaultValues: { fullName: '', email: '', password: '', confirmPassword: '' }
   });
 

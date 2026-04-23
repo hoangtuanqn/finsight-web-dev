@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
-import { joiResolver } from '@hookform/resolvers/joi';
-import Joi from 'joi';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { useAuth } from '../context/AuthContext';
 import SocialLoginButtons from '../components/auth/SocialLoginButtons';
 import { AlertTriangle, Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles, ShieldCheck, Zap, ChevronRight } from 'lucide-react';
@@ -11,16 +11,9 @@ import { GradientText, Spotlight } from './LandingPage/components/Shared';
 import { ToggleMode } from '../components/layout/components/ToggleMode';
 import { useDarkMode } from '../hooks/useDarkMode';
 
-const loginSchema = Joi.object({
-  email: Joi.string().email({ tlds: { allow: false } }).required().messages({
-    'string.email': 'Email không hợp lệ',
-    'string.empty': 'Email không được để trống',
-    'any.required': 'Email là bắt buộc'
-  }),
-  password: Joi.string().required().messages({
-    'string.empty': 'Mật khẩu không được để trống',
-    'any.required': 'Mật khẩu là bắt buộc'
-  })
+const loginSchema = z.object({
+  email: z.string().min(1, 'Email không được để trống').email('Email không hợp lệ'),
+  password: z.string().min(1, 'Mật khẩu không được để trống')
 });
 
 export default function LoginPage() {
@@ -32,7 +25,7 @@ export default function LoginPage() {
   const [dark, setDark] = useDarkMode();
 
   const { register, handleSubmit, formState: { errors } } = useForm({
-    resolver: joiResolver(loginSchema),
+    resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' }
   });
 
