@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { debtAPI } from '../../api/index.js';
+import FormattedInput from '../../components/common/FormattedInput';
 import { calcEAR, calcAPY, formatPercent } from '../../utils/calculations';
 import { Plus, AlertTriangle, BarChart2 } from 'lucide-react';
 
@@ -125,6 +126,7 @@ function inputCls(hasError) {
   return `input-field ${hasError ? 'border-red-500/60 focus:border-red-500' : ''}`;
 }
 
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function PlatformPresets({ activePlatform, onSelect }) {
@@ -166,13 +168,7 @@ function BasicInfoSection({ form, errors, update }) {
         </div>
         <div>
           <label className="input-label">Số tiền gốc</label>
-          <input
-            type="number"
-            className={inputCls(errors.originalAmount)}
-            value={form.originalAmount}
-            onChange={e => update('originalAmount', e.target.value)}
-            placeholder="0"
-          />
+          <FormattedInput kind="integer" value={form.originalAmount} onValueChange={(value) => update('originalAmount', value)} className={inputCls(errors.originalAmount)} placeholder="0" suffix="đ" />
           <FieldError message={errors.originalAmount} />
         </div>
       </div>
@@ -180,25 +176,12 @@ function BasicInfoSection({ form, errors, update }) {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="input-label">Dư nợ hiện tại</label>
-          <input
-            type="number"
-            className={inputCls(errors.balance)}
-            value={form.balance}
-            onChange={e => update('balance', e.target.value)}
-            placeholder="0"
-          />
+          <FormattedInput kind="integer" value={form.balance} onValueChange={(value) => update('balance', value)} className={inputCls(errors.balance)} placeholder="0" suffix="đ" />
           <FieldError message={errors.balance} />
         </div>
         <div>
           <label className="input-label">Lãi suất APR (%/năm)</label>
-          <input
-            type="number"
-            step="0.1"
-            className={inputCls(errors.apr)}
-            value={form.apr}
-            onChange={e => update('apr', e.target.value)}
-            placeholder="0"
-          />
+          <FormattedInput kind="decimal" value={form.apr} onValueChange={(value) => update('apr', value)} className={inputCls(errors.apr)} placeholder="0" suffix="%" />
           <FieldError message={errors.apr} />
         </div>
       </div>
@@ -213,13 +196,7 @@ function BasicInfoSection({ form, errors, update }) {
         </div>
         <div>
           <label className="input-label">Trả tối thiểu/tháng</label>
-          <input
-            type="number"
-            className={inputCls(errors.minPayment)}
-            value={form.minPayment}
-            onChange={e => update('minPayment', e.target.value)}
-            placeholder="0"
-          />
+          <FormattedInput kind="integer" value={form.minPayment} onValueChange={(value) => update('minPayment', value)} className={inputCls(errors.minPayment)} placeholder="0" suffix="đ" />
           <FieldError message={errors.minPayment} />
         </div>
       </div>
@@ -235,17 +212,17 @@ function HiddenFeesSection({ form, errors, update }) {
       <div className="grid grid-cols-3 gap-4">
         <div>
           <label className="input-label">Phí xử lý (%)</label>
-          <input type="number" step="0.1" className={inputCls(errors.feeProcessing)} value={form.feeProcessing} onChange={e => update('feeProcessing', e.target.value)} placeholder="0" />
+          <FormattedInput kind="decimal" value={form.feeProcessing} onValueChange={(value) => update('feeProcessing', value)} className={inputCls(errors.feeProcessing)} placeholder="0" suffix="%" />
           <FieldError message={errors.feeProcessing} />
         </div>
         <div>
           <label className="input-label">Phí bảo hiểm (%/năm)</label>
-          <input type="number" step="0.1" className={inputCls(errors.feeInsurance)} value={form.feeInsurance} onChange={e => update('feeInsurance', e.target.value)} placeholder="0" />
+          <FormattedInput kind="decimal" value={form.feeInsurance} onValueChange={(value) => update('feeInsurance', value)} className={inputCls(errors.feeInsurance)} placeholder="0" suffix="%" />
           <FieldError message={errors.feeInsurance} />
         </div>
         <div>
           <label className="input-label">Phí quản lý (%/năm)</label>
-          <input type="number" step="0.1" className={inputCls(errors.feeManagement)} value={form.feeManagement} onChange={e => update('feeManagement', e.target.value)} placeholder="0" />
+          <FormattedInput kind="decimal" value={form.feeManagement} onValueChange={(value) => update('feeManagement', value)} className={inputCls(errors.feeManagement)} placeholder="0" suffix="%" />
           <FieldError message={errors.feeManagement} />
         </div>
       </div>
