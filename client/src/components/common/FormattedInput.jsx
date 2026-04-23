@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { formatDecimalInput, formatIntegerInput, normalizeLocaleNumberInput } from '../../utils/calculations';
 
 export default function FormattedInput({
@@ -9,11 +10,30 @@ export default function FormattedInput({
   placeholder,
 }) {
   const displayValue = kind === 'decimal' ? formatDecimalInput(value) : formatIntegerInput(value);
+  const [isComposing, setIsComposing] = useState(false);
+  const [draftValue, setDraftValue] = useState(displayValue);
+
+  useEffect(() => {
+    if (!isComposing) {
+      setDraftValue(displayValue);
+    }
+  }, [displayValue, isComposing]);
+
+  const normalizeInputValue = (rawValue) => (
+    kind === 'decimal'
+      ? normalizeLocaleNumberInput(rawValue)
+      : rawValue.replace(/\D/g, '')
+  );
 
   const handleChange = (e) => {
-    const nextValue = kind === 'decimal'
-      ? normalizeLocaleNumberInput(e.target.value)
-      : e.target.value.replace(/\D/g, '');
+    const rawValue = e.target.value;
+
+    if (isComposing) {
+      setDraftValue(rawValue);
+      return;
+    }
+
+    const nextValue = normalizeInputValue(rawValue);
     onValueChange(nextValue);
   };
 
@@ -24,8 +44,18 @@ export default function FormattedInput({
       <input
         type="text"
         inputMode={inputMode}
-        value={displayValue}
+        value={isComposing ? draftValue : displayValue}
         onChange={handleChange}
+        onCompositionStart={() => {
+          setIsComposing(true);
+          setDraftValue(displayValue);
+        }}
+        onCompositionEnd={(e) => {
+          const nextValue = normalizeInputValue(e.target.value);
+          setIsComposing(false);
+          setDraftValue(kind === 'decimal' ? formatDecimalInput(nextValue) : formatIntegerInput(nextValue));
+          onValueChange(nextValue);
+        }}
         className={`${className}${suffix ? ' pr-10' : ''}`}
         placeholder={placeholder}
       />
