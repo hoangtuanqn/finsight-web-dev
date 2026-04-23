@@ -17,7 +17,7 @@ Docs/
 dist/
 build/
 coverage/
-
+server/server_error.log
 # Mac OS
 .DS_Store
 
