@@ -151,7 +151,40 @@ export async function getDebtById(req, res) {
       totalEAR: ear,
     };
 
-    return success(res, { debt: { ...debt, apy, ear }, earBreakdown, paymentHistory: debt.payments });
+    const sortedPayments = [...debt.payments].sort((a, b) => new Date(a.paidAt) - new Date(b.paidAt));
+    let currentBalance = debt.originalAmount;
+    const chartData = [];
+    
+    chartData.push({
+      date: debt.startDate || debt.createdAt,
+      balance: currentBalance,
+      label: 'Gốc'
+    });
+
+    sortedPayments.forEach(p => {
+      currentBalance = Math.max(0, currentBalance - p.amount);
+      chartData.push({
+        date: p.paidAt,
+        balance: currentBalance,
+        label: 'Đã trả',
+        amount: p.amount
+      });
+    });
+
+    if (currentBalance > 0 && !debt.deletedAt) {
+      chartData.push({
+        date: new Date(),
+        balance: currentBalance,
+        label: 'Hiện tại'
+      });
+    }
+
+    return success(res, { 
+      debt: { ...debt, apy, ear }, 
+      earBreakdown, 
+      paymentHistory: debt.payments,
+      chartData 
+    });
   } catch (err) {
     console.error('getDebtById error:', err);
     return error(res, 'Internal server error');
