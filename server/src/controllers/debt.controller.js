@@ -1,6 +1,7 @@
 import prisma from '../lib/prisma.js';
 import { success, error } from '../utils/apiResponse.js';
 import { invalidateCache } from '../middleware/cache.middleware.js';
+import emailService from '../services/email.service.js';
 import {
   calcAPY, calcEAR, simulateRepayment,
   calcDebtToIncomeRatio, detectDominoRisk,
@@ -219,6 +220,57 @@ export async function logPayment(req, res) {
     });
 
     await invalidateCache([`user:${req.userId}:*`]);
+
+    // ── Milestone check ────────────────────────────────────
+    // Tính tổng nợ trước và sau thanh toán để phát hiện milestone mới vượt qua
+    try {
+      const allDebts = await prisma.debt.findMany({ where: { userId: req.userId } });
+      const user     = await prisma.user.findUnique({ where: { id: req.userId }, select: { email: true, fullName: true } });
+
+      const totalOriginal = allDebts.reduce((s, d) => s + d.originalAmount, 0);
+      if (totalOriginal > 0 && user?.email) {
+        // Tính totalPaid trước và sau thanh toán vừa rồi
+        const totalCurrentAfter  = allDebts.reduce((s, d) => s + (d.id === debt.id ? updatedDebt.balance : d.balance), 0);
+        const totalCurrentBefore = totalCurrentAfter + amount; // hoàn ngược lại
+        const paidBefore = totalOriginal - totalCurrentBefore;
+        const paidAfter  = totalOriginal - totalCurrentAfter;
+
+        const MILESTONES = [25, 50, 75, 100];
+        for (const pct of MILESTONES) {
+          const threshold = totalOriginal * pct / 100;
+          // Milestone vừa được vượt qua trong lần thanh toán này
+          if (paidBefore < threshold && paidAfter >= threshold) {
+            // Tạo notification trong DB
+            await prisma.notification.create({
+              data: {
+                userId: req.userId,
+                type:   'MILESTONE',
+                title:  `🎉 Đạt cột mốc ${pct}% tổng nợ!`,
+                message: `Bạn đã trả được ${pct}% tổng số nợ gốc (${new Intl.NumberFormat('vi-VN').format(Math.round(paidAfter))}đ / ${new Intl.NumberFormat('vi-VN').format(Math.round(totalOriginal))}đ). Tuyệt vời!`,
+                severity: pct === 100 ? 'INFO' : 'INFO',
+              },
+            });
+
+            // Gửi email chúc mừng
+            await emailService.sendMilestoneCongrats(
+              user.email,
+              user.fullName,
+              pct,
+              paidAfter,
+              totalOriginal,
+            );
+
+            console.log(`[Milestone] User ${req.userId} đạt ${pct}% — email gửi tới ${user.email}`);
+            break; // Chỉ gửi 1 milestone trong 1 lần thanh toán
+          }
+        }
+      }
+    } catch (milestoneErr) {
+      // Không để lỗi milestone làm hỏng response chính
+      console.error('Milestone check error:', milestoneErr);
+    }
+    // ──────────────────────────────────────────────────────
+
     return success(res, { payment, updatedDebt });
   } catch (err) {
     console.error('logPayment error:', err);

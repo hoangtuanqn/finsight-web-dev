@@ -55,6 +55,13 @@ export const debtAPI = {
   getDtiAnalysis: () => api.get('/debts/dti'),
 };
 
+// DEBT GOAL
+export const debtGoalAPI = {
+  get: () => api.get('/debts/goal'),
+  upsert: (data) => api.post('/debts/goal', data),
+  delete: () => api.delete('/debts/goal'),
+};
+
 // INVESTMENT
 export const investmentAPI = {
   getProfile: () => api.get('/investment/profile'),
@@ -63,11 +70,11 @@ export const investmentAPI = {
   getAllocation: (params) => api.get('/investment/allocation', { params }),
   getHistory: () => api.get('/investment/history'),
   submitRiskAssessment: (data) => api.post('/investment/risk-assessment', data),
-  getCryptoPrices:  () => api.get('/investment/crypto-prices'),
-  getStockPrices:   (params) => api.get('/investment/stock-prices', { params }),
-  getGoldPrices:    () => api.get('/investment/gold-prices'),
-  getSavingsRates:  (params) => api.get('/investment/savings-rates', { params }),
-  getBondsRates:    (params) => api.get('/investment/bonds-rates', { params }),
+  getCryptoPrices: () => api.get('/investment/crypto-prices'),
+  getStockPrices: (params) => api.get('/investment/stock-prices', { params }),
+  getGoldPrices: () => api.get('/investment/gold-prices'),
+  getSavingsRates: (params) => api.get('/investment/savings-rates', { params }),
+  getBondsRates: (params) => api.get('/investment/bonds-rates', { params }),
 };
 
 // MARKET
@@ -87,10 +94,20 @@ export const agenticAPI = {
 
 // REPORTS
 export const reportAPI = {
-  exportReport: (format) => api.get('/reports/export', { 
+  exportReport: (format) => api.get('/reports/export', {
     params: { format },
-    responseType: 'blob' 
+    responseType: 'blob'
   }),
+};
+
+// SUBSCRIPTION
+export const subscriptionAPI = {
+  getMyPlan: () => api.get('/subscription/me'),
+  createInvoice: (data) => api.post('/subscription/invoice', data),
+  getInvoice: (id) => api.get(`/subscription/invoice/${id}`),
+  getTransactions: () => api.get('/subscription/transactions'),
+  cancelInvoice: (id) => api.post(`/subscription/invoice/${id}/cancel`),
+  verifyPayment: () => api.post('/subscription/verify'),
 };
 
 export default api;

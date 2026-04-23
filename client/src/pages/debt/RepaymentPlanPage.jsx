@@ -1,11 +1,218 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { debtAPI, userAPI } from '../../api/index.js';
+import { debtAPI, userAPI, debtGoalAPI } from '../../api/index.js';
 import { useAuth } from '../../context/AuthContext';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
-import { formatVND, formatPercent, calcDebtToIncomeRatio } from '../../utils/calculations';
-import { ClipboardList, DollarSign, TrendingDown, Bot, Lightbulb, Target, Zap, TrendingUp, Save, Check } from 'lucide-react';
+import { formatVND } from '../../utils/calculations';
+import {
+  ClipboardList, DollarSign, TrendingDown, Bot, Lightbulb, Target, Zap, TrendingUp,
+  Save, Check, ChevronRight, Trophy, AlertTriangle, HelpCircle, X,
+  CheckCircle2, XCircle, ArrowRight, Brain,
+} from 'lucide-react';
+
+// ─────────────────────────────────────────────────────────────
+// Strategy Explanation Modal
+// ─────────────────────────────────────────────────────────────
+const STRATEGY_CONTENT = {
+  AVALANCHE: {
+    name: 'Avalanche',
+    tagline: 'Tiết kiệm lãi tối đa',
+    color: 'blue',
+    borderColor: 'rgba(59,130,246,0.25)',
+    glowColor: 'via-blue-500/50',
+    bgGlow: 'bg-blue-500',
+    Icon: Zap,
+    emoji: '⚡',
+    description: 'Phương pháp Avalanche tập trung trả khoản nợ có lãi suất cao nhất trước, trong khi vẫn trả tối thiểu cho các khoản còn lại. Khi khoản lãi cao nhất được trả xong, chuyển toàn bộ ngân sách đó sang khoản có lãi suất cao thứ hai — như một trận tuyết lở tích lũy momentum.',
+    howItWorks: [
+      'Liệt kê tất cả các khoản nợ, sắp xếp theo lãi suất từ cao xuống thấp',
+      'Trả đúng tối thiểu cho tất cả khoản nợ mỗi tháng',
+      'Dùng toàn bộ tiền dư để trả thêm vào khoản lãi suất CAO NHẤT',
+      'Khi khoản đó trả xong → chuyển toàn bộ sang khoản lãi suất cao tiếp theo',
+      'Lặp lại cho đến khi sạch nợ',
+    ],
+    pros: [
+      'Tiết kiệm nhiều tiền lãi nhất về tổng thể',
+      'Trả hết nợ nhanh hơn (về mặt toán học)',
+      'Phù hợp người có tư duy logic, thích tối ưu số liệu',
+    ],
+    cons: [
+      'Có thể mất nhiều tháng trước khi trả xong khoản đầu tiên (nếu dư nợ lớn)',
+      'Ít cảm giác "chiến thắng" trong ngắn hạn',
+      'Đòi hỏi kỷ luật cao, dễ nản nếu nợ lớn',
+    ],
+    bestFor: 'Người muốn tối ưu tài chính, tiết kiệm tối đa tiền lãi và có đủ kỷ luật để kiên trì.',
+    worstFor: 'Người cần động lực liên tục, dễ bỏ cuộc khi không thấy kết quả sớm.',
+  },
+  SNOWBALL: {
+    name: 'Snowball',
+    tagline: 'Động lực tâm lý bền vững',
+    color: 'emerald',
+    borderColor: 'rgba(16,185,129,0.25)',
+    glowColor: 'via-emerald-500/50',
+    bgGlow: 'bg-emerald-500',
+    Icon: Target,
+    emoji: '⛄',
+    description: 'Phương pháp Snowball tập trung trả khoản nợ có dư nợ NHỎ NHẤT trước, bất kể lãi suất. Mỗi lần trả xong một khoản, bạn có cảm giác chiến thắng và tăng động lực. Như một quả cầu tuyết lăn xuống dốc — mỗi "win" nhỏ tạo đà cho chiến thắng lớn hơn.',
+    howItWorks: [
+      'Liệt kê tất cả khoản nợ, sắp xếp theo dư nợ từ nhỏ đến lớn',
+      'Trả đúng tối thiểu cho tất cả khoản nợ mỗi tháng',
+      'Dùng toàn bộ tiền dư để trả thêm vào khoản dư nợ NHỎ NHẤT',
+      'Khi trả xong khoản nhỏ nhất → chuyển toàn bộ sang khoản nhỏ thứ hai',
+      'Lặp lại — mỗi lần xóa được 1 khoản nợ là 1 chiến thắng!',
+    ],
+    pros: [
+      'Tạo cảm giác chiến thắng sớm và thường xuyên',
+      'Dễ duy trì động lực dài hạn',
+      'Số lượng khoản nợ giảm nhanh → giảm áp lực tâm lý',
+    ],
+    cons: [
+      'Tốn nhiều tiền lãi hơn Avalanche về tổng thể',
+      'Thời gian trả hết nợ thường lâu hơn',
+      'Không tối ưu về mặt tài chính thuần túy',
+    ],
+    bestFor: 'Người cần động lực thường xuyên, đã từng thất bại với kế hoạch trả nợ, hoặc đang có nhiều khoản nợ nhỏ cần dọn sạch.',
+    worstFor: 'Người có 1-2 khoản nợ lớn với lãi suất rất cao — Avalanche sẽ tiết kiệm hơn đáng kể.',
+  },
+};
+
+function StrategyModal({ type, onClose }) {
+  const content = STRATEGY_CONTENT[type];
+  if (!content) return null;
+  const { name, tagline, color, borderColor, glowColor, bgGlow, Icon, emoji,
+    description, howItWorks, pros, cons, bestFor, worstFor } = content;
+
+  return (
+    // Backdrop
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      onClick={onClose}
+    >
+      {/* Panel */}
+      <motion.div
+        initial={{ opacity: 0, y: 60 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 60 }}
+        transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+        className="relative w-full sm:max-w-lg max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl border"
+        style={{ background: 'var(--color-bg-secondary)', borderColor }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className={`absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent ${glowColor} to-transparent`} />
+        <div className={`absolute -top-12 right-0 w-40 h-40 rounded-full blur-3xl opacity-10 ${bgGlow}`} />
+
+        {/* Mobile handle */}
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+          <div className="w-10 h-1 rounded-full bg-white/20" />
+        </div>
+
+        <div className="p-6 pt-4">
+          {/* Header */}
+          <div className="flex items-start justify-between mb-5">
+            <div className="flex items-center gap-3">
+              <div className={`w-11 h-11 rounded-2xl flex items-center justify-center bg-${color}-500/15 text-${color}-400`}>
+                <Icon size={22} />
+              </div>
+              <div>
+                <h2 className={`text-[20px] font-black text-${color}-400`}>{emoji} {name}</h2>
+                <p className="text-[12px] text-[var(--color-text-muted)]">{tagline}</p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-[var(--color-text-muted)] transition-colors cursor-pointer"
+            >
+              <X size={15} />
+            </button>
+          </div>
+
+          {/* Description */}
+          <p className="text-[13px] text-[var(--color-text-secondary)] leading-relaxed mb-5">
+            {description}
+          </p>
+
+          {/* How it works */}
+          <div className={`rounded-2xl p-4 mb-4 bg-${color}-500/6 border border-${color}-500/15`}>
+            <h3 className="text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <Brain size={11} /> Cách hoạt động
+            </h3>
+            <ol className="space-y-2">
+              {howItWorks.map((step, i) => (
+                <li key={i} className="flex items-start gap-2.5">
+                  <span className={`shrink-0 w-5 h-5 rounded-full bg-${color}-500/20 text-${color}-400 text-[10px] font-black flex items-center justify-center mt-0.5`}>
+                    {i + 1}
+                  </span>
+                  <span className="text-[12px] text-[var(--color-text-secondary)] leading-relaxed">{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* Pros / Cons */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="rounded-2xl p-3.5 bg-emerald-500/6 border border-emerald-500/15">
+              <h3 className="text-[10px] font-black text-emerald-400 uppercase tracking-wider mb-2.5 flex items-center gap-1">
+                <CheckCircle2 size={10} /> Ưu điểm
+              </h3>
+              <ul className="space-y-1.5">
+                {pros.map((p, i) => (
+                  <li key={i} className="flex items-start gap-1.5">
+                    <ArrowRight size={10} className="text-emerald-500 shrink-0 mt-1" />
+                    <span className="text-[11px] text-[var(--color-text-secondary)] leading-relaxed">{p}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-2xl p-3.5 bg-red-500/6 border border-red-500/15">
+              <h3 className="text-[10px] font-black text-red-400 uppercase tracking-wider mb-2.5 flex items-center gap-1">
+                <XCircle size={10} /> Nhược điểm
+              </h3>
+              <ul className="space-y-1.5">
+                {cons.map((c, i) => (
+                  <li key={i} className="flex items-start gap-1.5">
+                    <ArrowRight size={10} className="text-red-500 shrink-0 mt-1" />
+                    <span className="text-[11px] text-[var(--color-text-secondary)] leading-relaxed">{c}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Best for / Worst for */}
+          <div className="space-y-2 mb-5">
+            <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-xl bg-white/4 border border-white/6">
+              <CheckCircle2 size={14} className="text-emerald-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wide">Phù hợp nhất: </span>
+                <span className="text-[12px] text-[var(--color-text-secondary)]">{bestFor}</span>
+              </div>
+            </div>
+            <div className="flex items-start gap-2.5 px-3.5 py-3 rounded-xl bg-white/4 border border-white/6">
+              <AlertTriangle size={14} className="text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="text-[10px] font-black text-amber-400 uppercase tracking-wide">Cân nhắc khi: </span>
+                <span className="text-[12px] text-[var(--color-text-secondary)]">{worstFor}</span>
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={onClose}
+            className={`w-full py-3 rounded-2xl font-black text-[13px] transition-all cursor-pointer bg-${color}-500/15 border border-${color}-500/25 text-${color}-400 hover:bg-${color}-500/25`}
+          >
+            Đã hiểu, đóng lại
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 
 const TOOLTIP_STYLE = {
   background:   '#0f172a',
@@ -19,10 +226,27 @@ const TOOLTIP_STYLE = {
 export default function RepaymentPlanPage() {
   const { user, setUser }     = useAuth();
   const defaultBudget         = user?.extraBudget || 0;
+  const inputRef              = useRef(null);
+  const displayBudgetInput    = (value) => value ? Number(value).toLocaleString('vi-VN') : '';
+  const moveCaretToEnd        = () => {
+    requestAnimationFrame(() => {
+      const input = inputRef.current;
+      if (!input) return;
+      const end = input.value.length;
+      input.setSelectionRange(end, end);
+    });
+  };
+  const formatBudgetInput     = (value) => {
+    if (!value) return '';
+    return `${Number(value).toLocaleString('vi-VN')} đ`;
+  };
 
   const [data,         setData]        = useState(null);
   const [debtSummary,  setDebtSummary] = useState(null);
+  const [allDebts,     setAllDebts]    = useState([]);
+  const [goalData,     setGoalData]    = useState(null);
   const [loading,      setLoading]     = useState(true);
+  const [modal,        setModal]       = useState(null); // 'AVALANCHE' | 'SNOWBALL' | null
   const [extraBudget,  setExtraBudget] = useState(defaultBudget);
   const [inputRaw,     setInputRaw]    = useState(String(defaultBudget));
   const [saving,       setSaving]      = useState(false);
@@ -31,8 +255,14 @@ export default function RepaymentPlanPage() {
 
   const load = (budget) => {
     setLoading(true);
-    Promise.all([debtAPI.getRepaymentPlan({ extraBudget: budget }), debtAPI.getAll()])
-      .then(([planRes, allRes]) => { setData(planRes.data.data); setDebtSummary(allRes.data.data?.summary || null); })
+    Promise.all([debtAPI.getRepaymentPlan({ extraBudget: budget }), debtAPI.getAll(), debtGoalAPI.get()])
+      .then(([planRes, allRes, goalRes]) => {
+        setData(planRes.data.data);
+        const allData = allRes.data.data;
+        setDebtSummary(allData?.summary || null);
+        setAllDebts(allData?.debts || []);
+        setGoalData(goalRes.data.data || null);
+      })
       .catch(console.error)
       .finally(() => setTimeout(() => setLoading(false), 400));
   };
@@ -40,8 +270,10 @@ export default function RepaymentPlanPage() {
   useEffect(() => { load(extraBudget); }, []);
 
   const handleBudgetChange = (val) => { const n = Math.max(0, val); setExtraBudget(n); setInputRaw(String(n)); load(n); };
-  const handleInputChange  = (e)   => { setInputRaw(e.target.value); };
-  const handleInputBlur    = ()    => { const n = Math.max(0, parseInt(inputRaw.replace(/\D/g, ''), 10) || 0); handleBudgetChange(n); };
+  const handleInputChange  = (e)   => { setInputRaw(e.target.value.replace(/\D/g, '')); moveCaretToEnd(); };
+  const handleInputBlur    = ()    => { const n = Math.max(0, parseInt(inputRaw, 10) || 0); handleBudgetChange(n); };
+  const handleInputFocus   = ()    => { moveCaretToEnd(); };
+  const handleInputClick   = ()    => { moveCaretToEnd(); };
   const handleInputKeyDown = (e)   => { if (e.key === 'Enter') e.target.blur(); };
 
   const handleSaveBudget = async () => {
@@ -55,6 +287,13 @@ export default function RepaymentPlanPage() {
 
   const { avalanche, snowball, comparison, recommendation } = data || {};
   const monthlyIncome = debtSummary?.monthlyIncome ?? 0;
+
+  // Goal banner helpers
+  const goal      = goalData?.goal;
+  const onTrack   = goalData?.onTrack;
+  const progress  = goalData?.progress;
+  const milestones = goalData?.milestones || [];
+  const reachedCount = milestones.filter(m => m.reached).length;
 
   const timelineData = [];
   if (avalanche?.schedule && snowball?.schedule) {
@@ -75,6 +314,7 @@ export default function RepaymentPlanPage() {
   const snSafeMonth = timelineData.findIndex(d => d.snDti !== undefined && d.snDti <= 20);
 
   return (
+    <>
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-8 space-y-6">
       {/* ── Header ── */}
       <div className="pt-2">
@@ -84,6 +324,72 @@ export default function RepaymentPlanPage() {
         <h1 className="text-3xl font-black tracking-tighter text-[var(--color-text-primary)]">Kế hoạch trả nợ</h1>
         <p className="text-[var(--color-text-secondary)] text-sm mt-1">So sánh Avalanche vs Snowball để chọn chiến lược tối ưu</p>
       </div>
+
+      {/* ── Goal Linkage Banner ── */}
+      {goalData && (
+        <Link to="/debts/goal">
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-4 px-5 py-4 rounded-2xl border cursor-pointer transition-all hover:border-violet-500/40 hover:bg-violet-500/8 relative overflow-hidden"
+            style={{ background: 'var(--color-bg-card)', borderColor: 'rgba(139,92,246,0.2)' }}
+          >
+            <div className="absolute top-0 left-5 right-5 h-px bg-gradient-to-r from-transparent via-violet-500/40 to-transparent" />
+
+            {/* Progress mini ring area */}
+            <div className="w-10 h-10 rounded-xl bg-violet-500/15 flex items-center justify-center text-violet-400 shrink-0">
+              {reachedCount === 4 ? <Trophy size={18} /> : <Target size={18} />}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[12px] font-black text-[var(--color-text-primary)]">Mục tiêu trả nợ</span>
+                {goal && (
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                    onTrack?.status === 'BEHIND'
+                      ? 'bg-red-500/15 text-red-300'
+                      : onTrack?.status === 'AHEAD'
+                        ? 'bg-emerald-500/15 text-emerald-300'
+                        : 'bg-blue-500/15 text-blue-300'
+                  }`}>
+                    {onTrack?.status === 'BEHIND' ? 'Chậm tiến độ' : onTrack?.status === 'AHEAD' ? 'Vượt kế hoạch' : 'Đúng tiến độ'}
+                  </span>
+                )}
+                {!goal && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-500/15 text-slate-400">Chưa đặt mục tiêu</span>
+                )}
+              </div>
+
+              {/* Mini progress bar */}
+              {progress && (
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${Math.min(100, progress.percentPaid)}%`,
+                        background: 'linear-gradient(90deg, #ef4444, #f97316, #22c55e)',
+                      }}
+                    />
+                  </div>
+                  <span className="text-[11px] font-black text-[var(--color-text-muted)] shrink-0">
+                    {progress.percentPaid.toFixed(1)}%
+                  </span>
+                  <span className="text-[11px] text-[var(--color-text-muted)] shrink-0">
+                    · {reachedCount}/4 milestone
+                  </span>
+                </div>
+              )}
+
+              {!goal && !progress && (
+                <p className="text-[11px] text-[var(--color-text-muted)]">Đặt ngày mục tiêu để theo dõi tiến độ trả nợ</p>
+              )}
+            </div>
+
+            <ChevronRight size={16} className="text-[var(--color-text-muted)] shrink-0" />
+          </motion.div>
+        </Link>
+      )}
 
       {/* ── Budget Panel ── */}
       <div className="relative rounded-3xl p-6 border overflow-hidden" style={{ background: 'var(--color-bg-card)', borderColor: 'rgba(59,130,246,0.15)' }}>
@@ -100,10 +406,14 @@ export default function RepaymentPlanPage() {
           <div className="flex-1 relative">
             <input
               type="text" inputMode="numeric" placeholder="Nhập số tiền..."
-              value={formatVND(inputRaw)}
-              onChange={handleInputChange} onBlur={handleInputBlur} onKeyDown={handleInputKeyDown}
-              className="w-full px-4 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-blue-400 font-black text-[14px] outline-none focus:border-blue-500/50 transition-colors"
+              ref={inputRef}
+              value={displayBudgetInput(inputRaw)}
+              onChange={handleInputChange} onBlur={handleInputBlur} onFocus={handleInputFocus} onClick={handleInputClick} onKeyDown={handleInputKeyDown}
+              className="w-full px-4 pr-12 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-blue-400 font-black text-[14px] outline-none focus:border-blue-500/50 transition-colors"
             />
+            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-blue-400 font-black text-[14px]">
+              đ
+            </span>
           </div>
           <button
             onClick={handleSaveBudget} disabled={saving}
@@ -154,9 +464,16 @@ export default function RepaymentPlanPage() {
                 </div>
                 <h3 className="font-black text-blue-400 text-[16px]">Avalanche</h3>
                 <span className="px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 text-[10px] font-black">Tiết kiệm lãi</span>
+                <button
+                  onClick={() => setModal('AVALANCHE')}
+                  className="ml-auto w-7 h-7 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 flex items-center justify-center text-blue-400/70 hover:text-blue-400 transition-all cursor-pointer border border-blue-500/15"
+                  title="Tìm hiểu về Avalanche"
+                >
+                  <HelpCircle size={14} />
+                </button>
               </div>
               <p className="text-[12px] text-[var(--color-text-muted)] mb-5">Ưu tiên trả nợ lãi suất CAO nhất trước</p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 mb-5">
                 <div>
                   <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider font-bold mb-1">Thời gian</p>
                   <p className="text-2xl font-black text-[var(--color-text-primary)]">{avalanche.months} <span className="text-sm text-[var(--color-text-muted)] font-medium">tháng</span></p>
@@ -166,6 +483,33 @@ export default function RepaymentPlanPage() {
                   <p className="text-xl font-black text-red-400">{formatVND(avalanche.totalInterest)}</p>
                 </div>
               </div>
+              {/* Divider + priority list */}
+              {allDebts.filter(d => d.balance > 0).length > 0 && (
+                <>
+                  <div className="h-px bg-blue-500/10 mb-4" />
+                  <p className="text-[10px] font-black text-blue-400/70 uppercase tracking-wider mb-3">
+                    Thứ tự trả theo phương pháp này
+                  </p>
+                  <div className="space-y-2">
+                    {[...allDebts.filter(d => d.balance > 0)]
+                      .sort((a, b) => b.apr - a.apr)
+                      .map((d, i) => (
+                        <div key={d.id} className="flex items-center gap-2.5">
+                          <div className={`shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${
+                            i === 0 ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-[var(--color-text-muted)]'
+                          }`}>{i + 1}</div>
+                          <span className={`flex-1 text-[12px] font-bold truncate ${
+                            i === 0 ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-muted)]'
+                          }`}>{d.name}</span>
+                          <span className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-black ${
+                            i === 0 ? 'bg-blue-500/15 text-blue-300' : 'bg-white/5 text-[var(--color-text-muted)]'
+                          }`}>{d.apr}% APR</span>
+                          {i === 0 && <span className="shrink-0 text-[10px] font-black text-blue-400">← trước</span>}
+                        </div>
+                      ))}
+                  </div>
+                </>
+              )}
             </motion.div>
 
             {/* Snowball */}
@@ -181,9 +525,16 @@ export default function RepaymentPlanPage() {
                 </div>
                 <h3 className="font-black text-emerald-400 text-[16px]">Snowball</h3>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-[10px] font-black">Động lực tâm lý</span>
+                <button
+                  onClick={() => setModal('SNOWBALL')}
+                  className="ml-auto w-7 h-7 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 flex items-center justify-center text-emerald-400/70 hover:text-emerald-400 transition-all cursor-pointer border border-emerald-500/15"
+                  title="Tìm hiểu về Snowball"
+                >
+                  <HelpCircle size={14} />
+                </button>
               </div>
               <p className="text-[12px] text-[var(--color-text-muted)] mb-5">Ưu tiên trả nợ DƯ NỢ nhỏ nhất trước</p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 mb-5">
                 <div>
                   <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider font-bold mb-1">Thời gian</p>
                   <p className="text-2xl font-black text-[var(--color-text-primary)]">{snowball.months} <span className="text-sm text-[var(--color-text-muted)] font-medium">tháng</span></p>
@@ -193,6 +544,33 @@ export default function RepaymentPlanPage() {
                   <p className="text-xl font-black text-red-400">{formatVND(snowball.totalInterest)}</p>
                 </div>
               </div>
+              {/* Divider + priority list */}
+              {allDebts.filter(d => d.balance > 0).length > 0 && (
+                <>
+                  <div className="h-px bg-emerald-500/10 mb-4" />
+                  <p className="text-[10px] font-black text-emerald-400/70 uppercase tracking-wider mb-3">
+                    Thứ tự trả theo phương pháp này
+                  </p>
+                  <div className="space-y-2">
+                    {[...allDebts.filter(d => d.balance > 0)]
+                      .sort((a, b) => a.balance - b.balance)
+                      .map((d, i) => (
+                        <div key={d.id} className="flex items-center gap-2.5">
+                          <div className={`shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${
+                            i === 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 text-[var(--color-text-muted)]'
+                          }`}>{i + 1}</div>
+                          <span className={`flex-1 text-[12px] font-bold truncate ${
+                            i === 0 ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-muted)]'
+                          }`}>{d.name}</span>
+                          <span className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-black ${
+                            i === 0 ? 'bg-emerald-500/15 text-emerald-300' : 'bg-white/5 text-[var(--color-text-muted)]'
+                          }`}>{formatVND(d.balance)}</span>
+                          {i === 0 && <span className="shrink-0 text-[10px] font-black text-emerald-400">← trước</span>}
+                        </div>
+                      ))}
+                  </div>
+                </>
+              )}
             </motion.div>
           </div>
 
@@ -293,5 +671,16 @@ export default function RepaymentPlanPage() {
         </>
       )}
     </motion.div>
+
+    {/* ── Strategy Modal ── */}
+    <AnimatePresence>
+      {modal && (
+        <StrategyModal
+          type={modal}
+          onClose={() => setModal(null)}
+        />
+      )}
+    </AnimatePresence>
+    </>
   );
 }
