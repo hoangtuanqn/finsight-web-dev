@@ -1,8 +1,16 @@
+import 'dotenv/config';
 import express from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
-import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
 
-dotenv.config();
+const LOG_FILE = 'server_error.log';
+const originalError = console.error;
+console.error = (...args) => {
+  fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] ${args.join(' ')}\n`);
+  originalError.apply(console, args);
+};
 
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
@@ -10,9 +18,14 @@ import debtRoutes from './routes/debt.routes.js';
 import investmentRoutes from './routes/investment.routes.js';
 import marketRoutes from './routes/market.routes.js';
 import agenticRoutes from './routes/agentic.routes.js';
-import cronService from './services/cron.service.js';
+import subscriptionRoutes from './routes/subscription.routes.js';
+import cronManager from './cron/index.js';
+import { initSocket } from './utils/socket.js';
 
 const app = express();
+const server = createServer(app);
+const io = initSocket(server);
+
 const PORT = process.env.PORT || 5001;
 
 // Middleware
@@ -40,6 +53,7 @@ app.use('/api/debts', debtRoutes);
 app.use('/api/investment', investmentRoutes);
 app.use('/api/market', marketRoutes);
 app.use('/api/agentic', agenticRoutes);
+app.use('/api/subscription', subscriptionRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -52,12 +66,13 @@ app.use((err, req, res, _next) => {
   res.status(500).json({ success: false, error: 'Internal server error' });
 });
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`🚀 FinSight API running at http://localhost:${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`🔌 Socket.io initialized`);
   
   // Initialize background jobs
-  cronService.init();
+  cronManager.init();
 });
 
 export default app;
