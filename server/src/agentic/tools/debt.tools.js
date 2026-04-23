@@ -58,24 +58,44 @@ export const getUserDebtsTool = tool(
  *   Client (UI) sẽ bắt action này và hiển thị Popup xác nhận (DebtConfirmModal) cho người dùng duyệt.
  */
 export const parseDebtFromTextTool = tool(
-  async ({ name, originalAmount, apr, termMonths, text }) => {
+  async ({ name, originalAmount, apr, termMonths, text, balance, minPayment, startDate, dueDay, feeProcessing, feeInsurance, feeManagement }) => {
     // Trả về trực tiếp JSON cho Client (thông qua agent.js stream capture)
     // Lưu ý: Việc lưu Database THỰC SỰ sẽ được gọi bằng một API khác sau khi User bấm Confirm trên giao diện.
     return JSON.stringify({
       action: "FORM_POPULATION_REQUIRED",
-      parsedData: { name, originalAmount, apr, termMonths, notes: text },
+      parsedData: {
+        name,
+        originalAmount,
+        apr,
+        termMonths,
+        balance: balance ?? originalAmount, // Mặc định dư nợ = số tiền gốc nếu không có
+        minPayment: minPayment ?? null,
+        startDate: startDate ?? null,
+        dueDay: dueDay ?? null,
+        feeProcessing: feeProcessing ?? 0,
+        feeInsurance: feeInsurance ?? 0,
+        feeManagement: feeManagement ?? 0,
+        notes: text || null,
+      },
     });
   },
   {
     name: "parse_debt_from_text",
-    description: "Sử dụng khi người dùng cung cấp thông tin khoản nợ mới (số tiền, lãi suất, ngân hàng...). Gọi tool này để extract JSON.",
+    description: "Sử dụng khi người dùng cung cấp thông tin khoản nợ mới (số tiền, lãi suất, ngân hàng...). Gọi tool này để extract JSON. Chỉ gọi khi đã có đủ 4 trường bắt buộc: name, originalAmount, apr, termMonths.",
     // Bắt LLM phải tự bóc tách văn bản thô ra thành các con số chuẩn xác
     schema: z.object({
       name: z.string().describe("Tên tổ chức tín dụng hoặc ngân hàng (vd: FE Credit, Vietcombank)"),
       originalAmount: z.number().describe("Số tiền gốc vay (VNĐ)"),
       apr: z.number().describe("Lãi suất danh nghĩa hàng năm (APR) tính theo %"),
       termMonths: z.number().describe("Kỳ hạn vay (số tháng)"),
-      text: z.string().describe("Ngữ cảnh thêm từ người dùng nếu có đoạn cần ghi chú"),
+      text: z.string().optional().describe("Ngữ cảnh thêm từ người dùng nếu có đoạn cần ghi chú"),
+      balance: z.number().optional().describe("Dư nợ hiện tại (VNĐ). Nếu không có, mặc định bằng originalAmount"),
+      minPayment: z.number().optional().describe("Số tiền trả tối thiểu hàng tháng (VNĐ)"),
+      startDate: z.string().optional().describe("Ngày bắt đầu vay (định dạng YYYY-MM-DD)"),
+      dueDay: z.number().optional().describe("Ngày đáo hạn hàng tháng (1-31)"),
+      feeProcessing: z.number().optional().describe("Phí xử lý hồ sơ hàng năm (%)"),
+      feeInsurance: z.number().optional().describe("Phí bảo hiểm hàng năm (%)"),
+      feeManagement: z.number().optional().describe("Phí quản lý hàng năm (%)"),
     }),
   }
 );
