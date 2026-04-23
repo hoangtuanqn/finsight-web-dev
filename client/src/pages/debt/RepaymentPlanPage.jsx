@@ -13,6 +13,7 @@ import {
   Save, Check, ChevronRight, Trophy, AlertTriangle, HelpCircle, X,
   CheckCircle2, XCircle, ArrowRight, Brain,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const STRATEGY_CONTENT = {
   AVALANCHE: {
@@ -219,19 +220,26 @@ export default function RepaymentPlanPage() {
 
   const [extraBudget, setExtraBudget] = useState(defaultBudget);
   const [budgetInput, setBudgetInput] = useState(String(defaultBudget));
+  const [debouncedBudget, setDebouncedBudget] = useState(defaultBudget);
   const [modal, setModal] = useState(null);
   const [saved, setSaved] = useState(false);
 
-  const { data: planData, isLoading: planLoading } = useRepaymentPlan(extraBudget);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedBudget(extraBudget), 300);
+    return () => clearTimeout(timer);
+  }, [extraBudget]);
+
+  const { data: planData, isLoading: planLoading } = useRepaymentPlan(debouncedBudget);
   const { data: debtsData, isLoading: debtsLoading } = useDebts();
   const { data: goalData, isLoading: goalLoading } = useDebtGoal();
-  const { updateProfile, isUpdating: saving } = useUpdateProfile();
+  const { mutateAsync: updateProfile, isPending: saving } = useUpdateProfile();
 
   const loading = planLoading || debtsLoading || goalLoading;
 
   useEffect(() => {
     setBudgetInput(String(defaultBudget));
     setExtraBudget(defaultBudget);
+    setDebouncedBudget(defaultBudget);
   }, [defaultBudget]);
 
   const commitBudgetValue = (rawValue) => {
@@ -248,11 +256,17 @@ export default function RepaymentPlanPage() {
 
   const handleSaveBudget = async () => {
     try {
-      await updateProfile({ extraBudget });
+      await updateProfile({ 
+        extraBudget,
+        fullName: user?.fullName || '',
+        monthlyIncome: user?.monthlyIncome || 0
+      });
       setSaved(true);
+      toast.success('Đã lưu ngân sách trả thêm');
       setTimeout(() => setSaved(false), 2500);
     } catch (e) {
       console.error(e);
+      toast.error(e.response?.data?.error || 'Có lỗi xảy ra khi lưu ngân sách');
     }
   };
 
