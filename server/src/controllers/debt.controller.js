@@ -10,8 +10,23 @@ import {
 export async function getAllDebts(req, res) {
   try {
     const user = await prisma.user.findUnique({ where: { id: req.userId } });
+    
+    const filterStatus = req.query.status || 'ACTIVE'; // 'ACTIVE' | 'PAID' | 'TRASH'
+    
+    let whereClause = { userId: req.userId };
+    let includeDeleted = false;
+    
+    if (filterStatus === 'TRASH') {
+      whereClause.deletedAt = { not: null };
+      includeDeleted = true;
+    } else {
+      whereClause.status = filterStatus;
+      // deletedAt: null is automatically applied by the extension
+    }
+
     const debts = await prisma.debt.findMany({
-      where: { userId: req.userId, status: 'ACTIVE' },
+      where: whereClause,
+      includeDeleted,
       orderBy: { createdAt: 'desc' },
     });
 
@@ -149,14 +164,82 @@ export async function updateDebt(req, res) {
 
 export async function deleteDebt(req, res) {
   try {
-    await prisma.debt.deleteMany({ where: { id: req.params.id, userId: req.userId } });
+    const { reason, isCommitted } = req.body || {};
+    
+    // Use includeDeleted: true in case they are trying to delete something already deleted (though it shouldn't happen)
+    const debt = await prisma.debt.findFirst({
+      where: { id: req.params.id, userId: req.userId },
+      includeDeleted: true
+    });
+    
+    if (!debt) return error(res, 'Debt not found', 404);
+    if (debt.deletedAt) return error(res, 'Khoản nợ này đã nằm trong thùng rác', 400);
+
+    let scheduledPurgeAt = new Date();
+    scheduledPurgeAt.setDate(scheduledPurgeAt.getDate() + 30);
+
+    if (debt.balance > 0) {
+      if (!reason || !isCommitted) {
+        return error(res, 'Yêu cầu nhập lý do và cam kết rủi ro.', 400);
+      }
+      
+      await prisma.debt.update({
+        where: { id: debt.id },
+        data: {
+          deletedAt: new Date(),
+          scheduledPurgeAt,
+          deleteReason: reason,
+          deleteCommitment: true
+        }
+      });
+    } else {
+      await prisma.debt.update({
+        where: { id: debt.id },
+        data: {
+          deletedAt: new Date(),
+          scheduledPurgeAt,
+          deleteReason: 'CLEAN_UP_SETTLED_DEBT',
+          deleteCommitment: false
+        }
+      });
+    }
+
     await invalidateCache([`user:${req.userId}:*`]);
-    return success(res, { message: 'Debt deleted' });
+    return success(res, { message: 'Khoản nợ đã được chuyển vào thùng rác.' });
   } catch (err) {
     console.error('deleteDebt error:', err);
     return error(res, 'Internal server error');
   }
 }
+
+export async function restoreDebt(req, res) {
+  try {
+    const debt = await prisma.debt.findFirst({
+      where: { id: req.params.id, userId: req.userId },
+      includeDeleted: true
+    });
+
+    if (!debt) return error(res, 'Debt not found', 404);
+    if (!debt.deletedAt) return error(res, 'Khoản nợ này không nằm trong thùng rác', 400);
+
+    await prisma.debt.update({
+      where: { id: debt.id },
+      data: {
+        deletedAt: null,
+        scheduledPurgeAt: null,
+        deleteReason: null,
+        deleteCommitment: false
+      }
+    });
+
+    await invalidateCache([`user:${req.userId}:*`]);
+    return success(res, { message: 'Đã khôi phục khoản nợ thành công.' });
+  } catch (err) {
+    console.error('restoreDebt error:', err);
+    return error(res, 'Internal server error');
+  }
+}
+
 
 export async function logPayment(req, res) {
   try {
