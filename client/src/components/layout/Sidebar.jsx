@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, CreditCard, Search, ClipboardList,
-  TrendingUp, Target, User, BarChart2, LogOut, ChevronRight, Zap,
+  TrendingUp, Target, User, BarChart2, LogOut, ChevronRight, Zap, Receipt, Crown
 } from 'lucide-react';
 
 const NAV_GROUPS = [
@@ -38,7 +38,8 @@ const NAV_GROUPS = [
   {
     label: 'Premium',
     items: [
-      { id: 'tour-upgrade', to: '/upgrade', icon: Zap, label: 'Nâng cấp ngay', color: '#3b82f6', gradient: 'from-blue-600 to-cyan-500' },
+      { id: 'tour-upgrade',      to: '/upgrade',      icon: Zap,     label: 'Nâng cấp',      color: '#3b82f6', gradient: 'from-blue-600 to-cyan-500' },
+      { id: 'tour-transactions', to: '/transactions', icon: Receipt, label: 'Lịch sử GD',    color: '#06b6d4', gradient: 'from-cyan-500 to-blue-400' },
     ],
   },
 ];
@@ -102,7 +103,10 @@ export default function Sidebar({ isCollapsed, width, onClose, isMobile }) {
             </AnimatePresence>
 
             <div className="px-2 space-y-0.5">
-              {group.items.filter(item => item.icon).map((item) => (
+              {group.items
+                .filter(item => item.icon)
+                .filter(item => !(item.id === 'tour-upgrade' && user?.level === 'PROMAX'))
+                .map((item) => (
                 <NavLink
                   key={item.to}
                   id={item.id}
@@ -201,9 +205,21 @@ export default function Sidebar({ isCollapsed, width, onClose, isMobile }) {
                 exit={{ opacity: 0, x: -6 }}
                 className="flex-1 min-w-0 text-left"
               >
-                <p className="text-[12px] font-bold text-[var(--color-text-primary)] truncate leading-tight">
-                  {user?.fullName || 'User'}
-                </p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-[12px] font-bold text-[var(--color-text-primary)] truncate leading-tight">
+                    {user?.fullName || 'User'}
+                  </p>
+                  {user?.level === 'PROMAX' && (
+                    <div className="flex items-center justify-center w-4 h-4 rounded bg-amber-500/20 text-amber-500" title="Pro Max">
+                      <Crown size={10} />
+                    </div>
+                  )}
+                  {user?.level === 'PRO' && (
+                    <div className="flex items-center justify-center w-4 h-4 rounded bg-blue-500/20 text-blue-500" title="Pro">
+                      <Zap size={10} />
+                    </div>
+                  )}
+                </div>
                 <p className="text-[10px] text-[var(--color-text-muted)] truncate">{user?.email}</p>
               </motion.div>
             )}

@@ -85,4 +85,13 @@ export const agenticAPI = {
   deleteSession: (id) => api.delete(`/agentic/sessions/${id}`),
 };
 
+// SUBSCRIPTION
+export const subscriptionAPI = {
+  getMyPlan: () => api.get('/subscription/me'),
+  createInvoice: (data) => api.post('/subscription/invoice', data),
+  getInvoice: (id) => api.get(`/subscription/invoice/${id}`),
+  getTransactions: () => api.get('/subscription/transactions'),
+  cancelInvoice: (id) => api.post(`/subscription/invoice/${id}/cancel`),
+};
+
 export default api;
