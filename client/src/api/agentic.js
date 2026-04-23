@@ -19,12 +19,12 @@ function authHeaders() {
  * @param {function} onDone - called with final metadata
  * @param {function} onError - called on error
  * @param {function} onStatus - called with tool execution status text
- * @param {string|null} imageBase64 - optional Base64 image for OCR
+ * @param {string|null} ocrText - optional OCR text extracted from image
  */
-export async function streamChat(message, sessionId, onToken, onDone, onError, onStatus, imageBase64 = null) {
+export async function streamChat(message, sessionId, onToken, onDone, onError, onStatus, ocrText = null) {
   try {
     const payload = { message, sessionId };
-    if (imageBase64) payload.imageBase64 = imageBase64;
+    if (ocrText) payload.ocrText = ocrText;
 
     const res = await fetch(`${API_URL}/agentic/chat`, {
       method: 'POST',

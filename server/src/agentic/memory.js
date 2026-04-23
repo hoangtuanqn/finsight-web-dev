@@ -44,11 +44,16 @@ export const saveMessage = async (sessionId, role, content, actionType = null, p
  * @returns {Promise<Array>} - Mảng các Message class của LangChain.
  */
 export const getSessionHistory = async (sessionId, limit = 10) => {
+  // Lấy N tin nhắn MỚI NHẤT bằng cách sắp xếp desc rồi đảo ngược lại
+  // để đảm bảo Agent luôn nhận được ngữ cảnh gần đây nhất thay vì tin cũ nhất
   const messages = await prisma.chatMessage.findMany({
     where: { sessionId },
-    orderBy: { createdAt: 'asc' }, // Xếp theo thứ tự thời gian từ cũ đến mới
-    take: limit, // Lấy N tin nhắn gần nhất
+    orderBy: { createdAt: 'desc' }, // Lấy tin mới nhất trước
+    take: limit,
   });
+
+  // Đảo ngược lại thứ tự thời gian (cũ → mới) để LLM đọc đúng trình tự hội thoại
+  messages.reverse();
 
   // Chuyển đổi định dạng DB sang định dạng Message object của LangChain
   return messages.map(m => {

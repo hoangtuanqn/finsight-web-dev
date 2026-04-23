@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, X, Send, Bot, User, History, Paperclip, ImageIcon } from 'lucide-react';
+import { MessageSquare, X, Send, Bot, User, History, Paperclip, ImageIcon, Sparkles } from 'lucide-react';
 import { useAgenticChat } from '../../hooks/useAgenticChat.js';
 import { runOCR } from '../../utils/ocr.js';
 import MessageRenderer from './MessageRenderer.jsx';
@@ -81,7 +81,7 @@ export default function AIChatbotModal() {
     sendMessage(finalUserPrompt, ocrResult.text, displayContent);
   };
 
-  const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+  const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
   const handleImageSelect = (e) => {
     const file = e.target.files?.[0];
@@ -94,7 +94,7 @@ export default function AIChatbotModal() {
     }
     // Validate size
     if (file.size > MAX_IMAGE_SIZE) {
-      alert('Ảnh quá lớn (tối đa 5MB)');
+      alert('Ảnh quá lớn (tối đa 10MB)');
       return;
     }
 
@@ -274,6 +274,31 @@ export default function AIChatbotModal() {
                   </div>
                 ))}
 
+                {/* Suggested Questions — chỉ hiển thị khi chỉ có welcome message */}
+                {messages.length === 1 && !isStreaming && (
+                  <div className="flex flex-col gap-2 mt-1">
+                    <p className="text-[10px] flex items-center gap-1" style={{ color: 'var(--color-text-secondary)' }}>
+                      <Sparkles className="w-3 h-3" /> Gợi ý câu hỏi:
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {['DTI là gì?', 'APR là gì?'].map((q) => (
+                        <button
+                          key={q}
+                          onClick={() => sendMessage(q)}
+                          className="px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 hover:scale-105 hover:shadow-md cursor-pointer"
+                          style={{
+                            background: 'linear-gradient(135deg, rgba(37,99,235,0.1) 0%, rgba(79,70,229,0.1) 100%)',
+                            color: 'var(--color-text-primary)',
+                            border: '1px solid rgba(99,102,241,0.3)',
+                          }}
+                        >
+                          {q}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Tool Status / Typing Indicator */}
                 {isStreaming && messages[messages.length - 1]?.role === 'assistant' && !messages[messages.length - 1]?.content && (
                   <div className="flex gap-2.5 flex-row">
@@ -380,20 +405,21 @@ export default function AIChatbotModal() {
               </form>
             </div>
 
-            {/* Debt Confirmation Modal Overlay */}
-            {pendingAction && (
-              <DebtConfirmModal
-                data={pendingAction}
-                onConfirm={() => {
-                  dismissAction();
-                  sendMessage('Tôi đã xác nhận lưu khoản nợ thành công.');
-                }}
-                onDismiss={dismissAction}
-              />
-            )}
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Debt Confirmation Modal — rendered outside chat window, uses Portal internally */}
+      {pendingAction && (
+        <DebtConfirmModal
+          data={pendingAction}
+          onConfirm={() => {
+            dismissAction();
+            sendMessage('Tôi đã xác nhận lưu khoản nợ thành công.');
+          }}
+          onDismiss={dismissAction}
+        />
+      )}
 
       {/* Floating Trigger Button */}
       <motion.button

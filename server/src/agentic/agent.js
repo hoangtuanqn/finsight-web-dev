@@ -58,9 +58,7 @@ export const runAgenticChat = async (userId, query, sessionId, onTokenStream, on
   }
 
   // --- BƯỚC 5: Khởi tạo Dữ liệu Phiên (Context Initialization) ---
-  // Tải hoặc tạo phiên chat (Session) và lưu câu hỏi mới của người dùng vào DB
   const session = await getOrCreateSession(userId, sessionId);
-  await saveMessage(session.id, 'user', query);
 
   // Tự động đặt tên cho phiên trò chuyện dựa trên câu hỏi đầu tiên
   if (!sessionId) {
@@ -68,8 +66,13 @@ export const runAgenticChat = async (userId, query, sessionId, onTokenStream, on
     await updateSessionTitle(session.id, title);
   }
   
-  // Lấy lịch sử trò chuyện (6 tin nhắn gần nhất) để đưa cho AI tạo ngữ cảnh
+  // Lấy lịch sử trò chuyện TRƯỚC KHI lưu câu hỏi mới để tránh trùng lặp tin nhắn
+  // (Bug fix: trước đây saveMessage được gọi trước getSessionHistory
+  // → query xuất hiện trong history VÀ lại được append thêm ở cuối → LLM nhận query 2 lần)
   const history = await getSessionHistory(session.id, 6);
+  
+  // Lưu câu hỏi người dùng vào DB SAU KHI đã lấy history
+  await saveMessage(session.id, 'user', query);
   
   // Khởi tạo LLM (ví dụ: Google Gemini) hỗ trợ chức năng Streaming
   const llm = getChatModel({ streaming: true });
