@@ -51,7 +51,7 @@ export const userAPI = {
 
 // DEBTS
 export const debtAPI = {
-  getAll: () => api.get('/debts'),
+  getAll: (params) => api.get('/debts', { params }),
   create: (data) => api.post('/debts', data),
   getById: (id) => api.get(`/debts/${id}`),
   update: (id, data) => api.put(`/debts/${id}`, data),
