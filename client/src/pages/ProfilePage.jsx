@@ -199,13 +199,13 @@ export default function ProfilePage() {
                   <div>
                     <label className={LABEL}>Lãi suất ngân hàng (%)</label>
                     <div className="relative">
-                      <FormattedInput kind="decimal" value={form.savingsRate} onValueChange={(value) => setForm(f => ({ ...f, savingsRate: value }))} className={INPUT} placeholder="6,0" suffix="%" />
+                      <FormattedInput kind="decimal" value={form.savingsRate} onValueChange={(value) => setForm(f => ({ ...f, savingsRate: value }))} className={INPUT + ' pl-10'} placeholder="6,0" suffix="%" />
                     </div>
                   </div>
                   <div>
                     <label className={LABEL}>Mức lạm phát (%)</label>
                     <div className="relative">
-                      <FormattedInput kind="decimal" value={form.inflationRate} onValueChange={(value) => setForm(f => ({ ...f, inflationRate: value }))} className={INPUT} placeholder="3,5" suffix="%" />
+                      <FormattedInput kind="decimal" value={form.inflationRate} onValueChange={(value) => setForm(f => ({ ...f, inflationRate: value }))} className={INPUT + ' pl-10'} placeholder="3,5" suffix="%" />
                     </div>
                   </div>
                 </div>
