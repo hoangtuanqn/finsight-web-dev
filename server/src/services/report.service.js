@@ -13,8 +13,13 @@ import {
 const LOGO_URL = 'https://i.ibb.co/84xLmWTK/LOGO.png';
 const LOGO_PATH = path.resolve(process.cwd(), '..', 'LOGO.png');
 import axios from 'axios';
-const FONT_REGULAR = '/System/Library/Fonts/Supplemental/Arial.ttf';
-const FONT_BOLD = '/System/Library/Fonts/Supplemental/Arial Bold.ttf';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const FONT_REGULAR = path.join(__dirname, '..', 'assets', 'fonts', 'Arial.ttf');
+const FONT_BOLD = path.join(__dirname, '..', 'assets', 'fonts', 'ArialBold.ttf');
 
 class ReportService {
   async getReportData(userId) {
