@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { register, login, me, logout } from '../controllers/auth.controller.js';
+import { generateQR, checkQRStatus, markQRScanned, confirmQRLogin } from '../controllers/qrAuth.controller.js';
 import { googleLogin, getGoogleConfig } from '../controllers/googleAuth.controller.js';
 import { facebookLogin, getFacebookConfig } from '../controllers/facebookAuth.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
@@ -18,5 +19,11 @@ router.get('/google-config', getGoogleConfig);
 
 router.post('/facebook', facebookLogin);
 router.get('/facebook-config', getFacebookConfig);
+
+// QR Login Flow
+router.get('/qr/generate', generateQR);
+router.get('/qr/status/:token', checkQRStatus);
+router.post('/qr/scanned', authenticate, validate(authSchemas.qrScanned), markQRScanned);
+router.post('/qr/confirm', authenticate, validate(authSchemas.qrConfirm), confirmQRLogin);
 
 export default router;

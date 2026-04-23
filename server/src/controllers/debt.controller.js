@@ -9,38 +9,53 @@ import {
 
 export async function getAllDebts(req, res) {
   try {
+    const { platform, amountRange, dueInDays } = req.query;
+
+    let whereClause = { userId: req.userId, status: 'ACTIVE' };
+
+    if (platform) {
+      whereClause.platform = platform;
+    }
+
+    if (amountRange) {
+      if (amountRange === '<10000000') whereClause.balance = { lt: 10000000 };
+      else if (amountRange === '10000000-50000000') whereClause.balance = { gte: 10000000, lte: 50000000 };
+      else if (amountRange === '>50000000') whereClause.balance = { gt: 50000000 };
+    }
+
     const user = await prisma.user.findUnique({ where: { id: req.userId } });
-    const debts = await prisma.debt.findMany({
-      where: { userId: req.userId, status: 'ACTIVE' },
+    let debts = await prisma.debt.findMany({
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
     });
-
-    const debtsWithCalc = debts.map(debt => {
-      const apy = calcAPY(debt.apr);
-      const ear = calcEAR(debt.apr, debt.feeProcessing, debt.feeInsurance, debt.feeManagement, debt.termMonths);
-      return { ...debt, apy, ear };
-    });
-
-    const totalBalance = debts.reduce((sum, d) => sum + d.balance, 0);
-    const totalMinPayment = debts.reduce((sum, d) => sum + d.minPayment, 0);
-    const weightedEAR = totalBalance > 0
-      ? debts.reduce((sum, d) => sum + (d.balance / totalBalance) * calcEAR(d.apr, d.feeProcessing, d.feeInsurance, d.feeManagement, d.termMonths), 0)
-      : 0;
-
-    const dtiRatio = calcDebtToIncomeRatio(totalMinPayment, user.monthlyIncome);
-    const dominoAlerts = detectDominoRisk(debts, user.monthlyIncome);
 
     const today = new Date();
     const currentDay = today.getDate();
     const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
 
-    const upcomingDebts = debts
-      .map(d => {
-        const daysUntil = d.dueDay >= currentDay
-          ? d.dueDay - currentDay
-          : daysInMonth - currentDay + d.dueDay;
-        return { ...d, daysUntil };
-      })
+    let debtsWithCalc = debts.map(debt => {
+      const apy = calcAPY(debt.apr);
+      const ear = calcEAR(debt.apr, debt.feeProcessing, debt.feeInsurance, debt.feeManagement, debt.termMonths);
+      const daysUntil = debt.dueDay >= currentDay
+        ? debt.dueDay - currentDay
+        : daysInMonth - currentDay + debt.dueDay;
+      return { ...debt, apy, ear, daysUntil };
+    });
+
+    if (dueInDays) {
+      debtsWithCalc = debtsWithCalc.filter(d => d.daysUntil <= Number(dueInDays));
+    }
+
+    const totalBalance = debtsWithCalc.reduce((sum, d) => sum + d.balance, 0);
+    const totalMinPayment = debtsWithCalc.reduce((sum, d) => sum + d.minPayment, 0);
+    const weightedEAR = totalBalance > 0
+      ? debtsWithCalc.reduce((sum, d) => sum + (d.balance / totalBalance) * d.ear, 0)
+      : 0;
+
+    const dtiRatio = calcDebtToIncomeRatio(totalMinPayment, user.monthlyIncome);
+    const dominoAlerts = detectDominoRisk(debtsWithCalc, user.monthlyIncome);
+
+    const upcomingDebts = debtsWithCalc
       .filter(d => d.daysUntil <= 30)
       .sort((a, b) => a.daysUntil - b.daysUntil);
 
