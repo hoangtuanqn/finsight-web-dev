@@ -137,3 +137,24 @@ async function createNotificationIfNotExists(userId, type, title, message, sever
   }
   return false;
 }
+
+export async function purgeSoftDeletedDebts() {
+  const now = new Date();
+  console.log(`[Cron] Bắt đầu dọn dẹp thùng rác (Soft Delete) lúc: ${now.toISOString()}`);
+  
+  try {
+    const result = await prisma.debt.deleteMany({
+      where: {
+        scheduledPurgeAt: { lte: now }
+      }
+    });
+
+    if (result.count > 0) {
+      console.log(`[Cron] ✅ Đã xoá vĩnh viễn ${result.count} khoản nợ từ thùng rác.`);
+    } else {
+      console.log(`[Cron] ♻️ Thùng rác sạch sẽ, không có khoản nợ nào cần xoá.`);
+    }
+  } catch (error) {
+    console.error(`[Cron] ❌ Lỗi dọn dẹp thùng rác:`, error);
+  }
+}
