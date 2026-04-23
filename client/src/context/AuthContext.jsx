@@ -78,9 +78,25 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const refreshUser = async () => {
+    try {
+      const token = localStorage.getItem('finsight_token');
+      if (token) {
+        const userRes = await authAPI.me();
+        if (userRes.data?.success) {
+          setUser(userRes.data.data.user);
+          return userRes.data.data.user;
+        }
+      }
+    } catch (err) {
+      console.error('Failed to refresh user:', err);
+    }
+    return null;
+  };
+
   return (
     <AuthContext.Provider value={{ 
-      user, setUser, 
+      user, setUser, refreshUser,
       login, loginWithGoogle, loginWithFacebook, 
       register, logout, loading, 
       googleClientId, facebookAppId 
