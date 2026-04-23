@@ -1,61 +1,64 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { debtAPI } from '../../api/index.js';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useDebt, useDebtMutations } from '../../hooks/useDebtQuery';
 import { formatVND, formatPercent } from '../../utils/calculations';
 import EARBreakdown from '../../components/debt/EARBreakdown';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
-import { Pencil, FileText, DollarSign, CheckCircle, ArrowLeft, Search, Trash2, ChevronRight, Calendar } from 'lucide-react';
+import { Pencil, FileText, DollarSign, CheckCircle, ArrowLeft, Search, Trash2, ChevronRight, Calendar, AlertTriangle } from 'lucide-react';
 import { generateGoogleCalendarLink } from '../../utils/calendar';
+
+const paymentSchema = z.object({
+  amount: z.number().positive('Số tiền phải lớn hơn 0 ₫'),
+  notes: z.string().optional()
+});
 
 export default function DebtDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [payForm, setPayForm] = useState({ amount: '', notes: '' });
-  const [paying, setPaying] = useState(false);
+  const { data, isLoading } = useDebt(id);
+  const { deleteDebt, logPayment, isDeleting, isLogging } = useDebtMutations();
+
   const [paySuccess, setPaySuccess] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
-  const load = () => {
-    setLoading(true);
-    debtAPI.getById(id)
-      .then(res => setData(res.data.data))
-      .catch(console.error)
-      .finally(() => setTimeout(() => setLoading(false), 400));
-  };
-  useEffect(() => { load(); }, [id]);
+  const { register, handleSubmit, reset, formState: { errors } } = useForm({
+    resolver: zodResolver(paymentSchema),
+    defaultValues: { amount: '', notes: '' }
+  });
 
   const handleDelete = async () => {
-    setDeleting(true);
     try {
-      await debtAPI.delete(id);
-      toast.success(`Đã xóa khoản nợ "${debt?.name}"`);
+      await deleteDebt(id);
       navigate('/debts');
-    } catch (err) { toast.error('Xóa thất bại, vui lòng thử lại'); console.error(err); }
-    finally { setDeleting(false); setConfirmDelete(false); }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setConfirmDelete(false);
+    }
   };
 
-  const handlePayment = async (e) => {
-    e.preventDefault();
-    const amount = +payForm.amount;
-    if (!amount || amount <= 0) { toast.error('Số tiền phải lớn hơn 0 ₫'); return; }
-    if (amount > debt.balance) { toast.error(`Số tiền không được vượt quá ${formatVND(debt.balance)}`); return; }
-    setPaying(true); setPaySuccess(false);
+  const onPaymentSubmit = async (formData) => {
+    if (formData.amount > data.debt.balance) {
+      toast.error(`Số tiền không được vượt quá ${formatVND(data.debt.balance)}`);
+      return;
+    }
+
     try {
-      await debtAPI.logPayment(id, { ...payForm, amount });
-      setPayForm({ amount: '', notes: '' });
+      await logPayment({ id, data: formData });
+      reset();
       setPaySuccess(true);
       setTimeout(() => setPaySuccess(false), 3000);
-      load();
-    } catch (err) { toast.error('Ghi nhận thất bại, vui lòng thử lại'); console.error(err); }
-    finally { setPaying(false); }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  if (loading) return <PageSkeleton />;
+  if (isLoading) return <PageSkeleton />;
   if (!data) return (
     <div className="flex flex-col items-center justify-center py-24 gap-4">
       <div className="w-16 h-16 rounded-2xl bg-slate-500/10 flex items-center justify-center">
@@ -73,8 +76,6 @@ export default function DebtDetailPage() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-8 space-y-6">
-
-      {/* ── Delete Confirm Modal ── */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}
@@ -94,22 +95,20 @@ export default function DebtDetailPage() {
             </p>
             <div className="flex gap-3">
               <button onClick={() => setConfirmDelete(false)} className="flex-1 py-2.5 rounded-xl text-[13px] font-bold border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-all cursor-pointer">Hủy</button>
-              <button onClick={handleDelete} disabled={deleting} className="flex-1 py-2.5 rounded-xl text-[13px] font-black bg-red-500 hover:bg-red-400 text-white transition-all flex items-center justify-center gap-2 cursor-pointer">
-                {deleting ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Đang xóa...</> : <><Trash2 size={14} /> Xóa vĩnh viễn</>}
+              <button onClick={handleDelete} disabled={isDeleting} className="flex-1 py-2.5 rounded-xl text-[13px] font-black bg-red-500 hover:bg-red-400 text-white transition-all flex items-center justify-center gap-2 cursor-pointer">
+                {isDeleting ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Đang xóa...</> : <><Trash2 size={14} /> Xóa vĩnh viễn</>}
               </button>
             </div>
           </motion.div>
         </div>
       )}
 
-      {/* ── Breadcrumb ── */}
       <div className="flex items-center gap-1.5 text-[12px] font-medium pt-2">
         <Link to="/debts" className="text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors cursor-pointer">Quản lý nợ</Link>
         <ChevronRight size={13} className="text-[var(--color-border)]" />
         <span className="text-[var(--color-text-primary)]">{debt.name}</span>
       </div>
 
-      {/* ── Page header ── */}
       <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-red-500/20 bg-red-500/8 text-red-400 text-[10px] font-black uppercase tracking-widest mb-3">
@@ -147,7 +146,6 @@ export default function DebtDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-5">
-          {/* KPI metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
               { label: 'Dư nợ', value: formatVND(debt.balance), color: '#ef4444', gradient: 'from-red-500 to-rose-400' },
@@ -165,7 +163,6 @@ export default function DebtDetailPage() {
             ))}
           </div>
 
-          {/* Progress */}
           <div className="rounded-3xl border p-5 relative overflow-hidden" style={{ background: 'var(--color-bg-card)', borderColor: 'rgba(59,130,246,0.15)' }}>
             <div className="absolute top-0 left-5 right-5 h-px bg-gradient-to-r from-transparent via-blue-500/30 to-transparent" />
             <div className="flex justify-between items-center mb-3">
@@ -182,10 +179,8 @@ export default function DebtDetailPage() {
             </div>
           </div>
 
-          {/* EAR Breakdown */}
           <EARBreakdown breakdown={earBreakdown} />
 
-          {/* Payment History */}
           <div className="rounded-3xl border p-5" style={{ background: 'var(--color-bg-card)', borderColor: 'var(--color-border)' }}>
             <h3 className="text-[14px] font-black text-[var(--color-text-primary)] mb-4 flex items-center gap-2">
               <FileText size={15} className="text-blue-400" /> Lịch sử thanh toán
@@ -210,7 +205,6 @@ export default function DebtDetailPage() {
           </div>
         </div>
 
-        {/* ── Right: Payment ── */}
         <div>
           <div className="rounded-3xl border p-5 sticky top-24 relative overflow-hidden" style={{ background: 'var(--color-bg-card)', borderColor: 'rgba(16,185,129,0.15)' }}>
             <div className="absolute top-0 left-5 right-5 h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
@@ -224,22 +218,28 @@ export default function DebtDetailPage() {
               </div>
             )}
 
-            <form onSubmit={handlePayment} className="space-y-4">
+            <form onSubmit={handleSubmit(onPaymentSubmit)} className="space-y-4">
               <div>
                 <label className="block text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-1.5">Số tiền</label>
-                <input type="number" placeholder="0"
-                  className="w-full px-4 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-[var(--color-text-primary)] text-sm outline-none focus:border-emerald-500/60 transition-colors"
-                  value={payForm.amount} onChange={e => setPayForm(f => ({ ...f, amount: e.target.value }))} required />
+                <input
+                  type="number"
+                  placeholder="0"
+                  className={`w-full px-4 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] text-sm outline-none focus:border-emerald-500/60 transition-colors ${errors.amount ? 'border-red-500/60 focus:border-red-500' : 'border-[var(--color-border)]'}`}
+                  {...register('amount', { valueAsNumber: true })}
+                />
+                {errors.amount && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={11} /> {errors.amount.message}</p>}
               </div>
               <div>
                 <label className="block text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-1.5">Ghi chú</label>
-                <input placeholder="Tuỳ chọn"
+                <input
+                  placeholder="Tuỳ chọn"
                   className="w-full px-4 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-[var(--color-text-primary)] text-sm outline-none focus:border-emerald-500/60 transition-colors"
-                  value={payForm.notes} onChange={e => setPayForm(f => ({ ...f, notes: e.target.value }))} />
+                  {...register('notes')}
+                />
               </div>
-              <button type="submit" disabled={paying}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm transition-all shadow-lg shadow-emerald-500/25 cursor-pointer">
-                {paying ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Đang xử lý...</> : 'Ghi nhận'}
+              <button type="submit" disabled={isLogging}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm transition-all shadow-lg shadow-emerald-500/25 cursor-pointer disabled:opacity-60">
+                {isLogging ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Đang xử lý...</> : 'Ghi nhận'}
               </button>
             </form>
 

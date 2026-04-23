@@ -12,11 +12,11 @@ import {
 import { reportAPI } from '../../api';
 
 const ExportReportModal = ({ isOpen, onClose }) => {
-  const [loading, setLoading] = useState(false);
+  const [loadingType, setLoadingType] = useState(null);
   const [success, setSuccess] = useState(false);
 
   const handleExport = async (format) => {
-    setLoading(true);
+    setLoadingType(format);
     try {
       const response = await reportAPI.exportReport(format);
       
@@ -39,7 +39,7 @@ const ExportReportModal = ({ isOpen, onClose }) => {
       console.error('Export failed:', error);
       alert('Xuất báo cáo thất bại. Vui lòng thử lại sau.');
     } finally {
-      setLoading(false);
+      setLoadingType(null);
     }
   };
 
@@ -89,9 +89,9 @@ const ExportReportModal = ({ isOpen, onClose }) => {
               <>
                 {/* PDF Option */}
                 <button
-                  disabled={loading}
+                  disabled={loadingType !== null}
                   onClick={() => handleExport('pdf')}
-                  className="w-full flex items-center gap-4 p-4 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 hover:border-blue-500/50 rounded-2xl transition-all group"
+                  className="w-full flex items-center gap-4 p-4 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 hover:border-blue-500/50 rounded-2xl transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="p-3 bg-red-500/10 rounded-xl group-hover:scale-110 transition-transform">
                     <FileText className="w-6 h-6 text-red-400" />
@@ -100,14 +100,14 @@ const ExportReportModal = ({ isOpen, onClose }) => {
                     <div className="font-semibold text-white">Báo cáo PDF (Khuyên dùng)</div>
                     <div className="text-xs text-slate-400">Đầy đủ biểu đồ, phân tích rủi ro & lộ trình AI.</div>
                   </div>
-                  {loading ? <Loader2 className="w-5 h-5 text-blue-400 animate-spin" /> : <FileDown className="w-5 h-5 text-slate-500 group-hover:text-blue-400" />}
+                  {loadingType === 'pdf' ? <Loader2 className="w-5 h-5 text-blue-400 animate-spin" /> : <FileDown className="w-5 h-5 text-slate-500 group-hover:text-blue-400" />}
                 </button>
 
                 {/* Excel Option */}
                 <button
-                  disabled={loading}
+                  disabled={loadingType !== null}
                   onClick={() => handleExport('excel')}
-                  className="w-full flex items-center gap-4 p-4 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 hover:border-emerald-500/50 rounded-2xl transition-all group"
+                  className="w-full flex items-center gap-4 p-4 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 hover:border-emerald-500/50 rounded-2xl transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="p-3 bg-emerald-500/10 rounded-xl group-hover:scale-110 transition-transform">
                     <FileSpreadsheet className="w-6 h-6 text-emerald-400" />
@@ -116,7 +116,7 @@ const ExportReportModal = ({ isOpen, onClose }) => {
                     <div className="font-semibold text-white">Bảng tính Excel</div>
                     <div className="text-xs text-slate-400">Dữ liệu chi tiết cho việc tính toán cá nhân.</div>
                   </div>
-                  {loading ? <Loader2 className="w-5 h-5 text-emerald-400 animate-spin" /> : <FileDown className="w-5 h-5 text-slate-500 group-hover:text-emerald-400" />}
+                  {loadingType === 'excel' ? <Loader2 className="w-5 h-5 text-emerald-400 animate-spin" /> : <FileDown className="w-5 h-5 text-slate-500 group-hover:text-emerald-400" />}
                 </button>
 
                 <div className="flex items-center gap-2 p-3 bg-blue-500/5 border border-blue-500/10 rounded-xl mt-4">

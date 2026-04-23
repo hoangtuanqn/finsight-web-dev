@@ -1,35 +1,58 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { useAuth } from '../context/AuthContext';
+import { toast } from 'sonner';
 import SocialLoginButtons from '../components/auth/SocialLoginButtons';
 import { AlertTriangle, Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles, ShieldCheck, Zap, ChevronRight } from 'lucide-react';
 import { GradientText, Spotlight } from './LandingPage/components/Shared';
 import { ToggleMode } from '../components/layout/components/ToggleMode';
 import { useDarkMode } from '../hooks/useDarkMode';
+import QRCodeLogin from '../components/auth/QRCodeLogin';
+import { QrCode, Monitor } from 'lucide-react';
+
+const loginSchema = z.object({
+  email: z.string().min(1, 'Email không được để trống').email('Email không hợp lệ'),
+  password: z.string().min(1, 'Mật khẩu không được để trống')
+});
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [serverError, setServerError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, setUser } = useAuth();
   const navigate = useNavigate();
   const [dark, setDark] = useDarkMode();
+  const [loginMode, setLoginMode] = useState('email'); // 'email' or 'qr'
+  const [searchParams] = useSearchParams();
+  const redirect = searchParams.get('redirect') || '/home';
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: '', password: '' }
+  });
+
+  const onSubmit = async (data) => {
+    setServerError('');
     setLoading(true);
     try {
-      await login(email, password);
-      navigate('/home');
+      await login(data.email, data.password);
+      navigate(redirect);
     } catch (err) {
-      setError(err.response?.data?.error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+      setServerError(err.response?.data?.error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const onQRSuccess = (data) => {
+    localStorage.setItem('finsight_token', data.accessToken);
+    setUser(data.user);
+    toast.success('Đăng nhập thành công qua QR Code!');
+    setTimeout(() => navigate(redirect), 1500);
   };
 
   return (
@@ -106,41 +129,46 @@ export default function LoginPage() {
                 <p className="text-slate-500 dark:text-slate-400 font-medium">Tiếp tục hành trình tài chính của bạn</p>
               </div>
 
-              {error && (
+              {serverError && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   className="bg-red-500/10 border border-red-500/20 rounded-2xl px-5 py-4 mb-8 text-sm text-red-500 dark:text-red-400 flex items-start gap-3"
                 >
                   <AlertTriangle size={18} className="shrink-0" />
-                  <span className="font-bold">{error}</span>
+                  <span className="font-bold">{serverError}</span>
                 </motion.div>
               )}
 
-              <SocialLoginButtons setError={setError} />
+              <SocialLoginButtons setError={setServerError} />
 
-              <div className="flex items-center gap-4 mb-6 opacity-60">
+              <div className="flex items-center gap-4 mb-8 opacity-60">
                  <div className="flex-1 border-t border-slate-300 dark:border-slate-700"></div>
-                 <div className="text-xs font-bold uppercase text-slate-500 whitespace-nowrap">Hoặc bằng Email</div>
+                 <button 
+                  onClick={() => setLoginMode(loginMode === 'email' ? 'qr' : 'email')}
+                  className="flex items-center gap-2 px-4 py-2 rounded-full border border-blue-500/20 bg-blue-500/5 text-[10px] font-black uppercase tracking-widest text-blue-500 hover:bg-blue-500/10 transition-all cursor-pointer"
+                 >
+                   {loginMode === 'email' ? <><QrCode size={14} /> Đăng nhập qua QR</> : <><Monitor size={14} /> Đăng nhập qua Email</>}
+                 </button>
                  <div className="flex-1 border-t border-slate-300 dark:border-slate-700"></div>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Email</label>
+              {loginMode === 'email' ? (
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Email</label>
                   <div className="relative group/input">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-blue-500 transition-colors">
                       <Mail size={18} />
                     </div>
                     <input
+                      {...register('email')}
                       type="email"
-                      value={email}
-                      onChange={e => setEmail(e.target.value)}
-                      className="w-full bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-12 py-4 text-slate-900 dark:text-white font-bold focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                      className={`w-full bg-slate-100/50 dark:bg-white/5 border rounded-2xl px-12 py-4 text-slate-900 dark:text-white font-bold focus:ring-4 focus:ring-blue-500/10 outline-none transition-all ${errors.email ? 'border-red-500 focus:border-red-500' : 'border-slate-200 dark:border-white/10 focus:border-blue-500'}`}
                       placeholder="Email của bạn"
-                      required
                     />
                   </div>
+                  {errors.email && <p className="text-[11px] font-bold text-red-500 ml-1">{errors.email.message}</p>}
                 </div>
 
                 <div className="space-y-2">
@@ -153,12 +181,10 @@ export default function LoginPage() {
                       <Lock size={18} />
                     </div>
                     <input
+                      {...register('password')}
                       type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      className="w-full bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-12 py-4 text-slate-900 dark:text-white font-bold focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all"
+                      className={`w-full bg-slate-100/50 dark:bg-white/5 border rounded-2xl px-12 py-4 text-slate-900 dark:text-white font-bold focus:ring-4 focus:ring-blue-500/10 outline-none transition-all ${errors.password ? 'border-red-500 focus:border-red-500' : 'border-slate-200 dark:border-white/10 focus:border-blue-500'}`}
                       placeholder="Mật khẩu"
-                      required
                     />
                     <button
                       type="button"
@@ -168,12 +194,13 @@ export default function LoginPage() {
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
+                  {errors.password && <p className="text-[11px] font-bold text-red-500 ml-1">{errors.password.message}</p>}
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading}
-                  className="group relative w-full flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 text-white font-bold rounded-2xl shadow-[0_0_30px_rgba(37,99,235,0.3)] hover:shadow-[0_0_50px_rgba(37,99,235,0.5)] transition-all disabled:opacity-70"
+                  className="group relative w-full flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 text-white font-bold rounded-2xl shadow-[0_0_30px_rgba(37,99,235,0.3)] hover:shadow-[0_0_50px_rgba(37,99,235,0.5)] transition-all disabled:opacity-70 cursor-pointer"
                 >
                   {loading ? (
                     <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -182,9 +209,14 @@ export default function LoginPage() {
                       Đăng nhập <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
                     </>
                   )}
-                  <div className="absolute inset-0 bg-white/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
+                  <div className="absolute inset-0 bg-white/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl pointer-events-none" />
                 </button>
               </form>
+              ) : (
+                <div className="py-2">
+                  <QRCodeLogin onLoginSuccess={onQRSuccess} />
+                </div>
+              )}
 
               <div className="mt-10 pt-8 border-t border-slate-100 dark:border-white/5 text-center">
                 <p className="text-slate-500 dark:text-slate-400 font-bold mb-4">
