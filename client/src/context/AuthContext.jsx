@@ -6,27 +6,45 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [googleClientId, setGoogleClientId] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('finsight_token');
-    if (token) {
-      authAPI.me()
-        .then(res => {
-          if (res.data.success) {
-            setUser(res.data.data.user);
+    const initAuth = async () => {
+      try {
+        const configRes = await authAPI.getGoogleConfig();
+        if (configRes.data?.data?.clientId) {
+          setGoogleClientId(configRes.data.data.clientId);
+        }
+        
+        const token = localStorage.getItem('finsight_token');
+        if (token) {
+          const userRes = await authAPI.me();
+          if (userRes.data?.success) {
+            setUser(userRes.data.data.user);
           } else {
             localStorage.removeItem('finsight_token');
           }
-        })
-        .catch(() => localStorage.removeItem('finsight_token'))
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
+        }
+      } catch (err) {
+        console.error('Auth init error:', err);
+        localStorage.removeItem('finsight_token');
+      } finally {
+        setLoading(false);
+      }
+    };
+    initAuth();
   }, []);
 
   const login = async (email, password) => {
     const res = await authAPI.login({ email, password });
+    const { user, token } = res.data.data;
+    localStorage.setItem('finsight_token', token);
+    setUser(user);
+    return user;
+  };
+
+  const loginWithGoogle = async (credential) => {
+    const res = await authAPI.googleLogin({ credential });
     const { user, token } = res.data.data;
     localStorage.setItem('finsight_token', token);
     setUser(user);
@@ -47,7 +65,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, setUser, login, loginWithGoogle, register, logout, loading, googleClientId }}>
       {children}
     </AuthContext.Provider>
   );
