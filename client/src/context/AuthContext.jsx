@@ -7,6 +7,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [googleClientId, setGoogleClientId] = useState(null);
+  const [facebookAppId, setFacebookAppId] = useState(null);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -14,6 +15,11 @@ export function AuthProvider({ children }) {
         const configRes = await authAPI.getGoogleConfig();
         if (configRes.data?.data?.clientId) {
           setGoogleClientId(configRes.data.data.clientId);
+        }
+
+        const fbConfigRes = await authAPI.getFacebookConfig();
+        if (fbConfigRes.data?.data?.appId) {
+          setFacebookAppId(fbConfigRes.data.data.appId);
         }
         
         const token = localStorage.getItem('finsight_token');
@@ -51,6 +57,14 @@ export function AuthProvider({ children }) {
     return user;
   };
 
+  const loginWithFacebook = async (accessToken) => {
+    const res = await authAPI.facebookLogin({ accessToken });
+    const { user, token } = res.data.data;
+    localStorage.setItem('finsight_token', token);
+    setUser(user);
+    return user;
+  };
+
   const register = async (email, password, fullName) => {
     const res = await authAPI.register({ email, password, fullName });
     const { user, token } = res.data.data;
@@ -65,7 +79,12 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, login, loginWithGoogle, register, logout, loading, googleClientId }}>
+    <AuthContext.Provider value={{ 
+      user, setUser, 
+      login, loginWithGoogle, loginWithFacebook, 
+      register, logout, loading, 
+      googleClientId, facebookAppId 
+    }}>
       {children}
     </AuthContext.Provider>
   );

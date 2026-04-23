@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import GoogleLoginButton from '../components/auth/GoogleLoginButton';
+import SocialLoginButtons from '../components/auth/SocialLoginButtons';
 import { AlertTriangle, Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles, ShieldCheck, Zap, ChevronRight } from 'lucide-react';
 import { GradientText, Spotlight } from './LandingPage/components/Shared';
 import { ToggleMode } from '../components/layout/components/ToggleMode';
@@ -118,7 +118,7 @@ export default function LoginPage() {
                 </motion.div>
               )}
 
-              <GoogleLoginButton setError={setError} />
+              <SocialLoginButtons setError={setError} />
 
               <div className="flex items-center gap-4 mb-6 opacity-60">
                  <div className="flex-1 border-t border-slate-300 dark:border-slate-700"></div>
