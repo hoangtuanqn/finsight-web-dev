@@ -201,7 +201,7 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className={LABEL}>Lãi suất ngân hàng (%)</label>
-                    <input type="number" step="0.1" {...inp('savingsRate')} />
+                    <input type="number" step="0.1" {...inp('savingsRate', { min: 0 })} />
                   </div>
                   <div>
                     <label className={LABEL}>Mức lạm phát (%)</label>
