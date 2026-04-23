@@ -70,11 +70,11 @@ export const investmentAPI = {
   getAllocation: (params) => api.get('/investment/allocation', { params }),
   getHistory: () => api.get('/investment/history'),
   submitRiskAssessment: (data) => api.post('/investment/risk-assessment', data),
-  getCryptoPrices:  () => api.get('/investment/crypto-prices'),
-  getStockPrices:   (params) => api.get('/investment/stock-prices', { params }),
-  getGoldPrices:    () => api.get('/investment/gold-prices'),
-  getSavingsRates:  (params) => api.get('/investment/savings-rates', { params }),
-  getBondsRates:    (params) => api.get('/investment/bonds-rates', { params }),
+  getCryptoPrices: () => api.get('/investment/crypto-prices'),
+  getStockPrices: (params) => api.get('/investment/stock-prices', { params }),
+  getGoldPrices: () => api.get('/investment/gold-prices'),
+  getSavingsRates: (params) => api.get('/investment/savings-rates', { params }),
+  getBondsRates: (params) => api.get('/investment/bonds-rates', { params }),
 };
 
 // MARKET
@@ -90,6 +90,14 @@ export const agenticAPI = {
   getSessions: () => api.get('/agentic/sessions'),
   getSession: (id) => api.get(`/agentic/sessions/${id}`),
   deleteSession: (id) => api.delete(`/agentic/sessions/${id}`),
+};
+
+// REPORTS
+export const reportAPI = {
+  exportReport: (format) => api.get('/reports/export', {
+    params: { format },
+    responseType: 'blob'
+  }),
 };
 
 // SUBSCRIPTION

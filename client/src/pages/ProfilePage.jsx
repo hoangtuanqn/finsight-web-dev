@@ -86,21 +86,6 @@ export default function ProfilePage() {
     className: INPUT,
     ...extra,
   });
-  const currencyInp = (field, extra = {}) => ({
-    value: form[field] ?? '',
-    onChange: e => setForm(f => ({ ...f, [field]: e.target.value.replace(/\D/g, '') })),
-    className: INPUT + ' pl-10 pr-10',
-    inputMode: 'numeric',
-    ...extra,
-  });
-  const percentInp = (field, extra = {}) => ({
-    value: form[field] ?? '',
-    onChange: (e) => setForm(f => ({ ...f, [field]: e.target.value })),
-    className: INPUT + ' pr-10',
-    inputMode: 'decimal',
-    ...extra,
-  });
-
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-10 space-y-6">
       {/* ── Page Header ── */}
@@ -193,15 +178,13 @@ export default function ProfilePage() {
                     <div className="relative">
                       <DollarSign size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
                       <FormattedInput kind="integer" value={form.monthlyIncome} onValueChange={(value) => setForm(f => ({ ...f, monthlyIncome: value }))} className={INPUT + ' pl-10'} placeholder="0" suffix="đ" />
-                      <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] text-sm font-bold">đ</span>
                     </div>
                   </div>
                   <div>
                     <label className={LABEL}>Trả nợ thêm mỗi tháng</label>
                     <div className="relative">
                       <TrendingDown size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
-                      <input type="text" {...currencyInp('extraBudget', { placeholder: '0' })} />
-                      <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] text-sm font-bold">đ</span>
+                      <FormattedInput kind="integer" value={form.extraBudget} onValueChange={(value) => setForm(f => ({ ...f, extraBudget: value }))} className={INPUT + ' pl-10'} placeholder="0" suffix="đ" />
                     </div>
                   </div>
                 </div>
@@ -209,23 +192,20 @@ export default function ProfilePage() {
                   <label className={LABEL}>Tổng vốn (Tổng tài sản)</label>
                   <div className="relative">
                     <Wallet size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
-                    <input type="text" {...currencyInp('capital', { placeholder: '100000000' })} />
-                    <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] text-sm font-bold">đ</span>
+                    <FormattedInput kind="integer" value={form.capital} onValueChange={(value) => setForm(f => ({ ...f, capital: value }))} className={INPUT + ' pl-10'} placeholder="100000000" suffix="đ" />
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className={LABEL}>Lãi suất ngân hàng (%)</label>
                     <div className="relative">
-                      <input type="text" {...percentInp('savingsRate', { placeholder: '6,0' })} />
-                      <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] text-sm font-bold">%</span>
+                      <FormattedInput kind="decimal" value={form.savingsRate} onValueChange={(value) => setForm(f => ({ ...f, savingsRate: value }))} className={INPUT + ' pl-10'} placeholder="6,0" suffix="%" />
                     </div>
                   </div>
                   <div>
                     <label className={LABEL}>Mức lạm phát (%)</label>
                     <div className="relative">
-                      <input type="text" {...percentInp('inflationRate', { placeholder: '3,5' })} />
-                      <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] text-sm font-bold">%</span>
+                      <FormattedInput kind="decimal" value={form.inflationRate} onValueChange={(value) => setForm(f => ({ ...f, inflationRate: value }))} className={INPUT + ' pl-10'} placeholder="3,5" suffix="%" />
                     </div>
                   </div>
                 </div>
