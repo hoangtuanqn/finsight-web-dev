@@ -7,7 +7,7 @@ import { PageSkeleton } from '../../components/common/LoadingSpinner';
 import ExportReportModal from '../../components/debt/ExportReportModal';
 import {
   CreditCard, BarChart2, ClipboardList, Plus,
-  AlertOctagon, AlertTriangle, PartyPopper, FileText, Home, TrendingUp, ChevronRight, LayoutGrid, List
+  AlertOctagon, AlertTriangle, PartyPopper, FileText, Home, TrendingUp, ChevronRight, LayoutGrid, List, Filter, X
 } from 'lucide-react';
 
 const PLATFORM_ICONS = {
@@ -41,7 +41,13 @@ const getProgressStyle = (percent) => {
 };
 
 export default function DebtOverviewPage() {
-  const { data, isLoading } = useDebts();
+  const [filters, setFilters] = useState({
+    platform: '',
+    amountRange: '',
+    dueInDays: ''
+  });
+  const [showFilters, setShowFilters] = useState(false);
+  const { data, isLoading } = useDebts(filters);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('finsight_debt_view') || 'grid');
 
@@ -53,6 +59,7 @@ export default function DebtOverviewPage() {
 
   const debts   = data?.debts   || [];
   const summary = data?.summary || {};
+  const hasActiveFilters = !!(filters.platform || filters.amountRange || filters.dueInDays);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-8 space-y-8">
@@ -136,40 +143,110 @@ export default function DebtOverviewPage() {
         </div>
       )}
 
-      {debts.length > 0 && (
-        <div className="flex items-center justify-between pt-2">
-          <h2 className="text-xl font-extrabold text-[var(--color-text-primary)]">Chi tiết khoản nợ</h2>
+      {(debts.length > 0 || hasActiveFilters) && (
+        <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between pt-2 gap-4">
+          <div className="flex items-center justify-between w-full xl:w-auto">
+            <h2 className="text-xl font-extrabold text-[var(--color-text-primary)]">Chi tiết khoản nợ</h2>
+            <button 
+              onClick={() => setShowFilters(!showFilters)}
+              className="xl:hidden p-2 bg-[var(--color-bg-secondary)] rounded-xl border border-[var(--color-border)] flex items-center gap-2 text-sm font-semibold"
+            >
+              <Filter size={16} /> Lọc
+            </button>
+          </div>
           
-          <div className="hidden sm:flex items-center bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-xl p-1 shadow-sm">
-            <button 
-              onClick={() => setViewMode('grid')}
-              className={`p-1.5 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'}`}
-              title="Xem dạng lưới"
+          <div className={`flex-col md:flex-row items-stretch md:items-center gap-3 w-full xl:w-auto ${showFilters ? 'flex' : 'hidden xl:flex'}`}>
+            <select 
+              value={filters.platform}
+              onChange={(e) => setFilters(f => ({ ...f, platform: e.target.value }))}
+              className="px-3 py-2 bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-xl text-sm font-semibold text-[var(--color-text-primary)] outline-none focus:border-blue-500"
             >
-              <LayoutGrid size={18} />
-            </button>
-            <button 
-              onClick={() => setViewMode('list')}
-              className={`p-1.5 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'}`}
-              title="Xem dạng danh sách"
+              <option value="">Tất cả danh mục</option>
+              <option value="CREDIT_CARD">Thẻ tín dụng</option>
+              <option value="HOME_CREDIT">Home Credit</option>
+              <option value="FE_CREDIT">FE Credit</option>
+              <option value="MOMO">Ví trả sau MoMo</option>
+              <option value="SPAYLATER">SPayLater</option>
+              <option value="LAZPAYLATER">LazPayLater</option>
+              <option value="OTHER">Khác</option>
+            </select>
+
+            <select
+              value={filters.amountRange}
+              onChange={(e) => setFilters(f => ({ ...f, amountRange: e.target.value }))}
+              className="px-3 py-2 bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-xl text-sm font-semibold text-[var(--color-text-primary)] outline-none focus:border-blue-500"
             >
-              <List size={18} />
-            </button>
+              <option value="">Mọi hạn mức</option>
+              <option value="<10000000">Dưới 10 triệu</option>
+              <option value="10000000-50000000">10tr - 50 triệu</option>
+              <option value=">50000000">Trên 50 triệu</option>
+            </select>
+
+            <select
+              value={filters.dueInDays}
+              onChange={(e) => setFilters(f => ({ ...f, dueInDays: e.target.value }))}
+              className="px-3 py-2 bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-xl text-sm font-semibold text-[var(--color-text-primary)] outline-none focus:border-blue-500"
+            >
+              <option value="">Mọi thời hạn đáo hạn</option>
+              <option value="7">Đáo hạn trong 7 ngày</option>
+              <option value="14">Đáo hạn trong 14 ngày</option>
+              <option value="30">Đáo hạn trong 30 ngày</option>
+            </select>
+
+            {(filters.platform || filters.amountRange || filters.dueInDays) && (
+              <button 
+                onClick={() => setFilters({ platform: '', amountRange: '', dueInDays: '' })}
+                className="p-2 text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-xl transition-colors shrink-0 flex items-center justify-center"
+                title="Xóa bộ lọc"
+              >
+                <X size={18} />
+              </button>
+            )}
+
+            <div className="hidden xl:flex items-center bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-xl p-1 shadow-sm shrink-0">
+              <button 
+                onClick={() => setViewMode('grid')}
+                className={`p-1.5 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'}`}
+                title="Xem dạng lưới"
+              >
+                <LayoutGrid size={18} />
+              </button>
+              <button 
+                onClick={() => setViewMode('list')}
+                className={`p-1.5 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'}`}
+                title="Xem dạng danh sách"
+              >
+                <List size={18} />
+              </button>
+            </div>
           </div>
         </div>
       )}
 
       {debts.length === 0 ? (
-        <div className="rounded-3xl border border-[var(--color-border)] p-12 md:p-20 text-center" style={{ background: 'var(--color-bg-card)' }}>
-          <div className="w-20 h-20 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto mb-6">
-            <PartyPopper size={36} className="text-blue-400" />
+        hasActiveFilters ? (
+          <div className="rounded-3xl border border-[var(--color-border)] p-12 md:p-20 text-center" style={{ background: 'var(--color-bg-card)' }}>
+            <div className="w-20 h-20 rounded-full bg-slate-500/10 border border-slate-500/20 flex items-center justify-center mx-auto mb-6">
+              <Filter size={36} className="text-slate-400" />
+            </div>
+            <h3 className="text-xl md:text-2xl text-[var(--color-text-primary)] font-bold mb-2">Không tìm thấy khoản nợ phù hợp</h3>
+            <p className="text-[var(--color-text-muted)] text-base mb-8">Thử thay đổi hoặc xóa bộ lọc để xem các khoản nợ khác</p>
+            <button 
+              onClick={() => setFilters({ platform: '', amountRange: '', dueInDays: '' })}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-bold text-base hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/25 cursor-pointer"
+            >
+              <X size={18} /> Xóa bộ lọc
+            </button>
           </div>
-          <h3 className="text-xl md:text-2xl text-[var(--color-text-primary)] font-bold mb-2">Bạn chưa có khoản nợ nào</h3>
-          <p className="text-[var(--color-text-muted)] text-base mb-8">Hãy thêm khoản nợ đầu tiên để bắt đầu hành trình quản lý tài chính</p>
-          <Link to="/debts/add" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-bold text-base hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/25 cursor-pointer">
-            <Plus size={18} /> Thêm khoản nợ đầu tiên
-          </Link>
-        </div>
+        ) : (
+          <div className="rounded-3xl border border-[var(--color-border)] p-12 md:p-20 text-center" style={{ background: 'var(--color-bg-card)' }}>
+            <div className="w-20 h-20 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto mb-6">
+              <PartyPopper size={36} className="text-blue-400" />
+            </div>
+            <h3 className="text-xl md:text-2xl text-[var(--color-text-primary)] font-bold mb-2">Không có khoản nợ nào cần theo dõi</h3>
+            <p className="text-[var(--color-text-muted)] text-base">Tuyệt vời! Bạn đang quản lý tài chính rất tốt, hãy tiếp tục phát huy nhé.</p>
+          </div>
+        )
       ) : (
         <div className={viewMode === 'grid' 
           ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-6" 
