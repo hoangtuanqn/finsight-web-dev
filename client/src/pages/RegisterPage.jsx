@@ -20,14 +20,26 @@ export default function RegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (form.password !== form.confirmPassword) {
-      setError('Mật khẩu xác nhận không khớp');
+
+    // Basic frontend validation
+    if (!form.fullName || form.fullName.length < 2) {
+      setError('Họ tên phải có ít nhất 2 ký tự');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email)) {
+      setError('Email không hợp lệ');
       return;
     }
     if (form.password.length < 6) {
       setError('Mật khẩu phải có ít nhất 6 ký tự');
       return;
     }
+    if (form.password !== form.confirmPassword) {
+      setError('Mật khẩu xác nhận không khớp');
+      return;
+    }
+
     setLoading(true);
     try {
       await register(form.email, form.password, form.fullName);

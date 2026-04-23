@@ -30,6 +30,7 @@
     "express": "^5.2.1",
     "google-auth-library": "^10.6.2",
     "ioredis": "^5.10.1",
+    "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.3",
     "node-cron": "^4.2.1",
     "nodemailer": "^8.0.4",
