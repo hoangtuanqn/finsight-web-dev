@@ -10,17 +10,19 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  password      String?
-  googleId      String?  @unique
-  facebookId    String?  @unique
-  avatar        String?
-  fullName      String
-  monthlyIncome Float    @default(0)
-  extraBudget   Float    @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id              String    @id @default(cuid())
+  email           String    @unique
+  password        String?
+  googleId        String?   @unique
+  facebookId      String?   @unique
+  avatar          String?
+  fullName        String
+  monthlyIncome   Float     @default(0)
+  extraBudget     Float     @default(0)
+  level           String    @default("BASIC") // BASIC | PRO | PROMAX
+  levelExpiresAt  DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   debts           Debt[]
   investorProfile InvestorProfile?
@@ -28,6 +30,7 @@ model User {
   debtSnapshots   DebtSnapshot[]
   chatSessions    ChatSession[]
   debtGoal        DebtGoal?
+  transactions    Transaction[]
 
   @@map("users")
 }
@@ -149,6 +152,25 @@ model DebtGoal {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("debt_goals")
+// ── Subscription & Payment ──────────────────────────────────
+
+model Transaction {
+  id           String    @id @default(cuid())
+  userId       String
+  plan         String    // PRO | PROMAX
+  amount       Float
+  status       String    @default("PENDING") // PENDING | PAID | EXPIRED | CANCELLED
+  transferCode String    @unique
+  sepayRef     String?
+  qrUrl        String
+  expiresAt    DateTime
+  paidAt       DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("transactions")
 }
 
 // ── Agentic AI: Chat & RAG Models ──────────────────────────
