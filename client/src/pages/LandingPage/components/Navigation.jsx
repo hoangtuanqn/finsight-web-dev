@@ -31,10 +31,7 @@ export default function Navigation() {
         <div className={`relative flex items-center justify-between px-6 py-3 rounded-2xl border transition-all duration-500 ${scrolled ? 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border-slate-200 dark:border-white/10 shadow-2xl' : 'bg-transparent border-transparent'}`}>
           
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-xl shadow-[0_0_20px_rgba(37,99,235,0.4)] group-hover:scale-110 transition-transform">
-              F
-            </div>
-            <span className="font-black text-2xl tracking-tighter text-slate-900 dark:text-white">FinSight</span>
+            <img src="https://i.ibb.co/84xLmWTK/LOGO.png" alt="FinSight Logo" className="h-9 md:h-10 w-auto object-contain group-hover:scale-105 transition-transform" />
           </Link>
 
           <div className="hidden md:flex items-center gap-10">

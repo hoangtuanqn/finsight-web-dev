@@ -100,8 +100,7 @@ export default function LoginPage() {
               {/* Header */}
               <div className="mb-10">
                 <div className="flex items-center gap-3 mb-6 lg:hidden">
-                   <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-xl">F</div>
-                   <span className="text-xl font-black text-slate-900 dark:text-white tracking-tighter">FinSight</span>
+                   <img src="https://i.ibb.co/84xLmWTK/LOGO.png" alt="FinSight Logo" className="h-8 w-auto object-contain" />
                 </div>
                 <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2 tracking-tighter">Đăng nhập</h2>
                 <p className="text-slate-500 dark:text-slate-400 font-medium">Tiếp tục hành trình tài chính của bạn</p>
