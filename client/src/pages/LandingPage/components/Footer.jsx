@@ -8,10 +8,7 @@ export default function Footer() {
         <div className="grid lg:grid-cols-12 gap-12 mb-16">
           <div className="lg:col-span-4">
             <Link to="/" className="flex items-center gap-2.5 mb-6 group">
-              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-sm group-hover:bg-blue-700 transition-colors">
-                F
-              </div>
-              <span className="font-bold text-xl text-slate-900 dark:text-white">FinSight</span>
+              <img src="https://i.ibb.co/84xLmWTK/LOGO.png" alt="FinSight Logo" className="h-8 w-auto object-contain group-hover:opacity-80 transition-all" />
             </Link>
             <p className="text-slate-600 dark:text-slate-400 mb-6 text-sm leading-relaxed max-w-sm">
               Nền tảng quản lý nợ và tư vấn tài chính thông minh. Xây dựng tương lai tài chính vững chắc bằng công nghệ dữ liệu minh bạch.

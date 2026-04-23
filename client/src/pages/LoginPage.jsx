@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import SocialLoginButtons from '../components/auth/SocialLoginButtons';
 import { AlertTriangle, Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles, ShieldCheck, Zap, ChevronRight } from 'lucide-react';
 import { GradientText, Spotlight } from './LandingPage/components/Shared';
 import { ToggleMode } from '../components/layout/components/ToggleMode';
@@ -99,8 +100,7 @@ export default function LoginPage() {
               {/* Header */}
               <div className="mb-10">
                 <div className="flex items-center gap-3 mb-6 lg:hidden">
-                   <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-xl">F</div>
-                   <span className="text-xl font-black text-slate-900 dark:text-white tracking-tighter">FinSight</span>
+                   <img src="https://i.ibb.co/84xLmWTK/LOGO.png" alt="FinSight Logo" className="h-8 w-auto object-contain" />
                 </div>
                 <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2 tracking-tighter">Đăng nhập</h2>
                 <p className="text-slate-500 dark:text-slate-400 font-medium">Tiếp tục hành trình tài chính của bạn</p>
@@ -116,6 +116,14 @@ export default function LoginPage() {
                   <span className="font-bold">{error}</span>
                 </motion.div>
               )}
+
+              <SocialLoginButtons setError={setError} />
+
+              <div className="flex items-center gap-4 mb-6 opacity-60">
+                 <div className="flex-1 border-t border-slate-300 dark:border-slate-700"></div>
+                 <div className="text-xs font-bold uppercase text-slate-500 whitespace-nowrap">Hoặc bằng Email</div>
+                 <div className="flex-1 border-t border-slate-300 dark:border-slate-700"></div>
+              </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-2">
