@@ -151,33 +151,23 @@ export async function getDebtById(req, res) {
       totalEAR: ear,
     };
 
-    const sortedPayments = [...debt.payments].sort((a, b) => new Date(a.paidAt) - new Date(b.paidAt));
-    let currentBalance = debt.originalAmount;
-    const chartData = [];
-    
-    chartData.push({
-      date: debt.startDate || debt.createdAt,
-      balance: currentBalance,
-      label: 'Gốc'
+    const monthlyDataMap = {};
+    debt.payments.forEach(p => {
+      const d = new Date(p.paidAt);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (!monthlyDataMap[key]) {
+        monthlyDataMap[key] = { month: key, paidAmount: 0 };
+      }
+      monthlyDataMap[key].paidAmount += p.amount;
     });
 
-    sortedPayments.forEach(p => {
-      currentBalance = Math.max(0, currentBalance - p.amount);
-      chartData.push({
-        date: p.paidAt,
-        balance: currentBalance,
-        label: 'Đã trả',
-        amount: p.amount
-      });
-    });
-
-    if (currentBalance > 0 && !debt.deletedAt) {
-      chartData.push({
-        date: new Date(),
-        balance: currentBalance,
-        label: 'Hiện tại'
-      });
-    }
+    const chartData = Object.keys(monthlyDataMap)
+      .sort()
+      .map(key => ({
+        date: `${key}-01`,
+        paidAmount: monthlyDataMap[key].paidAmount,
+        label: `Thanh toán tháng ${key.split('-')[1]}`
+      }));
 
     return success(res, { 
       debt: { ...debt, apy, ear }, 
