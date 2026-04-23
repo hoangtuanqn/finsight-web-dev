@@ -1,340 +1,298 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  AlertOctagon,
-  AlertTriangle,
-  Bell,
-  ChevronDown,
-  Flame,
-  LayoutDashboard,
-  LogOut,
-  Menu,
-  PanelLeftClose,
-  TrendingUp,
-  User,
+  AlertOctagon, AlertTriangle, Bell, ChevronDown,
+  Flame, LayoutDashboard, LogOut, Menu, PanelLeftClose, TrendingUp, User, X,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-
 import { userAPI } from '../../api/index.js';
 import { useDarkMode } from '../../hooks/useDarkMode.js';
 import { ToggleMode } from './components/ToggleMode.jsx';
+import { useTourContext } from '../../context/TourContext';
+import { HelpCircle } from 'lucide-react';
 
-/* ─── Dark mode hook (persisted to localStorage) ─── */
+// ─── Helpers ─────────────────────────────────────────────────────
+
+function NotifIcon({ type, severity }) {
+  if (type === 'DOMINO_RISK') return <AlertOctagon size={15} className="text-red-400" />;
+  if (severity === 'DANGER')  return <Flame         size={15} className="text-red-400" />;
+  if (severity === 'WARNING') return <AlertTriangle  size={15} className="text-amber-400" />;
+  return                             <Bell           size={15} className="text-blue-400" />;
+}
+
+function timeAgo(dateStr) {
+  const mins = Math.floor((Date.now() - new Date(dateStr)) / 60000);
+  if (mins < 1)  return 'Vừa xong';
+  if (mins < 60) return `${mins} phút trước`;
+  const h = Math.floor(mins / 60);
+  if (h < 24)    return `${h} giờ trước`;
+  return new Date(dateStr).toLocaleDateString('vi-VN');
+}
+
+// ─── Dropdown Panel — wraps children properly ─────────────────────
+function Panel({ children, width = 'w-80' }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 4 }}
+      transition={{ duration: 0.14 }}
+      className={`absolute right-0 top-[calc(100%+6px)] z-[200] ${width} rounded-2xl border overflow-hidden`}
+      style={{
+        background:  'var(--color-bg-secondary)',
+        borderColor: 'var(--color-border)',
+        boxShadow:   '0 16px 50px rgba(0,0,0,0.4)',
+      }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// ─── Icon Button — stable size, color-only hover ──────────────────
+function IconBtn({ onClick, title, badge, children }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className="IconBtn"
+      style={{ position: 'relative', width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 10, flexShrink: 0, cursor: 'pointer', transition: 'background 0.15s, color 0.15s', color: 'var(--color-text-secondary)' }}
+      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(59,130,246,0.1)'; e.currentTarget.style.color = '#60a5fa'; }}
+      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
+    >
+      {children}
+      {badge > 0 && (
+        <span style={{ position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 8px rgba(239,68,68,0.7)', fontSize: 9, fontWeight: 900, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px' }}>
+          {badge > 9 ? '9+' : badge}
+        </span>
+      )}
+    </button>
+  );
+}
+
+// ─── Main Header ─────────────────────────────────────────────────
 
 export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed, isMobile }) {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const [dark, setDark] = useDarkMode();
-  const [notifOpen, setNotifOpen] = useState(false);
+  const { user, logout }            = useAuth();
+  const { startTour }               = useTourContext();
+  const navigate                    = useNavigate();
+  const [dark, setDark]             = useDarkMode();
+  const [notifOpen, setNotifOpen]   = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
-  const [notifs, setNotifs] = useState([]);
-
-  const notifRef = useRef(null);
-  const avatarRef = useRef(null);
-
-  const unreadCount = notifs.filter((n) => !n.isRead).length;
-
-  const fetchNotifications = async () => {
-    try {
-      const res = await userAPI.getNotifications();
-      setNotifs(res.data.data.notifications || []);
-    } catch (err) {
-      console.error('Fetch notifications error:', err);
-    }
-  };
+  const [notifs, setNotifs]         = useState([]);
+  const notifRef                    = useRef(null);
+  const avatarRef                   = useRef(null);
+  const unread                      = notifs.filter(n => !n.isRead).length;
 
   useEffect(() => {
-    fetchNotifications();
-    const timer = setInterval(fetchNotifications, 30000); // Polling every 30s
-    return () => clearInterval(timer);
+    const fetch = async () => { try { setNotifs((await userAPI.getNotifications()).data.data.notifications || []); } catch (_) {} };
+    fetch();
+    const t = setInterval(fetch, 30000);
+    return () => clearInterval(t);
   }, []);
 
-  // Close dropdowns on outside click
   useEffect(() => {
-    function handle(e) {
-      if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false);
+    const handle = (e) => {
+      if (notifRef.current  && !notifRef.current.contains(e.target))  setNotifOpen(false);
       if (avatarRef.current && !avatarRef.current.contains(e.target)) setAvatarOpen(false);
-    }
+    };
     document.addEventListener('mousedown', handle);
     return () => document.removeEventListener('mousedown', handle);
   }, []);
 
-  const markAllAsRead = async () => {
-    try {
-      await userAPI.markAllRead();
-      setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })));
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const markOneAsRead = async (id) => {
-    try {
-      await userAPI.markRead(id);
-      setNotifs((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
-  const getNotifIcon = (type, severity) => {
-    if (type === 'DOMINO_RISK') return <AlertOctagon size={18} className="text-red-500" />;
-    if (severity === 'DANGER') return <Flame size={18} className="text-red-400" />;
-    if (severity === 'WARNING') return <AlertTriangle size={18} className="text-amber-400" />;
-    return <Bell size={18} className="text-blue-400" />;
-  };
-
-  const getTimeAgo = (dateStr) => {
-    const diff = new Date() - new Date(dateStr);
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'Vừa xong';
-    if (mins < 60) return `${mins} phút trước`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours} giờ trước`;
-    return new Date(dateStr).toLocaleDateString('vi-VN');
-  };
+  const markAll = async () => { try { await userAPI.markAllRead(); setNotifs(p => p.map(n => ({ ...n, isRead: true }))); } catch (_) {} };
+  const markOne = async (id) => { try { await userAPI.markRead(id); setNotifs(p => p.map(n => n.id === id ? { ...n, isRead: true } : n)); } catch (_) {} };
 
   return (
     <header
-      className="fixed top-0 right-0 z-30 flex items-center justify-between px-4 sm:px-6 h-[89px] border-b transition-all duration-300"
       style={{
-        left: isMobile ? 0 : sidebarWidth,
+        position: 'fixed', top: 0, right: 0, left: isMobile ? 0 : sidebarWidth,
+        height: 64, zIndex: 30,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 20px',
         background: 'var(--color-bg-secondary)',
+        borderBottom: '1px solid var(--color-border)',
         backdropFilter: 'blur(20px)',
-        borderColor: 'var(--color-border)',
+        transition: 'left 0.3s',
       }}
     >
-      {/* ── Left: Toggle + Page breadcrumb ── */}
-      <div className="flex items-center gap-3">
-        {/* Toggle Button */}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:bg-slate-500/10 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-          title={isCollapsed ? 'Mở rộng menu' : 'Thu gọn menu'}
-        >
-          {isMobile ? (
-            <Menu size={20} />
-          ) : (
-            <motion.div animate={{ rotate: isCollapsed ? 180 : 0 }} className="flex items-center justify-center">
-              <PanelLeftClose size={20} />
-            </motion.div>
-          )}
-        </button>
+      {/* Gradient top line */}
+      <div style={{ position: 'absolute', inset: '0 0 auto 0', height: 1, background: 'linear-gradient(90deg,transparent,rgba(59,130,246,0.4),transparent)', pointerEvents: 'none' }} />
 
-        <div className="flex items-center gap-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[14px] text-[var(--color-text-secondary)] font-medium hidden sm:block">FinSight</span>
-          <span className="text-slate-500 hidden sm:block">/</span>
-          <span className="text-[15px] sm:text-[16px] text-[var(--color-text-primary)] font-medium uppercase tracking-wider">
-            Tổng quan
-          </span>
+      {/* ── LEFT ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {/* Sidebar toggle */}
+        <IconBtn
+          title={isCollapsed ? 'Mở rộng' : 'Thu gọn'}
+          onClick={() => setIsCollapsed(!isCollapsed)}
+        >
+          {isMobile
+            ? <Menu size={18} />
+            : <motion.div animate={{ rotate: isCollapsed ? 180 : 0 }}><PanelLeftClose size={18} /></motion.div>}
+        </IconBtn>
+
+        {/* Breadcrumb — visible on sm+ */}
+        <div
+          className="hidden sm:flex"
+          style={{ alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 10, background: 'var(--color-bg-primary)', border: '1px solid var(--color-border)', fontSize: 12 }}
+        >
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34d399', boxShadow: '0 0 5px #34d399', animation: 'pulse 2s infinite' }} />
+          <span style={{ color: 'var(--color-text-muted)', fontWeight: 600 }}>FinSight</span>
+          <span style={{ color: 'var(--color-border)' }}>/</span>
+          <span style={{ fontWeight: 700, color: 'var(--color-text-primary)' }}>Tổng quan</span>
         </div>
       </div>
 
-      {/* ── Right: Actions cluster ── */}
-      <div className="flex items-center gap-1.5">
-        {/* Dark mode toggle */}
-        <ToggleMode dark={dark} setDark={setDark} />
+      {/* ── RIGHT ── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        {/* Theme toggle */}
+        <ToggleMode dark={dark} setDark={setDark} className="ToggleMode" />
 
-        {/* Notification bell */}
-        <div className="relative" ref={notifRef}>
-          <button
-            onClick={() => {
-              setNotifOpen((v) => !v);
-              setAvatarOpen(false);
-            }}
-            className="relative w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:bg-slate-500/10 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+        {/* Replay Tour */}
+        <IconBtn
+          id="tour-replay-btn"
+          title="Xem lại hướng dẫn"
+          onClick={startTour}
+        >
+          <HelpCircle size={17} />
+        </IconBtn>
+
+        {/* ── Bell ── */}
+        <div id="tour-header-notif" style={{ position: 'relative' }} ref={notifRef}>
+          <IconBtn
+            badge={unread}
+            onClick={() => { setNotifOpen(v => !v); setAvatarOpen(false); }}
           >
-            <Bell size={19} />
-            {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center px-1 leading-none shadow-lg shadow-red-500/30">
-                {unreadCount}
-              </span>
-            )}
-          </button>
+            <Bell size={17} />
+          </IconBtn>
 
           <AnimatePresence>
             {notifOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 6, scale: 0.96 }}
-                transition={{ duration: 0.15 }}
-                className="absolute right-0 top-[calc(100%+8px)] w-[340px] rounded-2xl border overflow-hidden shadow-2xl z-50"
-                style={{
-                  background: 'var(--color-bg-secondary)',
-                  borderColor: 'var(--color-border)',
-                }}
-              >
+              <Panel width="w-80">
                 {/* Header */}
-                <div
-                  className="flex items-center justify-between px-4 py-3.5 border-b"
-                  style={{ borderColor: 'var(--color-border)' }}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-[13px] font-bold text-[var(--color-text-primary)]">Thông báo</span>
-                    {unreadCount > 0 && (
-                      <span className="px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-500 text-[10px] font-bold">
-                        {unreadCount} mới
-                      </span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderBottom: '1px solid var(--color-border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 13, fontWeight: 900, color: 'var(--color-text-primary)' }}>Thông báo</span>
+                    {unread > 0 && (
+                      <span style={{ fontSize: 10, fontWeight: 900, color: '#60a5fa', background: 'rgba(59,130,246,0.12)', padding: '1px 7px', borderRadius: 999 }}>{unread}</span>
                     )}
                   </div>
-                  {unreadCount > 0 && (
-                    <button
-                      onClick={markAllAsRead}
-                      className="text-[11px] text-[var(--color-text-secondary)] hover:text-blue-500 transition-colors"
-                    >
-                      Đánh dấu tất cả đã đọc
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {unread > 0 && (
+                      <button onClick={markAll} style={{ fontSize: 10, fontWeight: 700, color: '#60a5fa', cursor: 'pointer', background: 'none', border: 'none' }}>
+                        Đã đọc tất cả
+                      </button>
+                    )}
+                    <button onClick={() => setNotifOpen(false)} style={{ cursor: 'pointer', background: 'none', border: 'none', color: 'var(--color-text-muted)', display: 'flex' }}>
+                      <X size={14} />
                     </button>
-                  )}
+                  </div>
                 </div>
 
-                {/* Notif list */}
-                <div className="max-h-72 overflow-y-auto">
-                  {notifs.length > 0 ? (
-                    notifs.map((n) => (
-                      <div
-                        key={n.id}
-                        onClick={() => markOneAsRead(n.id)}
-                        className="flex items-start gap-4 px-4 py-4 transition-colors cursor-pointer border-b last:border-0 hover:bg-slate-500/5"
-                        style={{
-                          background: !n.isRead ? 'var(--color-bg-primary)' : 'transparent',
-                          borderColor: 'var(--color-border)',
-                        }}
-                      >
-                        <span className="shrink-0 mt-0.5">{getNotifIcon(n.type, n.severity)}</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-[13px] font-bold text-[var(--color-text-primary)] truncate">{n.title}</p>
-                            {!n.isRead && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />}
-                          </div>
-                          <p className="text-[11px] text-[var(--color-text-secondary)] mt-0.5 line-clamp-2">
-                            {n.message}
-                          </p>
-                          <p className="text-[10px] text-[var(--color-text-muted)] mt-1.5">{getTimeAgo(n.createdAt)}</p>
-                        </div>
+                {/* List */}
+                <div style={{ maxHeight: 260, overflowY: 'auto' }}>
+                  {notifs.length > 0 ? notifs.map(n => (
+                    <div
+                      key={n.id}
+                      onClick={() => markOne(n.id)}
+                      style={{ display: 'flex', gap: 10, padding: '10px 16px', cursor: 'pointer', borderBottom: '1px solid var(--color-border)', background: !n.isRead ? 'rgba(59,130,246,0.04)' : 'transparent', transition: 'background 0.15s' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-bg-primary)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = !n.isRead ? 'rgba(59,130,246,0.04)' : 'transparent'; }}
+                    >
+                      <div style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--color-bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <NotifIcon type={n.type} severity={n.severity} />
                       </div>
-                    ))
-                  ) : (
-                    <div className="py-10 text-center text-slate-500 text-[13px]">Không có thông báo nào</div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                          <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.title}</p>
+                          {!n.isRead && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#60a5fa', flexShrink: 0 }} />}
+                        </div>
+                        <p style={{ fontSize: 11, color: 'var(--color-text-secondary)', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>{n.message}</p>
+                        <p style={{ fontSize: 10, color: 'var(--color-text-muted)', marginTop: 4 }}>{timeAgo(n.createdAt)}</p>
+                      </div>
+                    </div>
+                  )) : (
+                    <div style={{ padding: '40px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                      <Bell size={24} color="var(--color-text-muted)" />
+                      <p style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Không có thông báo</p>
+                    </div>
                   )}
                 </div>
 
                 {/* Footer */}
-                <div className="px-4 py-3 border-t text-center" style={{ borderColor: 'var(--color-border)' }}>
-                  <Link
-                    to="/debts"
-                    onClick={() => setNotifOpen(false)}
-                    className="text-[12px] text-blue-500 hover:text-blue-600 transition-colors font-bold uppercase tracking-wide"
-                  >
-                    Tất cả thông báo
+                <div style={{ borderTop: '1px solid var(--color-border)', padding: '8px 16px', textAlign: 'center' }}>
+                  <Link to="/debts" onClick={() => setNotifOpen(false)} style={{ fontSize: 11, fontWeight: 900, color: '#60a5fa', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                    Xem tất cả →
                   </Link>
                 </div>
-              </motion.div>
+              </Panel>
             )}
           </AnimatePresence>
         </div>
 
         {/* Divider */}
-        <div className="w-px h-5 bg-[var(--color-border)] mx-1.5" />
+        <div style={{ width: 1, height: 18, background: 'var(--color-border)', margin: '0 4px', flexShrink: 0 }} />
 
-        {/* Avatar / User dropdown */}
-        <div className="relative" ref={avatarRef}>
+        {/* ── Avatar ── */}
+        <div style={{ position: 'relative' }} ref={avatarRef}>
           <button
-            onClick={() => {
-              setAvatarOpen((v) => !v);
-              setNotifOpen(false);
-            }}
-            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl hover:bg-slate-500/10 transition-all"
+            onClick={() => { setAvatarOpen(v => !v); setNotifOpen(false); }}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 10px 4px 4px', borderRadius: 10, cursor: 'pointer', background: 'transparent', border: 'none', transition: 'background 0.15s', flexShrink: 0 }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-bg-primary)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
           >
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-[13px] font-bold text-white shadow-md shadow-blue-500/20">
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg,#3b82f6,#06b6d4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900, color: '#fff', flexShrink: 0, boxShadow: '0 0 10px rgba(59,130,246,0.4)' }}>
               {user?.fullName?.charAt(0)?.toUpperCase() || 'U'}
             </div>
-            <div className="hidden sm:block text-left">
-              <p className="text-[14px] font-bold text-[var(--color-text-primary)] leading-tight max-w-[100px] truncate">
-                {user?.fullName || 'User'}
-              </p>
-            </div>
-            <ChevronDown size={14} className="text-[var(--color-text-secondary)] hidden sm:block" />
+            <span className="hidden sm:block" style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text-primary)', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user?.fullName?.split(' ').pop() || 'User'}
+            </span>
+            <motion.div animate={{ rotate: avatarOpen ? 180 : 0 }} transition={{ duration: 0.2 }} className="hidden sm:block">
+              <ChevronDown size={13} color="var(--color-text-muted)" />
+            </motion.div>
           </button>
 
           <AnimatePresence>
             {avatarOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 6, scale: 0.96 }}
-                transition={{ duration: 0.15 }}
-                className="absolute right-0 top-[calc(100%+8px)] w-56 rounded-2xl border overflow-hidden shadow-2xl z-50"
-                style={{
-                  background: 'var(--color-bg-secondary)',
-                  borderColor: 'var(--color-border)',
-                }}
-              >
-                {/* User info */}
-                <div className="px-5 py-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-sm font-bold text-white">
-                      {user?.fullName?.charAt(0)?.toUpperCase() || 'U'}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[14px] font-bold text-[var(--color-text-primary)] truncate">
-                        {user?.fullName}
-                      </p>
-                      <p className="text-[12px] text-[var(--color-text-secondary)] truncate">{user?.email}</p>
-                    </div>
-                  </div>
+              <Panel width="w-52">
+                <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--color-border)' }}>
+                  <p style={{ fontSize: 13, fontWeight: 900, color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.fullName}</p>
+                  <p style={{ fontSize: 11, color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>{user?.email}</p>
                 </div>
 
-                {/* Menu items */}
-                <div className="p-1.5">
+                <div style={{ padding: 6 }}>
                   {[
-                    {
-                      to: '/profile',
-                      icon: <User size={16} />,
-                      label: 'Hồ sơ cá nhân',
-                    },
-                    {
-                      to: '/',
-                      icon: <LayoutDashboard size={16} />,
-                      label: 'Dashboard',
-                    },
-                    {
-                      to: '/investment',
-                      icon: <TrendingUp size={16} />,
-                      label: 'Đầu tư',
-                    },
-                  ].map((item) => (
+                    { to: '/profile',    icon: User,            label: 'Hồ sơ cá nhân', color: '#3b82f6' },
+                    { to: '/home',       icon: LayoutDashboard, label: 'Dashboard',      color: '#10b981' },
+                    { to: '/investment', icon: TrendingUp,      label: 'Đầu tư AI',     color: '#f59e0b' },
+                  ].map(item => (
                     <Link
                       key={item.to}
                       to={item.to}
                       onClick={() => setAvatarOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-slate-500/5 transition-all"
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 10, fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary)', textDecoration: 'none', transition: 'background 0.15s, color 0.15s' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-bg-primary)'; e.currentTarget.style.color = 'var(--color-text-primary)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
                     >
-                      <span className="w-5 flex justify-center shrink-0">{item.icon}</span>
-                      <span>{item.label}</span>
+                      <item.icon size={14} style={{ color: item.color, flexShrink: 0 }} />
+                      {item.label}
                     </Link>
                   ))}
                 </div>
 
-                <div className="p-1.5 border-t" style={{ borderColor: 'var(--color-border)' }}>
+                <div style={{ padding: 6, borderTop: '1px solid var(--color-border)' }}>
                   <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-[var(--color-text-secondary)] hover:text-red-500 hover:bg-red-500/5 transition-all"
+                    onClick={() => { logout(); navigate('/login'); }}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 10, fontSize: 12, fontWeight: 600, color: 'var(--color-text-secondary)', background: 'none', border: 'none', cursor: 'pointer', transition: 'background 0.15s, color 0.15s' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.color = '#f87171'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-text-secondary)'; }}
                   >
-                    <span className="w-5 flex justify-center shrink-0">
-                      <LogOut size={16} />
-                    </span>
-                    <span>Đăng xuất</span>
+                    <LogOut size={14} style={{ color: '#f87171', flexShrink: 0 }} />
+                    Đăng xuất
                   </button>
                 </div>
-              </motion.div>
+              </Panel>
             )}
           </AnimatePresence>
         </div>
