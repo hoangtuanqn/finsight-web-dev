@@ -125,6 +125,140 @@ export const getSessionHistory = async (sessionId, limit = 10, summarize = true)
   return messages.map(m => mapDbMessageToLangChain(m));
 };
 
+// =====================================================================
+// Compact History — Sliding Window 8 messages + LLM Summary
+// =====================================================================
+// Mục đích: Cung cấp NGỮ CẢNH cho LLM để trả lời follow-up questions,
+// nhưng KHÔNG cho phép LLM sao chép câu trả lời cũ.
+//
+// Kỹ thuật chính: Content Sanitization
+// - AI response bị thay thế hoàn toàn bằng tag ngắn mô tả HÀNH ĐỘNG
+// - VD: "Tôi đã trích xuất..." → "[AI: phân tích khoản nợ → form xác nhận]"
+// - LLM biết context (đã làm gì) nhưng không có text để copy
+// =====================================================================
+
+const WINDOW_SIZE = 8;       // Số messages giữ nguyên trong sliding window
+const DB_FETCH_LIMIT = 16;   // Buffer lấy từ DB (2x window để có phần tóm tắt)
+
+/**
+ * Sanitize nội dung AI response thành tag context ngắn gọn.
+ * Mục đích: LLM biết AI đã làm gì, nhưng KHÔNG CÓ TEXT ĐỂ COPY.
+ *
+ * @param {Object} msg - Message object từ DB (có .content, .actionType, .role)
+ * @returns {string} - Nội dung đã sanitize, tối đa ~80 chars
+ */
+function sanitizeAIContent(msg) {
+  const content = msg.content || '';
+  const actionType = msg.actionType || null;
+
+  // ⚠️ QUAN TRỌNG: KHÔNG dùng dấu ngoặc vuông [], dấu ngoặc nhọn, hay format đặc biệt
+  // vì LLM sẽ bắt chước pattern đó trong response của nó.
+  // Chỉ dùng câu mô tả ngắn gọn, thuần text.
+
+  // Case 1: Tool đã được gọi (form_population = parse_debt)
+  if (actionType === 'form_population') {
+    return '(Trợ lý đã gọi tool phân tích khoản nợ và hiển thị form xác nhận.)';
+  }
+
+  // Case 2: Phát hiện pattern canned response về khoản nợ
+  if (content.includes('trích xuất thông tin khoản nợ') || content.includes('bấm **Xác nhận**')) {
+    return '(Trợ lý đã trích xuất khoản nợ, chờ user xác nhận trên form.)';
+  }
+
+  // Case 3: Phát hiện pattern yêu cầu cung cấp thêm thông tin
+  if (content.includes('vui lòng cung cấp') || content.includes('thông tin còn thiếu')) {
+    return '(Trợ lý đã hỏi user bổ sung thông tin còn thiếu.)';
+  }
+
+  // Case 4: Phát hiện pattern lỗi/fallback
+  if (content.includes('Xin lỗi') && content.includes('thử lại')) {
+    return '(Trợ lý gặp lỗi, yêu cầu user thử lại.)';
+  }
+
+  // Case 5: Response bình thường — rút gọn thành 1 câu mô tả
+  const firstSentence = content.split(/[.\n]/)[0].trim();
+  const truncated = firstSentence.length > 80
+    ? firstSentence.substring(0, 77) + '...'
+    : firstSentence;
+  return `(Trợ lý đã trả lời: ${truncated})`;
+}
+
+/**
+ * Lấy lịch sử compact cho Agent — trả về 1 SystemMessage duy nhất.
+ *
+ * THIẾT KẾ QUAN TRỌNG:
+ * - KHÔNG trả về AIMessage/HumanMessage riêng lẻ (LLM sẽ bắt chước format)
+ * - Gom toàn bộ history thành 1 SystemMessage chứa transcript ngắn gọn
+ * - AI response bị sanitize thành mô tả hành động, không có text để copy
+ * - LLM chỉ thấy "đã xảy ra gì" chứ không thấy "đã nói gì"
+ *
+ * @param {string} sessionId - ID phiên trò chuyện
+ * @returns {Promise<Array>} - Mảng chứa tối đa 1 SystemMessage (hoặc rỗng)
+ */
+export const getCompactHistory = async (sessionId) => {
+  const messages = await prisma.chatMessage.findMany({
+    where: { sessionId },
+    orderBy: { createdAt: 'desc' },
+    take: DB_FETCH_LIMIT,
+  });
+
+  messages.reverse();
+
+  if (messages.length === 0) return [];
+
+  console.log(`[Memory] getCompactHistory: ${messages.length} messages fetched from DB`);
+
+  // --- Xây dựng transcript ---
+  // Chia thành phần cũ (tóm tắt bằng LLM) + phần mới (giữ chi tiết)
+  let summaryPart = '';
+  let detailMessages = messages;
+
+  if (messages.length > WINDOW_SIZE) {
+    const oldPart = messages.slice(0, messages.length - WINDOW_SIZE);
+    detailMessages = messages.slice(messages.length - WINDOW_SIZE);
+
+    console.log(`[Memory] Splitting: ${oldPart.length} old (→ summary) + ${detailMessages.length} recent`);
+    summaryPart = await summarizeOldHistory(oldPart);
+    console.log(`[Memory] Summary: "${summaryPart.substring(0, 100)}..."`);
+  }
+
+  // --- Build transcript từ detailMessages ---
+  const lines = detailMessages.map(m => {
+    if (m.role === 'user') {
+      // User message: giữ nguyên nhưng cắt OCR dài
+      let content = m.content;
+      if (content.length > 300) {
+        const ocrMatch = content.match(/Yêu cầu của tôi:\s*(.+)/s);
+        if (ocrMatch) {
+          content = `(ảnh đính kèm) ${ocrMatch[1].trim().substring(0, 200)}`;
+        } else {
+          content = content.substring(0, 300) + '...';
+        }
+      }
+      return `- Người dùng: ${content}`;
+    }
+    if (m.role === 'assistant') {
+      // AI response: CHỈ mô tả hành động, KHÔNG giữ nội dung
+      return `- Hệ thống: ${sanitizeAIContent(m)}`;
+    }
+    return null;
+  }).filter(Boolean);
+
+  // --- Ghép thành 1 SystemMessage duy nhất ---
+  let contextBlock = '=== NGỮ CẢNH HỘI THOẠI (chỉ để tham khảo, KHÔNG sao chép) ===\n';
+
+  if (summaryPart) {
+    contextBlock += `Tóm tắt phần trước: ${summaryPart}\n---\n`;
+  }
+
+  contextBlock += `Các lượt trao đổi gần đây:\n${lines.join('\n')}`;
+  contextBlock += '\n=== HẾT NGỮ CẢNH ===';
+
+  console.log(`[Memory] Context block: ${contextBlock.length} chars, ${lines.length} exchanges`);
+
+  return [new SystemMessage(contextBlock)];
+};
+
 /**
  * Chuyển đổi một DB message sang LangChain Message object.
  * Bảo toàn actionType trong metadata để Agent biết context tool calls trước đó.

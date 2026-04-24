@@ -18,7 +18,7 @@ import { getToolsByIntent, createBoundTools } from './tools/index.js'; // Lấy 
 import { routeIntent } from './router.js';                  // Phân loại intent từ câu hỏi
 import { checkIsOffTopicGuard, OFF_TOPIC_REPLY, MAX_LENGTH_REPLY } from './guard.js'; // Bộ lọc bảo vệ
 import { checkSemanticCache, setSemanticCache } from './cache.js';     // Cache ngữ nghĩa
-import { getOrCreateSession, getSessionHistory, saveMessage, updateSessionTitle } from './memory.js'; // Quản lý phiên
+import { getOrCreateSession, getSessionHistory, getCompactHistory, saveMessage, updateSessionTitle } from './memory.js'; // Quản lý phiên
 import { FINSIGHT_PERSONA, DISCLAIMER_TEXT, TOOL_LABELS } from './prompts.js'; // Prompt hệ thống
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';        // Message types của LangChain
 import { createReactAgent } from "@langchain/langgraph/prebuilt";              // ReAct Agent pattern
@@ -132,48 +132,18 @@ export const runAgenticChat = async (userId, query, sessionId, onTokenStream, on
     console.log(`[Agent]   📝 Session title set: "${title}"`);
   }
 
-  // // Lấy lịch sử trò chuyện TRƯỚC KHI lưu câu hỏi mới để tránh trùng lặp tin nhắn
-  // // Lấy tối đa 10 messages gần nhất, bật LLM summarization khi quá dài
-  // // History này sẽ được chèn vào prompt để LLM có ngữ cảnh cuộc hội thoại
-  // const history = await getSessionHistory(session.id, 10, true);
-  // console.log(`[Agent] ✅ STEP 5b: History loaded → ${history.length} tin nhắn cũ [${elapsed()}]`);
-  // // ⚡ LOG CHI TIẾT từng message trong history — xem LLM nhận context gì
-  // history.forEach((msg, i) => {
-  //   const type = msg.constructor.name; // HumanMessage = user, AIMessage = bot
-  //   console.log(`[Agent]   📜 History[${i}] (${type}):`);
-  //   console.log(`[Agent]      "${msg.content.substring(0, 150).replace(/\n/g, ' ')}${msg.content.length > 150 ? '...' : ''}"`);
-  // });
-
-  // // --- FIX: DEDUP — Loại bỏ AIMessage trùng lặp TRONG TOÀN BỘ history ---
-  // // Vấn đề gốc: LLM thấy nhiều AIMessage cùng nội dung (dù xen kẽ HumanMessage)
-  // // → "few-shot learn" pattern sai → copy response thay vì gọi tool.
-  // // Giải pháp: Giữ lại chỉ AI response CUỐI CÙNG cho mỗi nội dung trùng.
-  // const seenAIContents = new Map(); // content -> last index
-  // // Pass 1: Tìm vị trí cuối cùng của mỗi AI content
-  // for (let i = 0; i < history.length; i++) {
-  //   if (history[i].constructor.name === 'AIMessage') {
-  //     seenAIContents.set(history[i].content, i);
-  //   }
-  // }
-  // // Pass 2: Loại bỏ các AI duplicate (giữ bản cuối cùng)
-  // const dedupedHistory = [];
-  // for (let i = 0; i < history.length; i++) {
-  //   const msg = history[i];
-  //   if (msg.constructor.name === 'AIMessage') {
-  //     const lastIdx = seenAIContents.get(msg.content);
-  //     if (lastIdx !== i) {
-  //       console.log(`[Agent] 🧹 DEDUP: Removed duplicate AIMessage at index ${i} (kept last at ${lastIdx})`);
-  //       continue; // Bỏ bản cũ, giữ bản cuối
-  //     }
-  //   }
-  //   dedupedHistory.push(msg);
-  // }
-  // if (dedupedHistory.length < history.length) {
-  //   console.log(`[Agent] 🧹 DEDUP: ${history.length} → ${dedupedHistory.length} messages (removed ${history.length - dedupedHistory.length} duplicates)`);
-  // }
-
-  // History tạm tắt — dùng mảng rỗng
-  const dedupedHistory = [];
+  // --- BƯỚC 5b: Lấy Compact History (Sliding Window + Sanitized) ---
+  // Lấy lịch sử TRƯỚC KHI lưu câu hỏi mới để tránh trùng lặp
+  // getCompactHistory: 8 messages gần nhất + AI content đã sanitize
+  // → LLM có context để hiểu follow-up nhưng KHÔNG có text để copy
+  const compactHistory = await getCompactHistory(session.id);
+  console.log(`[Agent] ✅ STEP 5b: Compact history loaded → ${compactHistory.length} items [${elapsed()}]`);
+  // ⚡ LOG từng message trong compact history — verify sanitization
+  compactHistory.forEach((msg, i) => {
+    const type = msg.constructor.name;
+    const preview = msg.content.substring(0, 120).replace(/\n/g, '\\n');
+    console.log(`[Agent]   📜 CompactHistory[${i}] (${type}): "${preview}${msg.content.length > 120 ? '...' : ''}"`);
+  });
 
   // Lưu câu hỏi người dùng vào DB SAU KHI đã lấy history
   await saveMessage(session.id, 'user', query);
@@ -210,12 +180,12 @@ export const runAgenticChat = async (userId, query, sessionId, onTokenStream, on
   console.log('--- END SYSTEM PROMPT ---');
 
   // --- Tập hợp toàn bộ messages gửi cho LLM ---
-  // Thứ tự: [SystemMessage, ...HistoryMessages, HumanMessage(query mới)]
+  // Thứ tự: [SystemMessage, ...CompactHistory(sanitized), HumanMessage(query mới)]
   const inputs = {
-    messages: [sysMsg, ...dedupedHistory, new HumanMessage(query)],
+    messages: [sysMsg, ...compactHistory, new HumanMessage(query)],
   };
   const totalTokenEstimate = inputs.messages.reduce((sum, m) => sum + m.content.length, 0);
-  console.log(`[Agent] 📨 Tổng hợp messages gửi LLM: 1 system + ${dedupedHistory.length} history + 1 query = ${inputs.messages.length} messages (~${totalTokenEstimate} chars) [${elapsed()}]`);
+  console.log(`[Agent] 📨 Tổng hợp messages gửi LLM: 1 system + ${compactHistory.length} history + 1 query = ${inputs.messages.length} messages (~${totalTokenEstimate} chars) [${elapsed()}]`);
   // ⚡ LOG danh sách tất cả messages theo thứ tự — chính xác LLM nhận được gì
   console.log('[Agent] 📬 CHI TIẾT TỪNG MESSAGE GỬI LLM:');
   inputs.messages.forEach((msg, i) => {
