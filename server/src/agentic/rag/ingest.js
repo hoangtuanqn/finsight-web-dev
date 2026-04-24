@@ -5,14 +5,19 @@ import dotenv from 'dotenv';
 import prisma from '../../lib/prisma.js';
 import { getEmbeddingModel } from '../llm-provider.js';
 
+// Cấu hình dotenv để đọc file .env từ thư mục gốc của project
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
+// Đường dẫn tới thư mục chứa các file markdown kiến thức tài chính
 const KNOWLEDGE_DIR = path.resolve(process.cwd(), 'data/knowledge');
 
 /**
- * Parse YAML frontmatter from markdown content
+ * Phân tích phần frontmatter (siêu dữ liệu ở đầu file) từ nội dung markdown
+ * @param {string} content - Nội dung thô của file markdown
+ * @returns {object} Đối tượng chứa metadata và phần thân (body) của tài liệu
  */
 function parseFrontmatter(content) {
+  // Regex để tìm phần nằm giữa cặp dấu ---
   const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
   if (!match) return { metadata: {}, body: content };
 
@@ -20,16 +25,19 @@ function parseFrontmatter(content) {
   const body = match[2].trim();
   const metadata = {};
 
+  // Tách từng dòng trong frontmatter để lấy key-value
   for (const line of rawMeta.split('\n')) {
     const colonIdx = line.indexOf(':');
     if (colonIdx === -1) continue;
     const key = line.slice(0, colonIdx).trim();
     let value = line.slice(colonIdx + 1).trim();
-    // Strip quotes
+    
+    // Loại bỏ dấu ngoặc kép nếu có
     if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
-    // Parse array
+    
+    // Xử lý nếu giá trị là một mảng (dạng [item1, item2])
     if (value.startsWith('[')) {
-      try { value = JSON.parse(value); } catch { /* keep as string */ }
+      try { value = JSON.parse(value); } catch { /* giữ nguyên là string nếu parse lỗi */ }
     }
     metadata[key] = value;
   }
@@ -38,24 +46,28 @@ function parseFrontmatter(content) {
 }
 
 /**
- * Chunk markdown content by ## headings.
- * Each chunk includes the main title + one section.
+ * Chia nhỏ nội dung markdown theo các tiêu đề cấp 2 (## Heading)
+ * Mỗi đoạn (chunk) sẽ bao gồm tiêu đề chính của tài liệu và nội dung của phần đó.
+ * @param {string} body - Phần thân của tài liệu markdown
+ * @param {string} docTitle - Tiêu đề của tài liệu
  */
 function chunkByHeadings(body, docTitle) {
+  // Tách nội dung dựa trên regex tìm tiêu đề cấp 2 (##)
   const sections = body.split(/(?=^## )/m).filter(s => s.trim());
   const chunks = [];
 
   for (const section of sections) {
     const trimmed = section.trim();
-    if (trimmed.length < 20) continue; // Skip very short sections
+    if (trimmed.length < 20) continue; // Bỏ qua các phần quá ngắn
 
     chunks.push({
       text: `# ${docTitle}\n\n${trimmed}`,
+      // Tạo hash dựa trên nội dung để kiểm tra trùng lặp/thay đổi sau này
       hash: crypto.createHash('sha256').update(trimmed).digest('hex'),
     });
   }
 
-  // If no ## headings found, treat entire body as one chunk
+  // Nếu không tìm thấy tiêu đề ## nào, coi toàn bộ nội dung là một đoạn duy nhất
   if (chunks.length === 0 && body.trim().length > 20) {
     chunks.push({
       text: body.trim(),
@@ -66,16 +78,21 @@ function chunkByHeadings(body, docTitle) {
   return chunks;
 }
 
+/**
+ * Hàm chính thực hiện quét thư mục kiến thức và nạp dữ liệu vào database
+ */
 async function ingest() {
-  console.log('📂 Scanning knowledge directory:', KNOWLEDGE_DIR);
+  console.log('📂 Đang quét thư mục kiến thức:', KNOWLEDGE_DIR);
 
+  // Kiểm tra thư mục kiến thức có tồn tại không
   if (!fs.existsSync(KNOWLEDGE_DIR)) {
-    console.error('❌ Knowledge directory not found:', KNOWLEDGE_DIR);
+    console.error('❌ Không tìm thấy thư mục kiến thức:', KNOWLEDGE_DIR);
     process.exit(1);
   }
 
+  // Lấy danh sách các file .md trong thư mục
   const files = fs.readdirSync(KNOWLEDGE_DIR).filter(f => f.endsWith('.md'));
-  console.log(`📄 Found ${files.length} documents`);
+  console.log(`📄 Tìm thấy ${files.length} tài liệu`);
 
   const embeddingModel = getEmbeddingModel();
   let totalChunks = 0;
@@ -87,16 +104,17 @@ async function ingest() {
     const raw = fs.readFileSync(filePath, 'utf-8');
     const { metadata, body } = parseFrontmatter(raw);
 
+    // Lấy tiêu đề và danh mục từ metadata hoặc mặc định
     const title = metadata.title || file.replace('.md', '');
     const category = metadata.category || 'CONCEPT';
 
     const chunks = chunkByHeadings(body, title);
-    console.log(`\n📝 ${file}: "${title}" → ${chunks.length} chunks`);
+    console.log(`\n📝 ${file}: "${title}" → ${chunks.length} đoạn nhỏ`);
 
     for (const chunk of chunks) {
       totalChunks++;
 
-      // Check if chunk already exists (by hash)
+      // Kiểm tra xem đoạn này đã tồn tại trong DB chưa bằng cách so sánh hash nội dung
       const existing = await prisma.$queryRawUnsafe(
         `SELECT id FROM finance_knowledge WHERE metadata->>'contentHash' = $1 LIMIT 1`,
         chunk.hash
@@ -104,14 +122,14 @@ async function ingest() {
 
       if (existing.length > 0) {
         skippedChunks++;
-        process.stdout.write('⏭️ ');
+        process.stdout.write('⏭️ '); // Bỏ qua nếu đã tồn tại
         continue;
       }
 
-      // Embed the chunk
+      // Tạo vector embedding cho đoạn văn bản
       const [embedding] = await embeddingModel.embedDocuments([chunk.text]);
 
-      // Insert into pgvector via raw SQL
+      // Chèn dữ liệu vào bảng finance_knowledge sử dụng pgvector (Raw SQL)
       const vectorStr = `[${embedding.join(',')}]`;
       await prisma.$queryRawUnsafe(
         `INSERT INTO finance_knowledge (id, title, content, chunk, category, embedding, metadata, "createdAt")
@@ -125,20 +143,21 @@ async function ingest() {
       );
 
       newChunks++;
-      process.stdout.write('✅ ');
+      process.stdout.write('✅ '); // Đã nạp thành công
     }
   }
 
-  console.log(`\n\n🎯 Ingestion complete!`);
-  console.log(`   Total chunks: ${totalChunks}`);
-  console.log(`   New (embedded): ${newChunks}`);
-  console.log(`   Skipped (unchanged): ${skippedChunks}`);
+  console.log(`\n\n🎯 Hoàn tất quá trình nạp dữ liệu!`);
+  console.log(`   Tổng số đoạn: ${totalChunks}`);
+  console.log(`   Mới (đã nhúng vector): ${newChunks}`);
+  console.log(`   Bỏ qua (không đổi): ${skippedChunks}`);
 
   await prisma.$disconnect();
   process.exit(0);
 }
 
+// Chạy quy trình ingest và bắt lỗi nếu có
 ingest().catch(err => {
-  console.error('❌ Ingestion failed:', err);
+  console.error('❌ Lỗi nạp dữ liệu:', err);
   process.exit(1);
 });
