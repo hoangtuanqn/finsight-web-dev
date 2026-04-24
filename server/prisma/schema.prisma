@@ -10,20 +10,20 @@ datasource db {
 }
 
 model User {
-  id              String    @id @default(cuid())
-  email           String    @unique
-  password        String?
-  googleId        String?   @unique
-  facebookId      String?   @unique
-  avatar          String?
-  fullName        String
-  monthlyIncome   Float     @default(0)
-  extraBudget     Float     @default(0)
-  level           String    @default("BASIC") // BASIC | PRO | PROMAX
-  levelExpiresAt  DateTime?
-  strategyQuota   Int       @default(10)      // Số lượt tạo chiến lược AI còn lại
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  email          String    @unique
+  password       String?
+  googleId       String?   @unique
+  facebookId     String?   @unique
+  avatar         String?
+  fullName       String
+  monthlyIncome  Float     @default(0)
+  extraBudget    Float     @default(0)
+  level          String    @default("BASIC") // BASIC | PRO | PROMAX
+  levelExpiresAt DateTime?
+  strategyQuota  Int       @default(10) // Số lượt tạo chiến lược AI còn lại
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   debts           Debt[]
   investorProfile InvestorProfile?
@@ -39,34 +39,33 @@ model User {
 }
 
 model Debt {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   userId           String
   name             String
   platform         String
   originalAmount   Float
   balance          Float
   apr              Float
-  rateType         String   @default("FLAT")
-  feeProcessing    Float    @default(0)
-  feeInsurance     Float    @default(0)
-  feeManagement    Float    @default(0)
-  feePenaltyPerDay Float    @default(0)
+  rateType         String    @default("FLAT")
+  feeProcessing    Float     @default(0)
+  feeInsurance     Float     @default(0)
+  feeManagement    Float     @default(0)
+  feePenaltyPerDay Float     @default(0)
   minPayment       Float
   dueDay           Int
   termMonths       Int
   remainingTerms   Int
   startDate        DateTime?
-  status                 String    @default("ACTIVE")
-  notes                  String?
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
+  status           String    @default("ACTIVE")
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   // ── Smart Deletion System ──
-  deletedAt              DateTime? // Thời điểm user thực hiện xoá mềm
-  scheduledPurgeAt       DateTime? // Thời điểm Cronjob sẽ Hard Delete
-  deleteReason           String?   // Lý do xoá
-  deleteCommitment       Boolean   @default(false) // Trạng thái đã xác nhận rủi ro
-
+  deletedAt        DateTime? // Thời điểm user thực hiện xoá mềm
+  scheduledPurgeAt DateTime? // Thời điểm Cronjob sẽ Hard Delete
+  deleteReason     String? // Lý do xoá
+  deleteCommitment Boolean   @default(false) // Trạng thái đã xác nhận rủi ro
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   payments Payment[]
@@ -87,12 +86,12 @@ model Payment {
 }
 
 model InvestorProfile {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  capital     Float    @default(0)
-  monthlyAdd  Float    @default(0)
-  goal        String   @default("GROWTH")
-  horizon     String   @default("MEDIUM")
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  capital       Float    @default(0)
+  monthlyAdd    Float    @default(0)
+  goal          String   @default("GROWTH")
+  horizon       String   @default("MEDIUM")
   riskLevel     String   @default("MEDIUM")
   riskScore     Int      @default(0)
   savingsRate   Float    @default(6.0)
@@ -169,7 +168,7 @@ model DebtGoal {
 model Transaction {
   id           String    @id @default(cuid())
   userId       String
-  plan         String    // PRO | PROMAX
+  plan         String // PRO | PROMAX
   amount       Float
   status       String    @default("PENDING") // PENDING | PAID | EXPIRED | CANCELLED
   transferCode String    @unique
@@ -190,8 +189,8 @@ model Transaction {
 model ChatSession {
   id        String   @id @default(cuid())
   userId    String
-  title     String?  // Auto-generated từ message đầu tiên
-  metadata  Json?    // Lưu context bổ sung
+  title     String? // Auto-generated từ message đầu tiên
+  metadata  Json? // Lưu context bổ sung
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -204,12 +203,12 @@ model ChatSession {
 model ChatMessage {
   id         String   @id @default(cuid())
   sessionId  String
-  role       String   // "user" | "assistant" | "tool" | "system"
-  content    String   // Nội dung tin nhắn
-  toolCalls  Json?    // Lưu tool calls nếu có
-  toolResult Json?    // Kết quả tool execution
-  actionType String?  // "text_response" | "form_population"
-  payload    Json?    // trigger_payload cho form_population
+  role       String // "user" | "assistant" | "tool" | "system"
+  content    String // Nội dung tin nhắn
+  toolCalls  Json? // Lưu tool calls nếu có
+  toolResult Json? // Kết quả tool execution
+  actionType String? // "text_response" | "form_population"
+  payload    Json? // trigger_payload cho form_population
   createdAt  DateTime @default(now())
 
   session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
@@ -218,14 +217,14 @@ model ChatMessage {
 }
 
 model FinanceKnowledge {
-  id        String                      @id @default(cuid())
+  id        String                       @id @default(cuid())
   title     String
-  content   String                      // Nội dung gốc
-  chunk     String                      // Đoạn đã chunk
-  category  String                      // "CONCEPT" | "REGULATION" | "STRATEGY"
+  content   String // Nội dung gốc
+  chunk     String // Đoạn đã chunk
+  category  String // "CONCEPT" | "REGULATION" | "STRATEGY"
   embedding Unsupported("vector(1024)")? // pgvector embedding
   metadata  Json?
-  createdAt DateTime                    @default(now())
+  createdAt DateTime                     @default(now())
 
   @@map("finance_knowledge")
 }
@@ -241,10 +240,10 @@ model Article {
   category  String   @default("STORY")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  // ── Investment Strategy ─────────────────────────────────────
 
   @@map("articles")
 }
-// ── Investment Strategy ─────────────────────────────────────
 
 model AIStrategy {
   id             String   @id @default(cuid())
@@ -267,17 +266,17 @@ model AIStrategy {
 }
 
 model UserPortfolio {
-  id               String    @id @default(cuid())
-  userId           String    @unique
-  sourceStrategyId String?   @unique
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  sourceStrategyId String?  @unique
   savings          Float
   gold             Float
   stocks           Float
   bonds            Float
   crypto           Float
-  notes            String?   @db.Text
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  notes            String?  @db.Text
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   sourceStrategy AIStrategy? @relation(fields: [sourceStrategyId], references: [id])
