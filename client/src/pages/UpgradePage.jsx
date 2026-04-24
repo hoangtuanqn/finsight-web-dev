@@ -112,7 +112,7 @@ export default function UpgradePage() {
     
     setLoadingPlan(planId);
     try {
-      const res = await subscriptionAPI.createInvoice({ plan: planId });
+      const res = await subscriptionAPI.createInvoice(planId);
       const tx = res.data?.data?.transaction;
       if (tx) {
         navigate(`/invoice/${tx.id}`);
