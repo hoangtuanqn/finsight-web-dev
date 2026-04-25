@@ -183,6 +183,9 @@ function applyGoalAdjustment(alloc, goal) {
   return a;
 }
 
+// [LEGACY] Client-side heuristic allocation mirror.
+// Runtime allocation should come from the server optimizer API.
+// Kept for UI fallback/reference only.
 export function getAllocation(profile, sentimentValue) {
   const riskLevel = profile?.riskLevel || 'MEDIUM';
 

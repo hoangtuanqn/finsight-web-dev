@@ -217,6 +217,9 @@ export function getSentimentVietnamese(label) {
   return map[label] || label;
 }
 
+// [LEGACY] Heuristic 5-layer allocation system.
+// Replaced at runtime by server/src/services/portfolioOptimizer.service.js.
+// Kept for reference and rollback only.
 export function getAllocation(profile, sentimentValue) {
   const riskLevel = profile?.riskLevel || 'MEDIUM';
   const label = getSentimentLabel(sentimentValue);
