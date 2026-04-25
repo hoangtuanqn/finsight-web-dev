@@ -10,7 +10,8 @@
     "db:push": "npx prisma db push",
     "db:generate": "npx prisma generate",
     "db:studio": "npx prisma studio",
-    "rag:ingest": "node src/agentic/rag/ingest.js"
+    "rag:ingest": "node src/agentic/rag/ingest.js",
+    "test:investment": "node --test src/services/portfolioOptimizer.service.test.js"
   },
   "keywords": [],
   "author": "",
