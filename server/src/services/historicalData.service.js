@@ -15,13 +15,23 @@
  */
 
 import * as math from 'mathjs';
-import redis from '../lib/redis.js';
 import {
   ASSET_TICKERS,
   ASSET_ORDER,
   HISTORY_CONFIG,
   FALLBACK_PARAMS,
 } from '../constants/assetTickers.js';
+
+let redisClientPromise = null;
+
+async function getRedisClient() {
+  if (!redisClientPromise) {
+    redisClientPromise = import('../lib/redis.js')
+      .then(module => module.default)
+      .catch(() => null);
+  }
+  return redisClientPromise;
+}
 
 // ─── Fetch historical monthly closes from Yahoo Finance ───────────────────────
 
@@ -34,6 +44,7 @@ import {
  */
 export async function fetchAssetHistory(ticker, years = HISTORY_CONFIG.years) {
   const cacheKey = `${HISTORY_CONFIG.cacheKeyPrefix}:${ticker}`;
+  const redis = await getRedisClient();
 
   // Check Redis cache
   if (redis) {
@@ -368,6 +379,8 @@ const MARKET_PARAMS_TTL = 86400; // 24 hours
  * @returns {Promise<Object>} marketParams
  */
 export async function getMarketParams(savingsRate = 0.05) {
+  const redis = await getRedisClient();
+
   // Check cache
   if (redis) {
     try {
