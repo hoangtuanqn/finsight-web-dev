@@ -4,6 +4,7 @@ import * as math from 'mathjs';
 import {
   adjustReturnsForSentiment,
   optimizePortfolio,
+  getOptimalAllocation,
   portfolioReturn,
   portfolioVariance,
   projectOntoConstraints,
@@ -95,4 +96,16 @@ test('HIGH risk optimization keeps growth assets dominant', () => {
 
   expectAllocationWithinBounds(result.allocation, 'HIGH');
   assert.ok(result.allocation.stocks + result.allocation.crypto > 40);
+});
+
+test('getOptimalAllocation returns backward-compatible allocation shape without external fetch', async () => {
+  const profile = { riskLevel: 'MEDIUM', savingsRate: 6, capital: 100_000_000 };
+  const allocation = await getOptimalAllocation(profile, 50, marketParams);
+
+  expectAllocationWithinBounds(allocation, 'MEDIUM');
+  assert.equal(allocation.sentimentLabel, 'NEUTRAL');
+  assert.equal(allocation.optimizationMethod, 'markowitz');
+  assert.equal(typeof allocation.recommendation, 'string');
+  assert.ok(allocation.metrics.expectedReturn > 0);
+  assert.ok(allocation.optimization.iterations > 0);
 });
