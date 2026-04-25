@@ -1,6 +1,6 @@
 import prisma from '../lib/prisma.js';
 import { success, error } from '../utils/apiResponse.js';
-import { getAllocation } from '../utils/calculations.js';
+import { getOptimalAllocation } from '../services/portfolioOptimizer.service.js';
 import { fetchFearGreedIndex } from '../services/market.service.js';
 
 // ─── GET /investment/strategies ──────────────────────────────
@@ -42,8 +42,9 @@ export async function generateStrategy(req, res) {
     const sentiment = await fetchFearGreedIndex();
     const sentimentValue = sentiment.value ?? 50;
 
-    // 5. Tính allocation dựa trên profile + sentiment (tái sử dụng hàm đã có)
-    const result = getAllocation(user.investorProfile, sentimentValue);
+    // 5. Tính allocation dựa trên profile + sentiment.
+    // [LEGACY] const result = getAllocation(user.investorProfile, sentimentValue);
+    const result = await getOptimalAllocation(user.investorProfile, sentimentValue);
 
     // 6. Lưu AIStrategy
     const strategy = await prisma.aIStrategy.create({

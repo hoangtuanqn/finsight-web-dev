@@ -1,6 +1,6 @@
 import prisma from '../lib/prisma.js';
 import { success, error } from '../utils/apiResponse.js';
-import { getAllocation } from '../utils/calculations.js';
+import { getOptimalAllocation } from '../services/portfolioOptimizer.service.js';
 import { fetchFearGreedIndex } from '../services/market.service.js';
 import { ASSET_CLASSES, RISK_CONFIG } from '../constants/investmentConstants.js';
 
@@ -61,7 +61,9 @@ export async function getAllocationRecommendation(req, res) {
       sentimentValue = sentiment.value;
     }
 
-    const allocation = getAllocation(profile, sentimentValue);
+    // [LEGACY] const allocation = getAllocation(profile, sentimentValue);
+    // Replaced by Markowitz Mean-Variance Optimization.
+    const allocation = await getOptimalAllocation(profile, sentimentValue);
 
     // Save allocation history
     await prisma.allocation.create({
@@ -136,6 +138,9 @@ export async function getAllocationRecommendation(req, res) {
       recommendation: allocation.recommendation,
       portfolioBreakdown,
       projection,
+      optimizationMethod: allocation.optimizationMethod,
+      optimization: allocation.optimization,
+      allocationMetrics: allocation.metrics,
       // Cảnh báo crypto nếu có phân bổ vào crypto — vì không có expected return ổn định
       cryptoWarning: allocation.crypto > 0
         ? `Crypto (${allocation.crypto}% danh mục) có thể dao động từ ${ASSET_CLASSES.crypto.bearCase * 100}% đến +${ASSET_CLASSES.crypto.bullCase * 100}% — không có lợi nhuận kỳ vọng ổn định. Chỉ đầu tư phần vốn chấp nhận mất hoàn toàn.`
