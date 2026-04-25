@@ -17,8 +17,8 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@langchain/core": "^1.1.40",
-    "@langchain/google-genai": "^0.2.1",
+    "@langchain/core": "^1.1.41",
+    "@langchain/google-genai": "^2.1.28",
     "@langchain/langgraph": "^1.2.9",
     "@langchain/openai": "^1.4.4",
     "@prisma/client": "^6.19.2",
@@ -31,6 +31,7 @@
     "google-auth-library": "^10.6.2",
     "ioredis": "^5.10.1",
     "jsonwebtoken": "^9.0.3",
+    "mathjs": "^15.2.0",
     "node-cron": "^4.2.1",
     "nodemailer": "^8.0.4",
     "pdfkit": "^0.18.0",
