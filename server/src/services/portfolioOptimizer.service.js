@@ -153,10 +153,12 @@ export function optimizePortfolio(marketParams, riskLevel = 'MEDIUM', sentimentV
   };
 }
 
-export async function getOptimalAllocation(profile, sentimentValue = 50) {
+export async function getOptimalAllocation(profile, sentimentValue = 50, marketParamsOverride = null) {
   const savingsRate = (profile?.savingsRate ?? 5) / 100;
-  const { getMarketParams } = await import('./historicalData.service.js');
-  const marketParams = await getMarketParams(savingsRate);
+  const marketParams = marketParamsOverride || await (async () => {
+    const { getMarketParams } = await import('./historicalData.service.js');
+    return getMarketParams(savingsRate);
+  })();
   const result = optimizePortfolio(marketParams, profile?.riskLevel || 'MEDIUM', sentimentValue, profile);
   const sentimentLabel = getSentimentLabel(sentimentValue);
 
