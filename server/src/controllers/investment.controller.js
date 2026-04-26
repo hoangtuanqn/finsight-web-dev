@@ -720,17 +720,6 @@ const ASSET_HISTORY_SOURCES = {
     },
   },
   bonds: {
-    us10y: {
-      asset: 'bonds',
-      source: 'us10y',
-      sourceType: 'direct',
-      provider: 'yahoo',
-      rangeType: 'months',
-      ticker: '^TNX',
-      name: 'US Treasury 10Y',
-      metric: { key: 'yield', unit: '%', changeUnit: 'percentagePoint', decimals: 2 },
-      dataSource: 'Yahoo Finance monthly yield',
-    },
     vn_gov_5y: {
       asset: 'bonds',
       source: 'vn_gov_5y',

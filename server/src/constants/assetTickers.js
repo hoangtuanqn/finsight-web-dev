@@ -1,8 +1,9 @@
 /**
  * assetTickers.js — Ticker mapping cho Historical Data Engine
  *
- * Dùng Yahoo Finance v8 chart API để lấy monthly closes 5 năm.
+ * Dùng Yahoo Finance v8 chart API để lấy monthly closes 5 năm cho asset có ticker public.
  * Savings không cần ticker — dùng profile.savingsRate (lãi suất cố định, variance ≈ 0).
+ * Bonds không dùng proxy Mỹ nữa; optimizer dùng fallback TPCP Việt Nam trong FALLBACK_PARAMS.
  *
  * Hạn chế đã biết:
  *   - ^VNINDEX: Yahoo Finance API không chính thức, có thể mất ổn định.
@@ -16,7 +17,7 @@ export const ASSET_TICKERS = {
   // Dùng VCB.VN (Vietcombank — VN30 bluechip lớn nhất) làm proxy cho thị trường VN.
   // Có correlation cao với VN-Index (~0.85). Backup: FUEVFVND.VN hoặc E1VFVN30.VN.
   stocks:  'VCB.VN',     // Vietcombank — proxy cho thị trường chứng khoán VN
-  bonds:   '^TNX',       // US 10Y Treasury Yield — proxy cho TPCP VN trend, đã dùng trong getBondsRates()
+  bonds:   null,         // Không dùng proxy Mỹ; dùng fallback TPCP Việt Nam trong optimizer
   crypto:  'BTC-USD',    // Bitcoin — blue-chip crypto
 };
 

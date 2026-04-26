@@ -55,8 +55,6 @@ function getHistoryRequest(item, type) {
   }
 
   if (type === 'gold' && item.id === 'world') return { asset: 'gold', source: 'world', sourceType: 'direct' };
-  if (type === 'bonds' && item.id === 'us10y') return { asset: 'bonds', source: 'us10y', sourceType: 'direct' };
-
   if (type === 'stocks') {
     const ticker = getStockHistoryTicker(item);
     return ticker ? { asset: 'stocks', ticker, sourceType: 'direct' } : null;
@@ -161,7 +159,7 @@ function getHistorySubtitle(historyData, request) {
     return `${sourcePrefix}${historyData.ticker} · giá đóng cửa cuối tháng`;
   }
   if (request?.asset === 'gold') return 'Vàng thế giới · giá đóng cửa cuối tháng';
-  if (request?.asset === 'bonds') return 'US Treasury 10Y · lợi suất cuối tháng';
+  if (request?.asset === 'bonds') return 'TPCP Việt Nam · lợi suất cuối tháng';
   return 'Dữ liệu lịch sử theo tháng';
 }
 

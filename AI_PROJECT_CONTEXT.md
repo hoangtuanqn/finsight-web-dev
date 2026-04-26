@@ -344,7 +344,7 @@ Lưu ý: `dueThisWeek` là tên gây hiểu nhầm; code thực tế đang lấy
 | `/api/investment/stock-prices` | `GET` | Yes | query `riskLevel?` | `{ stocks, intro, riskLevel, cached, stale? }` | Yahoo Finance + scoring |
 | `/api/investment/gold-prices` | `GET` | Yes | none | `{ goldItems, intro, worldPrice, worldChange, cached }` | fallback cache có shape khác |
 | `/api/investment/savings-rates` | `GET` | Yes | query `riskLevel?` | `{ savingsItems, intro, updatedAt, riskLevel }` | curated VN savings dataset |
-| `/api/investment/bonds-rates` | `GET` | Yes | query `riskLevel?` | `{ bondItems, intro, us10y, updatedAt, riskLevel }` | curated VN bonds + US10Y |
+| `/api/investment/bonds-rates` | `GET` | Yes | query `riskLevel?` | `{ bondItems, intro, updatedAt, riskLevel }` | TPCP Việt Nam từ VBMA + quỹ trái phiếu |
 | `/api/market/sentiment` | `GET` | Yes | none | `{ fearGreed }` | Alternative.me + Redis |
 | `/api/market/prices` | `GET` | Yes | none | `{ bitcoin, ethereum, gold }` | CoinGecko + BTMC |
 | `/api/market/news` | `GET` | Yes | none | `{ articles }` | NewsAPI hoặc placeholder |
