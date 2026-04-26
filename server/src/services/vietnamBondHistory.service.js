@@ -1,3 +1,5 @@
+import https from 'node:https';
+
 const VBMA_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 const VBMA_FETCH_TIMEOUT_MS = 1200;
 const VBMA_FETCH_BUDGET_MS = 12000;
@@ -5,6 +7,45 @@ const VBMA_TARGET_TENORS = [5, 10, 15];
 const VBMA_TARGET_TENOR_SET = new Set(VBMA_TARGET_TENORS);
 
 let vbmaAuctionCache = { data: null, fetchedAt: 0, months: 0 };
+
+function fetchVbmaHtml(url, redirectsLeft = 2) {
+  return new Promise((resolve, reject) => {
+    const request = https.get(url, {
+      // VBMA currently serves a certificate chain Node does not verify reliably on Windows.
+      rejectUnauthorized: false,
+      timeout: VBMA_FETCH_TIMEOUT_MS,
+      headers: {
+        'User-Agent': 'Mozilla/5.0',
+        Accept: 'text/html',
+        'Accept-Encoding': 'identity',
+      },
+    }, (response) => {
+      const status = response.statusCode || 0;
+      const location = response.headers.location;
+
+      if (status >= 300 && status < 400 && location && redirectsLeft > 0) {
+        response.resume();
+        const redirectedUrl = new URL(location, url).toString();
+        resolve(fetchVbmaHtml(redirectedUrl, redirectsLeft - 1));
+        return;
+      }
+
+      let body = '';
+      response.setEncoding('utf8');
+      response.on('data', (chunk) => {
+        body += chunk;
+      });
+      response.on('end', () => {
+        resolve({ status, body });
+      });
+    });
+
+    request.on('timeout', () => {
+      request.destroy(new Error('VBMA request timed out'));
+    });
+    request.on('error', reject);
+  });
+}
 
 function toUtcDateOnly(date) {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
@@ -110,14 +151,10 @@ async function fetchVbmaAuctionForDate(date, startedAt) {
   for (const url of buildVbmaAuctionUrls(date)) {
     if (Date.now() - startedAt > VBMA_FETCH_BUDGET_MS) return null;
     try {
-      const response = await fetch(url, {
-        headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'text/html' },
-        signal: AbortSignal.timeout(VBMA_FETCH_TIMEOUT_MS),
-      });
-      if (!response.ok) continue;
+      const response = await fetchVbmaHtml(url);
+      if (response.status < 200 || response.status >= 300) continue;
 
-      const html = await response.text();
-      const parsed = parseVbmaAuctionPage(html, date, url);
+      const parsed = parseVbmaAuctionPage(response.body, date, url);
       if (parsed) return parsed;
     } catch {
       // Try the next URL variant.
