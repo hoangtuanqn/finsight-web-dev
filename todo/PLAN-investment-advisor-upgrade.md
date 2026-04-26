@@ -501,16 +501,16 @@ Dependencies mới: mathjs (npm install mathjs)
 
 ## 9. Documentation Updates (sau khi code done)
 
-- [ ] Cập nhật `INVESTMENT_LOGIC.md`:
+- [x] Cập nhật `INVESTMENT_LOGIC.md`:
   - Section 7: "Markowitz Mean-Variance Optimization"
   - Section 8: "Monte Carlo Projection Engine"
   - Section 9: "Risk Metrics (Sharpe, VaR, CVaR)"
   - Section 10: "Luồng xử lý mới"
-- [ ] Cập nhật `AI_PROJECT_CONTEXT.md`:
+- [x] Cập nhật `AI_PROJECT_CONTEXT.md`:
   - Thêm new services vào file map
   - Cập nhật dependencies (mathjs)
   - Cập nhật Investment Advisor architecture
-- [ ] Comment `[LEGACY]` trong code cũ cho dễ phân biệt
+- [x] Comment `[LEGACY]` trong code cũ cho dễ phân biệt
 
 ---
 
@@ -550,3 +550,4 @@ Dependencies mới: mathjs (npm install mathjs)
 - 2026-04-26: P4 đã nối `riskMetrics` vào `getAllocationRecommendation()` từ Monte Carlo `1y.results` và `10y.samplePaths`; syntax check controller và investment suite 28/28 pass.
 - 2026-04-26: P1 fallback tests đã bổ sung bằng fake `fetchAssetHistory` injection trong `buildMarketParams`, không gọi Yahoo/Redis thật; investment suite 30/30.
 - 2026-04-26: P2 test gaps đã bổ sung LOW defensive allocation, FEAR giảm stocks, convergence <500; tăng `SOLVER_CONFIG.learningRate` từ `0.01` lên `0.05`, giữ `tolerance=1e-6`; investment suite 32/32.
+- 2026-04-26: Documentation đã cập nhật `INVESTMENT_LOGIC.md` và `AI_PROJECT_CONTEXT.md`; `[LEGACY]` markers đã có trong server/client calculations và controller migration points.

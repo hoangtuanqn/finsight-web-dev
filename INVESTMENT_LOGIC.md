@@ -1,6 +1,8 @@
 # Tài liệu: Logic Đề Xuất Phân Bổ Tài Sản Đầu Tư — FinSight
 
-> Cập nhật: 04/2025 | Người viết: Refactor session
+> Cập nhật: 2026-04-26 | Người viết: Refactor session
+>
+> Lưu ý: các mục 1-6 ghi lại bối cảnh refactor cũ và hệ heuristic overlay đã được giữ lại dưới dạng `[LEGACY]`. Từ 2026-04-26, nguồn hiện hành cho Investment Advisor là các mục 7-10 bên dưới.
 
 ---
 
@@ -12,6 +14,10 @@
 4. [Cơ sở của từng con số](#4-cơ-sở-của-từng-con-số)
 5. [Hạn chế còn lại](#5-hạn-chế-còn-lại)
 6. [Sơ đồ luồng xử lý](#6-sơ-đồ-luồng-xử-lý)
+7. [Markowitz Mean-Variance Optimization](#7-markowitz-mean-variance-optimization)
+8. [Monte Carlo Projection Engine](#8-monte-carlo-projection-engine)
+9. [Risk Metrics](#9-risk-metrics)
+10. [Luồng xử lý mới](#10-luồng-xử-lý-mới)
 
 ---
 
@@ -465,6 +471,183 @@ USER
      - WealthProjection (biểu đồ 3 kịch bản)
      - SmartAssetGuide (gợi ý sản phẩm cụ thể)
 ```
+
+---
+
+## 7. Markowitz Mean-Variance Optimization
+
+Từ 2026-04-26, allocation runtime không còn dùng `getAllocation()` heuristic làm nguồn chính. Controller gọi `getOptimalAllocation()` trong `server/src/services/portfolioOptimizer.service.js`.
+
+Các file chính:
+
+| File | Vai trò |
+|------|--------|
+| `server/src/constants/assetTickers.js` | Thứ tự tài sản, ticker Yahoo Finance, fallback params |
+| `server/src/services/historicalData.service.js` | Lấy dữ liệu 5 năm, log returns, covariance/correlation |
+| `server/src/constants/optimizationConfig.js` | Risk aversion, bounds, sentiment adjustments, solver config |
+| `server/src/services/portfolioOptimizer.service.js` | Portfolio return/risk, projected gradient optimizer |
+
+Input chính:
+
+- `profile.riskLevel`, `capital`, `monthlyAdd`, `savingsRate`, `inflationRate`
+- Fear & Greed sentiment value
+- `marketParams = { means, stdDevs, covMatrix, corrMatrix, dataQuality }`
+
+Objective:
+
+```text
+maximize: w^T mu - (lambda / 2) * w^T Sigma w
+```
+
+Risk aversion:
+
+| Risk level | Lambda |
+|------------|--------|
+| LOW | 8 |
+| MEDIUM | 4 |
+| HIGH | 1.5 |
+
+Sentiment không còn chỉnh weights trực tiếp. Sentiment chỉnh expected returns theo kiểu Black-Litterman view nhẹ, rồi optimizer tự tìm weights trong constraint bounds.
+
+Solver hiện dùng projected gradient ascent:
+
+```text
+gradient = adjustedMeans - lambda * Sigma * weights
+weights = projectOntoConstraints(weights + learningRate * gradient)
+```
+
+Config hiện hành:
+
+```js
+SOLVER_CONFIG = {
+  maxIterations: 1000,
+  learningRate: 0.05,
+  tolerance: 1e-6,
+}
+```
+
+`getAllocation()` cũ vẫn còn trong `server/src/utils/calculations.js` và `client/src/utils/calculations.js`, nhưng đã được đánh dấu `[LEGACY]` và chỉ giữ để tham khảo/rollback.
+
+---
+
+## 8. Monte Carlo Projection Engine
+
+Projection trong `/api/investment/allocation` đã chuyển từ heuristic `calcFV` + nhân `1.3/0.5` sang Monte Carlo simulation.
+
+File chính:
+
+| File | Vai trò |
+|------|--------|
+| `server/src/services/monteCarloSimulation.service.js` | Box-Muller, Cholesky, correlated normals, simulation, projection adapter |
+
+Input:
+
+```js
+{
+  capital,
+  monthlyAdd,
+  weights,
+  means,
+  covMatrix,
+  years,
+  numSims: 5000
+}
+```
+
+Controller gọi `generateProjectionTable()` cho các horizon `[1, 3, 5, 10]`, sau đó dùng `buildBackwardCompatibleProjection()` để giữ shape cũ:
+
+```js
+projection = {
+  base: { '1y': median, '3y': median, ... },
+  optimistic: { '1y': p95, ... },
+  pessimistic: { '1y': p5, ... },
+  monteCarlo: {
+    '1y': { p5, p25, median, p75, p95, mean, probLoss },
+    ...
+  },
+  probLoss: table['10y'].probLoss,
+}
+```
+
+Raw `results` và `samplePaths` chỉ dùng nội bộ cho risk metrics, không đưa ra public response.
+
+---
+
+## 9. Risk Metrics
+
+File chính: `server/src/services/riskMetrics.service.js`.
+
+API `/api/investment/allocation` trả thêm:
+
+```js
+riskMetrics = {
+  sharpeRatio,
+  sharpeLabel,
+  var95_1y: { amount, percentage, description },
+  cvar95_1y: { amount, percentage, description },
+  maxDrawdown: { median, worst, description },
+  probLoss: { '1y', '5y', '10y' },
+  riskGrade,
+}
+```
+
+Công thức:
+
+| Metric | Logic |
+|--------|-------|
+| Sharpe | `(portfolioReturn - riskFreeRate) / portfolioStdDev` |
+| VaR 95% | `capital - percentile_5(simResults)` |
+| CVaR 95% | `capital - mean(leftTail)` |
+| Max Drawdown | max peak-to-trough loss trên 500 sample paths |
+| Risk Grade | A/B/C/D/F dựa trên Sharpe và VaR percentage |
+
+`riskFreeRate` mặc định lấy từ `profile.savingsRate / 100`, fallback `0.05`.
+
+---
+
+## 10. Luồng xử lý mới
+
+```text
+USER
+ |
+ |-- GET /api/investment/allocation
+ |
+ |-- Load InvestorProfile
+ |-- Fetch Fear & Greed Index
+ |-- getOptimalAllocation()
+ |    |-- getMarketParams()
+ |    |    |-- Yahoo 5y monthly data
+ |    |    |-- fallback params nếu ticker lỗi
+ |    |-- adjustReturnsForSentiment()
+ |    |-- optimizePortfolio()
+ |
+ |-- Save Allocation history
+ |-- Build portfolioBreakdown
+ |-- generateProjectionTable()
+ |-- buildBackwardCompatibleProjection()
+ |-- buildRiskMetrics()
+ |
+ `-- Response:
+     allocation
+     sentimentData
+     recommendation
+     portfolioBreakdown
+     projection
+     riskMetrics
+     optimizationMethod
+     optimization
+     allocationMetrics
+     cryptoWarning
+```
+
+Test suite hiện hành:
+
+```bash
+cd server
+npm.cmd run test:investment
+```
+
+Coverage chính: historical fallback, covariance/correlation, optimizer constraints/convergence, Monte Carlo percentiles/performance/probLoss, Sharpe/VaR/CVaR/drawdown/riskGrade.
 
 ---
 
