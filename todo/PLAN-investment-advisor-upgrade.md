@@ -562,14 +562,14 @@ Dependencies mới: mathjs (npm install mathjs)
 
 **Checklist**
 
-- [ ] Tạo `investmentAdvisorAdapter.js`
-- [ ] Implement `normalizeAllocationAnalysis(apiData, profile)` cho response `/investment/allocation`
-- [ ] Implement `normalizeStrategy(strategy, profile)` để strategy cũ vẫn dùng được
-- [ ] Adapter ưu tiên backend `projection.base/optimistic/pessimistic` nếu có, fallback về `calcFV` legacy nếu thiếu
-- [ ] Adapter chuyển `projection.monteCarlo` thành chart rows: `{ year, p5, p25, median, p75, p95 }`
-- [ ] Adapter giữ `portfolioBreakdown` từ backend nếu có, fallback tự tính từ allocation + capital
+- [x] Tạo `investmentAdvisorAdapter.js`
+- [x] Implement `normalizeAllocationAnalysis(apiData, profile)` cho response `/investment/allocation`
+- [x] Implement `normalizeStrategy(strategy, profile)` để strategy cũ vẫn dùng được
+- [x] Adapter ưu tiên backend `projection.base/optimistic/pessimistic` nếu có, fallback về `calcFV` legacy nếu thiếu
+- [x] Adapter chuyển `projection.monteCarlo` thành chart rows: `{ year, p5, p25, median, p75, p95 }`
+- [x] Adapter giữ `portfolioBreakdown` từ backend nếu có, fallback tự tính từ allocation + capital
 - [ ] Không xóa `buildRenderData()` ngay; comment `[LEGACY]` trước, sau khi adapter ổn mới thay usage
-- [ ] Test thủ công: strategy cũ không có `riskMetrics/projection` vẫn render không crash
+- [x] Test thủ công: strategy cũ không có `riskMetrics/projection` vẫn render không crash
 
 **Quyết định cần giữ an toàn**
 
@@ -820,3 +820,4 @@ npm.cmd run build
 - 2026-04-26: P2 test gaps đã bổ sung LOW defensive allocation, FEAR giảm stocks, convergence <500; tăng `SOLVER_CONFIG.learningRate` từ `0.01` lên `0.05`, giữ `tolerance=1e-6`; investment suite 32/32.
 - 2026-04-26: Documentation đã cập nhật `INVESTMENT_LOGIC.md` và `AI_PROJECT_CONTEXT.md`; `[LEGACY]` markers đã có trong server/client calculations và controller migration points.
 - 2026-04-26: UI plan chi tiết đã bổ sung vào Section 10, ưu tiên adapter dữ liệu trước khi vẽ risk metrics/Monte Carlo để không phá strategy history và các flow hiện có.
+- 2026-04-26: UI 10.1 adapter đã tạo `investmentAdvisorAdapter.js`; syntax check và smoke test legacy/new analytics view model đã pass.
