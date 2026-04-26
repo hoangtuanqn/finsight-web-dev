@@ -624,14 +624,14 @@ Dependencies mới: mathjs (npm install mathjs)
 
 **Checklist**
 
-- [ ] Tạo `RiskMetricsPanel.jsx`
-- [ ] Dùng `formatVND`, `formatPercent` hiện có
-- [ ] Grade color map: A emerald, B blue, C amber, D orange, F red
-- [ ] VaR/CVaR bars scale theo percentage, clamp 0-100
-- [ ] Max drawdown dùng 2 bars median/worst
-- [ ] ProbLoss dùng chips, không dùng text dài
-- [ ] Tích hợp vào `InvestmentPage` dưới `PortfolioHealthMetrics`
-- [ ] Responsive 1 cột mobile, 2/4 cột desktop
+- [x] Tạo `RiskMetricsPanel.jsx`
+- [x] Dùng `formatVND`, `formatPercent` hiện có
+- [x] Grade color map: A emerald, B blue, C amber, D orange, F red
+- [x] VaR/CVaR bars scale theo percentage, clamp 0-100
+- [x] Max drawdown dùng 2 bars median/worst
+- [x] ProbLoss dùng chips, không dùng text dài
+- [x] Tích hợp vào `InvestmentPage` dưới `PortfolioHealthMetrics`
+- [x] Responsive 1 cột mobile, 2/4 cột desktop
 
 ### 10.4 Monte Carlo Fan Chart trong `WealthProjection`
 
@@ -822,3 +822,4 @@ npm.cmd run build
 - 2026-04-26: UI plan chi tiết đã bổ sung vào Section 10, ưu tiên adapter dữ liệu trước khi vẽ risk metrics/Monte Carlo để không phá strategy history và các flow hiện có.
 - 2026-04-26: UI 10.1 adapter đã tạo `investmentAdvisorAdapter.js`; syntax check và smoke test legacy/new analytics view model đã pass.
 - 2026-04-26: UI 10.2 đã nối adapter vào `InvestmentPage`; analytics mới chỉ áp dụng cho strategy mới nhất, strategy cũ fallback legacy; `npm.cmd run build` pass với warning bundle lớn hiện có.
+- 2026-04-26: UI 10.3 đã thêm `RiskMetricsPanel` hiển thị Sharpe, risk grade, VaR/CVaR, max drawdown và probLoss; `npm.cmd run build` pass với warning bundle lớn hiện có.
