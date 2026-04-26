@@ -5,6 +5,7 @@ import {
   buildBackwardCompatibleProjection,
   generateProjectionTable,
 } from '../services/monteCarloSimulation.service.js';
+import { buildRiskMetrics } from '../services/riskMetrics.service.js';
 import { fetchFearGreedIndex } from '../services/market.service.js';
 import { ASSET_CLASSES, RISK_CONFIG } from '../constants/investmentConstants.js';
 
@@ -103,8 +104,19 @@ export async function getAllocationRecommendation(req, res) {
       weights: allocation.weights,
       means: allocation.marketParams.means.map(mean => mean - inflationRate),
       covMatrix: allocation.marketParams.covMatrix,
+      capturePaths: true,
+      pathSampleSize: 500,
     });
     const projection = buildBackwardCompatibleProjection(projectionTable);
+    const riskMetrics = buildRiskMetrics({
+      weights: allocation.weights,
+      marketParams: allocation.marketParams,
+      simResults: projectionTable['1y'].results,
+      simPaths: projectionTable['10y'].samplePaths,
+      capital: profile.capital ?? 0,
+      profile,
+      projectionTable,
+    });
 
     return success(res, {
       allocation: {
@@ -122,6 +134,7 @@ export async function getAllocationRecommendation(req, res) {
       recommendation: allocation.recommendation,
       portfolioBreakdown,
       projection,
+      riskMetrics,
       optimizationMethod: allocation.optimizationMethod,
       optimization: allocation.optimization,
       allocationMetrics: allocation.metrics,

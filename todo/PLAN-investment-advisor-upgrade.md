@@ -460,7 +460,7 @@ HIGH:   savings [5-25]%   gold [0-20]%   bonds [0-15]%   stocks [25-70]%  crypto
       - D: Sharpe > 0
       - F: Sharpe <= 0
 
-- [ ] MODIFY getAllocationRecommendation():
+- [x] MODIFY getAllocationRecommendation():
       - Thêm: riskMetrics = buildRiskMetrics(...)
       - Thêm vào response: riskMetrics
 
@@ -547,3 +547,4 @@ Dependencies mới: mathjs (npm install mathjs)
 - 2026-04-26: P3 đã nối Monte Carlo vào `getAllocationRecommendation()`: giữ `projection.base/optimistic/pessimistic`, thêm `projection.monteCarlo` và `projection.probLoss`; đã có syntax check controller và test helper response shape, full route integration test vẫn chưa làm.
 - 2026-04-26: P3 performance/probLoss tests đã pass: 5000 simulations × 120 months chạy ~682ms trong unit test; investment suite 20/20.
 - 2026-04-26: P4 Risk Metrics service đã implement và test đủ Sharpe, VaR, CVaR, Max Drawdown, riskGrade; investment suite 28/28. Controller integration `riskMetrics` vẫn chưa tick.
+- 2026-04-26: P4 đã nối `riskMetrics` vào `getAllocationRecommendation()` từ Monte Carlo `1y.results` và `10y.samplePaths`; syntax check controller và investment suite 28/28 pass.
