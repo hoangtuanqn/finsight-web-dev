@@ -2,7 +2,7 @@
 
 > **Ngày tạo:** 2026-04-26
 > **Deadline:** 2 tuần (backend logic) + 1 tuần (UI)
-> **Status:** 🟡 In progress — P1/P2 đã commit, P3 Monte Carlo đang thực hiện
+> **Status:** 🟡 Backend done — UI plan ready, chưa bắt đầu implementation
 
 ---
 
@@ -514,26 +514,294 @@ Dependencies mới: mathjs (npm install mathjs)
 
 ---
 
-## 10. UI Plan (Tuần 3 — chưa thực hiện)
+## 10. UI Plan chi tiết (Tuần 3)
 
-> Kế hoạch chi tiết, thực hiện sau khi backend hoàn thiện.
+> Mục tiêu UI: nâng cấp trang `client/src/pages/InvestmentPage.jsx` dựa trên nền hiện có, không redesign toàn trang, không làm mất flow tạo chiến lược, apply strategy, portfolio cá nhân, quota, Smart Asset Guide, Market Pulse và news feed.
 
-### 10.1 Risk Metrics Panel (component mới)
-- Hiển thị: Sharpe Ratio gauge, VaR/CVaR bars, Risk Grade badge
-- Vị trí: dưới PortfolioHealthMetrics hoặc thay thế
+### 10.0 Nguyên tắc UI/UX bắt buộc
 
-### 10.2 Monte Carlo Chart (enhance WealthProjection)
-- Fan chart: P5-P95 shaded area, P25-P75 darker, median line
-- Thay thế 3-line chart hiện tại
+- Giữ phong cách hiện tại: dark fintech dashboard, `bg-slate-900/60`, `border-white/5`, accent blue/emerald/amber/purple/pink, `backdrop-blur-xl`, shadow nhẹ, card spacing rộng.
+- Không tạo landing/hero mới; màn hình đầu tiên vẫn là công cụ cố vấn đầu tư đang dùng.
+- Không thêm thư viện chart mới nếu `recharts` đã đủ; ưu tiên `AreaChart`, `ComposedChart`, `ReferenceLine`, `ScatterChart` trong Recharts.
+- Không thay đổi route hiện có: `/investment`, `/investment/my-portfolio`, `/risk-assessment`.
+- Không phá các chức năng hiện có: generate strategy, quota, apply strategy modal, portfolio update, SmartAssetGuide, MarketLivePulse, EconomicNewsFeed.
+- Mọi component mới phải có fallback khi backend chưa trả đủ field, để strategy cũ trong DB vẫn render được.
+- Text trong UI phải ngắn, dùng số liệu/label trực tiếp; không thêm đoạn hướng dẫn dài trong app.
+- Mobile first: các panel mới phải collapse về 1 cột, chart không tràn ngang, bảng lịch sử vẫn scroll ngang như hiện tại.
+- Không gọi API mới theo vòng lặp hoặc trên mỗi render; mọi fetch phải nằm trong `useEffect`/handler rõ ràng và có loading/error state.
 
-### 10.3 Efficient Frontier Visualization (component mới)
-- Scatter plot: risk (x) vs return (y)
-- Highlight user's portfolio position trên frontier
-- Interactive: hover để xem weights
+### 10.1 Data contract & adapter trước khi làm visual
 
-### 10.4 Data Quality Indicator
-- Badge nhỏ hiển thị: "Historical data: 5y" hoặc "Fallback mode"
-- Tooltip giải thích data source
+**Lý do:** `InvestmentPage` hiện render từ `AIStrategy` history (`getStrategies()`), trong khi backend analytics mới nằm ở `/investment/allocation` gồm `projection`, `riskMetrics`, `optimization`, `allocationMetrics`. Cần adapter để UI mới có dữ liệu nhưng không phá strategy history cũ.
+
+**Files dự kiến**
+
+| Action | File | Mô tả |
+|--------|------|-------|
+| NEW | `client/src/utils/investmentAdvisorAdapter.js` | Chuẩn hóa response mới + strategy legacy thành 1 view model |
+| MODIFY | `client/src/pages/InvestmentPage.jsx` | Thêm state `advisorAnalysis`, truyền props mới xuống components |
+| MODIFY | `client/src/api/index.js` | Giữ `investmentAPI.getAllocation(params)` hiện có, chỉ dùng lại |
+
+**View model đề xuất**
+
+```js
+{
+  allocation,
+  portfolioBreakdown,
+  pieData,
+  projectionBase,
+  projectionData,
+  monteCarloData,
+  riskMetrics,
+  optimization,
+  allocationMetrics,
+  dataQuality,
+  source: 'allocation-api' | 'strategy-legacy'
+}
+```
+
+**Checklist**
+
+- [ ] Tạo `investmentAdvisorAdapter.js`
+- [ ] Implement `normalizeAllocationAnalysis(apiData, profile)` cho response `/investment/allocation`
+- [ ] Implement `normalizeStrategy(strategy, profile)` để strategy cũ vẫn dùng được
+- [ ] Adapter ưu tiên backend `projection.base/optimistic/pessimistic` nếu có, fallback về `calcFV` legacy nếu thiếu
+- [ ] Adapter chuyển `projection.monteCarlo` thành chart rows: `{ year, p5, p25, median, p75, p95 }`
+- [ ] Adapter giữ `portfolioBreakdown` từ backend nếu có, fallback tự tính từ allocation + capital
+- [ ] Không xóa `buildRenderData()` ngay; comment `[LEGACY]` trước, sau khi adapter ổn mới thay usage
+- [ ] Test thủ công: strategy cũ không có `riskMetrics/projection` vẫn render không crash
+
+**Quyết định cần giữ an toàn**
+
+- Không tự động gọi `/investment/allocation` nhiều lần khi user đổi tab/history.
+- Nếu dùng `/investment/allocation` để lấy analytics mới, chỉ gọi 1 lần khi vào trang hoặc sau khi user bấm tạo/làm mới phân tích; ghi chú vì endpoint hiện có side effect lưu `Allocation` history.
+- Nếu sau này muốn tránh side effect hoàn toàn, tạo backend endpoint preview riêng là một task backend nhỏ, không trộn vào UI step.
+
+### 10.2 Nâng cấp data flow trong `InvestmentPage`
+
+**Mục tiêu:** page hiện tại vẫn hoạt động với strategy list, nhưng có thêm analytics mới khi available.
+
+**Files dự kiến**
+
+| Action | File | Mô tả |
+|--------|------|-------|
+| MODIFY | `client/src/pages/InvestmentPage.jsx` | Thêm fetch advisor analysis + view model |
+| MODIFY | `client/src/components/investment/PortfolioHealthMetrics.jsx` | Nhận thêm `riskMetrics`, `allocationMetrics` optional |
+
+**Checklist**
+
+- [ ] Thêm state `advisorAnalysis`, `advisorLoading`, `advisorError`
+- [ ] Initial load vẫn chạy song song `getStrategies`, `getPortfolio`, `getSummary`
+- [ ] Thêm fetch `investmentAPI.getAllocation()` có `catch` riêng; nếu lỗi thì page vẫn dùng strategy legacy
+- [ ] Sau `handleGenerate()`, cập nhật strategy mới như cũ và optionally refresh analytics 1 lần
+- [ ] Thay `buildRenderData(activeAllocation, mockProfile)` bằng adapter view model
+- [ ] Giữ nguyên NoStrategyPopup, ApplyStrategyModal, history table, SmartAssetGuide
+- [ ] Không đổi behavior điều hướng `/investment/my-portfolio`
+- [ ] Kiểm tra loading: skeleton chính không bị treo nếu analytics mới fail
+
+### 10.3 Risk Metrics Panel
+
+**Mục tiêu:** hiển thị `riskMetrics` backend trả về, đồng bộ với card dashboard cũ, đặt ngay dưới `PortfolioHealthMetrics` hoặc trong grid cạnh sentiment/health.
+
+**Component mới**
+
+| Action | File | Mô tả |
+|--------|------|-------|
+| NEW | `client/src/components/investment/RiskMetricsPanel.jsx` | Sharpe, Risk Grade, VaR, CVaR, Max Drawdown, Prob Loss |
+
+**Layout đề xuất**
+
+- Header compact: icon `ShieldCheck` hoặc `Activity`, title "Chỉ số rủi ro".
+- Top row 4 cards nhỏ:
+  - `riskGrade` badge lớn A/B/C/D/F
+  - Sharpe Ratio + label
+  - VaR 95% 1y amount/percentage
+  - CVaR 95% 1y amount/percentage
+- Bottom row:
+  - Max Drawdown median/worst bar
+  - Prob Loss chips cho `1y`, `5y`, `10y`
+- Nếu thiếu `riskMetrics`: render mini fallback state "Đang dùng dữ liệu chiến lược cũ" với style muted, không crash.
+
+**Checklist**
+
+- [ ] Tạo `RiskMetricsPanel.jsx`
+- [ ] Dùng `formatVND`, `formatPercent` hiện có
+- [ ] Grade color map: A emerald, B blue, C amber, D orange, F red
+- [ ] VaR/CVaR bars scale theo percentage, clamp 0-100
+- [ ] Max drawdown dùng 2 bars median/worst
+- [ ] ProbLoss dùng chips, không dùng text dài
+- [ ] Tích hợp vào `InvestmentPage` dưới `PortfolioHealthMetrics`
+- [ ] Responsive 1 cột mobile, 2/4 cột desktop
+
+### 10.4 Monte Carlo Fan Chart trong `WealthProjection`
+
+**Mục tiêu:** thay 3-line heuristic chart bằng fan chart percentile khi có `projection.monteCarlo`, vẫn fallback chart cũ nếu thiếu dữ liệu.
+
+**Files dự kiến**
+
+| Action | File | Mô tả |
+|--------|------|-------|
+| MODIFY | `client/src/components/investment/WealthProjection.jsx` | Support fan chart + legacy line chart fallback |
+| MODIFY | `client/src/utils/investmentAdvisorAdapter.js` | Build `monteCarloData` |
+
+**Chart design**
+
+- Dùng `ComposedChart`/`AreaChart`:
+  - P5-P95: area mờ đỏ/blue thấp opacity
+  - P25-P75: area đậm hơn
+  - Median: line blue nổi bật
+  - Savings baseline: dashed slate line nếu adapter có tính được
+- Legend ngắn: "Vùng 90%", "Vùng 50%", "Trung vị", "Tiết kiệm".
+- Tooltip hiển thị đầy đủ P5/P25/Median/P75/P95 bằng VND.
+- Giữ header hiện tại, đổi "Mô hình: Xác suất" thành badge thật khi có Monte Carlo.
+
+**Checklist**
+
+- [ ] `WealthProjection` nhận props `{ projectionData, monteCarloData, mockProfile }`
+- [ ] Nếu `monteCarloData?.length >= 2` thì render fan chart
+- [ ] Nếu không có Monte Carlo thì render line chart cũ không đổi
+- [ ] Tooltip không overflow mobile
+- [ ] Y-axis formatter giữ triệu/tỷ gọn
+- [ ] Snapshot thủ công desktop/mobile: chart không tràn khỏi card
+
+### 10.5 Data Quality & Optimization Summary
+
+**Mục tiêu:** giúp user biết allocation đến từ Markowitz + data quality mà không biến UI thành tài liệu kỹ thuật.
+
+**Component mới**
+
+| Action | File | Mô tả |
+|--------|------|-------|
+| NEW | `client/src/components/investment/OptimizationSummaryStrip.jsx` | Badge method, convergence, dataQuality, iterations |
+
+**Vị trí đề xuất**
+
+- Đặt dưới AI recommendation, trước AllocationEngine.
+- Nếu không có `optimization`, ẩn component hoặc render legacy badge nhỏ.
+
+**Nội dung ngắn**
+
+- Method: `Markowitz MVO`
+- Data: `Historical 5y` / `Partial fallback` / `Fallback`
+- Solver: `Converged` + iterations
+- Expected Return/Risk từ `allocationMetrics`
+
+**Checklist**
+
+- [ ] Tạo `OptimizationSummaryStrip.jsx`
+- [ ] Map `optimization.marketDataQuality`: full/partial/fallback sang màu
+- [ ] Hiển thị `allocationMetrics.expectedReturn`, `portfolioRisk`, `sharpeRatio`
+- [ ] Không hiển thị matrix/covariance trong UI chính
+- [ ] Tích hợp sau recommendation block
+
+### 10.6 Efficient Frontier Visualization
+
+**Trạng thái dependency:** backend hiện chưa trả frontier points; `allocationMetrics` chỉ có current portfolio risk/return/sharpe. Không fake frontier nếu thiếu dữ liệu.
+
+**Plan an toàn**
+
+- Phase MVP: tạo panel "Vị trí danh mục" dạng risk-return dot dùng current `allocationMetrics`:
+  - x = `portfolioRisk`
+  - y = `expectedReturn`
+  - color theo `riskGrade` hoặc risk level
+- Phase sau khi backend expose frontier:
+  - `optimization.frontierPoints = [{ risk, return, sharpe, weights }]`
+  - UI nâng cấp thành scatter/frontier curve.
+
+**Files dự kiến**
+
+| Action | File | Mô tả |
+|--------|------|-------|
+| NEW | `client/src/components/investment/EfficientFrontierPanel.jsx` | MVP current portfolio dot, future-ready frontier |
+
+**Checklist**
+
+- [ ] Tạo component với fallback "current portfolio only"
+- [ ] Dùng `ScatterChart` nếu có `frontierPoints`, nếu không dùng compact risk-return card
+- [ ] Highlight user's portfolio position
+- [ ] Tooltip hiển thị expected return/risk/sharpe
+- [ ] Không block release UI nếu frontierPoints chưa có
+- [ ] Ghi note trong plan nếu cần backend frontier endpoint sau
+
+### 10.7 AIRationalPanel copy update
+
+**Mục tiêu:** panel này hiện mô tả "mạng nơ-ron"/layer heuristic cũ, dễ gây hiểu sai sau MVO. Cập nhật copy để phù hợp thuật toán mới nhưng giữ component behavior accordion hiện có.
+
+**Files dự kiến**
+
+| Action | File | Mô tả |
+|--------|------|-------|
+| MODIFY | `client/src/components/investment/AIRationalPanel.jsx` | Copy/title + optional metrics |
+| MODIFY | `client/src/components/investment/InvestmentUtils.jsx` | `explainAsset()` legacy note hoặc MVO-aware text |
+
+**Checklist**
+
+- [ ] Đổi title từ "Ma trận Quyết định AI" sang label phù hợp MVO hơn
+- [ ] Không nói "mạng nơ-ron" nếu không có model neural thật
+- [ ] `explainAsset()` nhận optional `{ optimization, allocationMetrics }`
+- [ ] Nếu không có metrics, giữ explanation cũ nhưng mark legacy/fallback trong code
+- [ ] Không làm accordion layout thay đổi mạnh
+
+### 10.8 History table enhancement không phá apply flow
+
+**Mục tiêu:** bảng lịch sử vẫn là nơi chọn/apply strategy; chỉ thêm thông tin mới nếu available.
+
+**Checklist**
+
+- [ ] Giữ click row để set `activeStrategyIndex`
+- [ ] Giữ nút "Áp dụng" và modal hiện tại
+- [ ] Thêm badge method/dataQuality chỉ khi active analysis có field tương ứng
+- [ ] Không thêm risk metrics vào từng row nếu DB strategy cũ không lưu field
+- [ ] Nếu cần metrics theo từng strategy, tạo task backend riêng, không fake trên UI
+
+### 10.9 MyPortfolioPage compatibility
+
+**Mục tiêu:** không làm ảnh hưởng trang `/investment/my-portfolio`.
+
+**Checklist**
+
+- [ ] Không đổi contract `getPortfolio`, `upsertPortfolio`, `updatePortfolio`
+- [ ] Không đưa riskMetrics vào portfolio cá nhân khi DB chưa lưu
+- [ ] Nếu thêm link "Phân tích bằng cố vấn AI", chỉ điều hướng về `/investment`, không gọi API phụ
+- [ ] Smoke test edit allocation tổng 100% vẫn hoạt động
+
+### 10.10 Testing & verification UI
+
+**Commands**
+
+```bash
+cd client
+npm.cmd run build
+```
+
+**Manual QA bắt buộc**
+
+- [ ] Desktop `/investment`: có strategy, analytics API success
+- [ ] Desktop `/investment`: analytics API fail, strategy legacy vẫn render
+- [ ] Mobile `/investment`: chart/panels không overflow
+- [ ] User không có strategy: NoStrategyPopup vẫn hiện
+- [ ] Generate strategy: quota giảm, strategy mới lên đầu list
+- [ ] Apply strategy: modal validate tổng 100%, save vẫn chuyển `/investment/my-portfolio`
+- [ ] `/investment/my-portfolio`: edit/save allocation vẫn hoạt động
+- [ ] `/risk-assessment`: không bị ảnh hưởng
+
+**Visual QA**
+
+- [ ] Panel mới dùng cùng card style với `PortfolioHealthMetrics`, `AllocationEngine`, `WealthProjection`
+- [ ] Không có text tràn trong button/badge/card
+- [ ] Tooltip chart không che toàn bộ chart trên mobile
+- [ ] Không có layout shift lớn khi riskMetrics/projection loading xong
+- [ ] Không thêm gradient/orb trang trí mới ngoài pattern đang có trong page
+
+### 10.11 Thứ tự commit đề xuất cho UI
+
+1. `investment-advisor-ui: add advisor data adapter`
+2. `investment-advisor-ui: render risk metrics panel`
+3. `investment-advisor-ui: upgrade monte carlo projection chart`
+4. `investment-advisor-ui: add optimization summary`
+5. `investment-advisor-ui: add portfolio risk return panel`
+6. `investment-advisor-ui: align rationale copy with optimizer`
+7. `investment-advisor-ui: verify investment advisor page`
 
 ---
 
@@ -551,3 +819,4 @@ Dependencies mới: mathjs (npm install mathjs)
 - 2026-04-26: P1 fallback tests đã bổ sung bằng fake `fetchAssetHistory` injection trong `buildMarketParams`, không gọi Yahoo/Redis thật; investment suite 30/30.
 - 2026-04-26: P2 test gaps đã bổ sung LOW defensive allocation, FEAR giảm stocks, convergence <500; tăng `SOLVER_CONFIG.learningRate` từ `0.01` lên `0.05`, giữ `tolerance=1e-6`; investment suite 32/32.
 - 2026-04-26: Documentation đã cập nhật `INVESTMENT_LOGIC.md` và `AI_PROJECT_CONTEXT.md`; `[LEGACY]` markers đã có trong server/client calculations và controller migration points.
+- 2026-04-26: UI plan chi tiết đã bổ sung vào Section 10, ưu tiên adapter dữ liệu trước khi vẽ risk metrics/Monte Carlo để không phá strategy history và các flow hiện có.
