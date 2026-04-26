@@ -381,11 +381,11 @@ HIGH:   savings [5-25]%   gold [0-20]%   bonds [0-15]%   stocks [25-70]%  crypto
       - Thêm: projection.monteCarlo = table (full percentiles)
       - Thêm: projection.probLoss = table['10y'].probLoss
 
-- [ ] Performance test: 5000 sims × 120 months phải < 2 giây
+- [x] Performance test: 5000 sims × 120 months phải < 2 giây
 - [x] Test: median ≈ analytical FV (sai lệch < 10%)
 - [x] Test: p5 < p25 < median < p75 < p95
-- [ ] Test: HIGH risk → probLoss cao hơn LOW risk
-- [ ] Test: probLoss 10y cho LOW risk < 10%
+- [x] Test: HIGH risk → probLoss cao hơn LOW risk
+- [x] Test: probLoss 10y cho LOW risk < 10%
 ```
 
 > **Note tương lai:** Khi cần 10,000+ sims, chuyển simulation sang Node.js Worker thread (`worker_threads` module) để không block event loop. Tạo file `server/src/workers/monteCarloWorker.js`.
@@ -545,3 +545,4 @@ Dependencies mới: mathjs (npm install mathjs)
 - 2026-04-26: Một số test P2 vẫn chưa đủ theo checklist chi tiết: LOW defensive allocation, FEAR vs NEUTRAL allocation, convergence < 500 iterations.
 - 2026-04-26: P3 Monte Carlo service đã có unit test deterministic bằng seeded RNG và đã thêm vào `npm.cmd run test:investment`; controller integration, performance test và probLoss theo riskLevel chưa thực hiện.
 - 2026-04-26: P3 đã nối Monte Carlo vào `getAllocationRecommendation()`: giữ `projection.base/optimistic/pessimistic`, thêm `projection.monteCarlo` và `projection.probLoss`; đã có syntax check controller và test helper response shape, full route integration test vẫn chưa làm.
+- 2026-04-26: P3 performance/probLoss tests đã pass: 5000 simulations × 120 months chạy ~682ms trong unit test; investment suite 20/20.

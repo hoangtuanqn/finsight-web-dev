@@ -14,6 +14,16 @@ function expectNear(actual, expected, tolerance = 1e-9) {
   assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} not within ${tolerance} of ${expected}`);
 }
 
+const baselineCovMatrix = math.matrix([
+  [0.000004, 0, 0, 0, 0],
+  [0, 0.0324, 0.0040, -0.0010, 0.0100],
+  [0, 0.0040, 0.0484, 0.0020, 0.0400],
+  [0, -0.0010, 0.0020, 0.0016, 0.0005],
+  [0, 0.0100, 0.0400, 0.0005, 0.6400],
+]);
+
+const baselineMeans = [0.05, 0.065, 0.10, 0.058, 0.20];
+
 test('boxMullerTransform is deterministic when rng is injected', () => {
   const rng = createSeededRng(42);
   const first = boxMullerTransform(rng);
@@ -55,14 +65,8 @@ test('simulatePortfolio returns ordered percentiles and raw simulation results',
     capital: 100_000_000,
     monthlyAdd: 1_000_000,
     weights: [0.3, 0.2, 0.3, 0.15, 0.05],
-    means: [0.05, 0.065, 0.10, 0.058, 0.20],
-    covMatrix: math.matrix([
-      [0.000004, 0, 0, 0, 0],
-      [0, 0.0324, 0.0040, -0.0010, 0.0100],
-      [0, 0.0040, 0.0484, 0.0020, 0.0400],
-      [0, -0.0010, 0.0020, 0.0016, 0.0005],
-      [0, 0.0100, 0.0400, 0.0005, 0.6400],
-    ]),
+    means: baselineMeans,
+    covMatrix: baselineCovMatrix,
     years: 3,
     numSims: 300,
     rng: createSeededRng(7),
@@ -104,4 +108,48 @@ test('buildBackwardCompatibleProjection preserves legacy shape and strips raw si
   assert.equal(projection.monteCarlo['1y'].median, 100);
   assert.equal(projection.monteCarlo['1y'].results, undefined);
   assert.equal(projection.monteCarlo['10y'].samplePaths, undefined);
+});
+
+test('simulatePortfolio completes 5000 ten-year simulations within the performance budget', () => {
+  const startedAt = performance.now();
+
+  const result = simulatePortfolio({
+    capital: 100_000_000,
+    monthlyAdd: 1_000_000,
+    weights: [0.3, 0.2, 0.3, 0.15, 0.05],
+    means: baselineMeans,
+    covMatrix: baselineCovMatrix,
+    years: 10,
+    numSims: 5000,
+    rng: createSeededRng(11),
+  });
+
+  const elapsedMs = performance.now() - startedAt;
+
+  assert.ok(elapsedMs < 2000, `Monte Carlo took ${elapsedMs.toFixed(1)}ms`);
+  assert.equal(result.results.length, 5000);
+});
+
+test('HIGH risk projection has higher loss probability than LOW risk and LOW remains under 10%', () => {
+  const commonParams = {
+    capital: 100_000_000,
+    monthlyAdd: 0,
+    means: baselineMeans,
+    covMatrix: baselineCovMatrix,
+    years: 10,
+    numSims: 1500,
+  };
+  const low = simulatePortfolio({
+    ...commonParams,
+    weights: [0.6, 0.2, 0.1, 0.1, 0],
+    rng: createSeededRng(21),
+  });
+  const high = simulatePortfolio({
+    ...commonParams,
+    weights: [0.1, 0.05, 0.65, 0.05, 0.15],
+    rng: createSeededRng(21),
+  });
+
+  assert.ok(high.probLoss > low.probLoss, `${high.probLoss} is not above ${low.probLoss}`);
+  assert.ok(low.probLoss < 0.10, `${low.probLoss} is not below 10%`);
 });
