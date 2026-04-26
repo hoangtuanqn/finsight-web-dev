@@ -218,7 +218,7 @@ HIGH:   savings [5-25]%   gold [0-20]%   bonds [0-15]%   stocks [25-70]%  crypto
       - RISK_AVERSION: { LOW: 8, MEDIUM: 4, HIGH: 1.5 }
       - WEIGHT_BOUNDS: { LOW: {...}, MEDIUM: {...}, HIGH: {...} }
       - SENTIMENT_ADJUSTMENTS: { EXTREME_FEAR: {...}, ... }
-      - SOLVER_CONFIG: { maxIterations: 1000, learningRate: 0.01, tolerance: 1e-6 }
+      - SOLVER_CONFIG: { maxIterations: 1000, learningRate: 0.05, tolerance: 1e-6 }
 
 - [x] Tạo `server/src/services/portfolioOptimizer.service.js`
 
@@ -270,22 +270,22 @@ HIGH:   savings [5-25]%   gold [0-20]%   bonds [0-15]%   stocks [25-70]%  crypto
       - Comment [LEGACY]: const result = getAllocation(...)
       - Thay bằng: const result = await getOptimalAllocation(...)
 
-- [ ] MODIFY server/src/utils/calculations.js:
+- [x] MODIFY server/src/utils/calculations.js:
       - Thêm comment block trước getAllocation():
         // [LEGACY] Hệ thống overlay 5 lớp — đã thay thế bởi Markowitz MVO
         // Xem: server/src/services/portfolioOptimizer.service.js
         // Giữ lại để tham khảo và rollback nếu cần
-      - Export mới: getOptimalAllocation (re-export từ service)
+      - Quyết định: không re-export `getOptimalAllocation` từ service để tránh vòng import ESM; controller import service trực tiếp
 
 - [x] MODIFY client/src/utils/calculations.js:
       - Comment [LEGACY] tương tự (client dùng data từ API, không chạy optimizer)
 
 - [x] Test: weights sum = 100% (tolerance < 0.5%)
 - [x] Test: tất cả weights nằm trong bounds
-- [ ] Test: LOW risk → savings+gold+bonds > 60%
+- [x] Test: LOW risk → savings+gold+bonds > 60%
 - [x] Test: HIGH risk → stocks+crypto > 40%
-- [ ] Test: sentiment FEAR → stocks allocation giảm so với NEUTRAL
-- [ ] Test: convergence trong < 500 iterations
+- [x] Test: sentiment FEAR → stocks allocation giảm so với NEUTRAL
+- [x] Test: convergence trong < 500 iterations
 - [x] Test: output format tương thích getAllocation() (backward compat)
 ```
 
@@ -549,3 +549,4 @@ Dependencies mới: mathjs (npm install mathjs)
 - 2026-04-26: P4 Risk Metrics service đã implement và test đủ Sharpe, VaR, CVaR, Max Drawdown, riskGrade; investment suite 28/28. Controller integration `riskMetrics` vẫn chưa tick.
 - 2026-04-26: P4 đã nối `riskMetrics` vào `getAllocationRecommendation()` từ Monte Carlo `1y.results` và `10y.samplePaths`; syntax check controller và investment suite 28/28 pass.
 - 2026-04-26: P1 fallback tests đã bổ sung bằng fake `fetchAssetHistory` injection trong `buildMarketParams`, không gọi Yahoo/Redis thật; investment suite 30/30.
+- 2026-04-26: P2 test gaps đã bổ sung LOW defensive allocation, FEAR giảm stocks, convergence <500; tăng `SOLVER_CONFIG.learningRate` từ `0.01` lên `0.05`, giữ `tolerance=1e-6`; investment suite 32/32.
