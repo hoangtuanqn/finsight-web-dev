@@ -164,8 +164,8 @@ Tuần 3 (Ngày 15-21) — sau khi backend done:
 - [x] Test: covMatrix đối xứng (cov[i][j] === cov[j][i])
 - [x] Test: diagonal covMatrix === variance (stdDev^2)
 - [x] Test: correlation trong [-1, 1]
-- [ ] Test: fallback khi 1 ticker fail → dataQuality = 'partial'
-- [ ] Test: fallback khi tất cả fail → dataQuality = 'fallback', dùng ASSET_CLASSES
+- [x] Test: fallback khi 1 ticker fail → dataQuality = 'partial'
+- [x] Test: fallback khi tất cả fail → dataQuality = 'fallback', dùng ASSET_CLASSES
 ```
 
 ---
@@ -548,3 +548,4 @@ Dependencies mới: mathjs (npm install mathjs)
 - 2026-04-26: P3 performance/probLoss tests đã pass: 5000 simulations × 120 months chạy ~682ms trong unit test; investment suite 20/20.
 - 2026-04-26: P4 Risk Metrics service đã implement và test đủ Sharpe, VaR, CVaR, Max Drawdown, riskGrade; investment suite 28/28. Controller integration `riskMetrics` vẫn chưa tick.
 - 2026-04-26: P4 đã nối `riskMetrics` vào `getAllocationRecommendation()` từ Monte Carlo `1y.results` và `10y.samplePaths`; syntax check controller và investment suite 28/28 pass.
+- 2026-04-26: P1 fallback tests đã bổ sung bằng fake `fetchAssetHistory` injection trong `buildMarketParams`, không gọi Yahoo/Redis thật; investment suite 30/30.
