@@ -745,7 +745,11 @@ export default function InvestmentPage() {
 
               <AllocationEngine pieData={pieData} portfolioBreakdown={portfolioBreakdown} history={[]} />
               <AIRationalPanel allocation={activeAllocation} profile={mockProfile} sentimentValue={sentimentValue} portfolioBreakdown={portfolioBreakdown} />
-              <WealthProjection projectionData={projectionData} mockProfile={mockProfile} />
+              <WealthProjection
+                projectionData={projectionData}
+                monteCarloData={viewModel?.monteCarloData}
+                mockProfile={mockProfile}
+              />
               <SmartAssetGuide allocation={activeAllocation} riskLevel={mockProfile?.riskLevel || 'MEDIUM'} />
             </div>
 

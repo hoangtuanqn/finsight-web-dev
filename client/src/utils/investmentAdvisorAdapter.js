@@ -157,6 +157,11 @@ export function buildMonteCarloData(projection = null, profile = {}) {
   if (!monteCarlo) return [];
 
   const capital = toNumber(profile.capital);
+  const monthlyAdd = toNumber(profile.monthlyAdd);
+  const inflationRate = profile.inflationRate !== undefined
+    ? toNumber(profile.inflationRate) / 100
+    : 0.035;
+  const savingsRate = toNumber(profile.savingsRate, 6) / 100 - inflationRate;
   const currentRow = {
     year: 'Hiện tại',
     horizon: 0,
@@ -167,6 +172,11 @@ export function buildMonteCarloData(projection = null, profile = {}) {
     p95: capital,
     mean: capital,
     probLoss: 0,
+    savings: capital,
+    band90Base: capital,
+    band90Range: 0,
+    band50Base: capital,
+    band50Range: 0,
   };
 
   const rows = STANDARD_HORIZONS
@@ -174,17 +184,26 @@ export function buildMonteCarloData(projection = null, profile = {}) {
       const key = horizonKey(years);
       const item = monteCarlo[key];
       if (!item) return null;
+      const p5 = toNumber(item.p5);
+      const p25 = toNumber(item.p25);
+      const p75 = toNumber(item.p75);
+      const p95 = toNumber(item.p95);
 
       return {
         year: horizonLabel(years),
         horizon: years,
-        p5: toNumber(item.p5),
-        p25: toNumber(item.p25),
+        p5,
+        p25,
         median: toNumber(item.median),
-        p75: toNumber(item.p75),
-        p95: toNumber(item.p95),
+        p75,
+        p95,
         mean: toNumber(item.mean),
         probLoss: toNumber(item.probLoss),
+        savings: Math.round(calcFutureValue(capital, monthlyAdd, savingsRate, years)),
+        band90Base: p5,
+        band90Range: Math.max(0, p95 - p5),
+        band50Base: p25,
+        band50Range: Math.max(0, p75 - p25),
       };
     })
     .filter(Boolean);
