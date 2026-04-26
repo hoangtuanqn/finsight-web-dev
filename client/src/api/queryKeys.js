@@ -23,6 +23,7 @@ export const queryKeys = {
     // Asset prices — include riskLevel in key so each level caches separately
     CRYPTO_PRICES:   (riskLevel) => ['investment', 'prices', 'crypto',   riskLevel],
     STOCK_PRICES:    (riskLevel) => ['investment', 'prices', 'stocks',   riskLevel],
+    ASSET_HISTORY:   (asset, ticker, months) => ['investment', 'asset-history', asset, ticker, months],
     GOLD_PRICES:     ()          => ['investment', 'prices', 'gold'],
     SAVINGS_RATES:   (riskLevel) => ['investment', 'prices', 'savings',  riskLevel],
     BONDS_RATES:     (riskLevel) => ['investment', 'prices', 'bonds',    riskLevel],

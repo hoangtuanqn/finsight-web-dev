@@ -6,6 +6,7 @@ import {
   generateProjectionTable,
 } from '../services/monteCarloSimulation.service.js';
 import { buildRiskMetrics } from '../services/riskMetrics.service.js';
+import { fetchAssetHistory } from '../services/historicalData.service.js';
 import { fetchFearGreedIndex } from '../services/market.service.js';
 import { ASSET_CLASSES, RISK_CONFIG } from '../constants/investmentConstants.js';
 
@@ -687,6 +688,49 @@ const STOCK_UNIVERSE = [
   { ticker: 'DGC.VN',  name: 'Đức Giang Chemicals',sector: 'Hóa chất',     tag: 'Mid-cap · Xuất khẩu' },
 ];
 
+const ASSET_HISTORY_MONTH_OPTIONS = new Set([6, 12, 18]);
+
+function normalizeHistoryMonths(value) {
+  const months = Number.parseInt(value, 10);
+  return ASSET_HISTORY_MONTH_OPTIONS.has(months) ? months : 12;
+}
+
+function resolveStockMeta(rawTicker) {
+  const raw = String(rawTicker || '').trim().toUpperCase();
+  if (!raw) return null;
+
+  const withSuffix = raw.endsWith('.VN') ? raw : `${raw}.VN`;
+  return STOCK_UNIVERSE.find((meta) => {
+    const ticker = meta.ticker.toUpperCase();
+    const symbol = ticker.replace('.VN', '');
+    return ticker === withSuffix || symbol === raw;
+  });
+}
+
+function buildMonthlyHistoryRows(rawHistory, months) {
+  const rows = rawHistory.timestamps.map((timestamp, index) => {
+    const close = rawHistory.closes[index];
+    const previousClose = index > 0 ? rawHistory.closes[index - 1] : null;
+    const date = new Date(timestamp * 1000);
+    const year = date.getUTCFullYear();
+    const monthNumber = date.getUTCMonth() + 1;
+    const month = `${year}-${String(monthNumber).padStart(2, '0')}`;
+    const label = `${String(monthNumber).padStart(2, '0')}/${String(year).slice(-2)}`;
+    const changePct = previousClose
+      ? ((close - previousClose) / previousClose) * 100
+      : 0;
+
+    return {
+      month,
+      label,
+      close: Math.round(close),
+      changePct: Number(changePct.toFixed(2)),
+    };
+  });
+
+  return rows.slice(-months);
+}
+
 async function fetchStockQuote(ticker) {
   const url = `https://query2.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`;
   const res = await fetch(url, {
@@ -764,6 +808,7 @@ function buildStockCard(quote, meta, rank) {
 
   return {
     ticker:   meta.ticker.replace('.VN', ''),
+    historyTicker: meta.ticker,
     name:     meta.name,
     sector:   meta.sector,
     tag:      meta.tag,
@@ -840,6 +885,57 @@ export async function getStockPrices(req, res) {
       return success(res, { stocks: top5, intro: '', riskLevel: req.query.riskLevel || 'MEDIUM', cached: true, stale: true });
     }
     return error(res, 'Không thể lấy dữ liệu chứng khoán lúc này');
+  }
+}
+
+export async function getAssetHistory(req, res) {
+  const startedAt = Date.now();
+  try {
+    const asset = String(req.query.asset || 'stocks').toLowerCase();
+    const months = normalizeHistoryMonths(req.query.months);
+
+    if (asset !== 'stocks') {
+      return error(res, 'Asset history hiện chỉ hỗ trợ nhóm chứng khoán/ETF', 400);
+    }
+
+    const meta = resolveStockMeta(req.query.ticker || req.query.symbol);
+    if (!meta) {
+      return error(res, 'Ticker không nằm trong danh sách gợi ý chứng khoán', 400);
+    }
+
+    console.info(
+      `[InvestmentAdvisor] asset-history:start user=${shortUserId(req.userId)} asset=${asset} ticker=${meta.ticker} months=${months}`
+    );
+
+    const rawHistory = await fetchAssetHistory(meta.ticker);
+    if (!rawHistory) {
+      console.warn(`[InvestmentAdvisor] asset-history:no-data ticker=${meta.ticker}`);
+      return error(res, 'Không có dữ liệu lịch sử cho mã này', 502);
+    }
+
+    const history = buildMonthlyHistoryRows(rawHistory, months);
+    if (history.length === 0) {
+      return error(res, 'Không đủ dữ liệu lịch sử để hiển thị biểu đồ', 404);
+    }
+
+    console.info(
+      `[InvestmentAdvisor] asset-history:complete user=${shortUserId(req.userId)} ticker=${meta.ticker} points=${history.length} durationMs=${Date.now() - startedAt}`
+    );
+
+    return success(res, {
+      asset,
+      ticker: meta.ticker,
+      symbol: meta.ticker.replace('.VN', ''),
+      name: meta.name,
+      sector: meta.sector,
+      months,
+      history,
+      updatedAt: new Date().toISOString(),
+      dataSource: 'Yahoo Finance monthly close',
+    });
+  } catch (err) {
+    console.error('getAssetHistory error:', err.message);
+    return error(res, 'Không thể lấy dữ liệu lịch sử tài sản');
   }
 }
 

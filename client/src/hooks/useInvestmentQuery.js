@@ -69,6 +69,19 @@ export function useBondsRates(riskLevel = 'MEDIUM') {
   });
 }
 
+export function useAssetMonthlyHistory({ asset = 'stocks', ticker, months = 12, enabled = false } = {}) {
+  return useQuery({
+    queryKey: queryKeys.INVESTMENT.ASSET_HISTORY(asset, ticker, months),
+    queryFn: async () => {
+      const res = await investmentAPI.getAssetHistory({ asset, ticker, months });
+      return res.data.data;
+    },
+    enabled: Boolean(enabled && ticker),
+    staleTime: 30 * 60 * 1000,
+    gcTime:    30 * 60 * 1000,
+  });
+}
+
 export function useInvestmentStrategies() {
   return useQuery({
     queryKey: queryKeys.INVESTMENT.STRATEGIES,

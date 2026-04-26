@@ -2,7 +2,7 @@
 
 > **Ngày tạo:** 2026-04-26
 > **Deadline:** 2 tuần (backend logic) + 1 tuần (UI)
-> **Status:** 🟡 Backend done — UI plan ready, chưa bắt đầu implementation
+> **Status:** 🟡 Backend done — UI core implemented, Smart Asset monthly history đang chờ manual QA
 
 ---
 
@@ -75,7 +75,7 @@ Tuần 3 (Ngày 15-21) — sau khi backend done:
 | `ASSET_CLASSES` hardcode returns | 🔄 Comment `[LEGACY]`, thay bằng historical data | Data thực thay thế |
 | `buildRenderData()` trong InvestmentPage | 🔄 Sửa input/output format | Adapt cho Monte Carlo output |
 | `fetchFearGreedIndex()` | ✅ Giữ nguyên | Vẫn dùng sentiment, chỉ thay cách sử dụng |
-| 5 Smart Asset Guide APIs (crypto/stock/gold/savings/bonds) | ✅ Giữ nguyên | Không liên quan đến allocation logic |
+| 5 Smart Asset Guide APIs (crypto/stock/gold/savings/bonds) | ✅ Giữ nguyên + bổ sung history endpoint riêng | Không đổi contract snapshot hiện có |
 | UI Components (AllocationEngine, WealthProjection, etc.) | ✅ Giữ nguyên (adapt data shape tuần 3) | UI sửa sau |
 
 ---
@@ -795,7 +795,79 @@ npm.cmd run build
 - [ ] Không có layout shift lớn khi riskMetrics/projection loading xong
 - [ ] Không thêm gradient/orb trang trí mới ngoài pattern đang có trong page
 
-### 10.11 Thứ tự commit đề xuất cho UI
+### 10.11 Smart Asset Guide: mở rộng card + biểu đồ lịch sử tháng
+
+**Mục tiêu:** khi user nhấp vào card trong `Hướng dẫn Đầu tư Thông minh` (ưu tiên chứng khoán/ETF như `ETF E1VFVN30`), card mở rộng tại chỗ và hiển thị biểu đồ cột theo tháng với toggle `6 / 12 / 18 tháng`. UI phải đồng bộ với card/list/tab hiện có, không ảnh hưởng các flow investment khác.
+
+**Phạm vi v1**
+
+- Ưu tiên `stocks`/ETF vì đã có dữ liệu monthly close từ Yahoo Finance qua historical data engine.
+- Không fake dữ liệu cho savings/bonds/gold/crypto nếu chưa có source lịch sử theo item tương ứng.
+- Không preload lịch sử cho toàn bộ card; chỉ fetch khi user mở card.
+
+**Files**
+
+| Action | File | Mô tả |
+|--------|------|-------|
+| MODIFY | `server/src/controllers/investment.controller.js` | Thêm `getAssetHistory`, validate ticker theo `STOCK_UNIVERSE`, format monthly bars |
+| MODIFY | `server/src/routes/investment.routes.js` | Thêm route `GET /investment/asset-history` |
+| MODIFY | `client/src/api/index.js` | Thêm `investmentAPI.getAssetHistory()` |
+| MODIFY | `client/src/api/queryKeys.js` | Thêm query key `ASSET_HISTORY(asset,ticker,months)` |
+| MODIFY | `client/src/hooks/useInvestmentQuery.js` | Thêm `useAssetMonthlyHistory()` lazy hook |
+| MODIFY | `client/src/components/investment/SmartAssetGuide.jsx` | Card expand, range toggle, Recharts monthly bar chart |
+
+**Data contract**
+
+```js
+GET /api/investment/asset-history?asset=stocks&ticker=E1VFVN30.VN&months=12
+
+{
+  asset: 'stocks',
+  ticker: 'E1VFVN30.VN',
+  symbol: 'E1VFVN30',
+  name: 'ETF E1VFVN30',
+  sector: 'ETF',
+  months: 12,
+  history: [
+    { month: '2025-05', label: '05/25', close: 32100, changePct: 1.2 }
+  ],
+  updatedAt: 'ISO date',
+  dataSource: 'Yahoo Finance monthly close'
+}
+```
+
+**Checklist**
+
+- [x] Backend: thêm `historyTicker` vào stock card để frontend có ticker đầy đủ `.VN`
+- [x] Backend: thêm allowlist resolver, chỉ nhận ticker nằm trong `STOCK_UNIVERSE`
+- [x] Backend: thêm `GET /investment/asset-history` cho `asset=stocks`
+- [x] Backend: format dữ liệu thành monthly bars `{ month, label, close, changePct }`
+- [x] Backend: thêm log `asset-history:start`, `asset-history:no-data`, `asset-history:complete`
+- [x] Frontend API: thêm `investmentAPI.getAssetHistory`
+- [x] Frontend React Query: thêm query key + hook `useAssetMonthlyHistory`
+- [x] SmartAssetGuide: thêm state `expandedCardKey`, reset khi đổi asset tab
+- [x] SmartAssetGuide: card mở rộng tại chỗ, desktop dùng `md:col-span-2` để chart không bị chật
+- [x] SmartAssetGuide: thêm toggle dài `6 tháng / 12 tháng / 18 tháng`, style đồng bộ với tab danh mục
+- [x] SmartAssetGuide: thêm Recharts bar chart, tooltip tháng + giá + thay đổi % so với tháng trước
+- [x] SmartAssetGuide: lazy fetch chỉ khi card mở, không preload toàn bộ card
+- [x] SmartAssetGuide: fallback gọn khi nhóm tài sản chưa có history source
+- [x] Verify: `node --check src/controllers/investment.controller.js`
+- [x] Verify: `node --check src/routes/investment.routes.js`
+- [x] Verify: `npm.cmd run build` client pass sau khi chạy ngoài sandbox
+- [ ] Manual QA: mở `/investment`, chọn `Chứng khoán`, click `ETF E1VFVN30`
+- [ ] Manual QA: toggle `6/12/18 tháng` đổi dữ liệu/chart không lỗi
+- [ ] Manual QA: mobile chart không overflow, tooltip không che toàn bộ chart
+- [ ] Manual QA: đổi tab danh mục reset expanded card, các card cũ không giữ state sai
+- [ ] Manual QA: click savings/gold/bonds/crypto không crash và hiển thị fallback phù hợp nếu chưa hỗ trợ
+
+**Ghi chú quyết định**
+
+- V1 chưa tạo history giả cho tiết kiệm/trái phiếu/vàng/crypto theo từng card để tránh dữ liệu gây hiểu nhầm.
+- Endpoint dùng allowlist từ `STOCK_UNIVERSE`, không nhận ticker tự do để tránh biến server thành proxy Yahoo.
+- `fetchAssetHistory()` đang dùng cache 24h hiện có; endpoint mới dùng lại hạ tầng đó thay vì tạo cache riêng.
+- Smoke import controller bằng `node -e import(...)` đã bị dừng do chạy quá lâu trong môi trường hiện tại, nên chưa tick manual server runtime check; syntax check và client build đã pass.
+
+### 10.12 Thứ tự commit đề xuất cho UI
 
 1. `investment-advisor-ui: add advisor data adapter`
 2. `investment-advisor-ui: render risk metrics panel`
@@ -804,6 +876,7 @@ npm.cmd run build
 5. `investment-advisor-ui: add portfolio risk return panel`
 6. `investment-advisor-ui: align rationale copy with optimizer`
 7. `investment-advisor-ui: verify investment advisor page`
+8. `investment-advisor-ui: add smart asset monthly history`
 
 ---
 
@@ -833,3 +906,4 @@ npm.cmd run build
 - 2026-04-26: UI 10.9 đã rà MyPortfolio compatibility: không đổi API contract portfolio, không đưa riskMetrics/optimization vào DB portfolio, link hiện có chỉ điều hướng `/investment`; smoke edit allocation 100% còn pending vì chưa chạy app/browser thật.
 - 2026-04-26: UI 10.10 đã chạy `npm.cmd run build` cuối pass sau toàn bộ thay đổi UI; manual QA/visual QA desktop-mobile vẫn để unchecked vì cần chạy app với auth/API thật để xác nhận.
 - 2026-04-26: Pre-merge cleanup đã gỡ test modules/script nội bộ của investment advisor và xóa `getAllocation()` heuristic khỏi client/server utils vì không còn runtime dùng; giữ các fallback UI đang phục vụ strategy history cũ.
+- 2026-04-27: Bổ sung Section 10.11 cho Smart Asset Guide monthly history; đã implement endpoint `GET /investment/asset-history`, hook lazy React Query, card expand + chart cột 6/12/18 tháng cho stocks/ETF. Backend `node --check` pass, client `npm.cmd run build` pass ngoài sandbox; manual QA trên app thật còn pending.
