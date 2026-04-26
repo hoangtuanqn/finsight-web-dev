@@ -774,6 +774,8 @@ cd client
 npm.cmd run build
 ```
 
+**Build result 2026-04-26:** `npm.cmd run build` pass; chỉ còn warning bundle lớn hiện có.
+
 **Manual QA bắt buộc**
 
 - [ ] Desktop `/investment`: có strategy, analytics API success
@@ -829,3 +831,4 @@ npm.cmd run build
 - 2026-04-26: UI 10.7 đã cập nhật `AIRationalPanel` sang copy MVO, truyền `{ optimization, allocationMetrics }` vào `explainAsset()` và giữ legacy fallback có comment; `npm.cmd run build` pass.
 - 2026-04-26: UI 10.8 đã thêm badge method/dataQuality ở header lịch sử chỉ khi active latest analysis có field; giữ nguyên click row, nút Áp dụng và không fake risk metrics cho từng strategy row; `npm.cmd run build` pass.
 - 2026-04-26: UI 10.9 đã rà MyPortfolio compatibility: không đổi API contract portfolio, không đưa riskMetrics/optimization vào DB portfolio, link hiện có chỉ điều hướng `/investment`; smoke edit allocation 100% còn pending vì chưa chạy app/browser thật.
+- 2026-04-26: UI 10.10 đã chạy `npm.cmd run build` cuối pass sau toàn bộ thay đổi UI; manual QA/visual QA desktop-mobile vẫn để unchecked vì cần chạy app với auth/API thật để xác nhận.
