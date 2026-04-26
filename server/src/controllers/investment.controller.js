@@ -609,6 +609,7 @@ export async function getGoldPrices(req, res) {
     const premiumSJC  = sjc && impliedNhan > 0
       ? Math.round((sjc.sell - impliedNhan) / impliedNhan * 100 * 10) / 10
       : 0;
+    const sjcBenchmark = sjc || nhan;
 
     const goldItems = [
       {
@@ -657,10 +658,10 @@ export async function getGoldPrices(req, res) {
         name: 'Vàng thế giới quy đổi',
         tag: 'Proxy · XAU/USD',
         historySource: { asset: 'gold', source: 'world', sourceType: 'proxy', sourceLabel: 'Tham chiếu GC=F' },
-        price: null,
-        priceLabel: 'Theo GC=F',
+        price: worldPrice,
+        priceLabel: fmtW(worldPrice),
         change24h: worldChange,
-        note: 'Dùng vàng thế giới làm tham chiếu vì chưa xác thực được ticker ETF vàng Việt Nam phù hợp',
+        note: 'Dùng giá vàng thế giới GC=F làm tham chiếu vì chưa xác thực được ticker ETF vàng Việt Nam phù hợp',
         badge: 'Tham chiếu',
         badgeColor: 'blue',
       },
@@ -669,10 +670,12 @@ export async function getGoldPrices(req, res) {
         name: 'Tích lũy vàng DCA',
         tag: 'Chiến lược',
         historySource: { asset: 'gold', source: 'sjc', sourceType: 'proxy', sourceLabel: 'Proxy SJC 30 ngày', rangeType: 'days', defaultRange: 30, rangeOptions: [7, 14, 30] },
-        price: null,
-        priceLabel: 'Mua đều hàng tháng',
+        price: sjcBenchmark?.sell ?? null,
+        priceLabel: sjcBenchmark ? fmt(sjcBenchmark.sell) : 'Theo SJC/nhẫn',
         change24h: 0,
-        note: 'Mua nhẫn/chứng chỉ vàng định kỳ — giảm rủi ro timing, phù hợp dài hạn',
+        note: sjcBenchmark
+          ? `DCA theo giá bán ${sjc ? 'SJC' : 'nhẫn'} hiện tại ${fmt(sjcBenchmark.sell)}/chỉ · không phải sản phẩm có giá riêng`
+          : 'Chiến lược DCA, chưa có sản phẩm có giá riêng để hiển thị',
         badge: 'Khuyên dùng',
         badgeColor: 'emerald',
       },

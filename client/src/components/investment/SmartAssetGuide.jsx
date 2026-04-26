@@ -90,6 +90,14 @@ function formatVND(value) {
   return `${Math.round(numericValue).toLocaleString('vi-VN')}đ`;
 }
 
+function formatCardMetric(item) {
+  if (item.rateLabel) return item.rateLabel;
+  if (item.priceLabel) return item.priceLabel;
+  if (item.rate != null) return `${Number(item.rate).toLocaleString('vi-VN', { maximumFractionDigits: 2 })}%/năm`;
+  if (item.price != null) return Number(item.price).toLocaleString('vi-VN', { maximumFractionDigits: 2 });
+  return '';
+}
+
 function formatCompactVND(value) {
   const numericValue = Number(value);
   if (!Number.isFinite(numericValue)) return '-';
@@ -414,7 +422,7 @@ export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
 function AssetCard({ item, color, type, isExpanded, onToggle }) {
   const name = item.name;
   const tag = item.tag;
-  const rate = item.rate || item.rateLabel || (item.price != null ? `${item.price.toLocaleString('vi-VN')}đ` : '');
+  const rate = formatCardMetric(item);
   const note = item.note;
   const badge = item.badge;
   const badgeColor = item.badgeColor;
