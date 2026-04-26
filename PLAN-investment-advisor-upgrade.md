@@ -1042,20 +1042,27 @@ Không có một API miễn phí/chính thức duy nhất bao phủ đủ tất 
 
 **Thứ tự triển khai tiếp theo**
 
-1. [ ] Gold source adapter: thêm `vang.today` cho SJC/nhẫn, hỗ trợ range ngắn hạn 7/14/30 ngày hoặc collector mode.
-2. [ ] Bond source cleanup: thay card quỹ sai (`VCBF-BCF`, `SSI-SCA`) bằng bond funds thật (`VCBF-FIF`, `SSIBF`, optionally `MBBOND`, `TCBF`).
-3. [ ] VN government bond yield adapter: ingest VBMA/HNX monthly/auction data cho tenor 5Y/10Y/15Y.
-4. [ ] UI source label: phân biệt `direct`, `officialCurve`, `proxy`, `collectorRequired`.
+1. [x] Gold source adapter: thêm `vang.today` cho SJC/nhẫn, hỗ trợ range ngắn hạn 7/14/30 ngày hoặc collector mode.
+2. [x] Bond source cleanup: thay card quỹ sai (`VCBF-BCF`, `SSI-SCA`) bằng bond funds thật (`VCBF-FIF`, `SSIBF`, optionally `MBBOND`, `TCBF`).
+3. [x] VN government bond yield adapter: ingest VBMA/HNX monthly/auction data cho tenor 5Y/10Y/15Y.
+4. [x] UI source label: phân biệt `direct`, `officialCurve`, `proxy`, `collectorRequired`.
 5. [ ] Savings collector/backfill decision: chọn official bank pages/aggregator và lưu snapshot theo bank+tenor.
 
 **Phạm vi thực thi đợt này**
 
-- [ ] Backend: `asset-history` nhận cả `months=6/12/18` và `days=7/14/30` để vàng trong nước dùng dữ liệu thật ngắn hạn từ `vang.today`.
-- [ ] Backend: thêm `historySource` cho `Vàng miếng SJC`, `Nhẫn tròn trơn`, và các card chiến lược/proxy vàng; proxy phải ghi rõ nguồn tham chiếu.
-- [ ] Backend: cập nhật card TPCP Việt Nam theo yield đấu thầu VBMA mới nhất, thêm lịch sử curated từ các bài auction VBMA theo tháng cho 5Y/10Y/15Y.
-- [ ] Backend: thay `VCBF-BCF` và `SSI-SCA` bằng `VCBF-FIF` và `SSIBF`; nếu chưa có NAV history ổn định thì chỉ gắn benchmark proxy có nhãn.
-- [ ] Frontend: đổi toggle theo `rangeType` (`6/12/18 tháng` hoặc `7/14/30 ngày`) và hiển thị nhãn nguồn `direct`/`officialCurve`/`proxy`.
-- [ ] Tiết kiệm: giữ trạng thái không vẽ chart 6/12/18 cho đến khi có collector/backfill thật, không tạo dữ liệu giả.
+- [x] Backend: `asset-history` nhận cả `months=6/12/18` và `days=7/14/30` để vàng trong nước dùng dữ liệu thật ngắn hạn từ `vang.today`.
+- [x] Backend: thêm `historySource` cho `Vàng miếng SJC`, `Nhẫn tròn trơn`, và các card chiến lược/proxy vàng; proxy phải ghi rõ nguồn tham chiếu.
+- [x] Backend: cập nhật card TPCP Việt Nam theo yield đấu thầu VBMA mới nhất, tự fetch các bài auction VBMA trong 18 tháng gần nhất cho 5Y/10Y/15Y; không hard-code từng tháng trong controller.
+- [x] Backend: thay `VCBF-BCF` và `SSI-SCA` bằng `VCBF-FIF` và `SSIBF`; nếu chưa có NAV history ổn định thì chỉ gắn benchmark proxy có nhãn.
+- [x] Frontend: đổi toggle theo `rangeType` (`6/12/18 tháng` hoặc `7/14/30 ngày`) và hiển thị nhãn nguồn `direct`/`officialCurve`/`proxy`.
+- [x] Tiết kiệm: giữ trạng thái không vẽ chart 6/12/18 cho đến khi có collector/backfill thật, không tạo dữ liệu giả.
+
+**Điều chỉnh sau review 2026-04-27**
+
+- [x] Loại bỏ phương án hard-code 12/18 tháng TPCP trong source code vì sẽ lỗi thời sau vài tháng.
+- [x] Tách adapter tự động `VBMA auction history`: sinh danh sách ngày đấu thầu trong 18 tháng gần nhất, thử các slug VBMA `en/vi`, parse bảng kết quả và cache trong memory.
+- [x] Nếu adapter VBMA không lấy được dữ liệu do mạng/site đổi format, fallback về snapshot hiện tại và log rõ `source unavailable`; không tự bịa dữ liệu.
+- [x] DB/snapshot collector vẫn cần cho `savings` và NAV quỹ nếu muốn chart dài hạn thật; không dùng DB để lưu hard-code TPCP nếu có thể tự fetch từ VBMA.
 
 ### 10.14 Thứ tự commit đề xuất cho UI
 
@@ -1102,3 +1109,4 @@ Không có một API miễn phí/chính thức duy nhất bao phủ đủ tất 
 - 2026-04-27: Điều tra nguyên nhân vàng/trái phiếu/tiết kiệm chưa có chart: frontend đang khóa `type === 'stocks'`, backend chỉ nhận `asset=stocks`; vàng có thể dùng `GC=F`, trái phiếu có thể dùng `^TNX`, tiết kiệm chưa có monthly history thật vì `SAVINGS_DATA` chỉ là snapshot hiện tại. Đã bổ sung Section 10.12 làm plan mở rộng, chưa implement runtime.
 - 2026-04-27: Đã implement phần runtime đầu tiên của Section 10.12: `asset-history` hỗ trợ `gold/world` (`GC=F`) và `bonds/us10y` (`^TNX`), frontend dùng `getHistoryRequest()` generic và chart format theo metric `VND`/`USD/oz`/`%`. Tiết kiệm vẫn chưa bật history để tránh dữ liệu giả. Syntax check backend và client build pass; manual QA app thật còn pending.
 - 2026-04-27: Đã chọn lại nguồn dữ liệu lịch sử cho các card chưa đủ data trong Section 10.13. Kết luận: vàng trong nước dùng `vang.today` nhưng chỉ đủ history ngắn hạn tối đa 30 ngày nếu chưa có collector; TPCP Việt Nam dùng VBMA/HNX thay vì `^TNX`; `VCBF-BCF` và `SSI-SCA` đang sai phân loại bond fund nên cần thay card; tiết kiệm cần snapshot collector/backfill, không vẽ 6/12/18 tháng từ snapshot hiện tại.
+- 2026-04-27: Sau review, đã bỏ phương án hard-code lịch sử TPCP trong controller. Thay bằng `vietnamBondHistory.service.js` tự sinh ngày đấu thầu trong 18 tháng gần nhất, thử URL VBMA `en/vi`, parse bảng yield 5Y/10Y/15Y và cache memory; `/bonds-rates` chỉ fetch nhanh 3 tháng để lấy rate mới, `/asset-history` fetch 18 tháng khi user mở chart. Nếu VBMA lỗi mạng/đổi format thì log warning và không bịa dữ liệu.

@@ -12,7 +12,8 @@ import {
   useAssetMonthlyHistory,
 } from '../../hooks/useInvestmentQuery';
 
-const HISTORY_RANGE_OPTIONS = [6, 12, 18];
+const MONTH_HISTORY_RANGE_OPTIONS = [6, 12, 18];
+const DAY_HISTORY_RANGE_OPTIONS = [7, 14, 30];
 const STOCK_SYMBOLS = [
   'E1VFVN30', 'FUEVFVND', 'VCB', 'BID', 'CTG', 'TCB', 'MBB', 'FPT', 'VNM',
   'MSN', 'MWG', 'HPG', 'VHM', 'VIC', 'ACB', 'REE', 'PNJ', 'DGC',
@@ -53,21 +54,34 @@ function getHistoryRequest(item, type) {
     return item.historySource;
   }
 
-  if (type === 'gold' && item.id === 'world') return { asset: 'gold', source: 'world' };
-  if (type === 'bonds' && item.id === 'us10y') return { asset: 'bonds', source: 'us10y' };
+  if (type === 'gold' && item.id === 'world') return { asset: 'gold', source: 'world', sourceType: 'direct' };
+  if (type === 'bonds' && item.id === 'us10y') return { asset: 'bonds', source: 'us10y', sourceType: 'direct' };
 
   if (type === 'stocks') {
     const ticker = getStockHistoryTicker(item);
-    return ticker ? { asset: 'stocks', ticker } : null;
+    return ticker ? { asset: 'stocks', ticker, sourceType: 'direct' } : null;
   }
 
   return null;
 }
 
+function getHistoryRangeConfig(request) {
+  const isDays = request?.rangeType === 'days';
+  const options = request?.rangeOptions || (isDays ? DAY_HISTORY_RANGE_OPTIONS : MONTH_HISTORY_RANGE_OPTIONS);
+
+  return {
+    paramName: isDays ? 'days' : 'months',
+    defaultValue: request?.defaultRange || (isDays ? 30 : 12),
+    options,
+    unitLabel: isDays ? 'ngày' : 'tháng',
+    title: isDays ? 'Lịch sử theo ngày' : 'Lịch sử theo tháng',
+  };
+}
+
 function getAssetCardKey(item, type, index) {
   const historyRequest = getHistoryRequest(item, type);
   const sourceKey = historyRequest?.ticker || historyRequest?.source || historyRequest?.bankId;
-  return `${type}-${sourceKey || item.id || item.name || index}`;
+  return `${type}-${item.id || item.name || index}-${sourceKey || 'no-history'}`;
 }
 
 function formatVND(value) {
@@ -92,7 +106,7 @@ function formatMetricValue(value, metric = {}) {
   const numericValue = Number(value);
   if (!Number.isFinite(numericValue)) return '-';
 
-  if (metric.unit === 'VND') return `${Math.round(numericValue).toLocaleString('vi-VN')}đ`;
+  if (String(metric.unit || '').startsWith('VND')) return `${Math.round(numericValue).toLocaleString('vi-VN')}đ`;
   if (metric.unit === 'USD/oz') return `$${numericValue.toLocaleString('en-US', { maximumFractionDigits: 1 })}/oz`;
   if (metric.unit === '%') return `${numericValue.toFixed(2)}%`;
 
@@ -100,7 +114,7 @@ function formatMetricValue(value, metric = {}) {
 }
 
 function formatCompactMetric(value, metric = {}) {
-  if (metric.unit === 'VND') return formatCompactVND(value);
+  if (String(metric.unit || '').startsWith('VND')) return formatCompactVND(value);
   if (metric.unit === 'USD/oz') return `$${Number(value).toFixed(0)}`;
   if (metric.unit === '%') return `${Number(value).toFixed(1)}%`;
   return Number(value).toLocaleString('vi-VN', { maximumFractionDigits: 1 });
@@ -111,39 +125,57 @@ function formatMetricChange(change, metric = {}) {
   const sign = numericChange >= 0 ? '+' : '';
 
   if (metric.changeUnit === 'percentagePoint') {
-    return `${sign}${numericChange.toFixed(2)} điểm % so với tháng trước`;
+    return `${sign}${numericChange.toFixed(2)} điểm % so với kỳ trước`;
   }
 
-  return `${sign}${numericChange.toFixed(2)}% so với tháng trước`;
+  return `${sign}${numericChange.toFixed(2)}% so với kỳ trước`;
 }
 
 function getHistorySubtitle(historyData, request) {
+  const prefix = historyData?.sourceType === 'proxy' || request?.sourceType === 'proxy'
+    ? 'Tham chiếu'
+    : historyData?.sourceType === 'officialAuction'
+    ? 'Đấu thầu TPCP'
+    : null;
+  const sourcePrefix = prefix ? `${prefix}: ` : '';
+
+  if (historyData?.rangeType === 'days' || request?.rangeType === 'days') {
+    return `${sourcePrefix}${historyData?.name || request?.sourceLabel || 'Tài sản'} · giá bán cuối ngày`;
+  }
   if (historyData?.metric?.key === 'yield') {
-    return `${historyData.name} · lợi suất cuối tháng`;
+    return `${sourcePrefix}${historyData.name} · lợi suất cuối tháng`;
   }
   if (historyData?.metric?.unit === 'USD/oz') {
-    return `${historyData.name} · giá đóng cửa cuối tháng`;
+    return `${sourcePrefix}${historyData.name} · giá đóng cửa cuối tháng`;
   }
   if (historyData?.ticker) {
-    return `${historyData.ticker} · giá đóng cửa cuối tháng`;
+    return `${sourcePrefix}${historyData.ticker} · giá đóng cửa cuối tháng`;
   }
   if (request?.asset === 'gold') return 'Vàng thế giới · giá đóng cửa cuối tháng';
   if (request?.asset === 'bonds') return 'US Treasury 10Y · lợi suất cuối tháng';
   return 'Dữ liệu lịch sử theo tháng';
 }
 
-function MonthRangeToggle({ value, onChange, color }) {
+function getSourceTypeLabel(sourceType) {
+  if (sourceType === 'proxy') return 'Tham chiếu';
+  if (sourceType === 'officialAuction') return 'Đấu thầu';
+  if (sourceType === 'officialCurve') return 'Đường cong';
+  if (sourceType === 'direct') return 'Trực tiếp';
+  return 'Nguồn';
+}
+
+function HistoryRangeToggle({ value, onChange, color, options, unitLabel }) {
   return (
     <div className="grid grid-cols-3 gap-1 bg-white/[0.02] p-1 rounded-full border border-white/5 w-full sm:w-[260px]">
-      {HISTORY_RANGE_OPTIONS.map((months) => {
-        const isActive = value === months;
+      {options.map((range) => {
+        const isActive = value === range;
         return (
           <button
-            key={months}
+            key={range}
             type="button"
             onClick={(event) => {
               event.stopPropagation();
-              onChange(months);
+              onChange(range);
             }}
             aria-pressed={isActive}
             className={`relative h-8 rounded-full text-[11px] font-bold transition-all ${
@@ -157,7 +189,7 @@ function MonthRangeToggle({ value, onChange, color }) {
                 style={{ background: `${color}24` }}
               />
             )}
-            <span className="relative z-10">{months} tháng</span>
+            <span className="relative z-10">{range} {unitLabel}</span>
           </button>
         );
       })}
@@ -380,7 +412,6 @@ export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
 }
 
 function AssetCard({ item, color, type, isExpanded, onToggle }) {
-  const [months, setMonths] = useState(12);
   const name = item.name;
   const tag = item.tag;
   const rate = item.rate || item.rateLabel || (item.price != null ? `${item.price.toLocaleString('vi-VN')}đ` : '');
@@ -389,13 +420,17 @@ function AssetCard({ item, color, type, isExpanded, onToggle }) {
   const badgeColor = item.badgeColor;
   const historyRequest = getHistoryRequest(item, type);
   const canShowHistory = Boolean(historyRequest);
+  const rangeConfig = getHistoryRangeConfig(historyRequest);
+  const [rangeValue, setRangeValue] = useState(rangeConfig.defaultValue);
   const historyQuery = useAssetMonthlyHistory({
     ...historyRequest,
-    months,
+    [rangeConfig.paramName]: rangeValue,
     enabled: isExpanded && canShowHistory,
   });
   const historyRows = historyQuery.data?.history || [];
   const historyMetric = historyQuery.data?.metric || historyRequest?.metric || {};
+  const sourceType = historyQuery.data?.sourceType || historyRequest?.sourceType;
+  const sourceText = historyRequest?.sourceLabel || historyQuery.data?.dataSource;
   const handleToggle = () => {
     if (canShowHistory) onToggle();
   };
@@ -465,15 +500,35 @@ function AssetCard({ item, color, type, isExpanded, onToggle }) {
             <div className="mt-5 pt-5 border-t border-white/5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Lịch sử theo tháng</p>
+                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">{rangeConfig.title}</p>
                   <p className="text-xs font-semibold text-slate-400 mt-1">
                     {canShowHistory
                       ? getHistorySubtitle(historyQuery.data, historyRequest)
                       : 'Chưa có nguồn lịch sử theo tháng đã kiểm chứng cho mục này.'}
                   </p>
+                  {canShowHistory && (sourceText || sourceType) && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      {sourceType && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md border border-white/10 bg-white/[0.03] text-slate-300">
+                          {getSourceTypeLabel(sourceType)}
+                        </span>
+                      )}
+                      {sourceText && (
+                        <span className="text-[11px] font-semibold text-slate-500">
+                          {sourceText}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 {canShowHistory && (
-                  <MonthRangeToggle value={months} onChange={setMonths} color={color} />
+                  <HistoryRangeToggle
+                    value={rangeValue}
+                    onChange={setRangeValue}
+                    color={color}
+                    options={rangeConfig.options}
+                    unitLabel={rangeConfig.unitLabel}
+                  />
                 )}
               </div>
 
