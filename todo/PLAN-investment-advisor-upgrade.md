@@ -418,30 +418,30 @@ HIGH:   savings [5-25]%   gold [0-20]%   bonds [0-15]%   stocks [25-70]%  crypto
 ### 7.4 Checklist
 
 ```
-- [ ] Tạo `server/src/services/riskMetrics.service.js`
+- [x] Tạo `server/src/services/riskMetrics.service.js`
 
-- [ ] Implement calcSharpeRatio(portfolioReturn, riskFreeRate, portfolioStdDev):
+- [x] Implement calcSharpeRatio(portfolioReturn, riskFreeRate, portfolioStdDev):
       - return (portfolioReturn - riskFreeRate) / portfolioStdDev
       - riskFreeRate = profile.savingsRate/100 || 0.05
 
-- [ ] Implement calcVaR(simResults, capital, confidence=0.95):
+- [x] Implement calcVaR(simResults, capital, confidence=0.95):
       - sorted = [...simResults].sort((a,b) => a-b)
       - idx = Math.floor((1 - confidence) × sorted.length)
       - VaR = capital - sorted[idx]
       - Return VaR (dương = mức lỗ tiềm năng)
 
-- [ ] Implement calcCVaR(simResults, capital, confidence=0.95):
+- [x] Implement calcCVaR(simResults, capital, confidence=0.95):
       - idx = Math.floor((1 - confidence) × sorted.length)
       - tail = sorted.slice(0, idx)
       - CVaR = capital - mean(tail)
 
-- [ ] Implement calcMaxDrawdown(simPaths):
+- [x] Implement calcMaxDrawdown(simPaths):
       - Từ monthly snapshots (cần sửa simulatePortfolio lưu paths)
       - Sample 500 paths (không cần tất cả 5000)
       - Cho mỗi path: tính max(peak - trough) / peak
       - Return: { median: P50 of drawdowns, worst: P95 }
 
-- [ ] Implement buildRiskMetrics(params):
+- [x] Implement buildRiskMetrics(params):
       params = { weights, marketParams, simResults, capital, profile }
       Return: {
         sharpeRatio: float,
@@ -453,7 +453,7 @@ HIGH:   savings [5-25]%   gold [0-20]%   bonds [0-15]%   stocks [25-70]%  crypto
         riskGrade: 'A' | 'B' | 'C' | 'D' | 'F'
       }
 
-- [ ] riskGrade calculation:
+- [x] riskGrade calculation:
       - A: Sharpe > 1.0 AND VaR < 15% capital
       - B: Sharpe > 0.5 AND VaR < 25%
       - C: Sharpe > 0.2 AND VaR < 40%
@@ -464,10 +464,10 @@ HIGH:   savings [5-25]%   gold [0-20]%   bonds [0-15]%   stocks [25-70]%  crypto
       - Thêm: riskMetrics = buildRiskMetrics(...)
       - Thêm vào response: riskMetrics
 
-- [ ] Test: Sharpe > 0 cho mọi riskLevel
-- [ ] Test: VaR > 0, CVaR >= VaR
-- [ ] Test: LOW risk → VaR nhỏ hơn HIGH risk
-- [ ] Test: riskGrade hợp lý (LOW → A/B, HIGH → C/D)
+- [x] Test: Sharpe > 0 cho mọi riskLevel
+- [x] Test: VaR > 0, CVaR >= VaR
+- [x] Test: LOW risk → VaR nhỏ hơn HIGH risk
+- [x] Test: riskGrade hợp lý (LOW → A/B, HIGH → C/D)
 ```
 
 ---
@@ -546,3 +546,4 @@ Dependencies mới: mathjs (npm install mathjs)
 - 2026-04-26: P3 Monte Carlo service đã có unit test deterministic bằng seeded RNG và đã thêm vào `npm.cmd run test:investment`; controller integration, performance test và probLoss theo riskLevel chưa thực hiện.
 - 2026-04-26: P3 đã nối Monte Carlo vào `getAllocationRecommendation()`: giữ `projection.base/optimistic/pessimistic`, thêm `projection.monteCarlo` và `projection.probLoss`; đã có syntax check controller và test helper response shape, full route integration test vẫn chưa làm.
 - 2026-04-26: P3 performance/probLoss tests đã pass: 5000 simulations × 120 months chạy ~682ms trong unit test; investment suite 20/20.
+- 2026-04-26: P4 Risk Metrics service đã implement và test đủ Sharpe, VaR, CVaR, Max Drawdown, riskGrade; investment suite 28/28. Controller integration `riskMetrics` vẫn chưa tick.
