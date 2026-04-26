@@ -1015,8 +1015,15 @@ async function fetchVangTodayHistory(source, days) {
 
   const byDay = new Map();
   for (const row of candidates) {
-    const timestamp = normalizeMarketTimestamp(row.update_time ?? row.timestamp ?? row.time ?? row.date);
-    const rawSell = row.sell ?? row.close ?? row.price ?? row.value ?? row.buy;
+    const nestedPrice = row.prices?.[source.goldType] || row.price?.[source.goldType] || row[source.goldType] || row;
+    const timestamp = normalizeMarketTimestamp(
+      row.update_time
+      ?? nestedPrice.update_time
+      ?? row.timestamp
+      ?? row.time
+      ?? row.date
+    );
+    const rawSell = nestedPrice.sell ?? nestedPrice.close ?? nestedPrice.price ?? nestedPrice.value ?? nestedPrice.buy;
     const sell = parseMarketNumber(rawSell);
     if (!timestamp || !Number.isFinite(sell) || sell <= 0) continue;
 
