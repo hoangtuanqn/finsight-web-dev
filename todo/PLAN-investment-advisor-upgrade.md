@@ -760,9 +760,9 @@ Dependencies mới: mathjs (npm install mathjs)
 
 **Checklist**
 
-- [ ] Không đổi contract `getPortfolio`, `upsertPortfolio`, `updatePortfolio`
-- [ ] Không đưa riskMetrics vào portfolio cá nhân khi DB chưa lưu
-- [ ] Nếu thêm link "Phân tích bằng cố vấn AI", chỉ điều hướng về `/investment`, không gọi API phụ
+- [x] Không đổi contract `getPortfolio`, `upsertPortfolio`, `updatePortfolio`
+- [x] Không đưa riskMetrics vào portfolio cá nhân khi DB chưa lưu
+- [x] Nếu thêm link "Phân tích bằng cố vấn AI", chỉ điều hướng về `/investment`, không gọi API phụ
 - [ ] Smoke test edit allocation tổng 100% vẫn hoạt động
 
 ### 10.10 Testing & verification UI
@@ -828,3 +828,4 @@ npm.cmd run build
 - 2026-04-26: UI 10.6 đã thêm `EfficientFrontierPanel`; hiện dùng current portfolio risk-return card khi backend chưa có `optimization.frontierPoints`, nhưng đã future-ready ScatterChart nếu backend expose frontier points sau này; `npm.cmd run build` pass.
 - 2026-04-26: UI 10.7 đã cập nhật `AIRationalPanel` sang copy MVO, truyền `{ optimization, allocationMetrics }` vào `explainAsset()` và giữ legacy fallback có comment; `npm.cmd run build` pass.
 - 2026-04-26: UI 10.8 đã thêm badge method/dataQuality ở header lịch sử chỉ khi active latest analysis có field; giữ nguyên click row, nút Áp dụng và không fake risk metrics cho từng strategy row; `npm.cmd run build` pass.
+- 2026-04-26: UI 10.9 đã rà MyPortfolio compatibility: không đổi API contract portfolio, không đưa riskMetrics/optimization vào DB portfolio, link hiện có chỉ điều hướng `/investment`; smoke edit allocation 100% còn pending vì chưa chạy app/browser thật.
