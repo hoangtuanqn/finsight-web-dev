@@ -18,7 +18,7 @@ export const knowledgeSearchTool = tool(
       // Gọi module retriever để thực hiện tìm kiếm ngữ nghĩa (Semantic Search)
       // Lấy ra 3 kết quả phù hợp nhất (limit: 3)
       const results = await searchKnowledge(query, 3, category || null);
-      
+
       if (results.length === 0) {
         return JSON.stringify({ message: "Không tìm thấy tài liệu liên quan trong knowledge base." });
       }
@@ -36,7 +36,7 @@ export const knowledgeSearchTool = tool(
           topTitle: results[0]?.title || null,
         });
       }
-      
+
       // Trả về mảng các đoạn văn bản tri thức đã lọc để Agent tổng hợp câu trả lời
       return JSON.stringify(filteredResults);
     } catch (e) {

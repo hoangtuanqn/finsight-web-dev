@@ -14,9 +14,8 @@ export const validate = (schema, source = 'body') => {
       next();
     } catch (validationError) {
       if (validationError instanceof z.ZodError) {
-        const errorMessage = validationError.errors
-          .map((err) => err.message)
-          .join(', ');
+        const issues = validationError.errors || validationError.issues || [];
+        const errorMessage = issues.map((err) => err.message).join(', ');
         return error(res, errorMessage, 400);
       }
       next(validationError);

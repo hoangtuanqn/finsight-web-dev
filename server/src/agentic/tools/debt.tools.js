@@ -58,7 +58,7 @@ export const getUserDebtsTool = tool(
  *   Client (UI) sẽ bắt action này và hiển thị Popup xác nhận (DebtConfirmModal) cho người dùng duyệt.
  */
 export const parseDebtFromTextTool = tool(
-  async ({ name, originalAmount, apr, termMonths, text, balance, minPayment, startDate, dueDay, feeProcessing, feeInsurance, feeManagement }) => {
+  async ({ name, originalAmount, apr, termMonths, text, balance, minPayment, startDate, dueDay, feeProcessing, feeInsurance, feeManagement, rateType }) => {
     // Trả về trực tiếp JSON cho Client (thông qua agent.js stream capture)
     // Lưu ý: Việc lưu Database THỰC SỰ sẽ được gọi bằng một API khác sau khi User bấm Confirm trên giao diện.
     return JSON.stringify({
@@ -68,10 +68,11 @@ export const parseDebtFromTextTool = tool(
         originalAmount,
         apr,
         termMonths,
+        rateType: rateType || "REDUCING", // Mặc định là dư nợ giảm dần nếu AI không chắc
         balance: balance ?? originalAmount, // Mặc định dư nợ = số tiền gốc nếu không có
         minPayment: minPayment ?? null,
         startDate: startDate ?? null,
-        dueDay: dueDay ?? null,
+        dueDay: dueDay ?? 15, // Mặc định ngày 15 nếu không thấy
         feeProcessing: feeProcessing ?? 0,
         feeInsurance: feeInsurance ?? 0,
         feeManagement: feeManagement ?? 0,
@@ -88,6 +89,7 @@ export const parseDebtFromTextTool = tool(
       originalAmount: z.number().describe("Số tiền gốc vay (VNĐ)"),
       apr: z.number().describe("Lãi suất danh nghĩa hàng năm (APR) tính theo %"),
       termMonths: z.number().describe("Kỳ hạn vay (số tháng)"),
+      rateType: z.enum(["FLAT", "REDUCING"]).optional().describe("Loại lãi suất: FLAT (lãi phẳng) hoặc REDUCING (dư nợ giảm dần). Nếu là vay ngân hàng lớn thường là REDUCING. Nếu là công ty tài chính hoặc PayLater thường là FLAT."),
       text: z.string().optional().describe("Ngữ cảnh thêm từ người dùng nếu có đoạn cần ghi chú"),
       balance: z.number().optional().describe("Dư nợ hiện tại (VNĐ). Nếu không có, mặc định bằng originalAmount"),
       minPayment: z.number().optional().describe("Số tiền trả tối thiểu hàng tháng (VNĐ)"),
