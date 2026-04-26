@@ -451,7 +451,7 @@ Runtime hiện hành đã thay heuristic `getAllocation()` bằng backend servic
 | `server/src/services/monteCarloSimulation.service.js` | 5000-simulation projection engine |
 | `server/src/services/riskMetrics.service.js` | Sharpe, VaR, CVaR, max drawdown, risk grade |
 
-`server/src/utils/calculations.js` và `client/src/utils/calculations.js` vẫn còn `getAllocation()` nhưng đã đánh dấu `[LEGACY]`; runtime controller import optimizer service trực tiếp.
+`getAllocation()` heuristic cũ đã được gỡ khỏi `server/src/utils/calculations.js` và `client/src/utils/calculations.js` trong cleanup trước merge vì runtime không còn import. Các fallback còn dùng cho strategy history cũ vẫn giữ ở UI adapter/page.
 
 Flow allocation:
 
@@ -780,7 +780,7 @@ Verification window: `2026-04-26`
 | Command | Kết quả | Ghi chú |
 | --- | --- | --- |
 | `cd server && npx prisma validate` | Passed | schema Prisma hợp lệ |
-| `cd server && npm.cmd run test:investment` | Passed | 32 tests: historical, optimizer, Monte Carlo, risk metrics |
+| `cd server && npm.cmd run test:investment` | Archived | đã pass 32 tests trong giai đoạn phát triển; test modules/script nội bộ của investment advisor đã gỡ trước merge |
 | `cd client && npm run lint` | Failed | `92` vấn đề (`87` errors, `5` warnings) |
 | `cd client && npm run build` | Passed | rerun ngoài sandbox; có warning bundle lớn |
 | `cd client && npm test` | Failed | không có script `test` |
@@ -849,7 +849,7 @@ Các tài liệu sau **không còn phản ánh code hiện tại đầy đủ**:
 ## 15. Quy ước khi AI khác tiếp tục làm việc
 
 - Luôn đọc tệp này trước, sau đó xác minh lại đúng file runtime liên quan.
-- Khi thay đổi investment advisor runtime, ưu tiên các service backend mới (`historicalData`, `portfolioOptimizer`, `monteCarloSimulation`, `riskMetrics`). `getAllocation()` trong client/server utils hiện là `[LEGACY]`.
+- Khi thay đổi investment advisor runtime, ưu tiên các service backend mới (`historicalData`, `portfolioOptimizer`, `monteCarloSimulation`, `riskMetrics`). Heuristic `getAllocation()` cũ đã được gỡ khỏi utils; chỉ giữ fallback UI đang thật sự dùng cho strategy history cũ.
 - Không cho tool AI ghi nợ trực tiếp xuống DB nếu chưa có bước confirm ở UI.
 - Nếu thay schema Prisma, phải quyết định rõ:
   - chỉ `db push` cho dev

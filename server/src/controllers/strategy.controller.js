@@ -3,6 +3,10 @@ import { success, error } from '../utils/apiResponse.js';
 import { getOptimalAllocation } from '../services/portfolioOptimizer.service.js';
 import { fetchFearGreedIndex } from '../services/market.service.js';
 
+function shortUserId(userId) {
+  return String(userId || 'unknown').slice(0, 8);
+}
+
 // ─── GET /investment/strategies ──────────────────────────────
 export async function getMyStrategies(req, res) {
   try {
@@ -19,6 +23,7 @@ export async function getMyStrategies(req, res) {
 
 // ─── POST /investment/strategies/generate ────────────────────
 export async function generateStrategy(req, res) {
+  const startedAt = Date.now();
   try {
     // 1. Lấy user + profile + quota
     const user = await prisma.user.findUnique({
@@ -30,20 +35,25 @@ export async function generateStrategy(req, res) {
 
     // 2. Kiểm tra profile đầu tư
     if (!user.investorProfile) {
+      console.info(`[InvestmentAdvisor] strategy-generate:missing-profile user=${shortUserId(req.userId)}`);
       return error(res, 'Vui lòng tạo hồ sơ đầu tư trước khi tạo chiến lược.', 400);
     }
 
     // 3. Kiểm tra quota
     if (user.strategyQuota <= 0) {
+      console.info(`[InvestmentAdvisor] strategy-generate:no-quota user=${shortUserId(req.userId)}`);
       return error(res, 'Bạn đã hết lượt tạo chiến lược. Nâng cấp tài khoản để nhận thêm lượt.', 403);
     }
+
+    console.info(
+      `[InvestmentAdvisor] strategy-generate:start user=${shortUserId(req.userId)} risk=${user.investorProfile.riskLevel} quotaBefore=${user.strategyQuota}`
+    );
 
     // 4. Lấy Fear & Greed Index hiện tại
     const sentiment = await fetchFearGreedIndex();
     const sentimentValue = sentiment.value ?? 50;
 
-    // 5. Tính allocation dựa trên profile + sentiment.
-    // [LEGACY] const result = getAllocation(user.investorProfile, sentimentValue);
+    // 5. Tính allocation bằng optimizer dựa trên profile + sentiment.
     const result = await getOptimalAllocation(user.investorProfile, sentimentValue);
 
     // 6. Lưu AIStrategy
@@ -68,6 +78,10 @@ export async function generateStrategy(req, res) {
       data: { strategyQuota: { decrement: 1 } },
       select: { strategyQuota: true },
     });
+
+    console.info(
+      `[InvestmentAdvisor] strategy-generate:complete user=${shortUserId(req.userId)} strategy=${strategy.id} sentiment=${sentimentValue} dataQuality=${result.optimization?.marketDataQuality || 'unknown'} quotaAfter=${updatedUser.strategyQuota} durationMs=${Date.now() - startedAt}`
+    );
 
     return success(res, {
       strategy,
