@@ -1,6 +1,10 @@
 import prisma from '../lib/prisma.js';
 import { success, error } from '../utils/apiResponse.js';
 import { getOptimalAllocation } from '../services/portfolioOptimizer.service.js';
+import {
+  buildBackwardCompatibleProjection,
+  generateProjectionTable,
+} from '../services/monteCarloSimulation.service.js';
 import { fetchFearGreedIndex } from '../services/market.service.js';
 import { ASSET_CLASSES, RISK_CONFIG } from '../constants/investmentConstants.js';
 
@@ -89,38 +93,18 @@ export async function getAllocationRecommendation(req, res) {
       { asset: 'Crypto', percentage: allocation.crypto, amount: profile.capital * allocation.crypto / 100 },
     ];
 
-    // Expected returns dựa trên dữ liệu thực tế VN 2024-2025 (từ ASSET_CLASSES constants)
-    // Crypto dùng baseCase (+20%) vì không có expected return ổn định — kèm note cảnh báo
-    const rates = {
-      savings: profile.savingsRate !== undefined ? profile.savingsRate / 100 : ASSET_CLASSES.savings.expectedReturn,
-      gold:    ASSET_CLASSES.gold.expectedReturn,    // 6.5% — CAGR vàng SJC 10 năm
-      stocks:  ASSET_CLASSES.stocks.expectedReturn,  // 10.0% — VN-Index CAGR 2014-2024
-      bonds:   ASSET_CLASSES.bonds.expectedReturn,   // 5.8% — TPCP kỳ hạn 5-10 năm 2024
-      crypto:  ASSET_CLASSES.crypto.baseCase,        // 20% baseCase (không phải average — quá biến động)
-    };
+    // [LEGACY] Projection cũ dùng ASSET_CLASSES + calcFV(realReturn),
+    // optimistic = weightedReturn * 1.3, pessimistic = weightedReturn * 0.5.
+    // Replaced by Monte Carlo percentiles using the same market params as MVO.
     const inflationRate = profile.inflationRate !== undefined ? profile.inflationRate / 100 : 0.035;
-
-    const weightedReturn = (allocation.savings * rates.savings + allocation.gold * rates.gold +
-      allocation.stocks * rates.stocks + allocation.bonds * rates.bonds +
-      allocation.crypto * rates.crypto) / 100;
-
-    const realReturn = weightedReturn - inflationRate;
-    const optReturn = weightedReturn * 1.3 - inflationRate;
-    const pessReturn = Math.max(-0.5, weightedReturn * 0.5 - inflationRate);
-
-    const projection = { base: {}, optimistic: {}, pessimistic: {} };
-
-    for (const years of [1, 3, 5, 10]) {
-      const calcFV = (rate) => {
-        if (rate === 0) return profile.capital + profile.monthlyAdd * 12 * years;
-        return profile.capital * Math.pow(1 + rate, years) +
-          profile.monthlyAdd * 12 * ((Math.pow(1 + rate, years) - 1) / rate);
-      };
-      
-      projection.base[`${years}y`] = Math.round(calcFV(realReturn));
-      projection.optimistic[`${years}y`] = Math.round(calcFV(optReturn));
-      projection.pessimistic[`${years}y`] = Math.round(calcFV(pessReturn));
-    }
+    const projectionTable = generateProjectionTable({
+      capital: profile.capital ?? 0,
+      monthlyAdd: profile.monthlyAdd ?? 0,
+      weights: allocation.weights,
+      means: allocation.marketParams.means.map(mean => mean - inflationRate),
+      covMatrix: allocation.marketParams.covMatrix,
+    });
+    const projection = buildBackwardCompatibleProjection(projectionTable);
 
     return success(res, {
       allocation: {

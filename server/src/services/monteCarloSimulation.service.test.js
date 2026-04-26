@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import * as math from 'mathjs';
 import {
   boxMullerTransform,
+  buildBackwardCompatibleProjection,
   choleskyDecomposition,
   createSeededRng,
   generateProjectionTable,
@@ -88,4 +89,19 @@ test('generateProjectionTable builds standard investment horizons', () => {
 
   assert.deepEqual(Object.keys(table), ['1y', '3y', '5y', '10y']);
   assert.ok(table['10y'].median > table['1y'].median);
+});
+
+test('buildBackwardCompatibleProjection preserves legacy shape and strips raw simulations', () => {
+  const projection = buildBackwardCompatibleProjection({
+    '1y': { p5: 80.2, p25: 90, median: 100.4, p75: 110, p95: 120.8, mean: 101.2, probLoss: 0.12, results: [1, 2, 3] },
+    '10y': { p5: 180.2, p25: 190, median: 200.4, p75: 210, p95: 220.8, mean: 201.2, probLoss: 0.08, samplePaths: [[100, 101]] },
+  });
+
+  assert.deepEqual(projection.base, { '1y': 100, '10y': 200 });
+  assert.deepEqual(projection.optimistic, { '1y': 121, '10y': 221 });
+  assert.deepEqual(projection.pessimistic, { '1y': 80, '10y': 180 });
+  assert.equal(projection.probLoss, 0.08);
+  assert.equal(projection.monteCarlo['1y'].median, 100);
+  assert.equal(projection.monteCarlo['1y'].results, undefined);
+  assert.equal(projection.monteCarlo['10y'].samplePaths, undefined);
 });

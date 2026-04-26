@@ -162,8 +162,9 @@ export async function getOptimalAllocation(profile, sentimentValue = 50, marketP
   const result = optimizePortfolio(marketParams, profile?.riskLevel || 'MEDIUM', sentimentValue, profile);
   const sentimentLabel = getSentimentLabel(sentimentValue);
 
-  return {
+  const allocation = {
     ...result.allocation,
+    weights: result.weights,
     sentimentValue,
     sentimentLabel,
     sentimentVietnamese: getSentimentVietnamese(sentimentLabel),
@@ -176,4 +177,11 @@ export async function getOptimalAllocation(profile, sentimentValue = 50, marketP
       marketDataQuality: result.marketDataQuality,
     },
   };
+
+  Object.defineProperty(allocation, 'marketParams', {
+    value: marketParams,
+    enumerable: false,
+  });
+
+  return allocation;
 }
