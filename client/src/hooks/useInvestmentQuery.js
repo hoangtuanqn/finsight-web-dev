@@ -69,9 +69,13 @@ export function useBondsRates(riskLevel = 'MEDIUM') {
   });
 }
 
-export function useAssetMonthlyHistory({ months = 12, enabled = false, ...requestParams } = {}) {
+export function useAssetMonthlyHistory({ months, days, enabled = false, ...requestParams } = {}) {
   const hasSource = Boolean(requestParams.ticker || requestParams.symbol || requestParams.source || requestParams.bankId);
-  const params = { ...requestParams, months };
+  const apiParams = { ...requestParams };
+  delete apiParams.rangeOptions;
+  delete apiParams.defaultRange;
+  const rangeParams = days ? { days } : { months: months ?? 12 };
+  const params = { ...apiParams, ...rangeParams };
 
   return useQuery({
     queryKey: queryKeys.INVESTMENT.ASSET_HISTORY(params),

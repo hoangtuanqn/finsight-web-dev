@@ -7,6 +7,10 @@ import {
 } from '../services/monteCarloSimulation.service.js';
 import { buildRiskMetrics } from '../services/riskMetrics.service.js';
 import { fetchAssetHistory } from '../services/historicalData.service.js';
+import {
+  fetchVietnamGovBondAuctionHistory,
+  getLatestVietnamGovBondYields,
+} from '../services/vietnamBondHistory.service.js';
 import { fetchFearGreedIndex } from '../services/market.service.js';
 import { ASSET_CLASSES, RISK_CONFIG } from '../constants/investmentConstants.js';
 
@@ -237,21 +241,19 @@ export async function submitRiskAssessment(req, res) {
 }
 
 // ─── Bonds Rates ──────────────────────────────────────────────────────────────
-// Cập nhật: 23/04/2026
+// Cập nhật: 22/04/2026
 const BONDS_DATA = {
-  updatedAt: '2026-04-23',
+  updatedAt: '2026-04-22',
   govBonds: [
-    { term: '2 năm',  rate: 5.20, liquidity: 'Cao',    risk: 'Rất thấp', badge: 'Ngắn hạn',  badgeColor: 'blue'    },
-    { term: '3 năm',  rate: 5.50, liquidity: 'Cao',    risk: 'Rất thấp', badge: 'Phổ biến',  badgeColor: 'purple'  },
-    { term: '5 năm',  rate: 5.80, liquidity: 'Trung bình', risk: 'Thấp', badge: 'Khuyên dùng', badgeColor: 'purple' },
-    { term: '10 năm', rate: 6.20, liquidity: 'Thấp',   risk: 'Thấp',    badge: 'Lãi cao',    badgeColor: 'emerald' },
-    { term: '15 năm', rate: 6.40, liquidity: 'Thấp',   risk: 'Thấp',    badge: '',           badgeColor: ''        },
+    { term: '5 năm',  tenor: 5,  rate: 3.83, liquidity: 'Trung bình', risk: 'Thấp', badge: 'Khuyên dùng', badgeColor: 'purple', source: 'vn_gov_5y'  },
+    { term: '10 năm', tenor: 10, rate: 4.15, liquidity: 'Cao', risk: 'Thấp', badge: 'Ưu tiên', badgeColor: 'amber', source: 'vn_gov_10y' },
+    { term: '15 năm', tenor: 15, rate: 4.23, liquidity: 'Trung bình', risk: 'Thấp', badge: 'Dài hạn', badgeColor: 'purple', source: 'vn_gov_15y' },
   ],
   bondFunds: [
-    { name: 'Quỹ VCBF-BCF',    manager: 'Vietcombank AM', returnEst: '6.0-7.0', minInvest: '1 triệu', badge: 'Uy tín',    badgeColor: 'blue',    note: 'Danh mục TPCP + TP ngân hàng, quản lý chuyên nghiệp' },
-    { name: 'Quỹ SSISCA',      manager: 'SSI AM',         returnEst: '6.5-7.5', minInvest: '1 triệu', badge: 'Tốt nhất',  badgeColor: 'amber',   note: 'Lợi nhuận ổn định, đa dạng TP doanh nghiệp uy tín' },
-    { name: 'Quỹ MBBOND',      manager: 'MB Capital',     returnEst: '6.0-7.0', minInvest: '1 triệu', badge: 'Tiện lợi',  badgeColor: 'blue',    note: 'Mua qua app MBBank, phí thấp, rút linh hoạt' },
-    { name: 'Quỹ TCBF',        manager: 'Techcom Capital', returnEst: '6.0-6.8', minInvest: '1 triệu', badge: '',         badgeColor: '',        note: 'Mua qua Techcombank, tích hợp sẵn trong app' },
+    { id: 'vcbf_fif', name: 'Quỹ VCBF-FIF', manager: 'Vietcombank Fund Management', returnEst: '6.0-7.0', minInvest: '1 triệu', badge: 'Uy tín', badgeColor: 'blue', note: 'Quỹ thu nhập cố định, benchmark TPCP Việt Nam 10 năm', benchmarkSource: 'vn_gov_10y' },
+    { id: 'ssibf', name: 'Quỹ SSIBF', manager: 'SSI AM', returnEst: '6.0-7.0', minInvest: '1 triệu', badge: 'Trái phiếu', badgeColor: 'amber', note: 'Quỹ trái phiếu SSI, dùng benchmark TPCP 10 năm khi chưa có NAV history ổn định', benchmarkSource: 'vn_gov_10y' },
+    { id: 'mbbond', name: 'Quỹ MBBOND', manager: 'MB Capital', returnEst: '6.0-7.0', minInvest: '1 triệu', badge: 'Tiện lợi', badgeColor: 'blue', note: 'Mua qua app MBBank, phí thấp, cần collector NAV nếu muốn chart trực tiếp', benchmarkSource: 'vn_gov_10y' },
+    { id: 'tcbf', name: 'Quỹ TCBF', manager: 'Techcom Capital', returnEst: '6.0-6.8', minInvest: '1 triệu', badge: '', badgeColor: '', note: 'Mua qua Techcombank, cần collector NAV nếu muốn chart trực tiếp', benchmarkSource: 'vn_gov_10y' },
   ],
 };
 
@@ -286,14 +288,31 @@ export async function getBondsRates(req, res) {
     const us10yChange = us10y.prevClose > 0
       ? us10y.rate - us10y.prevClose : 0;
 
+    let vnBondHistory = null;
+    let latestVnYields = {};
+    try {
+      vnBondHistory = await fetchVietnamGovBondAuctionHistory(3);
+      latestVnYields = getLatestVietnamGovBondYields(vnBondHistory);
+      if (vnBondHistory?.stale) {
+        console.warn('[InvestmentAdvisor] bonds:vbma-history-stale-or-empty');
+      }
+    } catch (err) {
+      console.warn(`[InvestmentAdvisor] bonds:vbma-history-unavailable ${err.message}`);
+    }
+
+    const govBondData = BONDS_DATA.govBonds.map((bond) => ({
+      ...bond,
+      rate: latestVnYields[bond.tenor] || bond.rate,
+    }));
+
     // Gợi ý kỳ hạn TPCP theo riskLevel
     const preferTerms = {
       LOW:    ['10 năm', '15 năm', '5 năm'],
-      MEDIUM: ['5 năm',  '3 năm',  '2 năm'],
-      HIGH:   ['2 năm',  '3 năm',  '5 năm'],
+      MEDIUM: ['5 năm', '10 năm', '15 năm'],
+      HIGH:   ['5 năm', '10 năm', '15 năm'],
     }[riskLevel];
 
-    const sortedGov = [...BONDS_DATA.govBonds].sort((a, b) => {
+    const sortedGov = [...govBondData].sort((a, b) => {
       const ai = preferTerms.indexOf(a.term);
       const bi = preferTerms.indexOf(b.term);
       return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
@@ -320,18 +339,25 @@ export async function getBondsRates(req, res) {
         id: `gov_${g.term}`,
         name: `Trái phiếu Chính phủ ${g.term}`,
         tag: `TPCP · ${g.liquidity} · Rủi ro ${g.risk}`,
+        historySource: { asset: 'bonds', source: g.source, sourceType: 'officialAuction' },
         rate: g.rate,
         rateLabel: `${g.rate.toFixed(2)}%/năm`,
         change: null,
-        note: `Phát hành qua HNX · thanh khoản ${g.liquidity.toLowerCase()} · mua qua TCBS, SSI, MBBank tối thiểu 100k`,
+        note: `Yield trúng thầu VBMA/HNX mới nhất · thanh khoản ${g.liquidity.toLowerCase()} · mua qua TCBS, SSI, MBBank tối thiểu 100k`,
         badge: i === 0 ? 'Ưu tiên' : g.badge,
         badgeColor: i === 0 ? 'amber' : g.badgeColor,
       })),
       // Quỹ trái phiếu
       ...BONDS_DATA.bondFunds.slice(0, 2).map(f => ({
-        id: f.name,
+        id: f.id,
         name: f.name,
         tag: `Quỹ · ${f.manager}`,
+        historySource: {
+          asset: 'bonds',
+          source: f.benchmarkSource,
+          sourceType: 'proxy',
+          sourceLabel: 'Benchmark TPCP 10Y',
+        },
         rate: null,
         rateLabel: `~${f.returnEst}%/năm`,
         change: null,
@@ -354,15 +380,17 @@ export async function getBondsRates(req, res) {
       HIGH:   'kỳ hạn ngắn 2–3 năm giữ linh hoạt',
     }[riskLevel];
 
+    const currentFiveYearRate = govBondData.find(b => b.term === '5 năm')?.rate;
     const intro = `US 10Y yield đang ở ${us10y.rate.toFixed(2)}% — ${rateEnv}. `
       + `Với khẩu vị ${riskLevel === 'LOW' ? 'thấp' : riskLevel === 'MEDIUM' ? 'trung bình' : 'cao'}, `
-      + `nên chọn ${termAdvice}. TPCP Việt Nam kỳ hạn 5 năm đang ở ${BONDS_DATA.govBonds.find(b => b.term === '5 năm')?.rate}%/năm.`;
+      + `nên chọn ${termAdvice}. TPCP Việt Nam kỳ hạn 5 năm đang ở ${currentFiveYearRate?.toFixed(2)}%/năm.`;
 
     return success(res, {
       bondItems,
       intro,
       us10y,
-      updatedAt: BONDS_DATA.updatedAt,
+      updatedAt: vnBondHistory?.updatedAt || BONDS_DATA.updatedAt,
+      vnBondUpdatedAt: vnBondHistory?.updatedAt || BONDS_DATA.updatedAt,
       riskLevel,
     });
   } catch (err) {
@@ -587,7 +615,7 @@ export async function getGoldPrices(req, res) {
         id: 'world',
         name: 'Vàng thế giới (GC=F)',
         tag: 'Futures · COMEX',
-        historySource: { asset: 'gold', source: 'world' },
+        historySource: { asset: 'gold', source: 'world', sourceType: 'direct' },
         price: worldPrice,
         priceLabel: fmtW(worldPrice),
         change24h: worldChange,
@@ -600,6 +628,7 @@ export async function getGoldPrices(req, res) {
         id: 'sjc',
         name: 'Vàng miếng SJC',
         tag: 'Trong nước · 1 chỉ',
+        historySource: { asset: 'gold', source: 'sjc', sourceType: 'direct', rangeType: 'days', defaultRange: 30, rangeOptions: [7, 14, 30] },
         price: sjc.sell,
         priceLabel: fmt(sjc.sell),
         buyPrice: sjc.buy,
@@ -613,6 +642,7 @@ export async function getGoldPrices(req, res) {
         id: 'nhan',
         name: 'Nhẫn tròn trơn VRTL',
         tag: 'Trang sức · 1 chỉ',
+        historySource: { asset: 'gold', source: 'ring', sourceType: 'direct', rangeType: 'days', defaultRange: 30, rangeOptions: [7, 14, 30] },
         price: nhan.sell,
         priceLabel: fmt(nhan.sell),
         buyPrice: nhan.buy,
@@ -624,19 +654,21 @@ export async function getGoldPrices(req, res) {
       } : null,
       {
         id: 'etf_gold',
-        name: 'ETF Vàng (VFMVF1)',
-        tag: 'Chứng chỉ quỹ',
+        name: 'Vàng thế giới quy đổi',
+        tag: 'Proxy · XAU/USD',
+        historySource: { asset: 'gold', source: 'world', sourceType: 'proxy', sourceLabel: 'Tham chiếu GC=F' },
         price: null,
-        priceLabel: 'Giao dịch qua HNX',
+        priceLabel: 'Theo GC=F',
         change24h: worldChange,
-        note: 'Đầu tư vàng qua sàn chứng khoán — phí thấp, không cần lưu trữ vật lý',
-        badge: 'Tiện lợi',
+        note: 'Dùng vàng thế giới làm tham chiếu vì chưa xác thực được ticker ETF vàng Việt Nam phù hợp',
+        badge: 'Tham chiếu',
         badgeColor: 'blue',
       },
       {
         id: 'saving_gold',
         name: 'Tích lũy vàng DCA',
         tag: 'Chiến lược',
+        historySource: { asset: 'gold', source: 'sjc', sourceType: 'proxy', sourceLabel: 'Proxy SJC 30 ngày', rangeType: 'days', defaultRange: 30, rangeOptions: [7, 14, 30] },
         price: null,
         priceLabel: 'Mua đều hàng tháng',
         change24h: 0,
@@ -691,25 +723,92 @@ const STOCK_UNIVERSE = [
 ];
 
 const ASSET_HISTORY_MONTH_OPTIONS = new Set([6, 12, 18]);
+const ASSET_HISTORY_DAY_OPTIONS = new Set([7, 14, 30]);
+
 const ASSET_HISTORY_SOURCES = {
   gold: {
     world: {
       asset: 'gold',
       source: 'world',
+      sourceType: 'direct',
+      provider: 'yahoo',
+      rangeType: 'months',
       ticker: 'GC=F',
       name: 'Vàng thế giới (GC=F)',
       metric: { key: 'price', unit: 'USD/oz', changeUnit: 'percent', decimals: 1 },
       dataSource: 'Yahoo Finance monthly close',
+    },
+    sjc: {
+      asset: 'gold',
+      source: 'sjc',
+      sourceType: 'direct',
+      provider: 'vangToday',
+      rangeType: 'days',
+      rangeOptions: [7, 14, 30],
+      defaultRange: 30,
+      goldType: 'VNGSJC',
+      name: 'Vàng miếng SJC',
+      metric: { key: 'price', unit: 'VND/chỉ', changeUnit: 'percent', decimals: 0 },
+      dataSource: 'vang.today daily sell price',
+    },
+    ring: {
+      asset: 'gold',
+      source: 'ring',
+      sourceType: 'direct',
+      provider: 'vangToday',
+      rangeType: 'days',
+      rangeOptions: [7, 14, 30],
+      defaultRange: 30,
+      goldType: 'BT9999NTT',
+      name: 'Nhẫn tròn trơn 9999',
+      metric: { key: 'price', unit: 'VND/chỉ', changeUnit: 'percent', decimals: 0 },
+      dataSource: 'vang.today daily sell price',
     },
   },
   bonds: {
     us10y: {
       asset: 'bonds',
       source: 'us10y',
+      sourceType: 'direct',
+      provider: 'yahoo',
+      rangeType: 'months',
       ticker: '^TNX',
       name: 'US Treasury 10Y',
       metric: { key: 'yield', unit: '%', changeUnit: 'percentagePoint', decimals: 2 },
       dataSource: 'Yahoo Finance monthly yield',
+    },
+    vn_gov_5y: {
+      asset: 'bonds',
+      source: 'vn_gov_5y',
+      sourceType: 'officialAuction',
+      provider: 'vbmaAuction',
+      rangeType: 'months',
+      tenor: 5,
+      name: 'TPCP Việt Nam 5 năm',
+      metric: { key: 'yield', unit: '%', changeUnit: 'percentagePoint', decimals: 2 },
+      dataSource: 'VBMA auction result pages',
+    },
+    vn_gov_10y: {
+      asset: 'bonds',
+      source: 'vn_gov_10y',
+      sourceType: 'officialAuction',
+      provider: 'vbmaAuction',
+      rangeType: 'months',
+      tenor: 10,
+      name: 'TPCP Việt Nam 10 năm',
+      metric: { key: 'yield', unit: '%', changeUnit: 'percentagePoint', decimals: 2 },
+      dataSource: 'VBMA auction result pages',
+    },
+    vn_gov_15y: {
+      asset: 'bonds',
+      source: 'vn_gov_15y',
+      sourceType: 'officialAuction',
+      provider: 'vbmaAuction',
+      rangeType: 'months',
+      tenor: 15,
+      name: 'TPCP Việt Nam 15 năm',
+      metric: { key: 'yield', unit: '%', changeUnit: 'percentagePoint', decimals: 2 },
+      dataSource: 'VBMA auction result pages',
     },
   },
 };
@@ -717,6 +816,18 @@ const ASSET_HISTORY_SOURCES = {
 function normalizeHistoryMonths(value) {
   const months = Number.parseInt(value, 10);
   return ASSET_HISTORY_MONTH_OPTIONS.has(months) ? months : 12;
+}
+
+function normalizeHistoryDays(value) {
+  const days = Number.parseInt(value, 10);
+  return ASSET_HISTORY_DAY_OPTIONS.has(days) ? days : 30;
+}
+
+function normalizeHistorySourceType(value, fallback) {
+  const normalized = String(value || '').trim();
+  return ['direct', 'officialCurve', 'officialAuction', 'proxy'].includes(normalized)
+    ? normalized
+    : fallback;
 }
 
 function resolveStockMeta(rawTicker) {
@@ -749,7 +860,14 @@ function resolveAssetHistorySource(asset, query) {
   }
 
   const source = String(query.source || '').trim().toLowerCase();
-  return ASSET_HISTORY_SOURCES[asset]?.[source] || null;
+  const sourceConfig = ASSET_HISTORY_SOURCES[asset]?.[source];
+  if (!sourceConfig) return null;
+
+  return {
+    ...sourceConfig,
+    sourceType: normalizeHistorySourceType(query.sourceType, sourceConfig.sourceType),
+    sourceLabel: query.sourceLabel || sourceConfig.sourceLabel,
+  };
 }
 
 function roundHistoryValue(value, decimals) {
@@ -785,6 +903,141 @@ function buildMonthlyHistoryRows(rawHistory, months, metric) {
   });
 
   return rows.slice(-months);
+}
+
+function buildDailyHistoryRows(rawHistory, days, metric) {
+  const decimals = Number.isInteger(metric?.decimals) ? metric.decimals : 2;
+  const rows = rawHistory.timestamps.map((timestamp, index) => {
+    const value = roundHistoryValue(rawHistory.closes[index], decimals);
+    const previousClose = index > 0 ? rawHistory.closes[index - 1] : null;
+    const date = new Date(timestamp * 1000);
+    const year = date.getUTCFullYear();
+    const monthNumber = date.getUTCMonth() + 1;
+    const dayNumber = date.getUTCDate();
+    const month = `${year}-${String(monthNumber).padStart(2, '0')}-${String(dayNumber).padStart(2, '0')}`;
+    const label = `${String(dayNumber).padStart(2, '0')}/${String(monthNumber).padStart(2, '0')}`;
+    const change = previousClose
+      ? metric?.changeUnit === 'percentagePoint'
+        ? value - previousClose
+        : ((value - previousClose) / previousClose) * 100
+      : 0;
+    const roundedChange = Number(change.toFixed(metric?.changeUnit === 'percentagePoint' ? 2 : 2));
+
+    return {
+      month,
+      label,
+      value,
+      close: value,
+      change: roundedChange,
+      changePct: roundedChange,
+    };
+  });
+
+  return rows.slice(-days);
+}
+
+function buildMonthlyPointRows(series, months, metric) {
+  const decimals = Number.isInteger(metric?.decimals) ? metric.decimals : 2;
+  const rows = series.map((point, index) => {
+    const value = roundHistoryValue(point.value, decimals);
+    const previousClose = index > 0 ? series[index - 1].value : null;
+    const [year, monthNumber] = point.month.split('-');
+    const change = previousClose
+      ? metric?.changeUnit === 'percentagePoint'
+        ? value - previousClose
+        : ((value - previousClose) / previousClose) * 100
+      : 0;
+    const roundedChange = Number(change.toFixed(metric?.changeUnit === 'percentagePoint' ? 2 : 2));
+
+    return {
+      month: point.month,
+      label: `${monthNumber}/${String(year).slice(-2)}`,
+      value,
+      close: value,
+      change: roundedChange,
+      changePct: roundedChange,
+      sourceLabel: point.sourceLabel,
+      sourceUrl: point.sourceUrl,
+    };
+  });
+
+  return rows.slice(-months);
+}
+
+function parseMarketNumber(value) {
+  if (typeof value === 'number') return value;
+  if (typeof value !== 'string') return Number.NaN;
+
+  const hasThousandSuffix = /k/i.test(value);
+  const cleaned = value
+    .replace(/\s/g, '')
+    .replace(/[^\d.,-]/g, '')
+    .replace(/\.(?=\d{3}(\D|$))/g, '')
+    .replace(/,(?=\d{3}(\D|$))/g, '')
+    .replace(',', '.');
+
+  const parsed = Number.parseFloat(cleaned);
+  return hasThousandSuffix ? parsed * 1000 : parsed;
+}
+
+function normalizeMarketTimestamp(value) {
+  if (typeof value === 'number') return value > 1_000_000_000_000 ? Math.floor(value / 1000) : value;
+  if (typeof value === 'string') {
+    const numeric = Number(value);
+    if (Number.isFinite(numeric)) return normalizeMarketTimestamp(numeric);
+
+    const parsed = Date.parse(value);
+    if (Number.isFinite(parsed)) return Math.floor(parsed / 1000);
+  }
+  return null;
+}
+
+async function fetchVangTodayHistory(source, days) {
+  const url = `https://www.vang.today/api/prices?type=${encodeURIComponent(source.goldType)}&days=${days}`;
+  const response = await fetch(url, {
+    headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' },
+    signal: AbortSignal.timeout(10000),
+  });
+
+  if (!response.ok) {
+    console.warn(`[InvestmentAdvisor] vang.today ${source.goldType}: HTTP ${response.status}`);
+    return null;
+  }
+
+  const json = await response.json();
+  const candidates = Array.isArray(json?.data)
+    ? json.data
+    : Array.isArray(json?.history)
+    ? json.history
+    : Array.isArray(json?.prices)
+    ? json.prices
+    : [];
+
+  const byDay = new Map();
+  for (const row of candidates) {
+    const timestamp = normalizeMarketTimestamp(row.update_time ?? row.timestamp ?? row.time ?? row.date);
+    const rawSell = row.sell ?? row.close ?? row.price ?? row.value ?? row.buy;
+    const sell = parseMarketNumber(rawSell);
+    if (!timestamp || !Number.isFinite(sell) || sell <= 0) continue;
+
+    const dateKey = new Date(timestamp * 1000).toISOString().slice(0, 10);
+    const previous = byDay.get(dateKey);
+    if (!previous || timestamp >= previous.timestamp) {
+      // vang.today quotes domestic gold in VND/tael; UI cards use VND/chi.
+      byDay.set(dateKey, { timestamp, close: sell / 10 });
+    }
+  }
+
+  const rows = [...byDay.values()].sort((a, b) => a.timestamp - b.timestamp);
+  if (rows.length < 2) {
+    console.warn(`[InvestmentAdvisor] vang.today ${source.goldType}: insufficient history (${rows.length} points)`);
+    return null;
+  }
+
+  return {
+    timestamps: rows.map((row) => row.timestamp),
+    closes: rows.map((row) => row.close),
+  };
 }
 
 async function fetchStockQuote(ticker) {
@@ -948,7 +1201,6 @@ export async function getAssetHistory(req, res) {
   const startedAt = Date.now();
   try {
     const asset = String(req.query.asset || 'stocks').toLowerCase();
-    const months = normalizeHistoryMonths(req.query.months);
     const source = resolveAssetHistorySource(asset, req.query);
 
     if (!source) {
@@ -958,17 +1210,42 @@ export async function getAssetHistory(req, res) {
       return error(res, 'Nguồn lịch sử tài sản không được hỗ trợ', 400);
     }
 
+    const rangeType = source.rangeType === 'days' ? 'days' : 'months';
+    const rangeValue = rangeType === 'days'
+      ? normalizeHistoryDays(req.query.days)
+      : normalizeHistoryMonths(req.query.months);
+
     console.info(
-      `[InvestmentAdvisor] asset-history:start user=${shortUserId(req.userId)} asset=${source.asset} source=${source.source} ticker=${source.ticker} metric=${source.metric.key} months=${months}`
+      `[InvestmentAdvisor] asset-history:start user=${shortUserId(req.userId)} asset=${source.asset} source=${source.source} provider=${source.provider || 'unknown'} metric=${source.metric.key} ${rangeType}=${rangeValue}`
     );
 
-    const rawHistory = await fetchAssetHistory(source.ticker);
-    if (!rawHistory) {
-      console.warn(`[InvestmentAdvisor] asset-history:no-data asset=${source.asset} source=${source.source} ticker=${source.ticker}`);
-      return error(res, 'Không có dữ liệu lịch sử cho nguồn này', 502);
+    let history = [];
+    let dynamicUpdatedAt = null;
+    let dynamicDataSource = source.dataSource;
+    if (source.provider === 'vbmaAuction') {
+      const vnBondHistory = await fetchVietnamGovBondAuctionHistory(18);
+      const series = vnBondHistory.seriesByTenor?.[String(source.tenor)] || [];
+      if (vnBondHistory?.stale || series.length === 0) {
+        console.warn(`[InvestmentAdvisor] asset-history:vbma-source-unavailable source=${source.source} tenor=${source.tenor}`);
+      }
+      history = buildMonthlyPointRows(series, rangeValue, source.metric);
+      dynamicUpdatedAt = vnBondHistory.updatedAt;
+      dynamicDataSource = vnBondHistory.dataSource || source.dataSource;
+    } else {
+      const rawHistory = source.provider === 'vangToday'
+        ? await fetchVangTodayHistory(source, rangeValue)
+        : await fetchAssetHistory(source.ticker);
+
+      if (!rawHistory) {
+        console.warn(`[InvestmentAdvisor] asset-history:no-data asset=${source.asset} source=${source.source} provider=${source.provider || 'yahoo'}`);
+        return error(res, 'Không có dữ liệu lịch sử cho nguồn này', 502);
+      }
+
+      history = rangeType === 'days'
+        ? buildDailyHistoryRows(rawHistory, rangeValue, source.metric)
+        : buildMonthlyHistoryRows(rawHistory, rangeValue, source.metric);
     }
 
-    const history = buildMonthlyHistoryRows(rawHistory, months, source.metric);
     if (history.length === 0) {
       return error(res, 'Không đủ dữ liệu lịch sử để hiển thị biểu đồ', 404);
     }
@@ -980,15 +1257,18 @@ export async function getAssetHistory(req, res) {
     return success(res, {
       asset: source.asset,
       source: source.source,
+      sourceType: source.sourceType,
+      sourceLabel: source.sourceLabel,
       ticker: source.ticker,
       symbol: source.symbol,
       name: source.name,
       sector: source.sector,
       metric: source.metric,
-      months,
+      rangeType,
+      [rangeType]: rangeValue,
       history,
-      updatedAt: new Date().toISOString(),
-      dataSource: source.dataSource,
+      updatedAt: dynamicUpdatedAt || new Date().toISOString(),
+      dataSource: dynamicDataSource,
     });
   } catch (err) {
     console.error('getAssetHistory error:', err.message);
