@@ -657,11 +657,11 @@ Dependencies mới: mathjs (npm install mathjs)
 
 **Checklist**
 
-- [ ] `WealthProjection` nhận props `{ projectionData, monteCarloData, mockProfile }`
-- [ ] Nếu `monteCarloData?.length >= 2` thì render fan chart
-- [ ] Nếu không có Monte Carlo thì render line chart cũ không đổi
-- [ ] Tooltip không overflow mobile
-- [ ] Y-axis formatter giữ triệu/tỷ gọn
+- [x] `WealthProjection` nhận props `{ projectionData, monteCarloData, mockProfile }`
+- [x] Nếu `monteCarloData?.length >= 2` thì render fan chart
+- [x] Nếu không có Monte Carlo thì render line chart cũ không đổi
+- [x] Tooltip không overflow mobile
+- [x] Y-axis formatter giữ triệu/tỷ gọn
 - [ ] Snapshot thủ công desktop/mobile: chart không tràn khỏi card
 
 ### 10.5 Data Quality & Optimization Summary
@@ -823,3 +823,4 @@ npm.cmd run build
 - 2026-04-26: UI 10.1 adapter đã tạo `investmentAdvisorAdapter.js`; syntax check và smoke test legacy/new analytics view model đã pass.
 - 2026-04-26: UI 10.2 đã nối adapter vào `InvestmentPage`; analytics mới chỉ áp dụng cho strategy mới nhất, strategy cũ fallback legacy; `npm.cmd run build` pass với warning bundle lớn hiện có.
 - 2026-04-26: UI 10.3 đã thêm `RiskMetricsPanel` hiển thị Sharpe, risk grade, VaR/CVaR, max drawdown và probLoss; `npm.cmd run build` pass với warning bundle lớn hiện có.
+- 2026-04-26: UI 10.4 đã thêm Monte Carlo fan chart vào `WealthProjection`, adapter bổ sung savings baseline + percentile bands; smoke test adapter và `npm.cmd run build` pass với warning bundle lớn hiện có. Snapshot desktop/mobile chưa tick vì chưa chạy được đúng page bằng browser harness.
