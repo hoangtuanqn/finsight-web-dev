@@ -257,36 +257,9 @@ const BONDS_DATA = {
   ],
 };
 
-let bondsCache = { us10y: null, fetchedAt: 0 };
-const BONDS_CACHE_TTL = 30 * 60 * 1000; // 30 phút (bond yield ít thay đổi)
-
 export async function getBondsRates(req, res) {
   try {
     const riskLevel = req.query.riskLevel || 'MEDIUM';
-    const now = Date.now();
-
-    // Lấy US 10Y Treasury yield làm tham chiếu lãi suất toàn cầu
-    let us10y = bondsCache.us10y;
-    if (!us10y || now - bondsCache.fetchedAt > BONDS_CACHE_TTL) {
-      try {
-        const r = await fetch(
-          'https://query2.finance.yahoo.com/v8/finance/chart/%5ETNX?interval=1d&range=1d',
-          { headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' } }
-        );
-        const j = await r.json();
-        const meta = j?.chart?.result?.[0]?.meta;
-        us10y = {
-          rate:      meta?.regularMarketPrice ?? 0,
-          prevClose: meta?.chartPreviousClose ?? 0,
-        };
-        bondsCache = { us10y, fetchedAt: now };
-      } catch {
-        us10y = bondsCache.us10y || { rate: 4.4, prevClose: 4.4 };
-      }
-    }
-
-    const us10yChange = us10y.prevClose > 0
-      ? us10y.rate - us10y.prevClose : 0;
 
     let vnBondHistory = null;
     let latestVnYields = {};
@@ -320,20 +293,6 @@ export async function getBondsRates(req, res) {
 
     // Build items: TPCP + Quỹ TP
     const bondItems = [
-      // US 10Y là reference toàn cầu
-      {
-        id: 'us10y',
-        name: 'US Treasury 10Y (tham chiếu)',
-        tag: 'Lãi suất toàn cầu',
-        historySource: { asset: 'bonds', source: 'us10y' },
-        rate: us10y.rate,
-        rateLabel: `${us10y.rate.toFixed(2)}%`,
-        change: us10yChange,
-        note: `Lãi suất tham chiếu quốc tế · ${us10yChange >= 0 ? '📈 tăng' : '📉 giảm'} ${Math.abs(us10yChange).toFixed(2)}% hôm nay · Ảnh hưởng đến TP toàn thị trường`,
-        badge: 'Tham chiếu',
-        badgeColor: 'blue',
-        highlight: true,
-      },
       // TPCP Việt Nam theo kỳ hạn ưu tiên
       ...sortedGov.slice(0, 3).map((g, i) => ({
         id: `gov_${g.term}`,
@@ -366,14 +325,6 @@ export async function getBondsRates(req, res) {
         badgeColor: f.badgeColor,
       })),
     ];
-
-    // Nhận xét về môi trường lãi suất
-    const rateEnv = us10y.rate > 4.5
-      ? 'lãi suất toàn cầu ở mức cao — TPCP kỳ hạn ngắn hấp dẫn hơn'
-      : us10y.rate > 3.5
-      ? 'lãi suất toàn cầu ở mức trung bình'
-      : 'lãi suất toàn cầu thấp — TPCP kỳ hạn dài cho lãi tốt hơn';
-
     const termAdvice = {
       LOW:    'kỳ hạn dài 5–15 năm để chốt lãi',
       MEDIUM: 'kỳ hạn trung 3–5 năm cân bằng rủi ro',
@@ -381,14 +332,14 @@ export async function getBondsRates(req, res) {
     }[riskLevel];
 
     const currentFiveYearRate = govBondData.find(b => b.term === '5 năm')?.rate;
-    const intro = `US 10Y yield đang ở ${us10y.rate.toFixed(2)}% — ${rateEnv}. `
+    const currentTenYearRate = govBondData.find(b => b.term === '10 năm')?.rate;
+    const intro = `TPCP Việt Nam kỳ hạn 5 năm đang ở ${currentFiveYearRate?.toFixed(2)}%/năm, 10 năm ở ${currentTenYearRate?.toFixed(2)}%/năm. `
       + `Với khẩu vị ${riskLevel === 'LOW' ? 'thấp' : riskLevel === 'MEDIUM' ? 'trung bình' : 'cao'}, `
-      + `nên chọn ${termAdvice}. TPCP Việt Nam kỳ hạn 5 năm đang ở ${currentFiveYearRate?.toFixed(2)}%/năm.`;
+      + `nên chọn ${termAdvice}.`;
 
     return success(res, {
       bondItems,
       intro,
-      us10y,
       updatedAt: vnBondHistory?.updatedAt || BONDS_DATA.updatedAt,
       vnBondUpdatedAt: vnBondHistory?.updatedAt || BONDS_DATA.updatedAt,
       riskLevel,
