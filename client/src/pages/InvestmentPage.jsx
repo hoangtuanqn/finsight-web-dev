@@ -19,6 +19,7 @@ import AllocationEngine from '../components/investment/AllocationEngine';
 import AIRationalPanel from '../components/investment/AIRationalPanel';
 import SmartAssetGuide from '../components/investment/SmartAssetGuide';
 import WealthProjection from '../components/investment/WealthProjection';
+import RiskMetricsPanel from '../components/investment/RiskMetricsPanel';
 import EconomicNewsFeed from '../components/investment/EconomicNewsFeed';
 import IncompleteProfile from '../components/investment/IncompleteProfile';
 import SentimentGauge from '../components/investment/SentimentGauge';
@@ -693,6 +694,12 @@ export default function InvestmentPage() {
                   <PortfolioHealthMetrics allocation={activeAllocation} projection={projectionBase} profile={mockProfile} />
                 </div>
               </div>
+
+              <RiskMetricsPanel
+                riskMetrics={viewModel?.riskMetrics}
+                loading={advisorLoading && activeStrategyIndex === 0}
+                error={advisorError && activeStrategyIndex === 0 ? advisorError : null}
+              />
 
               {/* AI Recommendation */}
               {viewModel?.recommendation && (
