@@ -20,6 +20,7 @@ import AIRationalPanel from '../components/investment/AIRationalPanel';
 import SmartAssetGuide from '../components/investment/SmartAssetGuide';
 import WealthProjection from '../components/investment/WealthProjection';
 import RiskMetricsPanel from '../components/investment/RiskMetricsPanel';
+import OptimizationSummaryStrip from '../components/investment/OptimizationSummaryStrip';
 import EconomicNewsFeed from '../components/investment/EconomicNewsFeed';
 import IncompleteProfile from '../components/investment/IncompleteProfile';
 import SentimentGauge from '../components/investment/SentimentGauge';
@@ -713,6 +714,12 @@ export default function InvestmentPage() {
                   </p>
                 </div>
               )}
+
+              <OptimizationSummaryStrip
+                optimization={viewModel?.optimization}
+                allocationMetrics={viewModel?.allocationMetrics}
+                optimizationMethod={viewModel?.optimizationMethod}
+              />
 
               {(advisorLoading || advisorError) && activeStrategyIndex === 0 && (
                 <div className={`px-4 py-2 rounded-2xl border text-xs font-bold ${

@@ -688,11 +688,11 @@ Dependencies mới: mathjs (npm install mathjs)
 
 **Checklist**
 
-- [ ] Tạo `OptimizationSummaryStrip.jsx`
-- [ ] Map `optimization.marketDataQuality`: full/partial/fallback sang màu
-- [ ] Hiển thị `allocationMetrics.expectedReturn`, `portfolioRisk`, `sharpeRatio`
-- [ ] Không hiển thị matrix/covariance trong UI chính
-- [ ] Tích hợp sau recommendation block
+- [x] Tạo `OptimizationSummaryStrip.jsx`
+- [x] Map `optimization.marketDataQuality`: full/partial/fallback sang màu
+- [x] Hiển thị `allocationMetrics.expectedReturn`, `portfolioRisk`, `sharpeRatio`
+- [x] Không hiển thị matrix/covariance trong UI chính
+- [x] Tích hợp sau recommendation block
 
 ### 10.6 Efficient Frontier Visualization
 
@@ -824,3 +824,4 @@ npm.cmd run build
 - 2026-04-26: UI 10.2 đã nối adapter vào `InvestmentPage`; analytics mới chỉ áp dụng cho strategy mới nhất, strategy cũ fallback legacy; `npm.cmd run build` pass với warning bundle lớn hiện có.
 - 2026-04-26: UI 10.3 đã thêm `RiskMetricsPanel` hiển thị Sharpe, risk grade, VaR/CVaR, max drawdown và probLoss; `npm.cmd run build` pass với warning bundle lớn hiện có.
 - 2026-04-26: UI 10.4 đã thêm Monte Carlo fan chart vào `WealthProjection`, adapter bổ sung savings baseline + percentile bands; smoke test adapter và `npm.cmd run build` pass với warning bundle lớn hiện có. Snapshot desktop/mobile chưa tick vì chưa chạy được đúng page bằng browser harness.
+- 2026-04-26: UI 10.5 đã thêm `OptimizationSummaryStrip` sau recommendation, hiển thị Markowitz/data quality/solver/return-risk-sharpe và không expose matrix/covariance; adapter giữ thêm `optimizationMethod`; smoke test adapter và `npm.cmd run build` pass.
