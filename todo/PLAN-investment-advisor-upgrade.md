@@ -568,7 +568,7 @@ Dependencies mới: mathjs (npm install mathjs)
 - [x] Adapter ưu tiên backend `projection.base/optimistic/pessimistic` nếu có, fallback về `calcFV` legacy nếu thiếu
 - [x] Adapter chuyển `projection.monteCarlo` thành chart rows: `{ year, p5, p25, median, p75, p95 }`
 - [x] Adapter giữ `portfolioBreakdown` từ backend nếu có, fallback tự tính từ allocation + capital
-- [ ] Không xóa `buildRenderData()` ngay; comment `[LEGACY]` trước, sau khi adapter ổn mới thay usage
+- [x] Không xóa `buildRenderData()` ngay; comment `[LEGACY]` trước, sau khi adapter ổn mới thay usage
 - [x] Test thủ công: strategy cũ không có `riskMetrics/projection` vẫn render không crash
 
 **Quyết định cần giữ an toàn**
@@ -590,14 +590,14 @@ Dependencies mới: mathjs (npm install mathjs)
 
 **Checklist**
 
-- [ ] Thêm state `advisorAnalysis`, `advisorLoading`, `advisorError`
-- [ ] Initial load vẫn chạy song song `getStrategies`, `getPortfolio`, `getSummary`
-- [ ] Thêm fetch `investmentAPI.getAllocation()` có `catch` riêng; nếu lỗi thì page vẫn dùng strategy legacy
-- [ ] Sau `handleGenerate()`, cập nhật strategy mới như cũ và optionally refresh analytics 1 lần
-- [ ] Thay `buildRenderData(activeAllocation, mockProfile)` bằng adapter view model
-- [ ] Giữ nguyên NoStrategyPopup, ApplyStrategyModal, history table, SmartAssetGuide
-- [ ] Không đổi behavior điều hướng `/investment/my-portfolio`
-- [ ] Kiểm tra loading: skeleton chính không bị treo nếu analytics mới fail
+- [x] Thêm state `advisorAnalysis`, `advisorLoading`, `advisorError`
+- [x] Initial load vẫn chạy song song `getStrategies`, `getPortfolio`, `getSummary`
+- [x] Thêm fetch `investmentAPI.getAllocation()` có `catch` riêng; nếu lỗi thì page vẫn dùng strategy legacy
+- [x] Sau `handleGenerate()`, cập nhật strategy mới như cũ và optionally refresh analytics 1 lần
+- [x] Thay `buildRenderData(activeAllocation, mockProfile)` bằng adapter view model
+- [x] Giữ nguyên NoStrategyPopup, ApplyStrategyModal, history table, SmartAssetGuide
+- [x] Không đổi behavior điều hướng `/investment/my-portfolio`
+- [x] Kiểm tra loading: skeleton chính không bị treo nếu analytics mới fail
 
 ### 10.3 Risk Metrics Panel
 
@@ -821,3 +821,4 @@ npm.cmd run build
 - 2026-04-26: Documentation đã cập nhật `INVESTMENT_LOGIC.md` và `AI_PROJECT_CONTEXT.md`; `[LEGACY]` markers đã có trong server/client calculations và controller migration points.
 - 2026-04-26: UI plan chi tiết đã bổ sung vào Section 10, ưu tiên adapter dữ liệu trước khi vẽ risk metrics/Monte Carlo để không phá strategy history và các flow hiện có.
 - 2026-04-26: UI 10.1 adapter đã tạo `investmentAdvisorAdapter.js`; syntax check và smoke test legacy/new analytics view model đã pass.
+- 2026-04-26: UI 10.2 đã nối adapter vào `InvestmentPage`; analytics mới chỉ áp dụng cho strategy mới nhất, strategy cũ fallback legacy; `npm.cmd run build` pass với warning bundle lớn hiện có.
