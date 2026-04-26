@@ -991,7 +991,64 @@ GET /api/investment/asset-history?asset=savings&bankId=msb&tenor=t24&months=12
 - [x] Xác định tiết kiệm hiện chỉ có snapshot `SAVINGS_DATA`, chưa có monthly history thật
 - [x] Ghi plan mở rộng vào `PLAN-investment-advisor-upgrade.md`
 
-### 10.13 Thứ tự commit đề xuất cho UI
+### 10.13 Smart Asset Guide: chọn lại nguồn dữ liệu lịch sử cho toàn bộ card
+
+**Kết luận nguồn dữ liệu 2026-04-27**
+
+Không có một API miễn phí/chính thức duy nhất bao phủ đủ tất cả card. Cần chọn nguồn theo từng loại card và ghi rõ `sourceType`:
+
+- `direct`: dữ liệu lịch sử trực tiếp của sản phẩm/card đó.
+- `officialCurve`: dữ liệu đường cong/lợi suất chính thức hoặc bán chính thức theo kỳ hạn, dùng cho TPCP.
+- `proxy`: dữ liệu tham chiếu, không phải lịch sử trực tiếp của card.
+- `collectorRequired`: hiện chỉ có snapshot/current; cần tự lưu snapshot hoặc backfill curated trước khi có chart 6/12/18 tháng.
+
+**Nguồn được chọn cho danh mục vàng**
+
+| Card hiện tại | Nguồn đề xuất | Loại | Ghi chú triển khai |
+|---------------|---------------|------|--------------------|
+| `Vàng thế giới (GC=F)` | Yahoo Finance `GC=F` hoặc XAU/USD | `direct` | Đã có chart 6/12/18 tháng |
+| `Vàng miếng SJC` | `vang.today` type `VNGSJC` hoặc `SJL1L10` | `direct` ngắn hạn / `collectorRequired` dài hạn | API public có history tối đa 30 ngày; muốn 6/12/18 tháng cần collector/backfill |
+| `Nhẫn tròn trơn VRTL` | `vang.today` type `BT9999NTT` hoặc `SJ9999` tùy mapping sản phẩm | `direct` ngắn hạn / `collectorRequired` dài hạn | Cần map đúng loại nhẫn BTMC/SJC trước khi dùng |
+| `ETF Vàng (VFMVF1)` | Chưa xác thực được sản phẩm/ticker vàng Việt Nam phù hợp | `proxy` hoặc sửa card | Nên đổi thành `Vàng thế giới quy đổi VND` hoặc bỏ nếu không có sản phẩm thật |
+| `Tích lũy vàng DCA` | Dùng series của SJC/nhẫn nếu có; fallback `GC=F` | `proxy` | Đây là chiến lược, không phải sản phẩm có giá riêng |
+
+**Nguồn được chọn cho danh mục trái phiếu**
+
+| Card hiện tại | Nguồn đề xuất | Loại | Ghi chú triển khai |
+|---------------|---------------|------|--------------------|
+| `US Treasury 10Y (tham chiếu)` | Yahoo Finance `^TNX` | `direct` nhưng là Mỹ | Giữ làm tham chiếu toàn cầu, không dùng thay TPCP Việt Nam |
+| `Trái phiếu Chính phủ 5/10/15 năm` | VBMA Government Bond Yield Fixing + HNX/VBMA auction results | `officialCurve` | Ưu tiên VBMA curve theo tenor; HNX/VBMA auction làm backup/đối chiếu |
+| `Quỹ VCBF-BCF` | Không phù hợp: VCBF-BCF là quỹ cổ phiếu | sửa card | Thay bằng `VCBF-FIF` nếu muốn quỹ thu nhập cố định |
+| `Quỹ SSISCA` | Không phù hợp: SSI-SCA là quỹ cổ phiếu | sửa card | Thay bằng `SSIBF` nếu muốn quỹ trái phiếu SSI |
+| `Quỹ MBBOND` | MB Capital MBBOND page | `direct` nếu lấy được NAV history, nếu không `collectorRequired` | Cần kiểm tra endpoint/list NAV lịch sử |
+| `Quỹ TCBF` | Techcom Capital TCBF page | `direct` nếu lấy được NAV history, nếu không `collectorRequired` | Cần kiểm tra endpoint/list NAV lịch sử |
+
+**Nguồn được chọn cho danh mục tiết kiệm**
+
+| Card hiện tại | Nguồn đề xuất | Loại | Ghi chú triển khai |
+|---------------|---------------|------|--------------------|
+| MSB/OCB/VPBank/HDBank/ACB/Techcombank/Vietcombank | Trang lãi suất chính thức từng ngân hàng hoặc aggregator hiện tại | `collectorRequired` | Không thấy public API lịch sử theo bank/tenor đủ 6/12/18 tháng |
+| Macro lãi suất tiền gửi Việt Nam | World Bank/Trading Economics | `proxy` macro | Chỉ annual/national average, không thay được chart từng ngân hàng |
+
+**Quyết định sản phẩm**
+
+- [x] Không dùng `^TNX` cho card `Trái phiếu Chính phủ Việt Nam`; chỉ giữ `^TNX` cho card tham chiếu riêng.
+- [ ] Sửa lại bond fund cards sai phân loại: `VCBF-BCF` và `SSI-SCA` không phải quỹ trái phiếu.
+- [ ] Với vàng trong nước, nếu chưa có 6/12/18 tháng thật thì chọn một trong hai UX:
+  - Hiển thị chart 30 ngày từ `vang.today` với toggle riêng `7/14/30 ngày`.
+  - Hoặc bật collector để tích lũy dữ liệu, giữ toggle 6/12/18 khi đủ dữ liệu.
+- [x] Với tiết kiệm, không vẽ chart 6/12/18 tháng từ dữ liệu hiện tại; chỉ vẽ khi có snapshot collector/backfill.
+- [ ] Mọi chart dùng `proxy` phải có label rõ: `Tham chiếu`, `Quy đổi`, hoặc `Proxy`, không ghi như dữ liệu trực tiếp.
+
+**Thứ tự triển khai tiếp theo**
+
+1. [ ] Gold source adapter: thêm `vang.today` cho SJC/nhẫn, hỗ trợ range ngắn hạn 7/14/30 ngày hoặc collector mode.
+2. [ ] Bond source cleanup: thay card quỹ sai (`VCBF-BCF`, `SSI-SCA`) bằng bond funds thật (`VCBF-FIF`, `SSIBF`, optionally `MBBOND`, `TCBF`).
+3. [ ] VN government bond yield adapter: ingest VBMA/HNX monthly/auction data cho tenor 5Y/10Y/15Y.
+4. [ ] UI source label: phân biệt `direct`, `officialCurve`, `proxy`, `collectorRequired`.
+5. [ ] Savings collector/backfill decision: chọn official bank pages/aggregator và lưu snapshot theo bank+tenor.
+
+### 10.14 Thứ tự commit đề xuất cho UI
 
 1. `investment-advisor-ui: add advisor data adapter`
 2. `investment-advisor-ui: render risk metrics panel`
@@ -1035,3 +1092,4 @@ GET /api/investment/asset-history?asset=savings&bankId=msb&tenor=t24&months=12
 - 2026-04-27: Bổ sung Section 10.11 cho Smart Asset Guide monthly history; đã implement endpoint `GET /investment/asset-history`, hook lazy React Query, card expand + chart cột 6/12/18 tháng cho stocks/ETF. Backend `node --check` pass, client `npm.cmd run build` pass ngoài sandbox; manual QA trên app thật còn pending.
 - 2026-04-27: Điều tra nguyên nhân vàng/trái phiếu/tiết kiệm chưa có chart: frontend đang khóa `type === 'stocks'`, backend chỉ nhận `asset=stocks`; vàng có thể dùng `GC=F`, trái phiếu có thể dùng `^TNX`, tiết kiệm chưa có monthly history thật vì `SAVINGS_DATA` chỉ là snapshot hiện tại. Đã bổ sung Section 10.12 làm plan mở rộng, chưa implement runtime.
 - 2026-04-27: Đã implement phần runtime đầu tiên của Section 10.12: `asset-history` hỗ trợ `gold/world` (`GC=F`) và `bonds/us10y` (`^TNX`), frontend dùng `getHistoryRequest()` generic và chart format theo metric `VND`/`USD/oz`/`%`. Tiết kiệm vẫn chưa bật history để tránh dữ liệu giả. Syntax check backend và client build pass; manual QA app thật còn pending.
+- 2026-04-27: Đã chọn lại nguồn dữ liệu lịch sử cho các card chưa đủ data trong Section 10.13. Kết luận: vàng trong nước dùng `vang.today` nhưng chỉ đủ history ngắn hạn tối đa 30 ngày nếu chưa có collector; TPCP Việt Nam dùng VBMA/HNX thay vì `^TNX`; `VCBF-BCF` và `SSI-SCA` đang sai phân loại bond fund nên cần thay card; tiết kiệm cần snapshot collector/backfill, không vẽ 6/12/18 tháng từ snapshot hiện tại.
