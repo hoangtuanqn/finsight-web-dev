@@ -1,3 +1,5 @@
+import { SENTIMENT_BANDS } from '../constants/investmentConstants.js';
+
 // ============================================
 // FINSIGHT — Financial Calculations Module
 // Used in both server AND client
@@ -169,6 +171,16 @@ export function detectDominoRisk(debts, monthlyIncome) {
   }
 
   return alerts;
+}
+
+export function getSentimentLabel(value) {
+  const number = Number(value);
+  const sentimentValue = Number.isFinite(number) ? number : 50;
+  return SENTIMENT_BANDS.find(band => sentimentValue <= band.max)?.label ?? 'NEUTRAL';
+}
+
+export function getSentimentVietnamese(label) {
+  return SENTIMENT_BANDS.find(band => band.label === label)?.labelVi ?? label;
 }
 
 /**
