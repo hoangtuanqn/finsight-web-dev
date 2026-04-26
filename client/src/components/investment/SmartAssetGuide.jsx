@@ -93,6 +93,7 @@ function formatVND(value) {
 function formatCardMetric(item) {
   if (item.rateLabel) return item.rateLabel;
   if (item.priceLabel) return item.priceLabel;
+  if (typeof item.rate === 'string') return item.rate;
   if (item.rate != null) return `${Number(item.rate).toLocaleString('vi-VN', { maximumFractionDigits: 2 })}%/năm`;
   if (item.price != null) return Number(item.price).toLocaleString('vi-VN', { maximumFractionDigits: 2 });
   return '';
