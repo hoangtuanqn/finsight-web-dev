@@ -716,12 +716,12 @@ Dependencies mới: mathjs (npm install mathjs)
 
 **Checklist**
 
-- [ ] Tạo component với fallback "current portfolio only"
-- [ ] Dùng `ScatterChart` nếu có `frontierPoints`, nếu không dùng compact risk-return card
-- [ ] Highlight user's portfolio position
-- [ ] Tooltip hiển thị expected return/risk/sharpe
-- [ ] Không block release UI nếu frontierPoints chưa có
-- [ ] Ghi note trong plan nếu cần backend frontier endpoint sau
+- [x] Tạo component với fallback "current portfolio only"
+- [x] Dùng `ScatterChart` nếu có `frontierPoints`, nếu không dùng compact risk-return card
+- [x] Highlight user's portfolio position
+- [x] Tooltip hiển thị expected return/risk/sharpe
+- [x] Không block release UI nếu frontierPoints chưa có
+- [x] Ghi note trong plan nếu cần backend frontier endpoint sau
 
 ### 10.7 AIRationalPanel copy update
 
@@ -825,3 +825,4 @@ npm.cmd run build
 - 2026-04-26: UI 10.3 đã thêm `RiskMetricsPanel` hiển thị Sharpe, risk grade, VaR/CVaR, max drawdown và probLoss; `npm.cmd run build` pass với warning bundle lớn hiện có.
 - 2026-04-26: UI 10.4 đã thêm Monte Carlo fan chart vào `WealthProjection`, adapter bổ sung savings baseline + percentile bands; smoke test adapter và `npm.cmd run build` pass với warning bundle lớn hiện có. Snapshot desktop/mobile chưa tick vì chưa chạy được đúng page bằng browser harness.
 - 2026-04-26: UI 10.5 đã thêm `OptimizationSummaryStrip` sau recommendation, hiển thị Markowitz/data quality/solver/return-risk-sharpe và không expose matrix/covariance; adapter giữ thêm `optimizationMethod`; smoke test adapter và `npm.cmd run build` pass.
+- 2026-04-26: UI 10.6 đã thêm `EfficientFrontierPanel`; hiện dùng current portfolio risk-return card khi backend chưa có `optimization.frontierPoints`, nhưng đã future-ready ScatterChart nếu backend expose frontier points sau này; `npm.cmd run build` pass.
