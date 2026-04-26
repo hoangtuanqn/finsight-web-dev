@@ -31,9 +31,24 @@ export function DeltaChip({ current, previous }) {
  * Explains the reasoning behind an asset allocation.
  * Dùng BASE_ALLOCATIONS từ constants (single source of truth, không duplicate).
  */
-export function explainAsset(asset, pct, profile, sentimentValue) {
+export function explainAsset(asset, pct, profile, sentimentValue, analytics = {}) {
   const reasons = [];
   const riskLabel = { LOW: 'Thấp', MEDIUM: 'Trung bình', HIGH: 'Cao' }[profile?.riskLevel] || 'Trung bình';
+  const { optimization, allocationMetrics } = analytics;
+  const hasMvoMetrics = Boolean(optimization && allocationMetrics);
+  const qualityLabel = {
+    full: 'Historical 5y',
+    partial: 'Partial fallback',
+    fallback: 'Fallback',
+  }[optimization?.marketDataQuality] || 'Fallback';
+  const asPercent = value => {
+    const number = Number(value);
+    return Number.isFinite(number) ? `${(number * 100).toFixed(1)}%` : '—';
+  };
+  const asRatio = value => {
+    const number = Number(value);
+    return Number.isFinite(number) ? number.toFixed(2) : '—';
+  };
 
   // Dùng SENTIMENT_BANDS để lấy label + labelVi (fix bug NEUTRAL band)
   const band = SENTIMENT_BANDS.find(b => sentimentValue <= b.max) ?? SENTIMENT_BANDS[2];
@@ -41,11 +56,30 @@ export function explainAsset(asset, pct, profile, sentimentValue) {
 
   // Dùng BASE_ALLOCATIONS từ constants thay vì object duplicate
   const baseVal = BASE_ALLOCATIONS[profile?.riskLevel || 'MEDIUM']?.[asset] ?? 0;
-  reasons.push({
-    layer: 'Cơ sở',
-    icon: 'Activity',
-    text: `Rủi ro ${riskLabel} × Tâm lý "${sentimentZone}" → nền: ${baseVal}%`,
-  });
+  if (hasMvoMetrics) {
+    reasons.push({
+      layer: 'Tối ưu MVO',
+      icon: 'Activity',
+      text: `Markowitz MVO chọn ${pct}% ${ASSET_LABELS[asset]} trong danh mục kỳ vọng ${asPercent(allocationMetrics.expectedReturn)}, rủi ro ${asPercent(allocationMetrics.portfolioRisk)}, Sharpe ${asRatio(allocationMetrics.sharpeRatio)}.`,
+    });
+    reasons.push({
+      layer: 'Dữ liệu',
+      icon: 'Landmark',
+      text: `Nguồn tham số ${qualityLabel}; solver ${optimization.converged ? 'đã hội tụ' : 'cần rà soát'}${optimization.iterations ? ` sau ${optimization.iterations} vòng` : ''}.`,
+    });
+    reasons.push({
+      layer: 'Hồ sơ',
+      icon: 'Target',
+      text: `Khẩu vị rủi ro ${riskLabel} và tâm lý "${sentimentZone}" được dùng để điều chỉnh ràng buộc phân bổ.`,
+    });
+  } else {
+    // [LEGACY FALLBACK] Strategy history cũ không lưu MVO metrics, nên giữ giải thích heuristic hiện có.
+    reasons.push({
+      layer: 'Cơ sở',
+      icon: 'Activity',
+      text: `Rủi ro ${riskLabel} × Tâm lý "${sentimentZone}" → nền: ${baseVal}%`,
+    });
+  }
 
   const sr = profile?.savingsRate || 6;
   if (asset === 'savings' && sr > 6.5) {

@@ -758,7 +758,14 @@ export default function InvestmentPage() {
               </Link>
 
               <AllocationEngine pieData={pieData} portfolioBreakdown={portfolioBreakdown} history={[]} />
-              <AIRationalPanel allocation={activeAllocation} profile={mockProfile} sentimentValue={sentimentValue} portfolioBreakdown={portfolioBreakdown} />
+              <AIRationalPanel
+                allocation={activeAllocation}
+                profile={mockProfile}
+                sentimentValue={sentimentValue}
+                portfolioBreakdown={portfolioBreakdown}
+                optimization={viewModel?.optimization}
+                allocationMetrics={viewModel?.allocationMetrics}
+              />
               <WealthProjection
                 projectionData={projectionData}
                 monteCarloData={viewModel?.monteCarloData}
