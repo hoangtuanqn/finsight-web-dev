@@ -252,7 +252,7 @@ export function calcCorrelationMatrix(covMatrix, stdDevs) {
  * @returns {Promise<Object>} marketParams
  */
 export async function buildMarketParams(savingsRate = 0.05, options = {}) {
-  const tickerEntries = Object.entries(ASSET_TICKERS); // [['gold','GC=F'], ...]
+  const tickerEntries = Object.entries(ASSET_TICKERS).filter(([, ticker]) => Boolean(ticker)); // [['gold','GC=F'], ...]
   const historyFetcher = options.fetchAssetHistory || fetchAssetHistory;
 
   // Fetch all tickers in parallel
@@ -274,6 +274,19 @@ export async function buildMarketParams(savingsRate = 0.05, options = {}) {
   means.savings = savingsRate;
   stdDevs.savings = FALLBACK_PARAMS.savings.annualStdDev;
   assetReturns.savings = null; // not used in covariance calc (treated specially)
+
+  for (const asset of ASSET_ORDER) {
+    if (asset === 'savings' || ASSET_TICKERS[asset]) continue;
+
+    const fb = FALLBACK_PARAMS[asset];
+    if (fb) {
+      means[asset] = fb.annualReturn;
+      stdDevs[asset] = fb.annualStdDev;
+      assetReturns[asset] = null;
+      dataQuality = 'partial';
+      dataDetails[asset] = 'fallback:no-ticker';
+    }
+  }
 
   for (const result of fetchResults) {
     if (result.status !== 'fulfilled' || !result.value.data) {

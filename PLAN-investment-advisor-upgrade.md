@@ -92,7 +92,7 @@ Tuần 3 (Ngày 15-21) — sau khi backend done:
 | Savings | N/A (dùng profile.savingsRate) | — |
 | Gold | `GC=F` | ✅ `getGoldPrices()` |
 | Stocks | `^VNINDEX` | Mới (hạn chế: API không chính thức) |
-| Bonds | `^TNX` | ✅ `getBondsRates()` |
+| Bonds | N/A (VBMA/fallback TPCP Việt Nam) | không dùng Yahoo ticker |
 | Crypto | `BTC-USD` | Mới (CoinGecko đã dùng, Yahoo backup) |
 
 ### 4.2 Academic Basis
@@ -113,7 +113,7 @@ Tuần 3 (Ngày 15-21) — sau khi backend done:
 ```
 - [x] Tạo `server/src/constants/assetTickers.js`:
       export const ASSET_TICKERS = {
-        gold: 'GC=F', stocks: '^VNINDEX', bonds: '^TNX', crypto: 'BTC-USD'
+        gold: 'GC=F', stocks: '^VNINDEX', bonds: null, crypto: 'BTC-USD'
       };
       export const HISTORY_CONFIG = { years: 5, interval: '1mo' };
 
@@ -899,14 +899,14 @@ if (asset !== 'stocks') {
 | Nhóm | Có lịch sử thật trong code? | Nguồn khả dụng | Quyết định |
 |------|------------------------------|----------------|------------|
 | Vàng | Có cho vàng thế giới | Yahoo `GC=F` qua `fetchAssetHistory()` | V2 hỗ trợ chart cho `Vàng thế giới (GC=F)` trước; SJC/nhẫn chỉ dùng proxy nếu label rõ "tham chiếu GC=F" |
-| Trái phiếu | Có cho US 10Y | Yahoo `^TNX` qua `fetchAssetHistory()` | V2 hỗ trợ chart yield cho `US Treasury 10Y`; TPCP VN/quỹ TP chỉ dùng proxy nếu label rõ |
+| Trái phiếu | Có cho TPCP Việt Nam | VBMA auction adapter | Hỗ trợ chart yield cho TPCP VN 5Y/10Y/15Y |
 | Tiết kiệm | Chưa có lịch sử theo tháng | `SAVINGS_DATA` chỉ là snapshot hiện tại theo bank/tenor | Không fake. Cần dataset lịch sử đã kiểm chứng hoặc snapshot collector trước khi vẽ monthly history |
 
 **Data contract mới cần generalize**
 
 ```js
 GET /api/investment/asset-history?asset=gold&source=world&months=12
-GET /api/investment/asset-history?asset=bonds&source=us10y&months=12
+GET /api/investment/asset-history?asset=bonds&source=vn_gov_10y&months=12
 GET /api/investment/asset-history?asset=savings&bankId=msb&tenor=t24&months=12
 
 {
@@ -932,14 +932,14 @@ GET /api/investment/asset-history?asset=savings&bankId=msb&tenor=t24&months=12
 - [x] Tạo allowlist `ASSET_HISTORY_SOURCES`:
   - `stocks`: ticker nằm trong `STOCK_UNIVERSE`
   - `gold/world`: Yahoo ticker `GC=F`, metric `price`, unit `USD/oz`
-  - `bonds/us10y`: Yahoo ticker `^TNX`, metric `yield`, unit `%`
+  - `bonds/vn_gov_5y|vn_gov_10y|vn_gov_15y`: VBMA auction history, metric `yield`, unit `%`
   - `savings`: tiếp tục bị chặn cho đến khi có `SAVINGS_RATE_HISTORY` thật
 - [x] Tách formatter history:
   - price close: `{ value, change }` theo %
   - yield/rate: `{ value, change }` theo basis points hoặc percentage point, không ghi là biến động giá
 - [x] Thêm metadata `historySource` vào item:
   - Gold world item: `{ asset: 'gold', source: 'world' }`
-  - Bonds US 10Y item: `{ asset: 'bonds', source: 'us10y' }`
+  - TPCP Việt Nam items: `{ asset: 'bonds', source: 'vn_gov_5y|vn_gov_10y|vn_gov_15y' }`
   - Savings item: `{ asset: 'savings', bankId, tenor }` sau khi có history dataset
 - [x] Với SJC/nhẫn/TPCP VN/quỹ trái phiếu: không tự gắn history nếu chỉ có proxy; nếu dùng proxy phải trả `proxy: true` và `proxyLabel`.
 - [x] Log rõ `asset-history:start/complete/no-data` có `asset`, `source`, `metric`, `points`.
@@ -968,10 +968,10 @@ GET /api/investment/asset-history?asset=savings&bankId=msb&tenor=t24&months=12
 
 **Thứ tự thực thi đề xuất**
 
-1. [x] Backend generalize endpoint cho `gold/world` và `bonds/us10y`, không đụng savings trước.
-2. [x] Frontend generalize request/chart formatter để vàng và US10Y dùng cùng UI.
+1. [x] Backend generalize endpoint cho `gold/world` và TPCP Việt Nam, không đụng savings trước.
+2. [x] Frontend generalize request/chart formatter để vàng và TPCP Việt Nam dùng cùng UI.
 3. [ ] Manual QA vàng: click `Vàng thế giới (GC=F)`, toggle 6/12/18, unit hiển thị `USD/oz`.
-4. [ ] Manual QA trái phiếu: click `US Treasury 10Y`, toggle 6/12/18, unit hiển thị `%`.
+4. [x] Manual QA trái phiếu: click TPCP Việt Nam, toggle 6/12/18, unit hiển thị `%/năm`.
 5. Quyết định hướng dữ liệu tiết kiệm A hoặc B, rồi mới implement savings monthly history.
 6. Cập nhật checklist, chạy `node --check`, `npm.cmd run build`, commit riêng.
 
@@ -987,7 +987,7 @@ GET /api/investment/asset-history?asset=savings&bankId=msb&tenor=t24&months=12
 - [x] Xác định frontend đang khóa history ở `type === 'stocks'`
 - [x] Xác định backend đang reject asset khác `stocks`
 - [x] Xác định vàng có source lịch sử thật `GC=F`
-- [x] Xác định trái phiếu có source lịch sử thật `^TNX`
+- [x] Xác định trái phiếu dùng source lịch sử TPCP Việt Nam từ VBMA
 - [x] Xác định tiết kiệm hiện chỉ có snapshot `SAVINGS_DATA`, chưa có monthly history thật
 - [x] Ghi plan mở rộng vào `PLAN-investment-advisor-upgrade.md`
 
@@ -1016,7 +1016,6 @@ Không có một API miễn phí/chính thức duy nhất bao phủ đủ tất 
 
 | Card hiện tại | Nguồn đề xuất | Loại | Ghi chú triển khai |
 |---------------|---------------|------|--------------------|
-| `US Treasury 10Y (tham chiếu)` | Yahoo Finance `^TNX` | `direct` nhưng là Mỹ | Giữ làm tham chiếu toàn cầu, không dùng thay TPCP Việt Nam |
 | `Trái phiếu Chính phủ 5/10/15 năm` | VBMA Government Bond Yield Fixing + HNX/VBMA auction results | `officialCurve` | Ưu tiên VBMA curve theo tenor; HNX/VBMA auction làm backup/đối chiếu |
 | `Quỹ VCBF-BCF` | Không phù hợp: VCBF-BCF là quỹ cổ phiếu | sửa card | Thay bằng `VCBF-FIF` nếu muốn quỹ thu nhập cố định |
 | `Quỹ SSISCA` | Không phù hợp: SSI-SCA là quỹ cổ phiếu | sửa card | Thay bằng `SSIBF` nếu muốn quỹ trái phiếu SSI |
@@ -1032,7 +1031,7 @@ Không có một API miễn phí/chính thức duy nhất bao phủ đủ tất 
 
 **Quyết định sản phẩm**
 
-- [x] Không dùng `^TNX` cho card `Trái phiếu Chính phủ Việt Nam`; chỉ giữ `^TNX` cho card tham chiếu riêng.
+- [x] Loại bỏ nguồn tham chiếu Mỹ khỏi Smart Asset Guide và `asset-history`; TPCP Việt Nam dùng VBMA.
 - [ ] Sửa lại bond fund cards sai phân loại: `VCBF-BCF` và `SSI-SCA` không phải quỹ trái phiếu.
 - [ ] Với vàng trong nước, nếu chưa có 6/12/18 tháng thật thì chọn một trong hai UX:
   - Hiển thị chart 30 ngày từ `vang.today` với toggle riêng `7/14/30 ngày`.
@@ -1106,11 +1105,12 @@ Không có một API miễn phí/chính thức duy nhất bao phủ đủ tất 
 - 2026-04-26: UI 10.10 đã chạy `npm.cmd run build` cuối pass sau toàn bộ thay đổi UI; manual QA/visual QA desktop-mobile vẫn để unchecked vì cần chạy app với auth/API thật để xác nhận.
 - 2026-04-26: Pre-merge cleanup đã gỡ test modules/script nội bộ của investment advisor và xóa `getAllocation()` heuristic khỏi client/server utils vì không còn runtime dùng; giữ các fallback UI đang phục vụ strategy history cũ.
 - 2026-04-27: Bổ sung Section 10.11 cho Smart Asset Guide monthly history; đã implement endpoint `GET /investment/asset-history`, hook lazy React Query, card expand + chart cột 6/12/18 tháng cho stocks/ETF. Backend `node --check` pass, client `npm.cmd run build` pass ngoài sandbox; manual QA trên app thật còn pending.
-- 2026-04-27: Điều tra nguyên nhân vàng/trái phiếu/tiết kiệm chưa có chart: frontend đang khóa `type === 'stocks'`, backend chỉ nhận `asset=stocks`; vàng có thể dùng `GC=F`, trái phiếu có thể dùng `^TNX`, tiết kiệm chưa có monthly history thật vì `SAVINGS_DATA` chỉ là snapshot hiện tại. Đã bổ sung Section 10.12 làm plan mở rộng, chưa implement runtime.
-- 2026-04-27: Đã implement phần runtime đầu tiên của Section 10.12: `asset-history` hỗ trợ `gold/world` (`GC=F`) và `bonds/us10y` (`^TNX`), frontend dùng `getHistoryRequest()` generic và chart format theo metric `VND`/`USD/oz`/`%`. Tiết kiệm vẫn chưa bật history để tránh dữ liệu giả. Syntax check backend và client build pass; manual QA app thật còn pending.
-- 2026-04-27: Đã chọn lại nguồn dữ liệu lịch sử cho các card chưa đủ data trong Section 10.13. Kết luận: vàng trong nước dùng `vang.today` nhưng chỉ đủ history ngắn hạn tối đa 30 ngày nếu chưa có collector; TPCP Việt Nam dùng VBMA/HNX thay vì `^TNX`; `VCBF-BCF` và `SSI-SCA` đang sai phân loại bond fund nên cần thay card; tiết kiệm cần snapshot collector/backfill, không vẽ 6/12/18 tháng từ snapshot hiện tại.
+- 2026-04-27: Điều tra nguyên nhân vàng/trái phiếu/tiết kiệm chưa có chart: frontend đang khóa `type === 'stocks'`, backend chỉ nhận `asset=stocks`; vàng dùng `GC=F`/`vang.today`, trái phiếu dùng VBMA, tiết kiệm chưa có monthly history thật vì `SAVINGS_DATA` chỉ là snapshot hiện tại. Đã bổ sung Section 10.12 làm plan mở rộng.
+- 2026-04-27: Đã implement phần runtime đầu tiên của Section 10.12: `asset-history` hỗ trợ `gold/world` (`GC=F`) và TPCP Việt Nam qua VBMA, frontend dùng `getHistoryRequest()` generic và chart format theo metric `VND`/`USD/oz`/`%`. Tiết kiệm vẫn chưa bật history để tránh dữ liệu giả.
+- 2026-04-27: Đã chọn lại nguồn dữ liệu lịch sử cho các card chưa đủ data trong Section 10.13. Kết luận: vàng trong nước dùng `vang.today` nhưng chỉ đủ history ngắn hạn tối đa 30 ngày nếu chưa có collector; TPCP Việt Nam dùng VBMA/HNX; `VCBF-BCF` và `SSI-SCA` đang sai phân loại bond fund nên cần thay card; tiết kiệm cần snapshot collector/backfill, không vẽ 6/12/18 tháng từ snapshot hiện tại.
 - 2026-04-27: Sau review, đã bỏ phương án hard-code lịch sử TPCP trong controller. Thay bằng `vietnamBondHistory.service.js` tự sinh ngày đấu thầu trong 18 tháng gần nhất, thử URL VBMA `en/vi`, parse bảng yield 5Y/10Y/15Y và cache memory; `/bonds-rates` chỉ fetch nhanh 3 tháng để lấy rate mới, `/asset-history` fetch 18 tháng khi user mở chart. Nếu VBMA lỗi mạng/đổi format thì log warning và không bịa dữ liệu.
 - 2026-04-27: Fix sau QA chart: `vang.today` history trả schema `history[].prices[type].sell`, parser đã cập nhật nên SJC/nhẫn có điểm dữ liệu. VBMA bị lỗi TLS chain với Node `fetch`, adapter chuyển sang `https.get` timeout ngắn cho riêng `vbma.org.vn`; smoke service 3 tháng trả 5Y=2 điểm, 10Y=4 điểm, 15Y=3 điểm; 18 tháng trả 5Y=17, 10Y=19, 15Y=12.
 - 2026-04-27: QA format đơn vị: Smart Asset Guide ưu tiên `rateLabel/priceLabel` từ backend, không tự gắn `đ` cho mọi `price`; savings/TPCP hiển thị `%/năm`, gold world/proxy hiển thị `USD/oz`, gold DCA dùng giá SJC/nhẫn đã fetch làm proxy và ghi rõ không phải sản phẩm có giá riêng.
 - 2026-04-27: Fix regression chứng khoán: `formatCardMetric()` phải giữ nguyên `item.rate` dạng string đã format sẵn từ backend (ví dụ `35.770đ (-0.56%)`), chỉ format `%/năm` khi `rate` là number.
-- 2026-04-27: Bỏ card `US Treasury 10Y (tham chiếu)` khỏi danh mục trái phiếu và intro; tab trái phiếu chỉ còn TPCP Việt Nam/quỹ trái phiếu, dữ liệu yield lấy từ VBMA.
+- 2026-04-27: Bỏ card tham chiếu Mỹ khỏi danh mục trái phiếu và intro; tab trái phiếu chỉ còn TPCP Việt Nam/quỹ trái phiếu, dữ liệu yield lấy từ VBMA.
+- 2026-04-27: Xóa hẳn source tham chiếu Mỹ: gỡ khỏi `ASSET_HISTORY_SOURCES`, bỏ fallback UI, đổi optimizer `ASSET_TICKERS.bonds` sang `null` để dùng fallback TPCP Việt Nam.
