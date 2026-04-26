@@ -1048,6 +1048,15 @@ Không có một API miễn phí/chính thức duy nhất bao phủ đủ tất 
 4. [ ] UI source label: phân biệt `direct`, `officialCurve`, `proxy`, `collectorRequired`.
 5. [ ] Savings collector/backfill decision: chọn official bank pages/aggregator và lưu snapshot theo bank+tenor.
 
+**Phạm vi thực thi đợt này**
+
+- [ ] Backend: `asset-history` nhận cả `months=6/12/18` và `days=7/14/30` để vàng trong nước dùng dữ liệu thật ngắn hạn từ `vang.today`.
+- [ ] Backend: thêm `historySource` cho `Vàng miếng SJC`, `Nhẫn tròn trơn`, và các card chiến lược/proxy vàng; proxy phải ghi rõ nguồn tham chiếu.
+- [ ] Backend: cập nhật card TPCP Việt Nam theo yield đấu thầu VBMA mới nhất, thêm lịch sử curated từ các bài auction VBMA theo tháng cho 5Y/10Y/15Y.
+- [ ] Backend: thay `VCBF-BCF` và `SSI-SCA` bằng `VCBF-FIF` và `SSIBF`; nếu chưa có NAV history ổn định thì chỉ gắn benchmark proxy có nhãn.
+- [ ] Frontend: đổi toggle theo `rangeType` (`6/12/18 tháng` hoặc `7/14/30 ngày`) và hiển thị nhãn nguồn `direct`/`officialCurve`/`proxy`.
+- [ ] Tiết kiệm: giữ trạng thái không vẽ chart 6/12/18 cho đến khi có collector/backfill thật, không tạo dữ liệu giả.
+
 ### 10.14 Thứ tự commit đề xuất cho UI
 
 1. `investment-advisor-ui: add advisor data adapter`
