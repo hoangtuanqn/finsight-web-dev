@@ -39,8 +39,7 @@ function useAssetData(asset, riskLevel) {
   };
 }
 
-function getHistoryTicker(item, type) {
-  if (type !== 'stocks') return null;
+function getStockHistoryTicker(item) {
   if (item.historyTicker) return item.historyTicker;
   if (item.ticker) return item.ticker;
   if (item.symbol) return item.symbol;
@@ -49,8 +48,26 @@ function getHistoryTicker(item, type) {
   return STOCK_SYMBOLS.find((symbol) => text.includes(symbol)) || null;
 }
 
+function getHistoryRequest(item, type) {
+  if (item.historySource?.asset && item.historySource?.source) {
+    return item.historySource;
+  }
+
+  if (type === 'gold' && item.id === 'world') return { asset: 'gold', source: 'world' };
+  if (type === 'bonds' && item.id === 'us10y') return { asset: 'bonds', source: 'us10y' };
+
+  if (type === 'stocks') {
+    const ticker = getStockHistoryTicker(item);
+    return ticker ? { asset: 'stocks', ticker } : null;
+  }
+
+  return null;
+}
+
 function getAssetCardKey(item, type, index) {
-  return `${type}-${getHistoryTicker(item, type) || item.id || item.name || index}`;
+  const historyRequest = getHistoryRequest(item, type);
+  const sourceKey = historyRequest?.ticker || historyRequest?.source || historyRequest?.bankId;
+  return `${type}-${sourceKey || item.id || item.name || index}`;
 }
 
 function formatVND(value) {
@@ -69,6 +86,50 @@ function formatCompactVND(value) {
     return `${(numericValue / 1_000).toFixed(0)}k`;
   }
   return `${Math.round(numericValue)}`;
+}
+
+function formatMetricValue(value, metric = {}) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return '-';
+
+  if (metric.unit === 'VND') return `${Math.round(numericValue).toLocaleString('vi-VN')}đ`;
+  if (metric.unit === 'USD/oz') return `$${numericValue.toLocaleString('en-US', { maximumFractionDigits: 1 })}/oz`;
+  if (metric.unit === '%') return `${numericValue.toFixed(2)}%`;
+
+  return numericValue.toLocaleString('vi-VN', { maximumFractionDigits: metric.decimals ?? 2 });
+}
+
+function formatCompactMetric(value, metric = {}) {
+  if (metric.unit === 'VND') return formatCompactVND(value);
+  if (metric.unit === 'USD/oz') return `$${Number(value).toFixed(0)}`;
+  if (metric.unit === '%') return `${Number(value).toFixed(1)}%`;
+  return Number(value).toLocaleString('vi-VN', { maximumFractionDigits: 1 });
+}
+
+function formatMetricChange(change, metric = {}) {
+  const numericChange = Number(change || 0);
+  const sign = numericChange >= 0 ? '+' : '';
+
+  if (metric.changeUnit === 'percentagePoint') {
+    return `${sign}${numericChange.toFixed(2)} điểm % so với tháng trước`;
+  }
+
+  return `${sign}${numericChange.toFixed(2)}% so với tháng trước`;
+}
+
+function getHistorySubtitle(historyData, request) {
+  if (historyData?.metric?.key === 'yield') {
+    return `${historyData.name} · lợi suất cuối tháng`;
+  }
+  if (historyData?.metric?.unit === 'USD/oz') {
+    return `${historyData.name} · giá đóng cửa cuối tháng`;
+  }
+  if (historyData?.ticker) {
+    return `${historyData.ticker} · giá đóng cửa cuối tháng`;
+  }
+  if (request?.asset === 'gold') return 'Vàng thế giới · giá đóng cửa cuối tháng';
+  if (request?.asset === 'bonds') return 'US Treasury 10Y · lợi suất cuối tháng';
+  return 'Dữ liệu lịch sử theo tháng';
 }
 
 function MonthRangeToggle({ value, onChange, color }) {
@@ -104,25 +165,25 @@ function MonthRangeToggle({ value, onChange, color }) {
   );
 }
 
-function MonthlyHistoryTooltip({ active, payload, label }) {
+function MonthlyHistoryTooltip({ active, payload, label, metric }) {
   if (!active || !payload?.length) return null;
 
   const point = payload[0].payload;
-  const change = Number(point.changePct || 0);
+  const change = Number(point.change ?? point.changePct ?? 0);
   const isPositive = change >= 0;
 
   return (
     <div className="rounded-2xl border border-white/10 bg-slate-950/95 backdrop-blur-xl px-3 py-2 shadow-2xl">
       <p className="text-[11px] font-bold text-slate-500 mb-1">{label}</p>
-      <p className="text-sm font-black text-white">{formatVND(point.close)}</p>
+      <p className="text-sm font-black text-white">{formatMetricValue(point.value ?? point.close, metric)}</p>
       <p className={`text-[11px] font-bold ${isPositive ? 'text-emerald-400' : 'text-rose-400'}`}>
-        {isPositive ? '+' : ''}{change.toFixed(2)}% so với tháng trước
+        {formatMetricChange(change, metric)}
       </p>
     </div>
   );
 }
 
-function MonthlyHistoryChart({ data, color }) {
+function MonthlyHistoryChart({ data, color, metric }) {
   if (!data?.length) {
     return (
       <div className="h-48 rounded-2xl bg-white/[0.015] border border-white/5 flex items-center justify-center text-xs font-semibold text-slate-500">
@@ -131,7 +192,8 @@ function MonthlyHistoryChart({ data, color }) {
     );
   }
 
-  const values = data.map((point) => Number(point.close)).filter(Number.isFinite);
+  const chartData = data.map((point) => ({ ...point, value: point.value ?? point.close }));
+  const values = chartData.map((point) => Number(point.value)).filter(Number.isFinite);
   const minValue = Math.min(...values);
   const maxValue = Math.max(...values);
   const padding = Math.max((maxValue - minValue) * 0.2, maxValue * 0.04);
@@ -139,14 +201,14 @@ function MonthlyHistoryChart({ data, color }) {
   return (
     <div className="h-56 rounded-2xl bg-slate-950/25 border border-white/5 px-2 py-4">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 4, right: 8, left: -8, bottom: 0 }} barCategoryGap="22%">
+        <BarChart data={chartData} margin={{ top: 4, right: 8, left: -8, bottom: 0 }} barCategoryGap="22%">
           <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} strokeDasharray="3 3" />
           <XAxis
             dataKey="label"
             tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }}
             axisLine={false}
             tickLine={false}
-            interval={data.length > 12 ? 1 : 0}
+            interval={chartData.length > 12 ? 1 : 0}
           />
           <YAxis
             tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }}
@@ -154,15 +216,15 @@ function MonthlyHistoryChart({ data, color }) {
             tickLine={false}
             width={46}
             domain={[Math.max(0, minValue - padding), maxValue + padding]}
-            tickFormatter={formatCompactVND}
+            tickFormatter={(value) => formatCompactMetric(value, metric)}
           />
-          <Tooltip content={<MonthlyHistoryTooltip />} cursor={{ fill: 'rgba(255,255,255,0.035)', radius: 8 }} />
-          <Bar dataKey="close" radius={[7, 7, 0, 0]} barSize={18}>
-            {data.map((entry) => (
+          <Tooltip content={<MonthlyHistoryTooltip metric={metric} />} cursor={{ fill: 'rgba(255,255,255,0.035)', radius: 8 }} />
+          <Bar dataKey="value" radius={[7, 7, 0, 0]} barSize={18}>
+            {chartData.map((entry) => (
               <Cell
-                key={`${entry.month}-${entry.close}`}
-                fill={entry.changePct >= 0 ? color : '#ef4444'}
-                fillOpacity={entry.changePct >= 0 ? 0.9 : 0.78}
+                key={`${entry.month}-${entry.value ?? entry.close}`}
+                fill={(entry.change ?? entry.changePct) >= 0 ? color : '#ef4444'}
+                fillOpacity={(entry.change ?? entry.changePct) >= 0 ? 0.9 : 0.78}
               />
             ))}
           </Bar>
@@ -325,15 +387,18 @@ function AssetCard({ item, color, type, isExpanded, onToggle }) {
   const note = item.note;
   const badge = item.badge;
   const badgeColor = item.badgeColor;
-  const historyTicker = getHistoryTicker(item, type);
-  const canShowHistory = type === 'stocks' && Boolean(historyTicker);
+  const historyRequest = getHistoryRequest(item, type);
+  const canShowHistory = Boolean(historyRequest);
   const historyQuery = useAssetMonthlyHistory({
-    asset: type,
-    ticker: historyTicker,
+    ...historyRequest,
     months,
     enabled: isExpanded && canShowHistory,
   });
   const historyRows = historyQuery.data?.history || [];
+  const historyMetric = historyQuery.data?.metric || historyRequest?.metric || {};
+  const handleToggle = () => {
+    if (canShowHistory) onToggle();
+  };
 
   return (
     <motion.div
@@ -341,14 +406,17 @@ function AssetCard({ item, color, type, isExpanded, onToggle }) {
       role="button"
       tabIndex={0}
       aria-expanded={isExpanded}
-      onClick={onToggle}
+      aria-disabled={!canShowHistory}
+      onClick={handleToggle}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
-          onToggle();
+          handleToggle();
         }
       }}
-      className={`bg-white/[0.02] border border-white/5 p-5 rounded-2xl group hover:border-white/10 transition-all duration-300 hover:bg-white/[0.04] hover:shadow-lg relative overflow-hidden cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/15 ${
+      className={`bg-white/[0.02] border border-white/5 p-5 rounded-2xl group hover:border-white/10 transition-all duration-300 hover:bg-white/[0.04] hover:shadow-lg relative overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-white/15 ${
+        canShowHistory ? 'cursor-pointer' : 'cursor-default'
+      } ${
         isExpanded ? 'md:col-span-2' : 'hover:-translate-y-1'
       }`}
     >
@@ -373,11 +441,13 @@ function AssetCard({ item, color, type, isExpanded, onToggle }) {
         </div>
         <div className="text-right flex flex-col items-end shrink-0 pl-3">
           <span className="text-base font-bold tracking-tight" style={{ color }}>{rate}</span>
-          <div className={`p-1 rounded-full bg-white/5 mt-1 transition-all duration-300 ${
-            isExpanded ? 'opacity-100 rotate-180' : 'opacity-0 group-hover:opacity-100'
-          }`}>
-            <ChevronDown size={14} className="text-white" />
-          </div>
+          {canShowHistory && (
+            <div className={`p-1 rounded-full bg-white/5 mt-1 transition-all duration-300 ${
+              isExpanded ? 'opacity-100 rotate-180' : 'opacity-0 group-hover:opacity-100'
+            }`}>
+              <ChevronDown size={14} className="text-white" />
+            </div>
+          )}
         </div>
       </div>
       <p className="text-xs font-medium text-slate-400 leading-relaxed relative z-10">{note}</p>
@@ -398,8 +468,8 @@ function AssetCard({ item, color, type, isExpanded, onToggle }) {
                   <p className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-500">Lịch sử theo tháng</p>
                   <p className="text-xs font-semibold text-slate-400 mt-1">
                     {canShowHistory
-                      ? `${historyTicker} · giá đóng cửa cuối tháng`
-                      : 'Biểu đồ lịch sử hiện hỗ trợ chứng khoán/ETF.'}
+                      ? getHistorySubtitle(historyQuery.data, historyRequest)
+                      : 'Chưa có nguồn lịch sử theo tháng đã kiểm chứng cho mục này.'}
                   </p>
                 </div>
                 {canShowHistory && (
@@ -421,7 +491,7 @@ function AssetCard({ item, color, type, isExpanded, onToggle }) {
                   Không thể tải dữ liệu lịch sử cho mã này.
                 </div>
               ) : (
-                <MonthlyHistoryChart data={historyRows} color={color} />
+                <MonthlyHistoryChart data={historyRows} color={color} metric={historyMetric} />
               )}
             </div>
           </motion.div>

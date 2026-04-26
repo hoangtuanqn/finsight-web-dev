@@ -306,6 +306,7 @@ export async function getBondsRates(req, res) {
         id: 'us10y',
         name: 'US Treasury 10Y (tham chiếu)',
         tag: 'Lãi suất toàn cầu',
+        historySource: { asset: 'bonds', source: 'us10y' },
         rate: us10y.rate,
         rateLabel: `${us10y.rate.toFixed(2)}%`,
         change: us10yChange,
@@ -586,6 +587,7 @@ export async function getGoldPrices(req, res) {
         id: 'world',
         name: 'Vàng thế giới (GC=F)',
         tag: 'Futures · COMEX',
+        historySource: { asset: 'gold', source: 'world' },
         price: worldPrice,
         priceLabel: fmtW(worldPrice),
         change24h: worldChange,
@@ -689,6 +691,28 @@ const STOCK_UNIVERSE = [
 ];
 
 const ASSET_HISTORY_MONTH_OPTIONS = new Set([6, 12, 18]);
+const ASSET_HISTORY_SOURCES = {
+  gold: {
+    world: {
+      asset: 'gold',
+      source: 'world',
+      ticker: 'GC=F',
+      name: 'Vàng thế giới (GC=F)',
+      metric: { key: 'price', unit: 'USD/oz', changeUnit: 'percent', decimals: 1 },
+      dataSource: 'Yahoo Finance monthly close',
+    },
+  },
+  bonds: {
+    us10y: {
+      asset: 'bonds',
+      source: 'us10y',
+      ticker: '^TNX',
+      name: 'US Treasury 10Y',
+      metric: { key: 'yield', unit: '%', changeUnit: 'percentagePoint', decimals: 2 },
+      dataSource: 'Yahoo Finance monthly yield',
+    },
+  },
+};
 
 function normalizeHistoryMonths(value) {
   const months = Number.parseInt(value, 10);
@@ -707,24 +731,56 @@ function resolveStockMeta(rawTicker) {
   });
 }
 
-function buildMonthlyHistoryRows(rawHistory, months) {
+function resolveAssetHistorySource(asset, query) {
+  if (asset === 'stocks') {
+    const meta = resolveStockMeta(query.ticker || query.symbol);
+    if (!meta) return null;
+
+    return {
+      asset,
+      source: 'ticker',
+      ticker: meta.ticker,
+      symbol: meta.ticker.replace('.VN', ''),
+      name: meta.name,
+      sector: meta.sector,
+      metric: { key: 'price', unit: 'VND', changeUnit: 'percent', decimals: 0 },
+      dataSource: 'Yahoo Finance monthly close',
+    };
+  }
+
+  const source = String(query.source || '').trim().toLowerCase();
+  return ASSET_HISTORY_SOURCES[asset]?.[source] || null;
+}
+
+function roundHistoryValue(value, decimals) {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+}
+
+function buildMonthlyHistoryRows(rawHistory, months, metric) {
+  const decimals = Number.isInteger(metric?.decimals) ? metric.decimals : 2;
   const rows = rawHistory.timestamps.map((timestamp, index) => {
-    const close = rawHistory.closes[index];
+    const value = roundHistoryValue(rawHistory.closes[index], decimals);
     const previousClose = index > 0 ? rawHistory.closes[index - 1] : null;
     const date = new Date(timestamp * 1000);
     const year = date.getUTCFullYear();
     const monthNumber = date.getUTCMonth() + 1;
     const month = `${year}-${String(monthNumber).padStart(2, '0')}`;
     const label = `${String(monthNumber).padStart(2, '0')}/${String(year).slice(-2)}`;
-    const changePct = previousClose
-      ? ((close - previousClose) / previousClose) * 100
+    const change = previousClose
+      ? metric?.changeUnit === 'percentagePoint'
+        ? value - previousClose
+        : ((value - previousClose) / previousClose) * 100
       : 0;
+    const roundedChange = Number(change.toFixed(metric?.changeUnit === 'percentagePoint' ? 2 : 2));
 
     return {
       month,
       label,
-      close: Math.round(close),
-      changePct: Number(changePct.toFixed(2)),
+      value,
+      close: value,
+      change: roundedChange,
+      changePct: roundedChange,
     };
   });
 
@@ -893,45 +949,46 @@ export async function getAssetHistory(req, res) {
   try {
     const asset = String(req.query.asset || 'stocks').toLowerCase();
     const months = normalizeHistoryMonths(req.query.months);
+    const source = resolveAssetHistorySource(asset, req.query);
 
-    if (asset !== 'stocks') {
-      return error(res, 'Asset history hiện chỉ hỗ trợ nhóm chứng khoán/ETF', 400);
-    }
-
-    const meta = resolveStockMeta(req.query.ticker || req.query.symbol);
-    if (!meta) {
-      return error(res, 'Ticker không nằm trong danh sách gợi ý chứng khoán', 400);
+    if (!source) {
+      if (asset === 'savings') {
+        return error(res, 'Tiết kiệm chưa có dữ liệu lịch sử theo tháng đã kiểm chứng', 400);
+      }
+      return error(res, 'Nguồn lịch sử tài sản không được hỗ trợ', 400);
     }
 
     console.info(
-      `[InvestmentAdvisor] asset-history:start user=${shortUserId(req.userId)} asset=${asset} ticker=${meta.ticker} months=${months}`
+      `[InvestmentAdvisor] asset-history:start user=${shortUserId(req.userId)} asset=${source.asset} source=${source.source} ticker=${source.ticker} metric=${source.metric.key} months=${months}`
     );
 
-    const rawHistory = await fetchAssetHistory(meta.ticker);
+    const rawHistory = await fetchAssetHistory(source.ticker);
     if (!rawHistory) {
-      console.warn(`[InvestmentAdvisor] asset-history:no-data ticker=${meta.ticker}`);
-      return error(res, 'Không có dữ liệu lịch sử cho mã này', 502);
+      console.warn(`[InvestmentAdvisor] asset-history:no-data asset=${source.asset} source=${source.source} ticker=${source.ticker}`);
+      return error(res, 'Không có dữ liệu lịch sử cho nguồn này', 502);
     }
 
-    const history = buildMonthlyHistoryRows(rawHistory, months);
+    const history = buildMonthlyHistoryRows(rawHistory, months, source.metric);
     if (history.length === 0) {
       return error(res, 'Không đủ dữ liệu lịch sử để hiển thị biểu đồ', 404);
     }
 
     console.info(
-      `[InvestmentAdvisor] asset-history:complete user=${shortUserId(req.userId)} ticker=${meta.ticker} points=${history.length} durationMs=${Date.now() - startedAt}`
+      `[InvestmentAdvisor] asset-history:complete user=${shortUserId(req.userId)} asset=${source.asset} source=${source.source} metric=${source.metric.key} points=${history.length} durationMs=${Date.now() - startedAt}`
     );
 
     return success(res, {
-      asset,
-      ticker: meta.ticker,
-      symbol: meta.ticker.replace('.VN', ''),
-      name: meta.name,
-      sector: meta.sector,
+      asset: source.asset,
+      source: source.source,
+      ticker: source.ticker,
+      symbol: source.symbol,
+      name: source.name,
+      sector: source.sector,
+      metric: source.metric,
       months,
       history,
       updatedAt: new Date().toISOString(),
-      dataSource: 'Yahoo Finance monthly close',
+      dataSource: source.dataSource,
     });
   } catch (err) {
     console.error('getAssetHistory error:', err.message);
