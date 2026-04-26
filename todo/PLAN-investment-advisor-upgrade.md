@@ -748,11 +748,11 @@ Dependencies mới: mathjs (npm install mathjs)
 
 **Checklist**
 
-- [ ] Giữ click row để set `activeStrategyIndex`
-- [ ] Giữ nút "Áp dụng" và modal hiện tại
-- [ ] Thêm badge method/dataQuality chỉ khi active analysis có field tương ứng
-- [ ] Không thêm risk metrics vào từng row nếu DB strategy cũ không lưu field
-- [ ] Nếu cần metrics theo từng strategy, tạo task backend riêng, không fake trên UI
+- [x] Giữ click row để set `activeStrategyIndex`
+- [x] Giữ nút "Áp dụng" và modal hiện tại
+- [x] Thêm badge method/dataQuality chỉ khi active analysis có field tương ứng
+- [x] Không thêm risk metrics vào từng row nếu DB strategy cũ không lưu field
+- [x] Nếu cần metrics theo từng strategy, tạo task backend riêng, không fake trên UI
 
 ### 10.9 MyPortfolioPage compatibility
 
@@ -827,3 +827,4 @@ npm.cmd run build
 - 2026-04-26: UI 10.5 đã thêm `OptimizationSummaryStrip` sau recommendation, hiển thị Markowitz/data quality/solver/return-risk-sharpe và không expose matrix/covariance; adapter giữ thêm `optimizationMethod`; smoke test adapter và `npm.cmd run build` pass.
 - 2026-04-26: UI 10.6 đã thêm `EfficientFrontierPanel`; hiện dùng current portfolio risk-return card khi backend chưa có `optimization.frontierPoints`, nhưng đã future-ready ScatterChart nếu backend expose frontier points sau này; `npm.cmd run build` pass.
 - 2026-04-26: UI 10.7 đã cập nhật `AIRationalPanel` sang copy MVO, truyền `{ optimization, allocationMetrics }` vào `explainAsset()` và giữ legacy fallback có comment; `npm.cmd run build` pass.
+- 2026-04-26: UI 10.8 đã thêm badge method/dataQuality ở header lịch sử chỉ khi active latest analysis có field; giữ nguyên click row, nút Áp dụng và không fake risk metrics cho từng strategy row; `npm.cmd run build` pass.

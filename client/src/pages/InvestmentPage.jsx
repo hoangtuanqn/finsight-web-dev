@@ -38,6 +38,47 @@ const SENTIMENT_LABEL_VI = {
   EXTREME_GREED: 'Tham lam cực độ',
 };
 
+const DATA_QUALITY_BADGES = {
+  full: {
+    label: 'Historical 5y',
+    className: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
+  },
+  partial: {
+    label: 'Partial fallback',
+    className: 'bg-amber-500/10 text-amber-300 border-amber-500/20',
+  },
+  fallback: {
+    label: 'Fallback',
+    className: 'bg-red-500/10 text-red-300 border-red-500/20',
+  },
+};
+
+function getMethodLabel(method) {
+  if (!method) return null;
+  return String(method).toLowerCase().includes('markowitz') ? 'Markowitz MVO' : method;
+}
+
+function getHistoryAnalysisBadges(viewModel) {
+  if (!viewModel) return [];
+
+  const badges = [];
+  const methodLabel = getMethodLabel(viewModel.optimizationMethod);
+  if (methodLabel) {
+    badges.push({
+      key: 'method',
+      label: methodLabel,
+      className: 'bg-blue-500/10 text-blue-300 border-blue-500/20',
+    });
+  }
+
+  const dataQuality = DATA_QUALITY_BADGES[viewModel.dataQuality];
+  if (dataQuality) {
+    badges.push({ key: 'data-quality', ...dataQuality });
+  }
+
+  return badges;
+}
+
 // [LEGACY] Client-side projection fallback for old strategy records.
 // Runtime analytics should come from investmentAdvisorAdapter.js.
 function buildRenderData(allocation, profile) {
@@ -552,6 +593,9 @@ export default function InvestmentPage() {
     ? advisorAnalysis
     : legacyViewModel;
   const sentimentValue = viewModel?.sentimentData?.value || activeStrategy?.sentimentValue || 50;
+  const historyAnalysisBadges = activeStrategyIndex === 0
+    ? getHistoryAnalysisBadges(viewModel)
+    : [];
 
   const activeAllocation = viewModel?.allocation
     || { savings: 20, gold: 20, stocks: 20, bonds: 20, crypto: 20 };
@@ -781,6 +825,19 @@ export default function InvestmentPage() {
                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em]">Lịch sử chiến lược AI</span>
                 <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
               </div>
+
+              {historyAnalysisBadges.length > 0 && (
+                <div className="mb-3 flex flex-wrap justify-end gap-2">
+                  {historyAnalysisBadges.map(badge => (
+                    <span
+                      key={badge.key}
+                      className={`rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-widest ${badge.className}`}
+                    >
+                      {badge.label}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               <div className="bg-slate-900/60 backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden">
                 <div className="overflow-x-auto">
