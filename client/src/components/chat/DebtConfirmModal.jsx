@@ -26,6 +26,7 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
     feeProcessing: '0',
     feeInsurance: '0',
     feeManagement: '0',
+    rateType: 'REDUCING',
     notes: '',
   });
 
@@ -47,6 +48,7 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
       feeProcessing: debtInfo.feeProcessing ? String(debtInfo.feeProcessing) : '0',
       feeInsurance: debtInfo.feeInsurance ? String(debtInfo.feeInsurance) : '0',
       feeManagement: debtInfo.feeManagement ? String(debtInfo.feeManagement) : '0',
+      rateType: debtInfo.rateType || 'REDUCING',
       notes: debtInfo.notes || '',
     });
   }, []);
@@ -110,6 +112,7 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
         feeProcessing: +form.feeProcessing || 0,
         feeInsurance: +form.feeInsurance || 0,
         feeManagement: +form.feeManagement || 0,
+        rateType: form.rateType,
         notes: form.notes || null,
       });
       window.dispatchEvent(new Event('Finsight:DebtUpdated'));
@@ -310,6 +313,28 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
                   className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
                   style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
                 />
+              </div>
+
+              {/* Loại lãi suất */}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => updateField('rateType', 'REDUCING')}
+                  className={`px-3 py-2.5 rounded-xl text-xs font-medium transition-all flex flex-col items-center gap-1 border ${form.rateType === 'REDUCING' ? 'border-emerald-500 bg-emerald-500/10' : 'border-transparent bg-slate-500/10'}`}
+                  style={{ color: form.rateType === 'REDUCING' ? '#34d399' : 'var(--color-text-secondary)' }}
+                >
+                  <span className={form.rateType === 'REDUCING' ? 'text-emerald-400 font-bold' : ''}>Dư nợ giảm dần</span>
+                  <span className="text-[10px] opacity-60 font-normal">REDUCING</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateField('rateType', 'FLAT')}
+                  className={`px-3 py-2.5 rounded-xl text-xs font-medium transition-all flex flex-col items-center gap-1 border ${form.rateType === 'FLAT' ? 'border-amber-500 bg-amber-500/10' : 'border-transparent bg-slate-500/10'}`}
+                  style={{ color: form.rateType === 'FLAT' ? '#fbbf24' : 'var(--color-text-secondary)' }}
+                >
+                  <span className={form.rateType === 'FLAT' ? 'text-amber-400 font-bold' : ''}>Lãi suất phẳng</span>
+                  <span className="text-[10px] opacity-60 font-normal">FLAT</span>
+                </button>
               </div>
 
               {/* Collapsible: Phí ẩn */}
