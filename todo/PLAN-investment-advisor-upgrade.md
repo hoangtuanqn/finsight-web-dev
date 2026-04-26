@@ -736,11 +736,11 @@ Dependencies mới: mathjs (npm install mathjs)
 
 **Checklist**
 
-- [ ] Đổi title từ "Ma trận Quyết định AI" sang label phù hợp MVO hơn
-- [ ] Không nói "mạng nơ-ron" nếu không có model neural thật
-- [ ] `explainAsset()` nhận optional `{ optimization, allocationMetrics }`
-- [ ] Nếu không có metrics, giữ explanation cũ nhưng mark legacy/fallback trong code
-- [ ] Không làm accordion layout thay đổi mạnh
+- [x] Đổi title từ "Ma trận Quyết định AI" sang label phù hợp MVO hơn
+- [x] Không nói "mạng nơ-ron" nếu không có model neural thật
+- [x] `explainAsset()` nhận optional `{ optimization, allocationMetrics }`
+- [x] Nếu không có metrics, giữ explanation cũ nhưng mark legacy/fallback trong code
+- [x] Không làm accordion layout thay đổi mạnh
 
 ### 10.8 History table enhancement không phá apply flow
 
@@ -826,3 +826,4 @@ npm.cmd run build
 - 2026-04-26: UI 10.4 đã thêm Monte Carlo fan chart vào `WealthProjection`, adapter bổ sung savings baseline + percentile bands; smoke test adapter và `npm.cmd run build` pass với warning bundle lớn hiện có. Snapshot desktop/mobile chưa tick vì chưa chạy được đúng page bằng browser harness.
 - 2026-04-26: UI 10.5 đã thêm `OptimizationSummaryStrip` sau recommendation, hiển thị Markowitz/data quality/solver/return-risk-sharpe và không expose matrix/covariance; adapter giữ thêm `optimizationMethod`; smoke test adapter và `npm.cmd run build` pass.
 - 2026-04-26: UI 10.6 đã thêm `EfficientFrontierPanel`; hiện dùng current portfolio risk-return card khi backend chưa có `optimization.frontierPoints`, nhưng đã future-ready ScatterChart nếu backend expose frontier points sau này; `npm.cmd run build` pass.
+- 2026-04-26: UI 10.7 đã cập nhật `AIRationalPanel` sang copy MVO, truyền `{ optimization, allocationMetrics }` vào `explainAsset()` và giữ legacy fallback có comment; `npm.cmd run build` pass.
