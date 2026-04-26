@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, Target, Bot, Sparkles, Zap, BookOpen, ChevronRight, X, Save, CheckCircle2, AlertCircle, User } from 'lucide-react';
@@ -6,7 +6,11 @@ import { toast } from 'sonner';
 import { investmentAPI, marketAPI } from '../api/index.js';
 import { useAuth } from '../context/AuthContext';
 import { PageSkeleton } from '../components/common/LoadingSpinner';
-import { getAllocation, formatVND, formatPercent } from '../utils/calculations';
+import { formatVND } from '../utils/calculations';
+import {
+  normalizeAllocationAnalysis,
+  normalizeStrategy,
+} from '../utils/investmentAdvisorAdapter.js';
 
 // Modular Components (giữ nguyên)
 import MarketLivePulse from '../components/investment/MarketLivePulse';
@@ -15,6 +19,9 @@ import AllocationEngine from '../components/investment/AllocationEngine';
 import AIRationalPanel from '../components/investment/AIRationalPanel';
 import SmartAssetGuide from '../components/investment/SmartAssetGuide';
 import WealthProjection from '../components/investment/WealthProjection';
+import RiskMetricsPanel from '../components/investment/RiskMetricsPanel';
+import OptimizationSummaryStrip from '../components/investment/OptimizationSummaryStrip';
+import EfficientFrontierPanel from '../components/investment/EfficientFrontierPanel';
 import EconomicNewsFeed from '../components/investment/EconomicNewsFeed';
 import IncompleteProfile from '../components/investment/IncompleteProfile';
 import SentimentGauge from '../components/investment/SentimentGauge';
@@ -31,7 +38,49 @@ const SENTIMENT_LABEL_VI = {
   EXTREME_GREED: 'Tham lam cực độ',
 };
 
-// ─── Helper: build projection & pie data từ allocation object ─
+const DATA_QUALITY_BADGES = {
+  full: {
+    label: 'Historical 5y',
+    className: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
+  },
+  partial: {
+    label: 'Partial fallback',
+    className: 'bg-amber-500/10 text-amber-300 border-amber-500/20',
+  },
+  fallback: {
+    label: 'Fallback',
+    className: 'bg-red-500/10 text-red-300 border-red-500/20',
+  },
+};
+
+function getMethodLabel(method) {
+  if (!method) return null;
+  return String(method).toLowerCase().includes('markowitz') ? 'Markowitz MVO' : method;
+}
+
+function getHistoryAnalysisBadges(viewModel) {
+  if (!viewModel) return [];
+
+  const badges = [];
+  const methodLabel = getMethodLabel(viewModel.optimizationMethod);
+  if (methodLabel) {
+    badges.push({
+      key: 'method',
+      label: methodLabel,
+      className: 'bg-blue-500/10 text-blue-300 border-blue-500/20',
+    });
+  }
+
+  const dataQuality = DATA_QUALITY_BADGES[viewModel.dataQuality];
+  if (dataQuality) {
+    badges.push({ key: 'data-quality', ...dataQuality });
+  }
+
+  return badges;
+}
+
+// [LEGACY] Client-side projection fallback for old strategy records.
+// Runtime analytics should come from investmentAdvisorAdapter.js.
 function buildRenderData(allocation, profile) {
   const capital     = profile?.capital || 0;
   const savingsRate = profile?.savingsRate || 6.0;
@@ -422,11 +471,34 @@ export default function InvestmentPage() {
   const [marketSummary,        setMarketSummary]        = useState(null);
   const [loading,              setLoading]              = useState(true);
   const [generating,           setGenerating]           = useState(false);
+  const [advisorAnalysis,      setAdvisorAnalysis]      = useState(null);
+  const [advisorLoading,       setAdvisorLoading]       = useState(false);
+  const [advisorError,         setAdvisorError]         = useState(null);
   const [showNoStrategyPopup,  setShowNoStrategyPopup]  = useState(false);
   const [applyTarget,          setApplyTarget]          = useState(null); // strategy sedang mo modal
   const [activeStrategyIndex,  setActiveStrategyIndex]  = useState(0);
 
   const isProfileIncomplete = !user?.fullName || !user?.email || !user?.monthlyIncome || !user?.investorProfile?.capital;
+  const advisorProfile = useMemo(() => (
+    { ...user?.investorProfile, capital: user?.investorProfile?.capital || 0 }
+  ), [user?.investorProfile]);
+
+  const refreshAdvisorAnalysis = useCallback(async () => {
+    setAdvisorLoading(true);
+    setAdvisorError(null);
+    try {
+      const res = await investmentAPI.getAllocation();
+      const analysis = normalizeAllocationAnalysis(res.data.data, advisorProfile);
+      setAdvisorAnalysis(analysis);
+      return analysis;
+    } catch (err) {
+      setAdvisorAnalysis(null);
+      setAdvisorError(err);
+      return null;
+    } finally {
+      setAdvisorLoading(false);
+    }
+  }, [advisorProfile]);
 
   // ── Initial load ──────────────────────────────────────────
   useEffect(() => {
@@ -448,6 +520,8 @@ export default function InvestmentPage() {
 
         if (loadedStrategies.length === 0) {
           setShowNoStrategyPopup(true);
+        } else {
+          await refreshAdvisorAnalysis();
         }
       } catch (e) {
         console.error('InvestmentPage load error:', e);
@@ -457,7 +531,7 @@ export default function InvestmentPage() {
     };
 
     load();
-  }, [isProfileIncomplete]);
+  }, [isProfileIncomplete, refreshAdvisorAnalysis, user?.strategyQuota]);
 
   // ── Generate chiến lược mới ───────────────────────────────
   const handleGenerate = useCallback(async () => {
@@ -469,6 +543,7 @@ export default function InvestmentPage() {
       setQuota(remainingQuota);
       setActiveStrategyIndex(0);
       setShowNoStrategyPopup(false);
+      await refreshAdvisorAnalysis();
       toast.success('Chiến lược đầu tư mới đã được tạo!');
     } catch (err) {
       const msg = err.response?.data?.message || 'Không thể tạo chiến lược. Vui lòng thử lại.';
@@ -480,7 +555,7 @@ export default function InvestmentPage() {
     } finally {
       setGenerating(false);
     }
-  }, []);
+  }, [refreshAdvisorAnalysis]);
 
   // ── Lưu / cập nhật UserPortfolio ─────────────────────────
   const handleUpsertPortfolio = useCallback(async (data) => {
@@ -512,14 +587,25 @@ export default function InvestmentPage() {
   // ── Dữ liệu render từ chiến lược đang xem ────────────────
   const activeStrategy = strategies[activeStrategyIndex] || null;
 
-  const mockProfile   = { ...user?.investorProfile, capital: user?.investorProfile?.capital || 0 };
-  const sentimentValue = activeStrategy?.sentimentValue || 50;
+  const mockProfile = advisorProfile;
+  const legacyViewModel = activeStrategy ? normalizeStrategy(activeStrategy, mockProfile) : null;
+  const viewModel = advisorAnalysis && activeStrategyIndex === 0
+    ? advisorAnalysis
+    : legacyViewModel;
+  const sentimentValue = viewModel?.sentimentData?.value || activeStrategy?.sentimentValue || 50;
+  const historyAnalysisBadges = activeStrategyIndex === 0
+    ? getHistoryAnalysisBadges(viewModel)
+    : [];
 
-  const activeAllocation = activeStrategy
-    ? { savings: activeStrategy.savings, gold: activeStrategy.gold, stocks: activeStrategy.stocks, bonds: activeStrategy.bonds, crypto: activeStrategy.crypto }
-    : { savings: 20, gold: 20, stocks: 20, bonds: 20, crypto: 20 };
+  const activeAllocation = viewModel?.allocation
+    || { savings: 20, gold: 20, stocks: 20, bonds: 20, crypto: 20 };
 
-  const { portfolioBreakdown, pieData, projectionBase, projectionData } = buildRenderData(activeAllocation, mockProfile);
+  const {
+    portfolioBreakdown,
+    pieData,
+    projectionBase,
+    projectionData,
+  } = viewModel || buildRenderData(activeAllocation, mockProfile);
 
   const getGreeting = () => {
     const h = new Date().getHours();
@@ -636,7 +722,10 @@ export default function InvestmentPage() {
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-medium text-slate-400">Trạng thái</span>
                       <span className="text-sm font-bold text-white">
-                        {SENTIMENT_LABEL_VI[activeStrategy.sentimentLabel] || activeStrategy.sentimentLabel}
+                        {viewModel?.sentimentData?.labelVi
+                          || SENTIMENT_LABEL_VI[viewModel?.sentimentData?.label]
+                          || SENTIMENT_LABEL_VI[activeStrategy.sentimentLabel]
+                          || activeStrategy.sentimentLabel}
                       </span>
                     </div>
                     <div className="w-full h-px bg-white/5" />
@@ -652,16 +741,46 @@ export default function InvestmentPage() {
                 </div>
               </div>
 
+              <RiskMetricsPanel
+                riskMetrics={viewModel?.riskMetrics}
+                loading={advisorLoading && activeStrategyIndex === 0}
+                error={advisorError && activeStrategyIndex === 0 ? advisorError : null}
+              />
+
               {/* AI Recommendation */}
-              {activeStrategy.recommendation && (
+              {viewModel?.recommendation && (
                 <div className="bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 p-6 rounded-2xl flex items-start gap-5 shadow-[0_0_30px_rgba(59,130,246,0.1)] group">
                   <div className="p-2.5 rounded-full bg-blue-500/20 shrink-0 group-hover:scale-110 transition-transform shadow-inner">
                     <Bot size={20} className="text-blue-400" />
                   </div>
                   <p className="text-base font-medium text-blue-100 leading-relaxed">
                     <span className="text-xs font-bold uppercase tracking-widest text-blue-400 block mb-1">Khuyến nghị chiến lược:</span>
-                    "{activeStrategy.recommendation}"
+                    "{viewModel.recommendation}"
                   </p>
+                </div>
+              )}
+
+              <OptimizationSummaryStrip
+                optimization={viewModel?.optimization}
+                allocationMetrics={viewModel?.allocationMetrics}
+                optimizationMethod={viewModel?.optimizationMethod}
+              />
+
+              <EfficientFrontierPanel
+                allocationMetrics={viewModel?.allocationMetrics}
+                frontierPoints={viewModel?.optimization?.frontierPoints}
+                riskGrade={viewModel?.riskMetrics?.riskGrade}
+              />
+
+              {(advisorLoading || advisorError) && activeStrategyIndex === 0 && (
+                <div className={`px-4 py-2 rounded-2xl border text-xs font-bold ${
+                  advisorError
+                    ? 'bg-amber-500/10 border-amber-500/20 text-amber-300'
+                    : 'bg-blue-500/10 border-blue-500/20 text-blue-300'
+                }`}>
+                  {advisorError
+                    ? 'Đang hiển thị dữ liệu chiến lược cũ vì phân tích nâng cao chưa sẵn sàng.'
+                    : 'Đang cập nhật phân tích nâng cao...'}
                 </div>
               )}
 
@@ -683,8 +802,19 @@ export default function InvestmentPage() {
               </Link>
 
               <AllocationEngine pieData={pieData} portfolioBreakdown={portfolioBreakdown} history={[]} />
-              <AIRationalPanel allocation={activeAllocation} profile={mockProfile} sentimentValue={sentimentValue} portfolioBreakdown={portfolioBreakdown} />
-              <WealthProjection projectionData={projectionData} mockProfile={mockProfile} />
+              <AIRationalPanel
+                allocation={activeAllocation}
+                profile={mockProfile}
+                sentimentValue={sentimentValue}
+                portfolioBreakdown={portfolioBreakdown}
+                optimization={viewModel?.optimization}
+                allocationMetrics={viewModel?.allocationMetrics}
+              />
+              <WealthProjection
+                projectionData={projectionData}
+                monteCarloData={viewModel?.monteCarloData}
+                mockProfile={mockProfile}
+              />
               <SmartAssetGuide allocation={activeAllocation} riskLevel={mockProfile?.riskLevel || 'MEDIUM'} />
             </div>
 
@@ -695,6 +825,19 @@ export default function InvestmentPage() {
                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em]">Lịch sử chiến lược AI</span>
                 <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
               </div>
+
+              {historyAnalysisBadges.length > 0 && (
+                <div className="mb-3 flex flex-wrap justify-end gap-2">
+                  {historyAnalysisBadges.map(badge => (
+                    <span
+                      key={badge.key}
+                      className={`rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-widest ${badge.className}`}
+                    >
+                      {badge.label}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               <div className="bg-slate-900/60 backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden">
                 <div className="overflow-x-auto">

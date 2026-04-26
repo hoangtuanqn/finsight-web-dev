@@ -3,6 +3,7 @@ import {
   getInvestorProfile, createInvestorProfile, updateInvestorProfile,
   getAllocationRecommendation, getAllocationHistory, submitRiskAssessment,
   getCryptoPrices, getStockPrices, getGoldPrices, getSavingsRates, getBondsRates,
+  getAssetHistory,
 } from '../controllers/investment.controller.js';
 import {
   getMyStrategies, generateStrategy,
@@ -22,6 +23,7 @@ router.get('/history', getAllocationHistory);
 router.post('/risk-assessment', submitRiskAssessment);
 router.get('/crypto-prices', getCryptoPrices);
 router.get('/stock-prices', getStockPrices);
+router.get('/asset-history', getAssetHistory);
 router.get('/gold-prices', getGoldPrices);
 router.get('/savings-rates', getSavingsRates);
 router.get('/bonds-rates', getBondsRates);
