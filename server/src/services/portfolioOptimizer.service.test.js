@@ -87,7 +87,16 @@ test('optimizePortfolio returns a bounded allocation and risk metrics', () => {
   assert.ok(result.metrics.portfolioRisk > 0);
   assert.ok(Number.isFinite(result.metrics.sharpeRatio));
   assert.ok(result.iterations > 0);
-  assert.equal(typeof result.converged, 'boolean');
+  assert.ok(result.iterations < 500);
+  assert.equal(result.converged, true);
+});
+
+test('LOW risk optimization keeps defensive assets dominant', () => {
+  const profile = { riskLevel: 'LOW', savingsRate: 6, capital: 200_000_000 };
+  const result = optimizePortfolio(marketParams, 'LOW', 50, profile);
+
+  expectAllocationWithinBounds(result.allocation, 'LOW');
+  assert.ok(result.allocation.savings + result.allocation.gold + result.allocation.bonds > 60);
 });
 
 test('HIGH risk optimization keeps growth assets dominant', () => {
@@ -96,6 +105,14 @@ test('HIGH risk optimization keeps growth assets dominant', () => {
 
   expectAllocationWithinBounds(result.allocation, 'HIGH');
   assert.ok(result.allocation.stocks + result.allocation.crypto > 40);
+});
+
+test('FEAR sentiment reduces stocks allocation compared with NEUTRAL', () => {
+  const profile = { riskLevel: 'MEDIUM', savingsRate: 6, capital: 100_000_000 };
+  const neutral = optimizePortfolio(marketParams, 'MEDIUM', 50, profile);
+  const fear = optimizePortfolio(marketParams, 'MEDIUM', 30, profile);
+
+  assert.ok(fear.allocation.stocks < neutral.allocation.stocks);
 });
 
 test('getOptimalAllocation returns backward-compatible allocation shape without external fetch', async () => {

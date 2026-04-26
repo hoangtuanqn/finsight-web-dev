@@ -59,7 +59,7 @@ export const SENTIMENT_ADJUSTMENTS = {
 // Solver configuration
 export const SOLVER_CONFIG = {
   maxIterations: 1000,
-  learningRate: 0.01,
+  learningRate: 0.05,
   tolerance: 1e-6,
 };
 
