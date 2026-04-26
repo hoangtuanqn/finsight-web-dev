@@ -867,7 +867,124 @@ GET /api/investment/asset-history?asset=stocks&ticker=E1VFVN30.VN&months=12
 - `fetchAssetHistory()` đang dùng cache 24h hiện có; endpoint mới dùng lại hạ tầng đó thay vì tạo cache riêng.
 - Smoke import controller bằng `node -e import(...)` đã bị dừng do chạy quá lâu trong môi trường hiện tại, nên chưa tick manual server runtime check; syntax check và client build đã pass.
 
-### 10.12 Thứ tự commit đề xuất cho UI
+### 10.12 Smart Asset Guide: mở rộng history cho vàng/trái phiếu/tiết kiệm
+
+**Hiện trạng sau manual QA 2026-04-27**
+
+- `Chứng khoán` hoạt động đúng: card có `historyTicker`, frontend fetch lazy, backend trả monthly bars từ Yahoo.
+- `Vàng`, `Trái phiếu`, `Tiết kiệm` vẫn mở fallback "chưa có nguồn lịch sử phù hợp" vì v1 cố tình chỉ hỗ trợ `stocks`.
+
+**Nguyên nhân kỹ thuật**
+
+1. Frontend đang khóa history theo điều kiện:
+
+```js
+const canShowHistory = type === 'stocks' && Boolean(historyTicker);
+```
+
+Do đó mọi card không thuộc `stocks` không bao giờ gọi `useAssetMonthlyHistory()`.
+
+2. `getHistoryTicker()` hiện chỉ hiểu ticker chứng khoán (`historyTicker`, `ticker`, `symbol`, hoặc `STOCK_SYMBOLS`). Các item vàng/trái phiếu/tiết kiệm chưa có metadata history source.
+
+3. Backend `getAssetHistory()` hiện reject mọi asset khác `stocks`:
+
+```js
+if (asset !== 'stocks') {
+  return error(res, 'Asset history hiện chỉ hỗ trợ nhóm chứng khoán/ETF', 400);
+}
+```
+
+4. Nguồn dữ liệu từng nhóm không giống nhau:
+
+| Nhóm | Có lịch sử thật trong code? | Nguồn khả dụng | Quyết định |
+|------|------------------------------|----------------|------------|
+| Vàng | Có cho vàng thế giới | Yahoo `GC=F` qua `fetchAssetHistory()` | V2 hỗ trợ chart cho `Vàng thế giới (GC=F)` trước; SJC/nhẫn chỉ dùng proxy nếu label rõ "tham chiếu GC=F" |
+| Trái phiếu | Có cho US 10Y | Yahoo `^TNX` qua `fetchAssetHistory()` | V2 hỗ trợ chart yield cho `US Treasury 10Y`; TPCP VN/quỹ TP chỉ dùng proxy nếu label rõ |
+| Tiết kiệm | Chưa có lịch sử theo tháng | `SAVINGS_DATA` chỉ là snapshot hiện tại theo bank/tenor | Không fake. Cần dataset lịch sử đã kiểm chứng hoặc snapshot collector trước khi vẽ monthly history |
+
+**Data contract mới cần generalize**
+
+```js
+GET /api/investment/asset-history?asset=gold&source=world&months=12
+GET /api/investment/asset-history?asset=bonds&source=us10y&months=12
+GET /api/investment/asset-history?asset=savings&bankId=msb&tenor=t24&months=12
+
+{
+  asset: 'gold',
+  source: 'world',
+  name: 'Vàng thế giới (GC=F)',
+  metric: {
+    key: 'price',
+    unit: 'USD/oz',
+    changeUnit: 'percent'
+  },
+  months: 12,
+  history: [
+    { month: '2025-05', label: '05/25', value: 3340.2, change: 1.2 }
+  ],
+  dataSource: 'Yahoo Finance monthly close'
+}
+```
+
+**Thiết kế backend**
+
+- [ ] Tạo resolver chung `resolveAssetHistorySource(asset, query)` thay cho resolver chỉ stocks.
+- [ ] Tạo allowlist `ASSET_HISTORY_SOURCES`:
+  - `stocks`: ticker nằm trong `STOCK_UNIVERSE`
+  - `gold/world`: Yahoo ticker `GC=F`, metric `price`, unit `USD/oz`
+  - `bonds/us10y`: Yahoo ticker `^TNX`, metric `yield`, unit `%`
+  - `savings`: chỉ enable khi có `SAVINGS_RATE_HISTORY` thật
+- [ ] Tách formatter history:
+  - price close: `{ value, change }` theo %
+  - yield/rate: `{ value, change }` theo basis points hoặc percentage point, không ghi là biến động giá
+- [ ] Thêm metadata `historySource` vào item:
+  - Gold world item: `{ asset: 'gold', source: 'world' }`
+  - Bonds US 10Y item: `{ asset: 'bonds', source: 'us10y' }`
+  - Savings item: `{ asset: 'savings', bankId, tenor }` sau khi có history dataset
+- [ ] Với SJC/nhẫn/TPCP VN/quỹ trái phiếu: không tự gắn history nếu chỉ có proxy; nếu dùng proxy phải trả `proxy: true` và `proxyLabel`.
+- [ ] Log rõ `asset-history:start/complete/no-data` có `asset`, `source`, `metric`, `points`.
+
+**Thiết kế dữ liệu tiết kiệm**
+
+- [ ] Không sinh ngược dữ liệu 6/12/18 tháng từ `SAVINGS_DATA` hiện tại.
+- [ ] Chọn một trong hai hướng trước khi implement:
+  - Hướng A: thêm file curated `server/src/data/savingsRateHistory.js` với dữ liệu đã kiểm chứng theo tháng cho các bank/tenor đang hiển thị.
+  - Hướng B: thêm snapshot collector/DB table để lưu lãi suất định kỳ từ thời điểm deploy, chart chỉ đủ dữ liệu sau khi tích lũy.
+- [ ] Nếu chưa có dataset lịch sử tiết kiệm, UI không nên mở chart lớn cho savings; nên hiển thị compact unavailable state hoặc không hiện chevron.
+- [ ] Nếu cần chart ngay cho savings mà không có monthly history, đổi label thành "So sánh kỳ hạn hiện tại" và bỏ toggle 6/12/18 để không gây hiểu nhầm.
+
+**Thiết kế frontend**
+
+- [ ] Thay `getHistoryTicker()` bằng `getHistoryRequest(item, type)` để lấy `historySource` generic.
+- [ ] Thay `canShowHistory = type === 'stocks'...` bằng `canShowHistory = Boolean(historyRequest)`.
+- [ ] `useAssetMonthlyHistory()` nhận params generic: `{ asset, ticker/source/bankId/tenor, months }`.
+- [ ] `MonthlyHistoryChart` nhận `metric` để format:
+  - `VND` cho chứng khoán VN
+  - `USD/oz` cho vàng thế giới
+  - `%` cho yield/rate
+  - tooltip đổi copy theo metric, không dùng "giá đóng cửa" cho yield/rate
+- [ ] Toggle 6/12/18 giữ nguyên style, nhưng chỉ hiện khi có monthly history thật.
+- [ ] Card không có history source không nên mở panel chart trống quá lớn; nếu vẫn mở, copy phải nói đúng nguyên nhân.
+
+**Thứ tự thực thi đề xuất**
+
+1. Backend generalize endpoint cho `gold/world` và `bonds/us10y`, không đụng savings trước.
+2. Frontend generalize request/chart formatter để vàng và US10Y dùng cùng UI.
+3. Manual QA vàng: click `Vàng thế giới (GC=F)`, toggle 6/12/18, unit hiển thị `USD/oz`.
+4. Manual QA trái phiếu: click `US Treasury 10Y`, toggle 6/12/18, unit hiển thị `%`.
+5. Quyết định hướng dữ liệu tiết kiệm A hoặc B, rồi mới implement savings monthly history.
+6. Cập nhật checklist, chạy `node --check`, `npm.cmd run build`, commit riêng.
+
+**Checklist điều tra/plan**
+
+- [x] Xác định frontend đang khóa history ở `type === 'stocks'`
+- [x] Xác định backend đang reject asset khác `stocks`
+- [x] Xác định vàng có source lịch sử thật `GC=F`
+- [x] Xác định trái phiếu có source lịch sử thật `^TNX`
+- [x] Xác định tiết kiệm hiện chỉ có snapshot `SAVINGS_DATA`, chưa có monthly history thật
+- [x] Ghi plan mở rộng vào `PLAN-investment-advisor-upgrade.md`
+
+### 10.13 Thứ tự commit đề xuất cho UI
 
 1. `investment-advisor-ui: add advisor data adapter`
 2. `investment-advisor-ui: render risk metrics panel`
@@ -877,6 +994,8 @@ GET /api/investment/asset-history?asset=stocks&ticker=E1VFVN30.VN&months=12
 6. `investment-advisor-ui: align rationale copy with optimizer`
 7. `investment-advisor-ui: verify investment advisor page`
 8. `investment-advisor-ui: add smart asset monthly history`
+9. `investment-advisor-ui: support gold and bond monthly history`
+10. `investment-advisor-ui: add verified savings rate history`
 
 ---
 
@@ -907,3 +1026,4 @@ GET /api/investment/asset-history?asset=stocks&ticker=E1VFVN30.VN&months=12
 - 2026-04-26: UI 10.10 đã chạy `npm.cmd run build` cuối pass sau toàn bộ thay đổi UI; manual QA/visual QA desktop-mobile vẫn để unchecked vì cần chạy app với auth/API thật để xác nhận.
 - 2026-04-26: Pre-merge cleanup đã gỡ test modules/script nội bộ của investment advisor và xóa `getAllocation()` heuristic khỏi client/server utils vì không còn runtime dùng; giữ các fallback UI đang phục vụ strategy history cũ.
 - 2026-04-27: Bổ sung Section 10.11 cho Smart Asset Guide monthly history; đã implement endpoint `GET /investment/asset-history`, hook lazy React Query, card expand + chart cột 6/12/18 tháng cho stocks/ETF. Backend `node --check` pass, client `npm.cmd run build` pass ngoài sandbox; manual QA trên app thật còn pending.
+- 2026-04-27: Điều tra nguyên nhân vàng/trái phiếu/tiết kiệm chưa có chart: frontend đang khóa `type === 'stocks'`, backend chỉ nhận `asset=stocks`; vàng có thể dùng `GC=F`, trái phiếu có thể dùng `^TNX`, tiết kiệm chưa có monthly history thật vì `SAVINGS_DATA` chỉ là snapshot hiện tại. Đã bổ sung Section 10.12 làm plan mở rộng, chưa implement runtime.
