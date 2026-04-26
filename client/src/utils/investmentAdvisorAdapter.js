@@ -221,6 +221,7 @@ function buildViewModel({
   sentimentData = null,
   riskMetrics = null,
   optimization = null,
+  optimizationMethod = null,
   allocationMetrics = null,
   cryptoWarning = null,
 }) {
@@ -235,6 +236,7 @@ function buildViewModel({
     monteCarloData: buildMonteCarloData(selectedProjection, profile),
     riskMetrics,
     optimization,
+    optimizationMethod,
     allocationMetrics,
     dataQuality: optimization?.marketDataQuality || null,
     recommendation,
@@ -257,6 +259,7 @@ export function normalizeAllocationAnalysis(apiData = {}, profile = {}) {
     sentimentData: apiData.sentimentData,
     riskMetrics: apiData.riskMetrics,
     optimization: apiData.optimization,
+    optimizationMethod: apiData.optimizationMethod,
     allocationMetrics: apiData.allocationMetrics,
     cryptoWarning: apiData.cryptoWarning,
   });
