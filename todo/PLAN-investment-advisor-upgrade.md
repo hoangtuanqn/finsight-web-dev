@@ -371,7 +371,7 @@ HIGH:   savings [5-25]%   gold [0-20]%   bonds [0-15]%   stocks [25-70]%  crypto
       - Gọi simulatePortfolio cho years = [1, 3, 5, 10]
       - Return: { '1y': {p5,...,probLoss}, '3y': {...}, '5y': {...}, '10y': {...} }
 
-- [ ] MODIFY getAllocationRecommendation() trong investment.controller.js:
+- [x] MODIFY getAllocationRecommendation() trong investment.controller.js:
       - Comment [LEGACY]: projection logic cũ (calcFV, ×1.3, ×0.5)
       - Thay bằng: generateProjectionTable()
       - Backward compat response:
@@ -544,3 +544,4 @@ Dependencies mới: mathjs (npm install mathjs)
 - 2026-04-26: P2 Markowitz optimizer đã commit và đã nối vào `/investment/allocation` + `/investment/strategies/generate`; chưa re-export `getOptimalAllocation` từ `calculations.js` để tránh vòng import ESM, controller import service trực tiếp.
 - 2026-04-26: Một số test P2 vẫn chưa đủ theo checklist chi tiết: LOW defensive allocation, FEAR vs NEUTRAL allocation, convergence < 500 iterations.
 - 2026-04-26: P3 Monte Carlo service đã có unit test deterministic bằng seeded RNG và đã thêm vào `npm.cmd run test:investment`; controller integration, performance test và probLoss theo riskLevel chưa thực hiện.
+- 2026-04-26: P3 đã nối Monte Carlo vào `getAllocationRecommendation()`: giữ `projection.base/optimistic/pessimistic`, thêm `projection.monteCarlo` và `projection.probLoss`; đã có syntax check controller và test helper response shape, full route integration test vẫn chưa làm.

@@ -1,6 +1,7 @@
 const DEFAULT_NUM_SIMS = 5000;
 const DEFAULT_HORIZONS = [1, 3, 5, 10];
 const EPSILON = 1e-12;
+const MONEY_FIELDS = ['p5', 'p25', 'median', 'p75', 'p95', 'mean'];
 
 function toArrayMatrix(matrix) {
   return typeof matrix?.toArray === 'function' ? matrix.toArray() : matrix;
@@ -152,4 +153,31 @@ export function generateProjectionTable(params) {
       return [`${years}y`, simulatePortfolio({ ...params, years, rng })];
     })
   );
+}
+
+function publicMonteCarloPoint(result) {
+  const point = { probLoss: result.probLoss };
+  for (const field of MONEY_FIELDS) {
+    point[field] = Math.round(result[field]);
+  }
+  return point;
+}
+
+export function buildBackwardCompatibleProjection(table) {
+  const projection = {
+    base: {},
+    optimistic: {},
+    pessimistic: {},
+    monteCarlo: {},
+    probLoss: table['10y']?.probLoss ?? 0,
+  };
+
+  for (const [horizon, result] of Object.entries(table)) {
+    projection.base[horizon] = Math.round(result.median);
+    projection.optimistic[horizon] = Math.round(result.p95);
+    projection.pessimistic[horizon] = Math.round(result.p5);
+    projection.monteCarlo[horizon] = publicMonteCarloPoint(result);
+  }
+
+  return projection;
 }

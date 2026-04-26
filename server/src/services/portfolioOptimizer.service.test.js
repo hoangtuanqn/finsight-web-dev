@@ -106,6 +106,9 @@ test('getOptimalAllocation returns backward-compatible allocation shape without 
   assert.equal(allocation.sentimentLabel, 'NEUTRAL');
   assert.equal(allocation.optimizationMethod, 'markowitz');
   assert.equal(typeof allocation.recommendation, 'string');
+  assert.ok(Array.isArray(allocation.weights));
+  assert.equal(Object.keys(allocation).includes('marketParams'), false);
+  assert.equal(allocation.marketParams, marketParams);
   assert.ok(allocation.metrics.expectedReturn > 0);
   assert.ok(allocation.optimization.iterations > 0);
 });
