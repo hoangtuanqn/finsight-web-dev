@@ -3,15 +3,28 @@ import assert from 'node:assert/strict';
 import {
   annualizeReturn,
   annualizeStdDev,
+  buildMarketParams,
   calcCorrelationMatrix,
   calcCovarianceMatrix,
   calcLogReturns,
   calcMean,
   calcStdDev,
 } from './historicalData.service.js';
+import {
+  ASSET_ORDER,
+  ASSET_TICKERS,
+  FALLBACK_PARAMS,
+} from '../constants/assetTickers.js';
 
 function expectNear(actual, expected, tolerance = 1e-12) {
   assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} not within ${tolerance} of ${expected}`);
+}
+
+function makeHistory(start, monthlyGrowth) {
+  return {
+    timestamps: Array.from({ length: 14 }, (_, index) => index),
+    closes: Array.from({ length: 14 }, (_, index) => start * Math.pow(1 + monthlyGrowth, index)),
+  };
 }
 
 test('calcLogReturns uses natural log price ratios', () => {
@@ -56,4 +69,30 @@ test('calcCorrelationMatrix clamps correlations to valid range', () => {
   expectNear(corr[1][1], 1);
   expectNear(corr[0][1], 1);
   expectNear(corr[1][0], 1);
+});
+
+test('buildMarketParams uses partial fallback when one ticker fails', async () => {
+  const params = await buildMarketParams(0.05, {
+    fetchAssetHistory: async ticker => (
+      ticker === ASSET_TICKERS.stocks ? null : makeHistory(100, 0.01)
+    ),
+  });
+  const stocksIndex = ASSET_ORDER.indexOf('stocks');
+
+  assert.equal(params.dataQuality, 'partial');
+  assert.equal(params.dataDetails.stocks, 'fallback');
+  expectNear(params.means[stocksIndex], FALLBACK_PARAMS.stocks.annualReturn);
+  expectNear(params.stdDevs[stocksIndex], FALLBACK_PARAMS.stocks.annualStdDev);
+});
+
+test('buildMarketParams uses full fallback when all tickers fail', async () => {
+  const params = await buildMarketParams(0.05, {
+    fetchAssetHistory: async () => null,
+  });
+
+  assert.equal(params.dataQuality, 'fallback');
+  for (const [index, asset] of ASSET_ORDER.entries()) {
+    expectNear(params.means[index], FALLBACK_PARAMS[asset].annualReturn);
+    expectNear(params.stdDevs[index], FALLBACK_PARAMS[asset].annualStdDev);
+  }
 });

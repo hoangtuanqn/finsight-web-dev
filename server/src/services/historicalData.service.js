@@ -251,13 +251,14 @@ export function calcCorrelationMatrix(covMatrix, stdDevs) {
  * @param {number} savingsRate - Annual savings rate (e.g. 0.05 for 5%)
  * @returns {Promise<Object>} marketParams
  */
-export async function buildMarketParams(savingsRate = 0.05) {
+export async function buildMarketParams(savingsRate = 0.05, options = {}) {
   const tickerEntries = Object.entries(ASSET_TICKERS); // [['gold','GC=F'], ...]
+  const historyFetcher = options.fetchAssetHistory || fetchAssetHistory;
 
   // Fetch all tickers in parallel
   const fetchResults = await Promise.allSettled(
     tickerEntries.map(async ([asset, ticker]) => {
-      const data = await fetchAssetHistory(ticker);
+      const data = await historyFetcher(ticker);
       return { asset, data };
     })
   );
