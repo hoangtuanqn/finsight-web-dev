@@ -2,7 +2,7 @@
 
 > **Ngày tạo:** 2026-04-26
 > **Deadline:** 2 tuần (backend logic) + 1 tuần (UI)
-> **Status:** 🟡 Approved — Chưa bắt đầu
+> **Status:** 🟡 In progress — P1/P2 đã commit, P3 Monte Carlo đang thực hiện
 
 ---
 
@@ -111,34 +111,34 @@ Tuần 3 (Ngày 15-21) — sau khi backend done:
 ### 4.4 Checklist
 
 ```
-- [ ] Tạo `server/src/constants/assetTickers.js`:
+- [x] Tạo `server/src/constants/assetTickers.js`:
       export const ASSET_TICKERS = {
         gold: 'GC=F', stocks: '^VNINDEX', bonds: '^TNX', crypto: 'BTC-USD'
       };
       export const HISTORY_CONFIG = { years: 5, interval: '1mo' };
 
-- [ ] Tạo `server/src/services/historicalData.service.js`
+- [x] Tạo `server/src/services/historicalData.service.js`
 
-- [ ] Implement fetchAssetHistory(ticker, years=5):
+- [x] Implement fetchAssetHistory(ticker, years=5):
       - URL: `https://query2.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1mo&range=${years}y`
       - Headers: User-Agent + Accept (giống pattern getGoldPrices)
       - Parse: meta + timestamps[] + indicators.adjclose[0].adjclose[]
       - Cache Redis: `hist:${ticker}` TTL 86400 (24h)
       - Fallback: return null (không crash)
 
-- [ ] Implement calcLogReturns(closes):
+- [x] Implement calcLogReturns(closes):
       - returns[i] = Math.log(closes[i+1] / closes[i])
       - Return Float64Array (performance)
 
-- [ ] Implement calcAnnualizedMean(monthlyReturns):
+- [x] Implement calcAnnualizedMean(monthlyReturns):
       - mean = sum(returns) / returns.length
       - annualized = mean × 12
       
-- [ ] Implement calcAnnualizedStdDev(monthlyReturns):
+- [x] Implement calcAnnualizedStdDev(monthlyReturns):
       - variance = sum((r - mean)^2) / (n-1)
       - annualized = sqrt(variance) × sqrt(12)
 
-- [ ] Implement calcCovarianceMatrix(returnsMap):
+- [x] Implement calcCovarianceMatrix(returnsMap):
       - Input: { gold: returns[], stocks: [...], bonds: [...], crypto: [...] }
       - Align lengths (truncate to shortest)
       - Build matrix R [n × 4] (demeaned)
@@ -146,24 +146,24 @@ Tuần 3 (Ngày 15-21) — sau khi backend done:
       - Expand to 5×5 (savings row/col = near-zero variance)
       - Return: math.matrix result
 
-- [ ] Implement calcCorrelationMatrix(covMatrix, stdDevs):
+- [x] Implement calcCorrelationMatrix(covMatrix, stdDevs):
       - corr[i][j] = cov[i][j] / (σi × σj)
 
-- [ ] Implement buildMarketParams():
+- [x] Implement buildMarketParams():
       - const histories = await Promise.allSettled(4 fetches)
       - Handle partial failures: dùng ASSET_CLASSES fallback cho ticker lỗi
       - Return: { means, stdDevs, covMatrix, corrMatrix, dataQuality, updatedAt }
       - dataQuality: 'full' | 'partial' | 'fallback'
 
-- [ ] Implement getMarketParams():
+- [x] Implement getMarketParams():
       - Redis cache `market:params` TTL 86400
       - If miss: buildMarketParams()
 
-- [ ] npm install mathjs (dependency mới)
+- [x] npm install mathjs (dependency mới)
 
-- [ ] Test: covMatrix đối xứng (cov[i][j] === cov[j][i])
-- [ ] Test: diagonal covMatrix === variance (stdDev^2)
-- [ ] Test: correlation trong [-1, 1]
+- [x] Test: covMatrix đối xứng (cov[i][j] === cov[j][i])
+- [x] Test: diagonal covMatrix === variance (stdDev^2)
+- [x] Test: correlation trong [-1, 1]
 - [ ] Test: fallback khi 1 ticker fail → dataQuality = 'partial'
 - [ ] Test: fallback khi tất cả fail → dataQuality = 'fallback', dùng ASSET_CLASSES
 ```
@@ -214,30 +214,30 @@ HIGH:   savings [5-25]%   gold [0-20]%   bonds [0-15]%   stocks [25-70]%  crypto
 ### 5.5 Checklist
 
 ```
-- [ ] Tạo `server/src/constants/optimizationConfig.js`:
+- [x] Tạo `server/src/constants/optimizationConfig.js`:
       - RISK_AVERSION: { LOW: 8, MEDIUM: 4, HIGH: 1.5 }
       - WEIGHT_BOUNDS: { LOW: {...}, MEDIUM: {...}, HIGH: {...} }
       - SENTIMENT_ADJUSTMENTS: { EXTREME_FEAR: {...}, ... }
       - SOLVER_CONFIG: { maxIterations: 1000, learningRate: 0.01, tolerance: 1e-6 }
 
-- [ ] Tạo `server/src/services/portfolioOptimizer.service.js`
+- [x] Tạo `server/src/services/portfolioOptimizer.service.js`
 
-- [ ] Implement portfolioReturn(weights, means):
+- [x] Implement portfolioReturn(weights, means):
       - return math.dot(weights, means)
 
-- [ ] Implement portfolioVariance(weights, covMatrix):
+- [x] Implement portfolioVariance(weights, covMatrix):
       - return w^T × Σ × w (math.js multiply chain)
 
-- [ ] Implement adjustReturnsForSentiment(means, sentimentValue, adjustments):
+- [x] Implement adjustReturnsForSentiment(means, sentimentValue, adjustments):
       - Lấy sentiment band (tái sử dụng getSentimentLabel từ calculations.js)
       - Apply multipliers lên means
       - Return adjusted means
 
-- [ ] Implement projectOntoConstraints(weights, bounds):
+- [x] Implement projectOntoConstraints(weights, bounds):
       - Clamp mỗi weight vào [min, max]
       - Re-normalize tổng = 1 (redistribute proportionally)
 
-- [ ] Implement optimizePortfolio(marketParams, riskLevel, sentimentValue, profile):
+- [x] Implement optimizePortfolio(marketParams, riskLevel, sentimentValue, profile):
       Algorithm: Projected Gradient Ascent
       1. adjustedMeans = adjustReturnsForSentiment(means, sentimentValue)
       2. lambda = RISK_AVERSION[riskLevel]
@@ -251,7 +251,7 @@ HIGH:   savings [5-25]%   gold [0-20]%   bonds [0-15]%   stocks [25-70]%  crypto
       6. Tính: portfolioReturn, portfolioRisk (stdDev), sharpeRatio
       7. Return { weights (as percentages), metrics, converged, iterations }
 
-- [ ] Implement getOptimalAllocation(profile, sentimentValue):
+- [x] Implement getOptimalAllocation(profile, sentimentValue):
       - Wrapper function thay thế getAllocation()
       - marketParams = await getMarketParams()
       - result = optimizePortfolio(marketParams, profile.riskLevel, sentimentValue, profile)
@@ -260,13 +260,13 @@ HIGH:   savings [5-25]%   gold [0-20]%   bonds [0-15]%   stocks [25-70]%  crypto
         { savings, gold, stocks, bonds, crypto, sentimentValue, sentimentLabel,
           sentimentVietnamese, recommendation, optimizationMethod: 'markowitz' }
 
-- [ ] MODIFY investment.controller.js → getAllocationRecommendation():
+- [x] MODIFY investment.controller.js → getAllocationRecommendation():
       - Comment [LEGACY]: const allocation = getAllocation(profile, sentimentValue)
       - Thay bằng: const allocation = await getOptimalAllocation(profile, sentimentValue)
       - Giữ nguyên: portfolioBreakdown, projection logic, cryptoWarning
       - Thêm vào response: allocation.optimizationMethod
 
-- [ ] MODIFY strategy.controller.js → generateStrategy():
+- [x] MODIFY strategy.controller.js → generateStrategy():
       - Comment [LEGACY]: const result = getAllocation(...)
       - Thay bằng: const result = await getOptimalAllocation(...)
 
@@ -277,16 +277,16 @@ HIGH:   savings [5-25]%   gold [0-20]%   bonds [0-15]%   stocks [25-70]%  crypto
         // Giữ lại để tham khảo và rollback nếu cần
       - Export mới: getOptimalAllocation (re-export từ service)
 
-- [ ] MODIFY client/src/utils/calculations.js:
+- [x] MODIFY client/src/utils/calculations.js:
       - Comment [LEGACY] tương tự (client dùng data từ API, không chạy optimizer)
 
-- [ ] Test: weights sum = 100% (tolerance < 0.5%)
-- [ ] Test: tất cả weights nằm trong bounds
+- [x] Test: weights sum = 100% (tolerance < 0.5%)
+- [x] Test: tất cả weights nằm trong bounds
 - [ ] Test: LOW risk → savings+gold+bonds > 60%
-- [ ] Test: HIGH risk → stocks+crypto > 40%
+- [x] Test: HIGH risk → stocks+crypto > 40%
 - [ ] Test: sentiment FEAR → stocks allocation giảm so với NEUTRAL
 - [ ] Test: convergence trong < 500 iterations
-- [ ] Test: output format tương thích getAllocation() (backward compat)
+- [x] Test: output format tương thích getAllocation() (backward compat)
 ```
 
 ---
@@ -534,3 +534,12 @@ Dependencies mới: mathjs (npm install mathjs)
 ### 10.4 Data Quality Indicator
 - Badge nhỏ hiển thị: "Historical data: 5y" hoặc "Fallback mode"
 - Tooltip giải thích data source
+
+---
+
+## 11. Ghi chú tiến độ
+
+- 2026-04-26: P1 Historical Data Engine đã commit trong `investment-advisor: test historical market parameters`; còn thiếu unit test tự động cho fallback partial/all-fallback theo checklist.
+- 2026-04-26: Ticker stocks đổi từ `^VNINDEX` sang `VCB.VN` vì Yahoo Finance trả 404 không ổn định cho `^VNINDEX`; giữ ghi chú backup trong `assetTickers.js`.
+- 2026-04-26: P2 Markowitz optimizer đã commit và đã nối vào `/investment/allocation` + `/investment/strategies/generate`; chưa re-export `getOptimalAllocation` từ `calculations.js` để tránh vòng import ESM, controller import service trực tiếp.
+- 2026-04-26: Một số test P2 vẫn chưa đủ theo checklist chi tiết: LOW defensive allocation, FEAR vs NEUTRAL allocation, convergence < 500 iterations.
