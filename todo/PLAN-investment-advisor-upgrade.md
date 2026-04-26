@@ -318,14 +318,14 @@ HIGH:   savings [5-25]%   gold [0-20]%   bonds [0-15]%   stocks [25-70]%  crypto
 ### 6.4 Checklist
 
 ```
-- [ ] Tạo `server/src/services/monteCarloSimulation.service.js`
+- [x] Tạo `server/src/services/monteCarloSimulation.service.js`
 
-- [ ] Implement boxMullerTransform():
+- [x] Implement boxMullerTransform():
       - U1, U2 = Math.random()
       - Z = Math.sqrt(-2 × Math.log(U1)) × Math.cos(2π × U2)
       - Return Z (standard normal)
 
-- [ ] Implement choleskyDecomposition(matrix):
+- [x] Implement choleskyDecomposition(matrix):
       - Input: n×n symmetric positive-definite matrix
       - Output: lower triangular L where LL^T = matrix
       - Algorithm: Cholesky–Banachiewicz
@@ -333,12 +333,12 @@ HIGH:   savings [5-25]%   gold [0-20]%   bonds [0-15]%   stocks [25-70]%  crypto
       - L[i][i] = sqrt(A[i][i] - Σ(L[i][k]^2))
       - Validation: nếu diagonal <= 0 → matrix không positive-definite → fallback
 
-- [ ] Implement generateCorrelatedNormals(choleskyL, numAssets):
+- [x] Implement generateCorrelatedNormals(choleskyL, numAssets):
       - Z_independent = [boxMuller() for each asset]
       - Z_correlated = choleskyL × Z_independent
       - Return Z_correlated
 
-- [ ] Implement simulatePortfolio(params):
+- [x] Implement simulatePortfolio(params):
       params = { capital, monthlyAdd, weights[5], means[5], covMatrix[5×5], years, numSims: 5000 }
       
       1. choleskyL = choleskyDecomposition(covMatrix monthly)
@@ -367,7 +367,7 @@ HIGH:   savings [5-25]%   gold [0-20]%   bonds [0-15]%   stocks [25-70]%  crypto
            mean: average(results),
            probLoss: count(r < capital) / numSims }
 
-- [ ] Implement generateProjectionTable(params):
+- [x] Implement generateProjectionTable(params):
       - Gọi simulatePortfolio cho years = [1, 3, 5, 10]
       - Return: { '1y': {p5,...,probLoss}, '3y': {...}, '5y': {...}, '10y': {...} }
 
@@ -382,8 +382,8 @@ HIGH:   savings [5-25]%   gold [0-20]%   bonds [0-15]%   stocks [25-70]%  crypto
       - Thêm: projection.probLoss = table['10y'].probLoss
 
 - [ ] Performance test: 5000 sims × 120 months phải < 2 giây
-- [ ] Test: median ≈ analytical FV (sai lệch < 10%)
-- [ ] Test: p5 < p25 < median < p75 < p95
+- [x] Test: median ≈ analytical FV (sai lệch < 10%)
+- [x] Test: p5 < p25 < median < p75 < p95
 - [ ] Test: HIGH risk → probLoss cao hơn LOW risk
 - [ ] Test: probLoss 10y cho LOW risk < 10%
 ```
@@ -543,3 +543,4 @@ Dependencies mới: mathjs (npm install mathjs)
 - 2026-04-26: Ticker stocks đổi từ `^VNINDEX` sang `VCB.VN` vì Yahoo Finance trả 404 không ổn định cho `^VNINDEX`; giữ ghi chú backup trong `assetTickers.js`.
 - 2026-04-26: P2 Markowitz optimizer đã commit và đã nối vào `/investment/allocation` + `/investment/strategies/generate`; chưa re-export `getOptimalAllocation` từ `calculations.js` để tránh vòng import ESM, controller import service trực tiếp.
 - 2026-04-26: Một số test P2 vẫn chưa đủ theo checklist chi tiết: LOW defensive allocation, FEAR vs NEUTRAL allocation, convergence < 500 iterations.
+- 2026-04-26: P3 Monte Carlo service đã có unit test deterministic bằng seeded RNG và đã thêm vào `npm.cmd run test:investment`; controller integration, performance test và probLoss theo riskLevel chưa thực hiện.

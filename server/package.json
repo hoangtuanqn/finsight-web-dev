@@ -11,7 +11,7 @@
     "db:generate": "npx prisma generate",
     "db:studio": "npx prisma studio",
     "rag:ingest": "node src/agentic/rag/ingest.js",
-    "test:investment": "node --test src/services/historicalData.service.test.js src/services/portfolioOptimizer.service.test.js"
+    "test:investment": "node --test src/services/historicalData.service.test.js src/services/portfolioOptimizer.service.test.js src/services/monteCarloSimulation.service.test.js"
   },
   "keywords": [],
   "author": "",
