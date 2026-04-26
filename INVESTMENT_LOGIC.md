@@ -2,7 +2,7 @@
 
 > Cập nhật: 2026-04-26 | Người viết: Refactor session
 >
-> Lưu ý: các mục 1-6 ghi lại bối cảnh refactor cũ và hệ heuristic overlay đã được giữ lại dưới dạng `[LEGACY]`. Từ 2026-04-26, nguồn hiện hành cho Investment Advisor là các mục 7-10 bên dưới.
+> Lưu ý: các mục 1-6 ghi lại bối cảnh refactor cũ. Từ 2026-04-26, nguồn hiện hành cho Investment Advisor là các mục 7-10 bên dưới; heuristic `getAllocation()` cũ đã được gỡ khỏi utils, chỉ còn các fallback UI thật sự dùng cho strategy history cũ.
 
 ---
 
@@ -37,7 +37,7 @@ Hệ thống đề xuất phân bổ tài sản của FinSight hoạt động th
 |------|---------|
 | `client/src/constants/investmentConstants.js` | ⭐ Single source of truth — tất cả con số gốc |
 | `server/src/constants/investmentConstants.js` | Bản copy cho server (nội dung giống nhau) |
-| `client/src/utils/calculations.js` | Hàm `getAllocation()` — logic tính toán chính |
+| `client/src/utils/calculations.js` | Helper format/input/debt; `getAllocation()` heuristic cũ đã gỡ trước merge |
 | `server/src/controllers/investment.controller.js` | API endpoint, tính projection, risk assessment |
 | `client/src/components/investment/InvestmentUtils.jsx` | Giải thích lý do phân bổ hiển thị trên UI |
 
@@ -84,7 +84,7 @@ const rates = {
 #### Vấn đề 4: Duplicate code
 
 `BASE` object tồn tại ở **2 nơi khác nhau** với nội dung giống nhau:
-- `client/src/utils/calculations.js` → `ALLOCATION_RULES`
+- `client/src/utils/calculations.js` → `ALLOCATION_RULES` (đã gỡ trong cleanup trước merge)
 - `client/src/components/investment/InvestmentUtils.jsx` → `BASE`
 
 → Khi cần sửa phải sửa 2 chỗ, dễ sai nhất quán.
@@ -526,7 +526,7 @@ SOLVER_CONFIG = {
 }
 ```
 
-`getAllocation()` cũ vẫn còn trong `server/src/utils/calculations.js` và `client/src/utils/calculations.js`, nhưng đã được đánh dấu `[LEGACY]` và chỉ giữ để tham khảo/rollback.
+`getAllocation()` heuristic cũ đã được gỡ khỏi `server/src/utils/calculations.js` và `client/src/utils/calculations.js` trong cleanup trước merge vì không còn runtime import. Các fallback còn giữ là phần đang dùng thật cho strategy history cũ/UI backward compatibility.
 
 ---
 
@@ -640,14 +640,11 @@ USER
      cryptoWarning
 ```
 
-Test suite hiện hành:
+Validation đã chạy trong giai đoạn phát triển:
 
-```bash
-cd server
-npm.cmd run test:investment
-```
-
-Coverage chính: historical fallback, covariance/correlation, optimizer constraints/convergence, Monte Carlo percentiles/performance/probLoss, Sharpe/VaR/CVaR/drawdown/riskGrade.
+- `cd server && npm.cmd run test:investment` đã pass 32 tests trước cleanup merge.
+- Test modules/script nội bộ của investment advisor đã được gỡ khỏi codebase merge-ready.
+- Coverage đã kiểm: historical fallback, covariance/correlation, optimizer constraints/convergence, Monte Carlo percentiles/performance/probLoss, Sharpe/VaR/CVaR/drawdown/riskGrade.
 
 ---
 

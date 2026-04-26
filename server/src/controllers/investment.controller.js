@@ -9,6 +9,10 @@ import { buildRiskMetrics } from '../services/riskMetrics.service.js';
 import { fetchFearGreedIndex } from '../services/market.service.js';
 import { ASSET_CLASSES, RISK_CONFIG } from '../constants/investmentConstants.js';
 
+function shortUserId(userId) {
+  return String(userId || 'unknown').slice(0, 8);
+}
+
 export async function getInvestorProfile(req, res) {
   try {
     const profile = await prisma.investorProfile.findUnique({ where: { userId: req.userId } });
@@ -49,11 +53,17 @@ export async function updateInvestorProfile(req, res) {
 }
 
 export async function getAllocationRecommendation(req, res) {
+  const startedAt = Date.now();
   try {
     const profile = await prisma.investorProfile.findUnique({ where: { userId: req.userId } });
     if (!profile) {
+      console.info(`[InvestmentAdvisor] allocation:missing-profile user=${shortUserId(req.userId)}`);
       return error(res, 'Please create your investor profile first', 400);
     }
+
+    console.info(
+      `[InvestmentAdvisor] allocation:start user=${shortUserId(req.userId)} risk=${profile.riskLevel} horizon=${profile.horizon} mockSentiment=${req.query.mockSentiment ?? 'none'}`
+    );
 
     // Check for mock override
     const mockSentiment = req.query.mockSentiment;
@@ -66,8 +76,7 @@ export async function getAllocationRecommendation(req, res) {
       sentimentValue = sentiment.value;
     }
 
-    // [LEGACY] const allocation = getAllocation(profile, sentimentValue);
-    // Replaced by Markowitz Mean-Variance Optimization.
+    // Markowitz Mean-Variance Optimization is the runtime allocation engine.
     const allocation = await getOptimalAllocation(profile, sentimentValue);
 
     // Save allocation history
@@ -118,6 +127,10 @@ export async function getAllocationRecommendation(req, res) {
       projectionTable,
     });
 
+    console.info(
+      `[InvestmentAdvisor] allocation:complete user=${shortUserId(req.userId)} sentiment=${sentimentValue} method=${allocation.optimizationMethod} dataQuality=${allocation.optimization?.marketDataQuality || 'unknown'} riskGrade=${riskMetrics.riskGrade} durationMs=${Date.now() - startedAt}`
+    );
+
     return success(res, {
       allocation: {
         savings: allocation.savings,
@@ -152,13 +165,17 @@ export async function getAllocationRecommendation(req, res) {
 export async function getAllocationHistory(req, res) {
   try {
     const profile = await prisma.investorProfile.findUnique({ where: { userId: req.userId } });
-    if (!profile) return success(res, { allocations: [] });
+    if (!profile) {
+      console.info(`[InvestmentAdvisor] allocation-history:no-profile user=${shortUserId(req.userId)}`);
+      return success(res, { allocations: [] });
+    }
 
     const allocations = await prisma.allocation.findMany({
       where: { profileId: profile.id },
       orderBy: { createdAt: 'desc' },
       take: 20,
     });
+    console.info(`[InvestmentAdvisor] allocation-history:list user=${shortUserId(req.userId)} count=${allocations.length}`);
     return success(res, { allocations });
   } catch (err) {
     console.error('getAllocationHistory error:', err);
