@@ -21,6 +21,7 @@ import SmartAssetGuide from '../components/investment/SmartAssetGuide';
 import WealthProjection from '../components/investment/WealthProjection';
 import RiskMetricsPanel from '../components/investment/RiskMetricsPanel';
 import OptimizationSummaryStrip from '../components/investment/OptimizationSummaryStrip';
+import EfficientFrontierPanel from '../components/investment/EfficientFrontierPanel';
 import EconomicNewsFeed from '../components/investment/EconomicNewsFeed';
 import IncompleteProfile from '../components/investment/IncompleteProfile';
 import SentimentGauge from '../components/investment/SentimentGauge';
@@ -719,6 +720,12 @@ export default function InvestmentPage() {
                 optimization={viewModel?.optimization}
                 allocationMetrics={viewModel?.allocationMetrics}
                 optimizationMethod={viewModel?.optimizationMethod}
+              />
+
+              <EfficientFrontierPanel
+                allocationMetrics={viewModel?.allocationMetrics}
+                frontierPoints={viewModel?.optimization?.frontierPoints}
+                riskGrade={viewModel?.riskMetrics?.riskGrade}
               />
 
               {(advisorLoading || advisorError) && activeStrategyIndex === 0 && (
