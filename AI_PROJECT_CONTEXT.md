@@ -1,8 +1,8 @@
 # AI Project Context
 
 Canonical location: `./AI_PROJECT_CONTEXT.md`  
-Last audited from code: `2026-04-24`  
-Repository: `finance-webdev-adventure`
+Last audited from code: `2026-04-26`  
+Repository: `finsight-web-dev`
 
 ## 1. Mục đích và nguyên tắc
 
@@ -137,6 +137,7 @@ Operational notes:
 | `axios` | `^1.13.6` | External API calls |
 | `socket.io` | `^4.8.3` | Realtime server |
 | `ioredis` | `^5.10.1` | Cache/rate limit backend |
+| `mathjs` | `^15.2.0` | Matrix math for investment covariance and optimizer |
 | `node-cron` | `^4.2.1` | Scheduled jobs |
 | `nodemailer` | `^8.0.4` | Email notifications |
 | `exceljs` | `^4.4.0` | Excel export |
@@ -336,14 +337,14 @@ Lưu ý: `dueThisWeek` là tên gây hiểu nhầm; code thực tế đang lấy
 | `/api/investment/profile` | `GET` | Yes | none | `{ investorProfile }` | có thể là `null` |
 | `/api/investment/profile` | `POST` | Yes | profile fields | `{ investorProfile }` | upsert |
 | `/api/investment/profile` | `PUT` | Yes | profile fields | `{ investorProfile }` | update trực tiếp |
-| `/api/investment/allocation` | `GET` | Yes | query `mockSentiment?` | `{ allocation, sentimentData, recommendation, portfolioBreakdown, projection }` | ghi lịch sử `Allocation` |
+| `/api/investment/allocation` | `GET` | Yes | query `mockSentiment?` | `{ allocation, sentimentData, recommendation, portfolioBreakdown, projection, riskMetrics, optimizationMethod, optimization, allocationMetrics, cryptoWarning }` | ghi lịch sử `Allocation`; allocation runtime dùng Markowitz MVO |
 | `/api/investment/history` | `GET` | Yes | none | `{ allocations }` | 20 records gần nhất |
 | `/api/investment/risk-assessment` | `POST` | Yes | `{ answers: [{ score }] }` | `{ riskScore, riskLevel, riskDescription }` | `>60 HIGH`, `>30 MEDIUM`, còn lại `LOW` |
 | `/api/investment/crypto-prices` | `GET` | Yes | query `riskLevel?` | `{ coins, intro, riskLevel, cached, stale? }` | top 5 + stablecoin suggestion |
 | `/api/investment/stock-prices` | `GET` | Yes | query `riskLevel?` | `{ stocks, intro, riskLevel, cached, stale? }` | Yahoo Finance + scoring |
 | `/api/investment/gold-prices` | `GET` | Yes | none | `{ goldItems, intro, worldPrice, worldChange, cached }` | fallback cache có shape khác |
 | `/api/investment/savings-rates` | `GET` | Yes | query `riskLevel?` | `{ savingsItems, intro, updatedAt, riskLevel }` | curated VN savings dataset |
-| `/api/investment/bonds-rates` | `GET` | Yes | query `riskLevel?` | `{ bondItems, intro, us10y, updatedAt, riskLevel }` | curated VN bonds + US10Y |
+| `/api/investment/bonds-rates` | `GET` | Yes | query `riskLevel?` | `{ bondItems, intro, updatedAt, riskLevel }` | TPCP Việt Nam từ VBMA + quỹ trái phiếu |
 | `/api/market/sentiment` | `GET` | Yes | none | `{ fearGreed }` | Alternative.me + Redis |
 | `/api/market/prices` | `GET` | Yes | none | `{ bitcoin, ethereum, gold }` | CoinGecko + BTMC |
 | `/api/market/news` | `GET` | Yes | none | `{ articles }` | NewsAPI hoặc placeholder |
@@ -351,6 +352,9 @@ Lưu ý: `dueThisWeek` là tên gây hiểu nhầm; code thực tế đang lấy
 
 Investment payload notes:
 
+- `projection.base/optimistic/pessimistic` vẫn giữ shape cũ, nhưng hiện được build từ Monte Carlo percentiles: median / p95 / p5.
+- `projection.monteCarlo` chứa `{ p5, p25, median, p75, p95, mean, probLoss }` cho `1y`, `3y`, `5y`, `10y`; raw simulation arrays không trả ra response.
+- `riskMetrics` hiện gồm Sharpe, VaR 95%, CVaR 95%, max drawdown, probLoss theo horizon và `riskGrade`.
 - `getGoldPrices()` fallback khi API lỗi nhưng cache cũ tồn tại sẽ trả `...goldCache.data`, tức shape có thể chỉ còn `{ worldPrice, worldChange, sjc, nhan, cached, stale }`, **không chắc có `goldItems` hoặc `intro`**.
 - `getStockPrices()` và `getCryptoPrices()` fallback cache giữ được shape gần giống, có thêm `stale: true`.
 - `getSavingsRates()` và `getBondsRates()` dùng curated dataset hardcoded với `updatedAt: '2026-04-23'`.
@@ -434,36 +438,38 @@ Repayment simulation thực tế:
 2. Trừ minimum payment của từng khoản.
 3. Dùng budget còn lại cho target debt theo `AVALANCHE` hoặc `SNOWBALL`.
 
-### 8.3 Allocation engine
+### 8.3 Investment advisor engine
 
-Sentiment thresholds:
+Runtime hiện hành đã thay heuristic `getAllocation()` bằng backend services mới:
 
-| Fear & Greed value | Label |
+| File | Vai trò |
 | --- | --- |
-| `<= 24` | `EXTREME_FEAR` |
-| `<= 49` | `FEAR` |
-| `== 50` | `NEUTRAL` |
-| `<= 74` | `GREED` |
-| `>= 75` | `EXTREME_GREED` |
+| `server/src/constants/assetTickers.js` | Asset order, Yahoo tickers, fallback params |
+| `server/src/services/historicalData.service.js` | 5y monthly data, log returns, covariance/correlation, Redis cache |
+| `server/src/constants/optimizationConfig.js` | Markowitz risk aversion, bounds, sentiment adjustments, solver config |
+| `server/src/services/portfolioOptimizer.service.js` | Mean-Variance Optimization và wrapper `getOptimalAllocation()` |
+| `server/src/services/monteCarloSimulation.service.js` | 5000-simulation projection engine |
+| `server/src/services/riskMetrics.service.js` | Sharpe, VaR, CVaR, max drawdown, risk grade |
 
-Base allocation phụ thuộc đồng thời vào:
+`getAllocation()` heuristic cũ đã được gỡ khỏi `server/src/utils/calculations.js` và `client/src/utils/calculations.js` trong cleanup trước merge vì runtime không còn import. Các fallback còn dùng cho strategy history cũ vẫn giữ ở UI adapter/page.
 
-- `riskLevel`: `LOW`, `MEDIUM`, `HIGH`
-- `sentimentLabel`
+Flow allocation:
 
-Adjustment layers sau base allocation:
+1. Load `InvestorProfile`.
+2. Fetch Alternative.me Fear & Greed Index, fallback neutral nếu lỗi.
+3. `getMarketParams()` lấy/calc `{ means, stdDevs, covMatrix, corrMatrix, dataQuality }`.
+4. `adjustReturnsForSentiment()` chỉnh expected returns, không chỉnh weights trực tiếp.
+5. `optimizePortfolio()` tối đa hóa `w^T μ - (λ/2) w^T Σw` trong bounds theo risk level.
+6. Save `Allocation` history với percentages.
+7. `generateProjectionTable()` chạy Monte Carlo cho `1y`, `3y`, `5y`, `10y`.
+8. `buildRiskMetrics()` tạo Sharpe/VaR/CVaR/drawdown/riskGrade.
 
-1. `savingsRate` so với mốc `6.0%`
-2. `horizon`: `SHORT` hoặc `LONG`
-3. `goal`: `STABILITY` hoặc `SPECULATION`
-4. `capital` scale check
+Key config hiện hành:
 
-Capital threshold hardcoded:
-
-- Nếu `capital < 50,000,000`, cap:
-  - `crypto <= 5%`
-  - `stocks <= 10%`
-  - phần dư chuyển sang `savings`
+```js
+RISK_AVERSION = { LOW: 8, MEDIUM: 4, HIGH: 1.5 }
+SOLVER_CONFIG = { maxIterations: 1000, learningRate: 0.05, tolerance: 1e-6 }
+```
 
 ### 8.4 Risk assessment
 
@@ -769,11 +775,12 @@ Seed cleanup không explicit delete:
 
 ## 13. Trạng thái kiểm chứng
 
-Verification window: `2026-04-24`
+Verification window: `2026-04-26`
 
 | Command | Kết quả | Ghi chú |
 | --- | --- | --- |
 | `cd server && npx prisma validate` | Passed | schema Prisma hợp lệ |
+| `cd server && npm.cmd run test:investment` | Archived | đã pass 32 tests trong giai đoạn phát triển; test modules/script nội bộ của investment advisor đã gỡ trước merge |
 | `cd client && npm run lint` | Failed | `92` vấn đề (`87` errors, `5` warnings) |
 | `cd client && npm run build` | Passed | rerun ngoài sandbox; có warning bundle lớn |
 | `cd client && npm test` | Failed | không có script `test` |
@@ -842,7 +849,7 @@ Các tài liệu sau **không còn phản ánh code hiện tại đầy đủ**:
 ## 15. Quy ước khi AI khác tiếp tục làm việc
 
 - Luôn đọc tệp này trước, sau đó xác minh lại đúng file runtime liên quan.
-- Khi thay đổi financial logic, sync **cả** `server/src/utils/calculations.js` và `client/src/utils/calculations.js`.
+- Khi thay đổi investment advisor runtime, ưu tiên các service backend mới (`historicalData`, `portfolioOptimizer`, `monteCarloSimulation`, `riskMetrics`). Heuristic `getAllocation()` cũ đã được gỡ khỏi utils; chỉ giữ fallback UI đang thật sự dùng cho strategy history cũ.
 - Không cho tool AI ghi nợ trực tiếp xuống DB nếu chưa có bước confirm ở UI.
 - Nếu thay schema Prisma, phải quyết định rõ:
   - chỉ `db push` cho dev

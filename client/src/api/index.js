@@ -81,6 +81,7 @@ export const investmentAPI = {
   submitRiskAssessment: (data) => api.post('/investment/risk-assessment', data),
   getCryptoPrices: () => api.get('/investment/crypto-prices'),
   getStockPrices: (params) => api.get('/investment/stock-prices', { params }),
+  getAssetHistory: (params) => api.get('/investment/asset-history', { params }),
   getGoldPrices: () => api.get('/investment/gold-prices'),
   getSavingsRates: (params) => api.get('/investment/savings-rates', { params }),
   getBondsRates: (params) => api.get('/investment/bonds-rates', { params }),

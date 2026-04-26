@@ -69,6 +69,26 @@ export function useBondsRates(riskLevel = 'MEDIUM') {
   });
 }
 
+export function useAssetMonthlyHistory({ months, days, enabled = false, ...requestParams } = {}) {
+  const hasSource = Boolean(requestParams.ticker || requestParams.symbol || requestParams.source || requestParams.bankId);
+  const apiParams = { ...requestParams };
+  delete apiParams.rangeOptions;
+  delete apiParams.defaultRange;
+  const rangeParams = days ? { days } : { months: months ?? 12 };
+  const params = { ...apiParams, ...rangeParams };
+
+  return useQuery({
+    queryKey: queryKeys.INVESTMENT.ASSET_HISTORY(params),
+    queryFn: async () => {
+      const res = await investmentAPI.getAssetHistory(params);
+      return res.data.data;
+    },
+    enabled: Boolean(enabled && requestParams.asset && hasSource),
+    staleTime: 30 * 60 * 1000,
+    gcTime:    30 * 60 * 1000,
+  });
+}
+
 export function useInvestmentStrategies() {
   return useQuery({
     queryKey: queryKeys.INVESTMENT.STRATEGIES,

@@ -12,8 +12,16 @@ const ICON_MAP = {
   Target: TargetIcon
 };
 
-export default function AIRationalPanel({ allocation, profile, sentimentValue, portfolioBreakdown }) {
+export default function AIRationalPanel({
+  allocation,
+  profile,
+  sentimentValue,
+  portfolioBreakdown,
+  optimization,
+  allocationMetrics,
+}) {
   const [openAsset, setOpenAsset] = useState(null);
+  const hasOptimizationMetrics = Boolean(optimization && allocationMetrics);
   
   const riskLabel = { LOW: 'Thấp', MEDIUM: 'Trung bình', HIGH: 'Cao' }[profile?.riskLevel] || '—';
   const horizonLabel = { SHORT: 'Ngắn hạn', MEDIUM: 'Trung hạn', LONG: 'Dài hạn' }[profile?.horizon] || '—';
@@ -31,8 +39,12 @@ export default function AIRationalPanel({ allocation, profile, sentimentValue, p
             <Lightbulb size={15} className="text-blue-400" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white tracking-tight">Ma trận Quyết định AI</h3>
-            <p className="text-[11px] text-slate-500">Phân tích logic mạng nơ-ron</p>
+            <h3 className="text-sm font-bold text-white tracking-tight">Luận giải phân bổ danh mục</h3>
+            <p className="text-[11px] text-slate-500">
+              {hasOptimizationMetrics
+                ? 'Markowitz MVO, dữ liệu thị trường và hồ sơ cá nhân'
+                : 'Fallback theo hồ sơ và tâm lý thị trường'}
+            </p>
           </div>
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -45,7 +57,10 @@ export default function AIRationalPanel({ allocation, profile, sentimentValue, p
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 relative z-10">
         {sorted.map(([asset, pct]) => {
           const Icon = ASSET_ICONS[asset];
-          const reasons = explainAsset(asset, pct, profile, sentimentValue);
+          const reasons = explainAsset(asset, pct, profile, sentimentValue, {
+            optimization,
+            allocationMetrics,
+          });
           const isOpen = openAsset === asset;
           const breakdown = portfolioBreakdown.find(p => p.asset === ASSET_LABELS[asset]);
 
@@ -98,7 +113,7 @@ export default function AIRationalPanel({ allocation, profile, sentimentValue, p
                                   <StepIcon size={12} className="text-blue-400" />
                                 </div>
                                 <p className="text-[10px] font-bold text-blue-400/80 uppercase tracking-wide mb-1">
-                                  Lớp {i + 1}: {r.layer}
+                                  Yếu tố {i + 1}: {r.layer}
                                 </p>
                                 <p className="text-sm font-medium text-slate-300 leading-relaxed">
                                   {r.text}
