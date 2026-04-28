@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -Command \"Get-Process node | Stop-Process -Force; Start-Sleep 2; Write-Host 'All node killed'\")"
+    ]
+  }
+}
