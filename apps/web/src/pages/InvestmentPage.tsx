@@ -23,6 +23,8 @@ import RiskMetricsPanel from '../components/investment/RiskMetricsPanel';
 import OptimizationSummaryStrip from '../components/investment/OptimizationSummaryStrip';
 import EfficientFrontierPanel from '../components/investment/EfficientFrontierPanel';
 import EconomicNewsFeed from '../components/investment/EconomicNewsFeed';
+import StressTestSimulator from '../components/investment/StressTestSimulator';
+import BlackLittermanViews from '../components/investment/BlackLittermanViews';
 import IncompleteProfile from '../components/investment/IncompleteProfile';
 import SentimentGauge from '../components/investment/SentimentGauge';
 
@@ -102,7 +104,8 @@ function buildRenderData(allocation: any, profile: any) {
   const portfolioBreakdown = [
     { asset: 'Tiết kiệm',   percentage: allocation.savings, amount: capital * allocation.savings / 100 },
     { asset: 'Vàng',        percentage: allocation.gold,    amount: capital * allocation.gold    / 100 },
-    { asset: 'Chứng khoán', percentage: allocation.stocks,  amount: capital * allocation.stocks  / 100 },
+    { asset: 'Cổ phiếu VN', percentage: allocation.stocks,  amount: capital * allocation.stocks  / 100 },
+    { asset: 'Cổ phiếu Mỹ', percentage: allocation.stocks_us || 0, amount: capital * (allocation.stocks_us || 0) / 100 },
     { asset: 'Trái phiếu',  percentage: allocation.bonds,   amount: capital * allocation.bonds   / 100 },
     { asset: 'Crypto',      percentage: allocation.crypto,  amount: capital * allocation.crypto  / 100 },
   ];
@@ -207,6 +210,7 @@ function ApplyStrategyModal({ strategy, onClose, onSave }: { strategy: any, onCl
     savings: strategy.savings,
     gold:    strategy.gold,
     stocks:  strategy.stocks,
+    stocks_us: strategy.stocks_us || 0,
     bonds:   strategy.bonds,
     crypto:  strategy.crypto,
   });
@@ -230,9 +234,10 @@ function ApplyStrategyModal({ strategy, onClose, onSave }: { strategy: any, onCl
   const FIELDS = [
     { key: 'savings', label: 'Tiết kiệm',    color: '#10b981' },
     { key: 'gold',    label: 'Vàng',          color: '#f59e0b' },
-    { key: 'stocks',  label: 'Chứng khoán',   color: '#3b82f6' },
+    { key: 'stocks',  label: 'Cổ phiếu VN',   color: '#3b82f6' },
+    { key: 'stocks_us', label: 'Cổ phiếu Mỹ', color: '#ef4444' },
     { key: 'bonds',   label: 'Trái phiếu',    color: '#8b5cf6' },
-    { key: 'crypto',  label: 'Crypto',        color: '#ec4899' },
+    { key: 'crypto',  label: 'Crypto',        color: '#f97316' },
   ];
 
   return (
@@ -326,6 +331,7 @@ function MyPortfolioSection({ portfolio, onUpdate }: { portfolio: any, onUpdate:
         savings: portfolio.savings,
         gold:    portfolio.gold,
         stocks:  portfolio.stocks,
+        stocks_us: portfolio.stocks_us || 0,
         bonds:   portfolio.bonds,
         crypto:  portfolio.crypto,
       });
@@ -339,9 +345,10 @@ function MyPortfolioSection({ portfolio, onUpdate }: { portfolio: any, onUpdate:
   const FIELDS = [
     { key: 'savings', label: 'Tiết kiệm',   color: '#10b981' },
     { key: 'gold',    label: 'Vàng',         color: '#f59e0b' },
-    { key: 'stocks',  label: 'Chứng khoán',  color: '#3b82f6' },
+    { key: 'stocks',  label: 'Cổ phiếu VN',  color: '#3b82f6' },
+    { key: 'stocks_us', label: 'Cổ phiếu Mỹ',color: '#ef4444' },
     { key: 'bonds',   label: 'Trái phiếu',   color: '#8b5cf6' },
-    { key: 'crypto',  label: 'Crypto',       color: '#ec4899' },
+    { key: 'crypto',  label: 'Crypto',       color: '#f97316' },
   ];
 
   if (!portfolio) {
@@ -740,6 +747,14 @@ export default function InvestmentPage() {
                 riskMetrics={viewModel?.riskMetrics}
                 loading={advisorLoading && activeStrategyIndex === 0}
                 error={advisorError && activeStrategyIndex === 0 ? advisorError : null}
+              />
+
+              <StressTestSimulator
+                stressTests={viewModel?.stressTests || activeStrategy?.stressTests || []}
+              />
+
+              <BlackLittermanViews
+                views={viewModel?.marketViews || activeStrategy?.marketViews || []}
               />
 
               {/* AI Recommendation */}
