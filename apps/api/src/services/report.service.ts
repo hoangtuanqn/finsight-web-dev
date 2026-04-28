@@ -1,6 +1,6 @@
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
-import prisma from '../lib/prisma';
+import prisma from '../lib/prisma.js';
 import path from 'path';
 import axios from 'axios';
 import { fileURLToPath } from 'url';
@@ -10,7 +10,7 @@ import {
   detectDominoRisk,
   formatVND,
   simulateRepayment
-} from '../utils/calculations';
+} from '../utils/calculations.js';
 
 const LOGO_URL = 'https://i.ibb.co/84xLmWTK/LOGO.png';
 const LOGO_PATH = path.resolve(process.cwd(), '..', 'LOGO.png');
