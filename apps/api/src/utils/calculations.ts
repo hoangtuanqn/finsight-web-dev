@@ -60,6 +60,7 @@ interface PaymentScheduleItem {
     name: string;
     paid: number;
     balance: number;
+    endingBalance: number;
     minimumPaid: number;
     extraPaid: number;
     interestAccrued: number;
@@ -180,6 +181,7 @@ export function simulateRepayment(
           name: d.name,
           paid: pay,
           balance: d.balance,
+          endingBalance: d.balance,
           minimumPaid: pay,
           extraPaid: 0,
           interestAccrued: debtInterest.get(d.id) ?? 0,
@@ -212,12 +214,14 @@ export function simulateRepayment(
           existing.paid += pay;
           existing.extraPaid += pay;
           existing.balance = target.balance;
+          existing.endingBalance = target.balance;
         } else {
           monthPayments.push({
             debtId: target.id,
             name: target.name,
             paid: pay,
             balance: target.balance,
+            endingBalance: target.balance,
             minimumPaid: 0,
             extraPaid: pay,
             interestAccrued: debtInterest.get(target.id) ?? 0,
