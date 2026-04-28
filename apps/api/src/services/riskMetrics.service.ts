@@ -1,7 +1,7 @@
 import {
   portfolioReturn,
   portfolioVariance,
-} from './portfolioOptimizer.service';
+} from './portfolioOptimizer.service.js';
 
 const EPSILON = 1e-12;
 
