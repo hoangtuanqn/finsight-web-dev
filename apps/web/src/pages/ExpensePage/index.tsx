@@ -9,9 +9,12 @@ import { ExpenseForm } from './components/ExpenseForm';
 import { ExpenseStats } from './components/ExpenseStats';
 import { TransactionList } from './components/TransactionList';
 import { WalletSection } from './components/WalletSection';
+import { PendingTransactionList } from './components/PendingTransactionList';
+import { useBankSyncQuery } from '../../hooks/useBankSyncQuery';
+import { BellRing } from 'lucide-react';
 
 export default function ExpensePage() {
-  const [activeTab, setActiveTab] = useState<'TRANSACTIONS' | 'REPORTS'>('TRANSACTIONS');
+  const [activeTab, setActiveTab] = useState<'TRANSACTIONS' | 'REPORTS' | 'PENDING'>('TRANSACTIONS');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<any>(null);
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'EXPENSE' | 'INCOME'>('ALL');
@@ -32,6 +35,7 @@ export default function ExpensePage() {
   const { data: expenses, isLoading: loadingExpenses } = useExpenseQuery(queryParams);
   const { data: stats, isLoading: loadingStats } = useExpenseStats({ startDate, endDate });
   const { data: categories } = useExpenseCategories();
+  const { data: pendingTxs, isLoading: loadingPending } = useBankSyncQuery();
 
   const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
@@ -95,7 +99,7 @@ export default function ExpensePage() {
       </div>
 
       {/* Wallet Section */}
-      <WalletSection />
+      <WalletSection onViewPending={() => setActiveTab('PENDING')} />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-5">
@@ -155,17 +159,28 @@ export default function ExpensePage() {
           {[
             { id: 'TRANSACTIONS', label: 'Giao dịch', icon: List },
             { id: 'REPORTS', label: 'Báo cáo', icon: PieChartIcon },
+            { 
+              id: 'PENDING', 
+              label: 'Chờ duyệt', 
+              icon: BellRing,
+              badge: pendingTxs?.length > 0 ? pendingTxs.length : null
+            },
           ].map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+              className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
                 activeTab === tab.id
                   ? 'bg-[var(--color-bg-card)] text-blue-500 shadow-sm border border-blue-500/20'
                   : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
               }`}
             >
               <tab.icon size={15} /> {tab.label}
+              {tab.badge && (
+                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 flex items-center justify-center bg-red-500 text-white text-[10px] font-black rounded-full ring-2 ring-[var(--color-bg-secondary)]">
+                  {tab.badge}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -207,6 +222,19 @@ export default function ExpensePage() {
               expenses={expenses || []}
               loading={loadingExpenses}
               onEdit={handleEdit}
+            />
+          </motion.div>
+        ) : activeTab === 'PENDING' ? (
+          <motion.div
+            key="pending"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+          >
+            <PendingTransactionList
+              transactions={pendingTxs || []}
+              loading={loadingPending}
+              categories={categories || []}
             />
           </motion.div>
         ) : (
