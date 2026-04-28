@@ -1,0 +1,12 @@
+node_modules
+.turbo
+dist
+.git
+.env
+.env.local
+.next
+.vercel
+apps/*/node_modules
+packages/*/node_modules
+apps/*/dist
+packages/*/dist

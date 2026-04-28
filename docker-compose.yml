@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: finsight_db
+    ports:
+      - "5445:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  server:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "5001:5001"
+    environment:
+      DATABASE_URL: "postgresql://postgres:password@postgres:5432/finsight_db"
+      REDIS_URL: "redis://redis:6379"
+      JWT_SECRET: "finsight-wda2026-super-secret-key-change-in-production"
+      JWT_EXPIRES_IN: "7d"
+      PORT: 5001
+      NODE_ENV: development
+      CLIENT_URL: "http://localhost:5173"
+      # LLM Configuration (FPT Cloud SaoLa4)
+      LLM_PROVIDER: "${LLM_PROVIDER:-fptcloud}"
+      LLM_MODEL: "${LLM_MODEL:-SaoLa4-medium}"
+      LLM_BASE_URL: "${LLM_BASE_URL:-https://mkp-api.fptcloud.com}"
+      LLM_API_KEY: "${LLM_API_KEY:-}"
+      # Embedding
+      EMBEDDING_PROVIDER: "${EMBEDDING_PROVIDER:-fptcloud}"
+      EMBEDDING_MODEL: "${EMBEDDING_MODEL:-Vietnamese_Embedding}"
+    volumes:
+      - ./apps/api:/app
+      - /app/node_modules
+    restart: always
+
+  client:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_PROXY=http://server:5001
+      - VITE_API_URL=/api
+    depends_on:
+      - server
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+    restart: always
+
+volumes:
+  postgres_data:
+  redis_data:
