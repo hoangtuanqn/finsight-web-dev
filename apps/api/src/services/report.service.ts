@@ -9,7 +9,8 @@ import {
   calcDebtToIncomeRatio,
   detectDominoRisk,
   formatVND,
-  simulateRepayment
+  simulateRepayment,
+  simulateRepaymentWithExtraBudget
 } from '../utils/calculations.js';
 
 const LOGO_URL = 'https://i.ibb.co/84xLmWTK/LOGO.png';
@@ -44,7 +45,12 @@ class ReportService {
       ear: calcEAR(d.apr, d.feeProcessing || 0, d.feeInsurance || 0, d.feeManagement || 0, d.termMonths || 12)
     }));
 
-    const simulation = simulateRepayment(debts, user.monthlyIncome * 0.1, 'AVALANCHE');
+    const simulation = simulateRepaymentWithExtraBudget(
+      debts,
+      user.monthlyIncome * 0.1,
+      'AVALANCHE',
+      { monthlyIncome: user.monthlyIncome },
+    );
 
     return {
       user: {

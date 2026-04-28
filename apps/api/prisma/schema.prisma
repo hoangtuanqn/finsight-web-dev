@@ -34,6 +34,9 @@ model User {
   transactions    Transaction[]
   aiStrategies    AIStrategy[]
   userPortfolio   UserPortfolio?
+  expenses        Expense[]
+  expenseCategories ExpenseCategory[]
+  wallets         Wallet[]
 
   @@map("users")
 }
@@ -286,4 +289,61 @@ model UserPortfolio {
   sourceStrategy AIStrategy? @relation(fields: [sourceStrategyId], references: [id])
 
   @@map("user_portfolios")
+}
+// ── Expense Management ─────────────────────────────────────
+
+model Wallet {
+  id        String    @id @default(cuid())
+  userId    String
+  name      String
+  type      String    @default("CASH") // CASH | BANK | EWALLET | OTHER
+  icon      String?   // emoji icon
+  color     String?   @default("#3b82f6")
+  balance   Float     @default(0)
+  isDefault Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expenses Expense[]
+
+  @@map("wallets")
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  userId      String
+  amount      Float
+  type        String   @default("EXPENSE") // EXPENSE | INCOME
+  categoryId  String
+  walletId    String?
+  date        DateTime @default(now())
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category ExpenseCategory @relation(fields: [categoryId], references: [id])
+  wallet   Wallet?         @relation(fields: [walletId], references: [id])
+
+  @@map("expenses")
+}
+
+model ExpenseCategory {
+  id        String   @id @default(cuid())
+  userId    String?  // null = system default
+  parentId  String?  // null = top-level group
+  name      String
+  icon      String?  // emoji icon
+  color     String?  // Hex color
+  type      String   @default("EXPENSE") // EXPENSE | INCOME
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  user     User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent   ExpenseCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children ExpenseCategory[] @relation("CategoryHierarchy")
+  expenses Expense[]
+
+  @@map("expense_categories")
 }
