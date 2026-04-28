@@ -18,6 +18,7 @@ import {
   Plus,
   ChevronRight,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 function formatDate(iso: string | null | undefined) {
   if (!iso) return "-";
