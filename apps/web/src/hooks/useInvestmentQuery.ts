@@ -1,15 +1,15 @@
-import { useQuery } from '@tanstack/react-query';
-import { investmentAPI } from '../api';
-import { queryKeys } from '../api/queryKeys';
+import { useQuery } from "@tanstack/react-query";
+import { investmentAPI } from "../api";
+import { queryKeys } from "../api/queryKeys";
 
-// Cache 10 phút — dữ liệu giá tài sản thay đổi chậm, không cần refetch mỗi lần vào trang
+// Cache 10 phút - dữ liệu giá tài sản thay đổi chậm, không cần refetch mỗi lần vào trang
 const ASSET_PRICE_STALE_TIME = 10 * 60 * 1000; // 10 phút
 
-// gcTime = 10 phút — xóa khỏi bộ nhớ đúng 10 phút sau lần fetch, kể cả khi user không dùng
+// gcTime = 10 phút - xóa khỏi bộ nhớ đúng 10 phút sau lần fetch, kể cả khi user không dùng
 // Khi user quay lại trong vòng 10p → dùng cache ngay. Qua 10p → fetch lại.
 const ASSET_PRICE_GC_TIME = 10 * 60 * 1000;
 
-export function useCryptoPrices(riskLevel = 'MEDIUM') {
+export function useCryptoPrices(riskLevel = "MEDIUM") {
   return useQuery({
     queryKey: queryKeys.INVESTMENT.CRYPTO_PRICES(riskLevel),
     queryFn: async () => {
@@ -17,11 +17,11 @@ export function useCryptoPrices(riskLevel = 'MEDIUM') {
       return res.data.data;
     },
     staleTime: ASSET_PRICE_STALE_TIME,
-    gcTime:    ASSET_PRICE_GC_TIME,
+    gcTime: ASSET_PRICE_GC_TIME,
   });
 }
 
-export function useStockPrices(riskLevel = 'MEDIUM') {
+export function useStockPrices(riskLevel = "MEDIUM") {
   return useQuery({
     queryKey: queryKeys.INVESTMENT.STOCK_PRICES(riskLevel),
     queryFn: async () => {
@@ -29,7 +29,7 @@ export function useStockPrices(riskLevel = 'MEDIUM') {
       return res.data.data;
     },
     staleTime: ASSET_PRICE_STALE_TIME,
-    gcTime:    ASSET_PRICE_GC_TIME,
+    gcTime: ASSET_PRICE_GC_TIME,
   });
 }
 
@@ -41,11 +41,11 @@ export function useGoldPrices() {
       return res.data.data;
     },
     staleTime: ASSET_PRICE_STALE_TIME,
-    gcTime:    ASSET_PRICE_GC_TIME,
+    gcTime: ASSET_PRICE_GC_TIME,
   });
 }
 
-export function useSavingsRates(riskLevel = 'MEDIUM') {
+export function useSavingsRates(riskLevel = "MEDIUM") {
   return useQuery({
     queryKey: queryKeys.INVESTMENT.SAVINGS_RATES(riskLevel),
     queryFn: async () => {
@@ -53,11 +53,11 @@ export function useSavingsRates(riskLevel = 'MEDIUM') {
       return res.data.data;
     },
     staleTime: ASSET_PRICE_STALE_TIME,
-    gcTime:    ASSET_PRICE_GC_TIME,
+    gcTime: ASSET_PRICE_GC_TIME,
   });
 }
 
-export function useBondsRates(riskLevel = 'MEDIUM') {
+export function useBondsRates(riskLevel = "MEDIUM") {
   return useQuery({
     queryKey: queryKeys.INVESTMENT.BONDS_RATES(riskLevel),
     queryFn: async () => {
@@ -65,12 +65,22 @@ export function useBondsRates(riskLevel = 'MEDIUM') {
       return res.data.data;
     },
     staleTime: ASSET_PRICE_STALE_TIME,
-    gcTime:    ASSET_PRICE_GC_TIME,
+    gcTime: ASSET_PRICE_GC_TIME,
   });
 }
 
-export function useAssetMonthlyHistory({ months, days, enabled = false, ...requestParams }: any = {}) {
-  const hasSource = Boolean(requestParams.ticker || requestParams.symbol || requestParams.source || requestParams.bankId);
+export function useAssetMonthlyHistory({
+  months,
+  days,
+  enabled = false,
+  ...requestParams
+}: any = {}) {
+  const hasSource = Boolean(
+    requestParams.ticker ||
+    requestParams.symbol ||
+    requestParams.source ||
+    requestParams.bankId,
+  );
   const apiParams = { ...requestParams };
   delete apiParams.rangeOptions;
   delete apiParams.defaultRange;
@@ -85,7 +95,7 @@ export function useAssetMonthlyHistory({ months, days, enabled = false, ...reque
     },
     enabled: Boolean(enabled && requestParams.asset && hasSource),
     staleTime: 30 * 60 * 1000,
-    gcTime:    30 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 }
 

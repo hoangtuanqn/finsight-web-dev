@@ -7,6 +7,7 @@ export default function FormattedInput({
   onValueChange,
   onCommitValue,
   suffix,
+  icon: Icon,
   className = '',
   placeholder,
   maxValue = kind === 'integer' ? 100000000000 : undefined,
@@ -97,7 +98,13 @@ export default function FormattedInput({
   const inputMode = kind === 'decimal' ? 'decimal' : 'numeric';
 
   return (
-    <div className="relative">
+    <div className="relative group/fmt">
+      {Icon && (
+        <Icon
+          size={16}
+          className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] group-focus-within/fmt:text-blue-500 transition-colors z-10 pointer-events-none"
+        />
+      )}
       <input
         ref={inputRef}
         type="text"
@@ -125,11 +132,11 @@ export default function FormattedInput({
             e.currentTarget.blur();
           }
         }}
-        className={`${className}${suffix ? ' pr-10' : ''}`}
+        className={`${className}${suffix ? ' pr-10' : ''}${Icon ? ' pl-11' : ''}`}
         placeholder={placeholder}
       />
       {suffix && (
-        <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] text-sm font-bold">
+        <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] text-sm font-bold z-10">
           {suffix}
         </span>
       )}
