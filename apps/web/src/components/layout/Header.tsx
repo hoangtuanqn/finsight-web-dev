@@ -3,6 +3,7 @@ import {
   AlertOctagon,
   AlertTriangle,
   Bell,
+  CalendarDays,
   ChevronDown,
   Flame,
   LayoutDashboard,
@@ -21,6 +22,7 @@ import { useDarkMode } from "../../hooks/useDarkMode";
 import { ToggleMode } from "./components/ToggleMode";
 import { useTourContext } from "../../context/TourContext";
 import { HelpCircle } from "lucide-react";
+import DebtCalendarPopover from "./DebtCalendarPopover";
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
@@ -160,9 +162,11 @@ export default function Header({
   const [dark, setDark] = useDarkMode() as [boolean, (val: boolean) => void];
   const [notifOpen, setNotifOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [notifs, setNotifs] = useState<any[]>([]);
   const notifRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLDivElement>(null);
+  const calendarRef = useRef<HTMLDivElement>(null);
   const unread = notifs.filter((n) => !n.isRead).length;
 
   useEffect(() => {
@@ -185,6 +189,8 @@ export default function Header({
         setNotifOpen(false);
       if (avatarRef.current && !avatarRef.current.contains(e.target as Node))
         setAvatarOpen(false);
+      if (calendarRef.current && !calendarRef.current.contains(e.target as Node))
+        setCalendarOpen(false);
     };
     document.addEventListener("mousedown", handle);
     return () => document.removeEventListener("mousedown", handle);
@@ -299,6 +305,31 @@ export default function Header({
           <HelpCircle size={17} />
         </IconBtn>
 
+        {/* ── Calendar ── */}
+        <div style={{ position: "relative" }} ref={calendarRef}>
+          <IconBtn
+            title="Lịch trả nợ"
+            onClick={() => {
+              setCalendarOpen((v) => !v);
+              setNotifOpen(false);
+              setAvatarOpen(false);
+            }}
+          >
+            <CalendarDays size={17} />
+          </IconBtn>
+
+          <AnimatePresence>
+            {calendarOpen && (
+              <DebtCalendarPopover
+                open={calendarOpen}
+                onClose={() => setCalendarOpen(false)}
+                isMobile={isMobile}
+                user={user}
+              />
+            )}
+          </AnimatePresence>
+        </div>
+
         {/* ── Bell ── */}
         <div
           id="tour-header-notif"
@@ -310,6 +341,7 @@ export default function Header({
             onClick={() => {
               setNotifOpen((v) => !v);
               setAvatarOpen(false);
+              setCalendarOpen(false);
             }}
           >
             <Bell size={17} />
@@ -554,6 +586,7 @@ export default function Header({
             onClick={() => {
               setAvatarOpen((v) => !v);
               setNotifOpen(false);
+              setCalendarOpen(false);
             }}
             style={{
               display: "flex",
