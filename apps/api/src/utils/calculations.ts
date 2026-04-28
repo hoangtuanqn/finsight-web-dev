@@ -71,6 +71,13 @@ interface RepaymentSimulationOptions {
   maxMonths?: number;
 }
 
+interface RepaymentWarning {
+  type: 'NEGATIVE_AMORTIZATION' | 'NOT_COMPLETED';
+  severity: 'WARNING' | 'DANGER';
+  message: string;
+  debtIds?: Array<string | number>;
+}
+
 export function resolveRepaymentExtraBudget(queryValue: unknown, savedValue: unknown): number {
   const getFirstValue = (value: unknown) => (Array.isArray(value) ? value[0] : value);
   const firstQueryValue = getFirstValue(queryValue);
@@ -106,6 +113,20 @@ export function simulateRepayment(
   const minimumBudget = ds.reduce((sum, d) => sum + d.minPayment, 0);
   const monthlyIncome = Math.max(0, Number.isFinite(options.monthlyIncome) ? options.monthlyIncome ?? 0 : 0);
   const maxMonths = Math.max(1, Number.isFinite(options.maxMonths) ? options.maxMonths ?? 360 : 360);
+  const warnings: RepaymentWarning[] = [];
+  const negativeAmortizationDebts = ds.filter(d => {
+    const firstMonthInterest = d.balance * (d.apr / 100) / 12;
+    return d.balance > 0.01 && d.minPayment <= firstMonthInterest;
+  });
+
+  if (negativeAmortizationDebts.length > 0) {
+    warnings.push({
+      type: 'NEGATIVE_AMORTIZATION',
+      severity: 'DANGER',
+      message: 'Có khoản nợ có tiền trả tối thiểu không đủ bù lãi tháng đầu, dư nợ có thể tăng nếu không trả thêm.',
+      debtIds: negativeAmortizationDebts.map(d => d.id),
+    });
+  }
   const calculateDti = () => {
     if (monthlyIncome <= 0) return undefined;
     const activeMinimum = ds
@@ -217,6 +238,16 @@ export function simulateRepayment(
     });
   }
 
+  const isCompleted = months < maxMonths;
+
+  if (!isCompleted) {
+    warnings.push({
+      type: 'NOT_COMPLETED',
+      severity: 'WARNING',
+      message: `Kế hoạch chưa tất toán sau ${maxMonths} tháng mô phỏng. Cần tăng ngân sách trả thêm hoặc rà lại khoản nợ có lãi cao.`,
+    });
+  }
+
   return {
     months,
     initialBalance: Math.round(initialBalance),
@@ -225,7 +256,8 @@ export function simulateRepayment(
     totalMonthlyBudget: Math.round(normalizedMonthlyBudget),
     totalInterest: Math.round(totalInterest),
     schedule,
-    isCompleted: months < maxMonths,
+    isCompleted,
+    warnings,
   };
 }
 

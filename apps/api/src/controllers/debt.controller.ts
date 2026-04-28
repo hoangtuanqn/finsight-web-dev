@@ -457,6 +457,7 @@ export async function getRepaymentPlan(
       totalMonthlyBudget: simulation.totalMonthlyBudget,
       totalInterest: simulation.totalInterest,
       isCompleted: simulation.isCompleted,
+      warnings: simulation.warnings,
       isScheduleTruncated: simulation.schedule.length > 25,
       schedule: simulation.schedule.slice(0, 25),
     });
