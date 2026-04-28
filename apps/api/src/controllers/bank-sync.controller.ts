@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { BankSyncService } from '../services/bank-sync.service';
 import prisma from '../lib/prisma';
+import { syncWalletTransactions } from '../cron/jobs/wallet-sync.job';
 
 export class BankSyncController {
   static async getPending(req: Request, res: Response) {
@@ -59,8 +60,7 @@ export class BankSyncController {
         return res.status(400).json({ message: 'Ví chưa bật đồng bộ SePay' });
       }
 
-      // Import hàm sync từ job để tái sử dụng
-      const { syncWalletTransactions } = require('../cron/jobs/wallet-sync.job');
+      // Gọi hàm sync đã import ở đầu file
       await syncWalletTransactions(wallet);
 
       res.json({ success: true, message: 'Đồng bộ hoàn tất' });
