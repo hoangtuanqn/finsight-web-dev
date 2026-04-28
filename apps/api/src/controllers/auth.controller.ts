@@ -1,0 +1,85 @@
+import { Request, Response } from 'express';
+import bcrypt from 'bcryptjs';
+import jwt, { SignOptions } from 'jsonwebtoken';
+import prisma from '../lib/prisma';
+import { success, error } from '../utils/apiResponse';
+import { AuthenticatedRequest } from '../types';
+
+export async function register(req: Request, res: Response) {
+  try {
+    const { email, password, fullName } = req.body;
+
+    const existing = await (prisma as any).user.findUnique({ where: { email } });
+    if (existing) {
+      return error(res, 'Email already registered', 409);
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const user = await (prisma as any).user.create({
+      data: { email, password: hashedPassword, fullName },
+      select: { id: true, email: true, fullName: true, monthlyIncome: true, extraBudget: true, createdAt: true },
+    });
+
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      (process.env.JWT_SECRET as string),
+      { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'] }
+    );
+
+    return success(res, { user, token }, 201);
+  } catch (err) {
+    console.error('Register error:', err);
+    return error(res, 'Internal server error');
+  }
+}
+
+export async function login(req: Request, res: Response) {
+  try {
+    const { email, password } = req.body;
+
+    const user = await (prisma as any).user.findUnique({ where: { email } });
+    if (!user) {
+      return error(res, 'Invalid email or password', 401);
+    }
+
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) {
+      return error(res, 'Invalid email or password', 401);
+    }
+
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      (process.env.JWT_SECRET as string),
+      { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'] }
+    );
+
+    const fullUser = await (prisma as any).user.findUnique({
+      where: { id: user.id },
+      include: { investorProfile: true }
+    });
+
+    const { password: _, ...userData } = fullUser;
+    return success(res, { user: userData, token });
+  } catch (err) {
+    console.error('Login error:', err);
+    return error(res, 'Internal server error');
+  }
+}
+
+export async function me(req: AuthenticatedRequest, res: Response) {
+  try {
+    const user = await (prisma as any).user.findUnique({
+      where: { id: req.userId },
+      include: { investorProfile: true },
+    });
+    if (!user) return error(res, 'User not found', 404);
+    return success(res, { user });
+  } catch (err) {
+    console.error('Me error:', err);
+    return error(res, 'Internal server error');
+  }
+}
+
+export async function logout(req: Request, res: Response) {
+  return success(res, { message: 'Logged out successfully' });
+}
