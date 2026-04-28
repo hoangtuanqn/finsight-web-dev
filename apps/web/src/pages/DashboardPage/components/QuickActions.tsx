@@ -5,7 +5,7 @@ import { Plus, ClipboardList, Target, TrendingUp, Search, User } from 'lucide-re
 const QUICK_ACTIONS = [
   { to: '/debts/add',          icon: Plus,          label: 'Thêm nợ',        desc: 'Nhập nợ mới',           gradient: 'from-blue-500 to-cyan-400',      glow: '#3b82f6' },
   { to: '/debts/repayment',    icon: ClipboardList, label: 'Kế hoạch',       desc: 'Avalanche/Snowball',    gradient: 'from-emerald-500 to-teal-400',   glow: '#10b981' },
-  { to: '/risk-assessment',    icon: Target,        label: 'Rủi ro',         desc: '5 câu hỏi nhanh',       gradient: 'from-purple-500 to-violet-400',  glow: '#8b5cf6' },
+  { to: '/risk-assessment',    icon: Target,        label: 'Rủi ro',         desc: '10 câu hỏi nhanh',       gradient: 'from-purple-500 to-violet-400',  glow: '#8b5cf6' },
   { to: '/investment',         icon: TrendingUp,    label: 'Đầu tư',         desc: 'Tư vấn AI',             gradient: 'from-cyan-500 to-sky-400',       glow: '#06b6d4' },
   { to: '/debts/ear-analysis', icon: Search,        label: 'EAR',            desc: 'Chi phí ẩn',            gradient: 'from-amber-500 to-orange-400',   glow: '#f59e0b' },
   { to: '/debts/dti',          icon: TrendingUp,    label: 'DTI',            desc: 'Nợ/Thu nhập',           gradient: 'from-rose-500 to-pink-400',      glow: '#f43f5e' },
