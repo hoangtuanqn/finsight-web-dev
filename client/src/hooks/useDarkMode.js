@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 
 export const useDarkMode = () => {
   const [dark, setDark] = useState(() => {
-    const saved = localStorage.getItem('finsight-theme');
+    let saved = localStorage.getItem('finsight-theme') ?? "dark";
+
     if (saved) return saved === 'dark';
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
