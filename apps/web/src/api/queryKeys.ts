@@ -48,4 +48,13 @@ export const queryKeys = {
       riskLevel,
     ],
   },
+  EXPENSES: {
+    ALL: (params?: any) => ["expenses", "all", params],
+    STATS: (params?: any) => ["expenses", "stats", params],
+    CATEGORIES: ["expenses", "categories"],
+  },
+  WALLETS: {
+    ALL: ["wallets", "all"],
+    BALANCE: ["wallets", "balance"],
+  },
 };
