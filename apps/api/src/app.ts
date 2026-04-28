@@ -21,6 +21,8 @@ import agenticRoutes from './routes/agentic.routes';
 import reportRoutes from './routes/report.routes';
 import subscriptionRoutes from './routes/subscription.routes';
 import articleRoutes from './routes/article.routes';
+import expenseRoutes from './routes/expense.routes';
+import walletRoutes from './routes/wallet.routes';
 import cronManager from './cron/index';
 import { initSocket } from './utils/socket';
 
@@ -46,6 +48,8 @@ app.use(cors({
 app.use(express.json());
 
 // Routes
+app.use('/api/expenses', expenseRoutes);
+app.use('/api/wallets', walletRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/debts/goal', debtGoalRoutes);
