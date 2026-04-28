@@ -25,7 +25,6 @@ import {
   ClipboardList,
   DollarSign,
   TrendingDown,
-  Bot,
   Lightbulb,
   Target,
   Zap,
@@ -380,7 +379,7 @@ export default function RepaymentPlanPage() {
 
   if (loading && !planData) return <PageSkeleton />;
 
-  const { avalanche, snowball, comparison, recommendation } = planData || {};
+  const { avalanche, snowball, comparison } = planData || {};
   const debtSummary = debtsData?.summary;
   const allDebts = debtsData?.debts || [];
   const monthlyIncome =
@@ -736,15 +735,16 @@ export default function RepaymentPlanPage() {
                             >
                               {i + 1}
                             </div>
-                            <span
+                            <Link
+                              to={`/debts/${d.id}`}
                               className={`flex-1 text-[12px] font-bold truncate ${
                                 i === 0
                                   ? "text-[var(--color-text-primary)]"
                                   : "text-[var(--color-text-muted)]"
-                              }`}
+                              } hover:text-blue-300 transition-colors`}
                             >
                               {d.name}
-                            </span>
+                            </Link>
                             <span
                               className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-black ${
                                 i === 0
@@ -840,15 +840,16 @@ export default function RepaymentPlanPage() {
                             >
                               {i + 1}
                             </div>
-                            <span
+                            <Link
+                              to={`/debts/${d.id}`}
                               className={`flex-1 text-[12px] font-bold truncate ${
                                 i === 0
                                   ? "text-[var(--color-text-primary)]"
                                   : "text-[var(--color-text-muted)]"
-                              }`}
+                              } hover:text-emerald-300 transition-colors`}
                             >
                               {d.name}
-                            </span>
+                            </Link>
                             <span
                               className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-black ${
                                 i === 0
@@ -890,19 +891,6 @@ export default function RepaymentPlanPage() {
               </div>
             )}
 
-            {recommendation && (
-              <div className="flex items-start gap-3 px-5 py-4 rounded-2xl border border-blue-500/15 bg-blue-500/5 relative overflow-hidden">
-                <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl bg-gradient-to-b from-blue-500 to-cyan-400" />
-                <Bot size={16} className="text-blue-400 shrink-0 mt-0.5 ml-1" />
-                <p className="text-[13px] text-blue-300 leading-relaxed">
-                  <span className="font-black text-blue-200">
-                    AI khuyến nghị:{" "}
-                  </span>
-                  {recommendation}
-                </p>
-              </div>
-            )}
-
             {repaymentWarnings.length > 0 && (
               <div className="flex items-start gap-3 px-5 py-4 rounded-2xl border border-amber-500/20 bg-amber-500/6 relative overflow-hidden">
                 <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl bg-gradient-to-b from-amber-500 to-orange-400" />
@@ -938,7 +926,7 @@ export default function RepaymentPlanPage() {
                   <TrendingDown size={16} className="text-blue-400" /> Tiến
                   trình giảm dư nợ
                 </h3>
-                <div className="h-72">
+                <div className="h-[360px] md:h-[380px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={timelineData}>
                       <defs>
@@ -971,7 +959,10 @@ export default function RepaymentPlanPage() {
                       />
                       <Tooltip
                         contentStyle={TOOLTIP_STYLE}
-                        formatter={(v) => [formatVND(v), ""]}
+                        formatter={(v, name) => [
+                          formatVND(Number(v)),
+                          name === "Avalanche" ? "Avalanche" : "Snowball",
+                        ]}
                       />
                       <Legend
                         wrapperStyle={{ fontSize: "12px", paddingTop: "12px" }}
