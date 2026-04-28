@@ -6,7 +6,7 @@ import {
   SOLVER_CONFIG,
   WEIGHT_BOUNDS,
 } from '../constants/optimizationConfig';
-import { getSentimentLabel, getSentimentVietnamese } from '../utils/calculations';
+import { getSentimentLabel, getSentimentVietnamese } from '../utils/calculations.js';
 
 const EPSILON = 1e-12;
 
@@ -106,11 +106,10 @@ export function projectOntoConstraints(weights: number[], bounds: any): number[]
   return redistribute(clamped, lowerBounds, upperBounds);
 }
 
-export function optimizePortfolio(marketParams: any, riskLevel: RiskLevel = RiskLevel.MEDIUM, sentimentValue: number = 50, profile: any = {}) {
+export function optimizePortfolio(marketParams: any, expectedReturns: number[], riskLevel: RiskLevel = RiskLevel.MEDIUM, profile: any = {}) {
   const normalizedRisk: RiskLevel = WEIGHT_BOUNDS[riskLevel] ? riskLevel : RiskLevel.MEDIUM;
   const bounds = getBoundsArrays(WEIGHT_BOUNDS[normalizedRisk]);
   const lambda = RISK_AVERSION[normalizedRisk] || RISK_AVERSION[RiskLevel.MEDIUM];
-  const adjustedMeans = adjustReturnsForSentiment(marketParams.means, sentimentValue);
   let weights = redistribute(getInitialWeights(normalizedRisk, bounds), bounds.lowerBounds, bounds.upperBounds);
   let converged = false;
   let iterations = 0;
@@ -119,7 +118,7 @@ export function optimizePortfolio(marketParams: any, riskLevel: RiskLevel = Risk
     iterations = i + 1;
     const previous = [...weights];
     const sigmaW = matrixVectorMultiply(marketParams.covMatrix, weights);
-    const gradient = adjustedMeans.map((mean, index) => mean - lambda * sigmaW[index]);
+    const gradient = expectedReturns.map((mean, index) => mean - lambda * sigmaW[index]);
 
     weights = weights.map((weight, index) => weight + SOLVER_CONFIG.learningRate * gradient[index]);
     weights = projectOntoConstraints(weights, WEIGHT_BOUNDS[normalizedRisk]);
@@ -131,7 +130,7 @@ export function optimizePortfolio(marketParams: any, riskLevel: RiskLevel = Risk
     }
   }
 
-  const expectedReturn = portfolioReturn(weights, adjustedMeans);
+  const expectedReturn = portfolioReturn(weights, expectedReturns);
   const variance = Math.max(0, portfolioVariance(weights, marketParams.covMatrix));
   const portfolioRisk = Math.sqrt(variance);
   const riskFreeRate = (profile.savingsRate ?? 5) / 100;
@@ -148,7 +147,7 @@ export function optimizePortfolio(marketParams: any, riskLevel: RiskLevel = Risk
     },
     converged,
     iterations,
-    optimizationMethod: 'markowitz',
+    optimizationMethod: 'black-litterman',
     marketDataQuality: marketParams.dataQuality,
   };
 }
@@ -156,10 +155,17 @@ export function optimizePortfolio(marketParams: any, riskLevel: RiskLevel = Risk
 export async function getOptimalAllocation(profile: any, sentimentValue: number = 50, marketParamsOverride: any = null) {
   const savingsRate = (profile?.savingsRate ?? 5) / 100;
   const marketParams = marketParamsOverride || await (async () => {
-    const { getMarketParams } = await import('./historicalData.service');
+    const { getMarketParams } = await import('./historicalData.service.js');
     return getMarketParams(savingsRate);
   })();
-  const result = optimizePortfolio(marketParams, (profile?.riskLevel as RiskLevel) || RiskLevel.MEDIUM, sentimentValue, profile);
+  const priorMeans = adjustReturnsForSentiment(marketParams.means, sentimentValue);
+  const { generateMarketViews } = await import('./marketViews.service.js');
+  const marketViews = await generateMarketViews(sentimentValue, process.env.NEWS_API_KEY);
+  
+  const { computePosteriorReturns } = await import('./blackLitterman.service.js');
+  const { posteriorMeans } = computePosteriorReturns(priorMeans, marketParams.covMatrix, marketViews);
+
+  const result = optimizePortfolio(marketParams, posteriorMeans, (profile?.riskLevel as RiskLevel) || RiskLevel.MEDIUM, profile);
   const sentimentLabel = getSentimentLabel(sentimentValue);
 
   const allocation: any = {
@@ -170,6 +176,7 @@ export async function getOptimalAllocation(profile: any, sentimentValue: number 
     sentimentVietnamese: getSentimentVietnamese(sentimentLabel),
     recommendation: buildRecommendation(sentimentLabel, result),
     optimizationMethod: result.optimizationMethod,
+    marketViews,
     metrics: result.metrics,
     optimization: {
       converged: result.converged,

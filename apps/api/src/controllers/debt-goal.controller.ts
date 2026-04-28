@@ -2,7 +2,7 @@ import { Response } from 'express';
 import prisma from '../lib/prisma';
 import { success, error } from '../utils/apiResponse';
 import { invalidateCache } from '../middleware/cache.middleware';
-import { simulateRepayment } from '../utils/calculations';
+import { simulateRepaymentWithExtraBudget } from '../utils/calculations';
 import { AuthenticatedRequest } from '../types';
 
 export async function getDebtGoal(req: AuthenticatedRequest, res: Response) {
@@ -33,7 +33,9 @@ export async function getDebtGoal(req: AuthenticatedRequest, res: Response) {
         const extraBudget = user?.extraBudget ?? 0;
         const strategy = goal.strategy || 'AVALANCHE';
 
-        const sim = simulateRepayment(activeDebts, extraBudget, strategy);
+        const sim = simulateRepaymentWithExtraBudget(activeDebts, extraBudget, strategy, {
+          monthlyIncome: user?.monthlyIncome ?? 0,
+        });
         const today = new Date();
         const projectedPayoffDate = new Date(today);
         projectedPayoffDate.setMonth(projectedPayoffDate.getMonth() + sim.months);
@@ -56,7 +58,9 @@ export async function getDebtGoal(req: AuthenticatedRequest, res: Response) {
           let hi = totalCurrent * 2;
           for (let i = 0; i < 40; i++) {
             const mid = (lo + hi) / 2;
-            const s = simulateRepayment(activeDebts, mid, strategy);
+            const s = simulateRepaymentWithExtraBudget(activeDebts, mid, strategy, {
+              monthlyIncome: user?.monthlyIncome ?? 0,
+            });
             if (s.months <= targetMonths) hi = mid;
             else lo = mid;
           }
