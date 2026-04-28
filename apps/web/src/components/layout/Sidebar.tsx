@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, CreditCard, Search, ClipboardList,
-  TrendingUp, Target, User, BarChart2, LogOut, ChevronRight, Zap, Receipt, Crown, BookOpen
+  TrendingUp, Target, User, BarChart2, LogOut, ChevronRight, Zap, Receipt, Crown, BookOpen, Wallet, PieChart
 } from 'lucide-react';
 
 const NAV_GROUPS = [
@@ -15,12 +15,13 @@ const NAV_GROUPS = [
     ],
   },
   {
-    label: 'Quản lý nợ',
+    label: 'Tài chính',
     items: [
       { id: 'tour-debts',      to: '/debts',               icon: CreditCard,    label: 'Danh sách nợ',    end: true, color: '#ef4444', gradient: 'from-red-500 to-rose-400'     },
       { id: 'tour-ear',        to: '/debts/ear-analysis',  icon: Search,        label: 'Phân tích EAR',              color: '#8b5cf6', gradient: 'from-purple-500 to-violet-400' },
       { id: 'tour-dti',        to: '/debts/dti',           icon: BarChart2,     label: 'Phân tích DTI',              color: '#06b6d4', gradient: 'from-cyan-500 to-sky-400'      },
       { id: 'tour-repayment',  to: '/debts/repayment',     icon: ClipboardList, label: 'Kế hoạch trả nợ',            color: '#10b981', gradient: 'from-emerald-500 to-teal-400'  },
+      { id: 'tour-expenses',   to: '/expenses',            icon: Wallet,        label: 'Quản lý chi tiêu',           color: '#10b981', gradient: 'from-emerald-500 to-teal-400'  },
     ],
   },
   {
