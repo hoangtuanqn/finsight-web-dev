@@ -2,12 +2,14 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 
 const SocketContext = createContext(null);
 
 export function SocketProvider({ children }) {
   const { user, refreshUser } = useAuth();
   const [socket, setSocket] = useState(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     // Only connect if user is logged in
@@ -46,6 +48,24 @@ export function SocketProvider({ children }) {
 
       // Refresh the user context to get the new level
       refreshUser();
+    });
+
+    newSocket.on('wallet:balance_updated', (data) => {
+      console.log('💰 Wallet balance updated:', data);
+      queryClient.invalidateQueries({ queryKey: ['wallets'] });
+      queryClient.invalidateQueries({ queryKey: ['expense-stats'] });
+      // Không toast ở đây để tránh phiền, số dư tự nhảy là đủ đẹp
+    });
+
+    newSocket.on('wallet:new_pending_transactions', (data) => {
+      console.log('📥 New pending transactions:', data);
+      queryClient.invalidateQueries({ queryKey: ['bank-sync-pending'] });
+      
+      toast.info(`Bạn có ${data.count} giao dịch mới từ "${data.walletName}" cần duyệt.`, {
+        description: 'Vào mục Sổ thu chi > Chờ duyệt để xử lý.',
+        duration: 5000,
+        icon: '💳',
+      });
     });
 
     return () => {
