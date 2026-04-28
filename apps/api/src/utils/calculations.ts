@@ -229,6 +229,23 @@ export function simulateRepayment(
   };
 }
 
+export function simulateRepaymentWithExtraBudget(
+  debts: DebtItem[],
+  extraBudget: number,
+  method: 'AVALANCHE' | 'SNOWBALL' = 'AVALANCHE',
+  options: RepaymentSimulationOptions = {},
+) {
+  const minimumBudget = debts.reduce((sum, debt) => sum + debt.minPayment, 0);
+  const normalizedExtraBudget = Math.max(0, Number.isFinite(extraBudget) ? extraBudget : 0);
+
+  return simulateRepayment(
+    debts,
+    minimumBudget + normalizedExtraBudget,
+    method,
+    options,
+  );
+}
+
 /**
  * CALCULATION 6: Debt-to-Income Ratio
  */

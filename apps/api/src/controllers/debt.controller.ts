@@ -6,7 +6,7 @@ import emailService from "../services/email.service";
 import {
   calcAPY,
   calcEAR,
-  simulateRepayment,
+  simulateRepaymentWithExtraBudget,
   resolveRepaymentExtraBudget,
   calcDebtToIncomeRatio,
   detectDominoRisk,
@@ -433,16 +433,10 @@ export async function getRepaymentPlan(
       req.query.extraBudget,
       user?.extraBudget,
     );
-    const totalMin = debts.reduce(
-      (sum: number, d: any) => sum + d.minPayment,
-      0,
-    );
-    const totalBudget = totalMin + extraBudget;
-
     const monthlyIncome = user?.monthlyIncome || 0;
     const simulationOptions = { monthlyIncome };
-    const avalanche = simulateRepayment(debts, totalBudget, "AVALANCHE", simulationOptions);
-    const snowball = simulateRepayment(debts, totalBudget, "SNOWBALL", simulationOptions);
+    const avalanche = simulateRepaymentWithExtraBudget(debts, extraBudget, "AVALANCHE", simulationOptions);
+    const snowball = simulateRepaymentWithExtraBudget(debts, extraBudget, "SNOWBALL", simulationOptions);
 
     const savedInterest = snowball.totalInterest - avalanche.totalInterest;
     const savedMonths = snowball.months - avalanche.months;
