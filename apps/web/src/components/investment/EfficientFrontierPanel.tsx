@@ -1,11 +1,5 @@
-import React from 'react';
-import {
-  Activity,
-  Crosshair,
-  Gauge,
-  LineChart,
-  Target,
-} from 'lucide-react';
+import React from "react";
+import { Activity, Crosshair, Gauge, LineChart, Target } from "lucide-react";
 import {
   CartesianGrid,
   ResponsiveContainer,
@@ -15,15 +9,45 @@ import {
   XAxis,
   YAxis,
   ZAxis,
-} from 'recharts';
-import { formatPercent } from '../../utils/calculations';
+} from "recharts";
+import { formatPercent } from "../../utils/calculations";
 
 const TONE_BY_GRADE = {
-  A: { text: 'text-emerald-300', bg: 'bg-emerald-400', halo: 'bg-emerald-400/20', border: 'border-emerald-400/40', fill: '#34d399' },
-  B: { text: 'text-blue-300', bg: 'bg-blue-400', halo: 'bg-blue-400/20', border: 'border-blue-400/40', fill: '#60a5fa' },
-  C: { text: 'text-amber-300', bg: 'bg-amber-400', halo: 'bg-amber-400/20', border: 'border-amber-400/40', fill: '#fbbf24' },
-  D: { text: 'text-orange-300', bg: 'bg-orange-400', halo: 'bg-orange-400/20', border: 'border-orange-400/40', fill: '#fb923c' },
-  F: { text: 'text-red-300', bg: 'bg-red-400', halo: 'bg-red-400/20', border: 'border-red-400/40', fill: '#f87171' },
+  A: {
+    text: "text-emerald-300",
+    bg: "bg-emerald-400",
+    halo: "bg-emerald-400/20",
+    border: "border-emerald-400/40",
+    fill: "#34d399",
+  },
+  B: {
+    text: "text-blue-300",
+    bg: "bg-blue-400",
+    halo: "bg-blue-400/20",
+    border: "border-blue-400/40",
+    fill: "#60a5fa",
+  },
+  C: {
+    text: "text-amber-300",
+    bg: "bg-amber-400",
+    halo: "bg-amber-400/20",
+    border: "border-amber-400/40",
+    fill: "#fbbf24",
+  },
+  D: {
+    text: "text-orange-300",
+    bg: "bg-orange-400",
+    halo: "bg-orange-400/20",
+    border: "border-orange-400/40",
+    fill: "#fb923c",
+  },
+  F: {
+    text: "text-red-300",
+    bg: "bg-red-400",
+    halo: "bg-red-400/20",
+    border: "border-red-400/40",
+    fill: "#f87171",
+  },
 };
 
 function safeNumber(value) {
@@ -37,12 +61,12 @@ function clamp(value, min, max) {
 
 function formatMetricPercent(value) {
   const number = safeNumber(value);
-  return number === null ? '—' : formatPercent(number * 100);
+  return number === null ? "-" : formatPercent(number * 100);
 }
 
 function formatSharpe(value) {
   const number = safeNumber(value);
-  return number === null ? '—' : number.toFixed(2);
+  return number === null ? "-" : number.toFixed(2);
 }
 
 function normalizePoint(point = {}, index = 0) {
@@ -65,7 +89,7 @@ function FrontierTooltip({ active, payload }) {
   return (
     <div
       className="rounded-2xl border border-white/10 bg-slate-950/95 p-3 shadow-2xl backdrop-blur-xl"
-      style={{ maxWidth: 'min(17rem, calc(100vw - 3rem))' }}
+      style={{ maxWidth: "min(17rem, calc(100vw - 3rem))" }}
     >
       <div className="mb-2 text-xs font-black uppercase tracking-widest text-slate-500">
         Danh mục
@@ -73,15 +97,21 @@ function FrontierTooltip({ active, payload }) {
       <div className="space-y-1.5 text-xs">
         <div className="flex items-center justify-between gap-4">
           <span className="font-semibold text-slate-500">Return</span>
-          <span className="font-black text-white">{formatMetricPercent(point.expectedReturn)}</span>
+          <span className="font-black text-white">
+            {formatMetricPercent(point.expectedReturn)}
+          </span>
         </div>
         <div className="flex items-center justify-between gap-4">
           <span className="font-semibold text-slate-500">Risk</span>
-          <span className="font-black text-white">{formatMetricPercent(point.risk)}</span>
+          <span className="font-black text-white">
+            {formatMetricPercent(point.risk)}
+          </span>
         </div>
         <div className="flex items-center justify-between gap-4">
           <span className="font-semibold text-slate-500">Sharpe</span>
-          <span className="font-black text-white">{formatSharpe(point.sharpeRatio)}</span>
+          <span className="font-black text-white">
+            {formatSharpe(point.sharpeRatio)}
+          </span>
         </div>
       </div>
     </div>
@@ -92,7 +122,14 @@ function UserDot({ cx, cy, fill }) {
   return (
     <g>
       <circle cx={cx} cy={cy} r={8} fill={fill} fillOpacity={0.24} />
-      <circle cx={cx} cy={cy} r={5} fill={fill} stroke="#0f172a" strokeWidth={2} />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={5}
+        fill={fill}
+        stroke="#0f172a"
+        strokeWidth={2}
+      />
     </g>
   );
 }
@@ -114,14 +151,18 @@ function FrontierScatter({ frontierData, userPoint, tone }) {
     <div className="h-[260px] min-h-0">
       <ResponsiveContainer width="100%" height="100%">
         <ScatterChart margin={{ top: 20, right: 20, left: 4, bottom: 8 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke="rgba(255,255,255,0.05)"
+            vertical={false}
+          />
           <XAxis
             type="number"
             dataKey="risk"
             name="Risk"
-            domain={[0, dataMax => Math.max(0.2, dataMax * 1.15)]}
-            tickFormatter={value => formatPercent(value * 100)}
-            tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }}
+            domain={[0, (dataMax) => Math.max(0.2, dataMax * 1.15)]}
+            tickFormatter={(value) => formatPercent(value * 100)}
+            tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 600 }}
             axisLine={false}
             tickLine={false}
           />
@@ -129,21 +170,29 @@ function FrontierScatter({ frontierData, userPoint, tone }) {
             type="number"
             dataKey="expectedReturn"
             name="Return"
-            domain={[0, dataMax => Math.max(0.15, dataMax * 1.15)]}
-            tickFormatter={value => formatPercent(value * 100)}
-            tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }}
+            domain={[0, (dataMax) => Math.max(0.15, dataMax * 1.15)]}
+            tickFormatter={(value) => formatPercent(value * 100)}
+            tick={{ fill: "#94a3b8", fontSize: 11, fontWeight: 600 }}
             axisLine={false}
             tickLine={false}
             width={48}
           />
           <ZAxis range={[45, 45]} />
-          <Tooltip content={<FrontierTooltip />} wrapperStyle={{ outline: 'none' }} />
-          <Scatter name="Frontier" data={frontierData} fill="#64748b" fillOpacity={0.42} />
+          <Tooltip
+            content={<FrontierTooltip />}
+            wrapperStyle={{ outline: "none" }}
+          />
+          <Scatter
+            name="Frontier"
+            data={frontierData}
+            fill="#64748b"
+            fillOpacity={0.42}
+          />
           <Scatter
             name="Portfolio"
             data={[userPoint]}
             fill={tone.fill}
-            shape={props => <UserDot {...props} fill={tone.fill} />}
+            shape={(props) => <UserDot {...props} fill={tone.fill} />}
           />
         </ScatterChart>
       </ResponsiveContainer>
@@ -171,7 +220,9 @@ function CurrentPortfolioCard({ userPoint, tone }) {
         style={{ left: `${riskPercent}%`, bottom: `${returnPercent}%` }}
       >
         <div className={`h-12 w-12 rounded-full ${tone.halo} blur-xl`} />
-        <div className={`absolute left-1/2 top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border ${tone.border} bg-slate-950 shadow-xl`}>
+        <div
+          className={`absolute left-1/2 top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border ${tone.border} bg-slate-950 shadow-xl`}
+        >
           <Target size={15} className={tone.text} />
         </div>
       </div>
@@ -187,7 +238,7 @@ export default function EfficientFrontierPanel({
   frontierPoints,
   riskGrade,
 }) {
-  const userPoint = normalizePoint(allocationMetrics, 'portfolio');
+  const userPoint = normalizePoint(allocationMetrics, "portfolio");
   if (!userPoint) return null;
 
   const frontierData = Array.isArray(frontierPoints)
@@ -206,25 +257,45 @@ export default function EfficientFrontierPanel({
           <div>
             <h3 className="text-sm font-bold text-white">Vị trí danh mục</h3>
             <p className="text-[11px] font-semibold text-slate-500">
-              Risk-return hiện tại{hasFrontier ? ' trên frontier' : ''}
+              Risk-return hiện tại{hasFrontier ? " trên frontier" : ""}
             </p>
           </div>
         </div>
-        <div className={`inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-black ${tone.border} ${tone.text} bg-white/[0.02]`}>
+        <div
+          className={`inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-black ${tone.border} ${tone.text} bg-white/[0.02]`}
+        >
           <span className={`h-1.5 w-1.5 rounded-full ${tone.bg}`} />
-          Grade {riskGrade || 'C'}
+          Grade {riskGrade || "C"}
         </div>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
-        {hasFrontier
-          ? <FrontierScatter frontierData={frontierData} userPoint={userPoint} tone={tone} />
-          : <CurrentPortfolioCard userPoint={userPoint} tone={tone} />}
+        {hasFrontier ? (
+          <FrontierScatter
+            frontierData={frontierData}
+            userPoint={userPoint}
+            tone={tone}
+          />
+        ) : (
+          <CurrentPortfolioCard userPoint={userPoint} tone={tone} />
+        )}
 
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 xl:grid-cols-1">
-          <MetricPill icon={LineChart} label="Return" value={formatMetricPercent(userPoint.expectedReturn)} />
-          <MetricPill icon={Gauge} label="Risk" value={formatMetricPercent(userPoint.risk)} />
-          <MetricPill icon={Activity} label="Sharpe" value={formatSharpe(userPoint.sharpeRatio)} />
+          <MetricPill
+            icon={LineChart}
+            label="Return"
+            value={formatMetricPercent(userPoint.expectedReturn)}
+          />
+          <MetricPill
+            icon={Gauge}
+            label="Risk"
+            value={formatMetricPercent(userPoint.risk)}
+          />
+          <MetricPill
+            icon={Activity}
+            label="Sharpe"
+            value={formatSharpe(userPoint.sharpeRatio)}
+          />
         </div>
       </div>
     </div>

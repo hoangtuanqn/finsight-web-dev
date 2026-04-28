@@ -49,12 +49,26 @@ interface DebtItem {
 
 interface PaymentScheduleItem {
   month: number;
+  totalBalance: number;
+  interestAccrued: number;
+  minimumPaid: number;
+  extraPaid: number;
+  totalPaid: number;
+  dti?: number;
   payments: Array<{
     debtId: string | number;
     name: string;
     paid: number;
     balance: number;
+    minimumPaid: number;
+    extraPaid: number;
+    interestAccrued: number;
   }>;
+}
+
+interface RepaymentSimulationOptions {
+  monthlyIncome?: number;
+  maxMonths?: number;
 }
 
 export function resolveRepaymentExtraBudget(queryValue: unknown, savedValue: unknown): number {
@@ -71,7 +85,12 @@ export function resolveRepaymentExtraBudget(queryValue: unknown, savedValue: unk
 /**
  * CALCULATION 5: Avalanche / Snowball simulation
  */
-export function simulateRepayment(debts: DebtItem[], monthlyBudget: number, method: 'AVALANCHE' | 'SNOWBALL' = 'AVALANCHE') {
+export function simulateRepayment(
+  debts: DebtItem[],
+  monthlyBudget: number,
+  method: 'AVALANCHE' | 'SNOWBALL' = 'AVALANCHE',
+  options: RepaymentSimulationOptions = {},
+) {
   let ds = debts.map(d => ({
     id: d.id,
     name: d.name,
@@ -82,18 +101,47 @@ export function simulateRepayment(debts: DebtItem[], monthlyBudget: number, meth
 
   let months = 0;
   let totalInterest = 0;
+  const normalizedMonthlyBudget = Math.max(0, Number.isFinite(monthlyBudget) ? monthlyBudget : 0);
+  const initialBalance = ds.reduce((sum, d) => sum + d.balance, 0);
+  const minimumBudget = ds.reduce((sum, d) => sum + d.minPayment, 0);
+  const monthlyIncome = Math.max(0, Number.isFinite(options.monthlyIncome) ? options.monthlyIncome ?? 0 : 0);
+  const maxMonths = Math.max(1, Number.isFinite(options.maxMonths) ? options.maxMonths ?? 360 : 360);
+  const calculateDti = () => {
+    if (monthlyIncome <= 0) return undefined;
+    const activeMinimum = ds
+      .filter(d => d.balance > 0.01)
+      .reduce((sum, d) => sum + d.minPayment, 0);
+    return parseFloat(((activeMinimum / monthlyIncome) * 100).toFixed(1));
+  };
   const schedule: PaymentScheduleItem[] = [];
 
-  while (ds.some(d => d.balance > 0.01) && months < 360) {
+  schedule.push({
+    month: 0,
+    totalBalance: Math.round(initialBalance),
+    interestAccrued: 0,
+    minimumPaid: 0,
+    extraPaid: 0,
+    totalPaid: 0,
+    dti: calculateDti(),
+    payments: [],
+  });
+
+  while (ds.some(d => d.balance > 0.01) && months < maxMonths) {
     months++;
-    let remaining = Math.max(0, Number.isFinite(monthlyBudget) ? monthlyBudget : 0);
+    let remaining = normalizedMonthlyBudget;
     const monthPayments: PaymentScheduleItem['payments'] = [];
+    let monthInterest = 0;
+    let monthMinimumPaid = 0;
+    let monthExtraPaid = 0;
+    const debtInterest = new Map<string | number, number>();
 
     // Step 1: Accrue interest
     ds.forEach(d => {
       if (d.balance > 0) {
         const interest = d.balance * (d.apr / 100) / 12;
         totalInterest += interest;
+        monthInterest += interest;
+        debtInterest.set(d.id, interest);
         d.balance += interest;
       }
     });
@@ -104,8 +152,17 @@ export function simulateRepayment(debts: DebtItem[], monthlyBudget: number, meth
         const pay = Math.min(d.minPayment, d.balance);
         d.balance -= pay;
         remaining -= pay;
+        monthMinimumPaid += pay;
         d.balance = Math.max(0, d.balance);
-        monthPayments.push({ debtId: d.id, name: d.name, paid: pay, balance: d.balance });
+        monthPayments.push({
+          debtId: d.id,
+          name: d.name,
+          paid: pay,
+          balance: d.balance,
+          minimumPaid: pay,
+          extraPaid: 0,
+          interestAccrued: debtInterest.get(d.id) ?? 0,
+        });
       }
     });
 
@@ -127,25 +184,48 @@ export function simulateRepayment(debts: DebtItem[], monthlyBudget: number, meth
         if (pay <= 0) break;
         target.balance -= pay;
         remaining -= pay;
+        monthExtraPaid += pay;
         target.balance = Math.max(0, target.balance);
         const existing = monthPayments.find(p => p.debtId === target.id);
         if (existing) {
           existing.paid += pay;
+          existing.extraPaid += pay;
           existing.balance = target.balance;
         } else {
-          monthPayments.push({ debtId: target.id, name: target.name, paid: pay, balance: target.balance });
+          monthPayments.push({
+            debtId: target.id,
+            name: target.name,
+            paid: pay,
+            balance: target.balance,
+            minimumPaid: 0,
+            extraPaid: pay,
+            interestAccrued: debtInterest.get(target.id) ?? 0,
+          });
         }
       }
     }
 
-    schedule.push({ month: months, payments: monthPayments });
+    schedule.push({
+      month: months,
+      totalBalance: Math.round(ds.reduce((sum, d) => sum + Math.max(0, d.balance), 0)),
+      interestAccrued: Math.round(monthInterest),
+      minimumPaid: Math.round(monthMinimumPaid),
+      extraPaid: Math.round(monthExtraPaid),
+      totalPaid: Math.round(monthMinimumPaid + monthExtraPaid),
+      dti: calculateDti(),
+      payments: monthPayments,
+    });
   }
 
   return {
     months,
+    initialBalance: Math.round(initialBalance),
+    minimumBudget: Math.round(minimumBudget),
+    extraBudgetUsed: Math.round(Math.max(0, normalizedMonthlyBudget - minimumBudget)),
+    totalMonthlyBudget: Math.round(normalizedMonthlyBudget),
     totalInterest: Math.round(totalInterest),
     schedule,
-    isCompleted: months < 360,
+    isCompleted: months < maxMonths,
   };
 }
 
