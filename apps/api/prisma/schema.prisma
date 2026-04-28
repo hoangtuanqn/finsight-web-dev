@@ -112,6 +112,7 @@ model Allocation {
   savings        Float
   gold           Float
   stocks         Float
+  stocks_us      Float    @default(0)
   bonds          Float
   crypto         Float
   recommendation String
@@ -254,9 +255,11 @@ model AIStrategy {
   savings        Float
   gold           Float
   stocks         Float
+  stocks_us      Float    @default(0)
   bonds          Float
   crypto         Float
   recommendation String   @db.Text
+  marketViews    Json?
   createdAt      DateTime @default(now())
 
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -272,6 +275,7 @@ model UserPortfolio {
   savings          Float
   gold             Float
   stocks           Float
+  stocks_us        Float    @default(0)
   bonds            Float
   crypto           Float
   notes            String?  @db.Text
