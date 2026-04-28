@@ -133,4 +133,24 @@ export const articleAPI = {
   seedArticles: () => api.post('/articles/seed'),
 };
 
+// EXPENSES
+export const expenseAPI = {
+  getAll: (params?: any) => api.get('/expenses', { params }),
+  create: (data: any) => api.post('/expenses', data),
+  update: (id: string, data: any) => api.patch(`/expenses/${id}`, data),
+  delete: (id: string) => api.delete(`/expenses/${id}`),
+  getStats: (params?: any) => api.get('/expenses/stats', { params }),
+  getCategories: () => api.get('/expenses/categories'),
+  createCategory: (data: any) => api.post('/expenses/categories', data),
+};
+
+// WALLETS
+export const walletAPI = {
+  getAll: () => api.get('/wallets'),
+  getBalance: () => api.get('/wallets/balance'),
+  create: (data: any) => api.post('/wallets', data),
+  update: (id: string, data: any) => api.patch(`/wallets/${id}`, data),
+  delete: (id: string) => api.delete(`/wallets/${id}`),
+};
+
 export default api;

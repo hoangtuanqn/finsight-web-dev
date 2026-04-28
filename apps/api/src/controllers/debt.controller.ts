@@ -439,8 +439,10 @@ export async function getRepaymentPlan(
     );
     const totalBudget = totalMin + extraBudget;
 
-    const avalanche = simulateRepayment(debts, totalBudget, "AVALANCHE");
-    const snowball = simulateRepayment(debts, totalBudget, "SNOWBALL");
+    const monthlyIncome = user?.monthlyIncome || 0;
+    const simulationOptions = { monthlyIncome };
+    const avalanche = simulateRepayment(debts, totalBudget, "AVALANCHE", simulationOptions);
+    const snowball = simulateRepayment(debts, totalBudget, "SNOWBALL", simulationOptions);
 
     const savedInterest = snowball.totalInterest - avalanche.totalInterest;
     const savedMonths = snowball.months - avalanche.months;
@@ -453,17 +455,25 @@ export async function getRepaymentPlan(
         "Hai phương pháp cho kết quả tương đương. Chọn Snowball nếu bạn muốn động lực tâm lý từ việc xoá nợ nhỏ trước.";
     }
 
+    const formatSimulation = (simulation: typeof avalanche) => ({
+      months: simulation.months,
+      initialBalance: simulation.initialBalance,
+      minimumBudget: simulation.minimumBudget,
+      extraBudgetUsed: simulation.extraBudgetUsed,
+      totalMonthlyBudget: simulation.totalMonthlyBudget,
+      totalInterest: simulation.totalInterest,
+      isCompleted: simulation.isCompleted,
+      isScheduleTruncated: simulation.schedule.length > 25,
+      schedule: simulation.schedule.slice(0, 25),
+    });
+
     return success(res, {
-      avalanche: {
-        months: avalanche.months,
-        totalInterest: avalanche.totalInterest,
-        schedule: avalanche.schedule.slice(0, 24),
-      },
-      snowball: {
-        months: snowball.months,
-        totalInterest: snowball.totalInterest,
-        schedule: snowball.schedule.slice(0, 24),
-      },
+      monthlyIncome,
+      extraBudget,
+      minimumBudget: avalanche.minimumBudget,
+      totalMonthlyBudget: avalanche.totalMonthlyBudget,
+      avalanche: formatSimulation(avalanche),
+      snowball: formatSimulation(snowball),
       comparison: { savedInterest, savedMonths },
       recommendation,
     });
