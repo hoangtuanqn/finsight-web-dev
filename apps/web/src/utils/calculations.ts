@@ -25,48 +25,6 @@ export function calcFlatMonthlyPayment(principal: number, apr: number, termMonth
   return (principal + totalInterest) / termMonths;
 }
 
-export function simulateRepayment(debts: any[], extraBudget: number, method = 'AVALANCHE') {
-  let ds = debts.map(d => ({ ...d }));
-  let months = 0, totalInterest = 0;
-  const schedule: any[] = [];
-  while (ds.some(d => d.balance > 0.01) && months < 360) {
-    months++;
-    let remaining = extraBudget;
-    const monthPayments: any[] = [];
-    ds.forEach(d => {
-      if (d.balance > 0) {
-        const interest = d.balance * (d.apr / 100) / 12;
-        totalInterest += interest;
-        d.balance += interest;
-      }
-    });
-    ds.forEach(d => {
-      if (d.balance > 0) {
-        const pay = Math.min(d.minPayment, d.balance);
-        d.balance -= pay;
-        remaining -= pay;
-        d.balance = Math.max(0, d.balance);
-        monthPayments.push({ debtId: d.id, name: d.name, paid: pay, balance: d.balance });
-      }
-    });
-    if (remaining > 0) {
-      const activeDebts = ds.filter(d => d.balance > 0.01);
-      let target = method === 'AVALANCHE'
-        ? activeDebts.sort((a, b) => b.apr - a.apr)[0]
-        : activeDebts.sort((a, b) => a.balance - b.balance)[0];
-      if (target) {
-        const pay = Math.min(remaining, target.balance);
-        target.balance -= pay;
-        target.balance = Math.max(0, target.balance);
-        const existing = monthPayments.find(p => p.debtId === target.id);
-        if (existing) { existing.paid += pay; existing.balance = target.balance; }
-      }
-    }
-    schedule.push({ month: months, payments: monthPayments });
-  }
-  return { months, totalInterest: Math.round(totalInterest), schedule, isCompleted: months < 360 };
-}
-
 export function calcDebtToIncomeRatio(totalMonthlyDebtPayments: number, monthlyIncome: number) {
   if (monthlyIncome === 0) return 0;
   return (totalMonthlyDebtPayments / monthlyIncome) * 100;

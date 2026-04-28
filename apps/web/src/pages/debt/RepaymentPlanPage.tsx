@@ -25,7 +25,6 @@ import {
   ClipboardList,
   DollarSign,
   TrendingDown,
-  Bot,
   Lightbulb,
   Target,
   Zap,
@@ -380,10 +379,15 @@ export default function RepaymentPlanPage() {
 
   if (loading && !planData) return <PageSkeleton />;
 
-  const { avalanche, snowball, comparison, recommendation } = planData || {};
+  const { avalanche, snowball, comparison } = planData || {};
   const debtSummary = debtsData?.summary;
   const allDebts = debtsData?.debts || [];
-  const monthlyIncome = debtSummary?.monthlyIncome ?? 0;
+  const monthlyIncome =
+    planData?.monthlyIncome ?? debtSummary?.monthlyIncome ?? user?.monthlyIncome ?? 0;
+  const minimumBudget =
+    planData?.minimumBudget ?? avalanche?.minimumBudget ?? debtSummary?.totalMinPayment ?? 0;
+  const totalMonthlyBudget =
+    planData?.totalMonthlyBudget ?? avalanche?.totalMonthlyBudget ?? minimumBudget + extraBudget;
 
   const progress = goalData?.progress;
   const reachedCount =
@@ -391,30 +395,28 @@ export default function RepaymentPlanPage() {
 
   const timelineData = [];
   if (avalanche?.schedule && snowball?.schedule) {
-    const maxMonths = Math.max(avalanche.months, snowball.months, 1);
-    for (let m = 0; m < Math.min(maxMonths, 24); m++) {
+    const maxMonths = Math.max(avalanche.schedule.length, snowball.schedule.length);
+    const getTotalBalance = (entry: any) => {
+      if (!entry) return null;
+      if (Number.isFinite(entry.totalBalance)) return entry.totalBalance;
+      if (Array.isArray(entry.payments)) {
+        return entry.payments.reduce((s, p) => s + p.balance, 0);
+      }
+      return null;
+    };
+
+    for (let m = 0; m < maxMonths; m++) {
       const av = avalanche.schedule[m],
         sn = snowball.schedule[m];
-      const avBalance = av ? av.payments.reduce((s, p) => s + p.balance, 0) : 0;
-      const snBalance = sn ? sn.payments.reduce((s, p) => s + p.balance, 0) : 0;
-      const avTotalMin = av
-        ? av.payments.reduce((s, p) => s + (p.minPayment ?? 0), 0)
-        : 0;
-      const snTotalMin = sn
-        ? sn.payments.reduce((s, p) => s + (p.minPayment ?? 0), 0)
-        : 0;
-      const avDti =
-        monthlyIncome > 0
-          ? parseFloat(((avTotalMin / monthlyIncome) * 100).toFixed(1))
-          : null;
-      const snDti =
-        monthlyIncome > 0
-          ? parseFloat(((snTotalMin / monthlyIncome) * 100).toFixed(1))
-          : null;
+      const monthNumber = av?.month ?? sn?.month ?? m;
+      const avBalance = getTotalBalance(av);
+      const snBalance = getTotalBalance(sn);
+      const avDti = Number.isFinite(av?.dti) ? av.dti : null;
+      const snDti = Number.isFinite(sn?.dti) ? sn.dti : null;
       timelineData.push({
-        month: `T${m + 1}`,
-        avalanche: Math.round(avBalance),
-        snowball: Math.round(snBalance),
+        month: monthNumber === 0 ? "Hiện tại" : `T${monthNumber}`,
+        ...(avBalance !== null && { avalanche: Math.round(avBalance) }),
+        ...(snBalance !== null && { snowball: Math.round(snBalance) }),
         ...(avDti !== null && { avDti }),
         ...(snDti !== null && { snDti }),
       });
@@ -426,6 +428,26 @@ export default function RepaymentPlanPage() {
   );
   const snSafeMonth = timelineData.findIndex(
     (d) => d.snDti !== undefined && d.snDti <= 20,
+  );
+  const safeMonthLabel = (index: number) =>
+    timelineData[index]?.month ?? `T${index + 1}`;
+  const repaymentWarnings = Array.from(
+    new Map(
+      [
+        ...(avalanche?.warnings || []),
+        ...(snowball?.warnings || []),
+        ...(avalanche?.isScheduleTruncated || snowball?.isScheduleTruncated
+          ? [
+              {
+                type: "SCHEDULE_TRUNCATED",
+                severity: "WARNING",
+                message:
+                  "Biểu đồ chỉ hiển thị tối đa 24 tháng đầu sau mốc hiện tại.",
+              },
+            ]
+          : []),
+      ].map((warning: any) => [warning.type, warning]),
+    ).values(),
   );
 
   return (
@@ -582,6 +604,26 @@ export default function RepaymentPlanPage() {
             </button>
           </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-5">
+            {[
+              { label: "Tối thiểu", value: minimumBudget },
+              { label: "Trả thêm", value: extraBudget },
+              { label: "Tổng/tháng", value: totalMonthlyBudget },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="rounded-xl border border-white/6 bg-white/4 px-3 py-2.5"
+              >
+                <p className="text-[10px] text-[var(--color-text-muted)] font-black uppercase tracking-wider">
+                  {item.label}
+                </p>
+                <p className="text-[13px] text-[var(--color-text-primary)] font-black mt-1">
+                  {formatVND(item.value)}
+                </p>
+              </div>
+            ))}
+          </div>
+
           <input
             type="range"
             min="0"
@@ -693,15 +735,16 @@ export default function RepaymentPlanPage() {
                             >
                               {i + 1}
                             </div>
-                            <span
+                            <Link
+                              to={`/debts/${d.id}`}
                               className={`flex-1 text-[12px] font-bold truncate ${
                                 i === 0
                                   ? "text-[var(--color-text-primary)]"
                                   : "text-[var(--color-text-muted)]"
-                              }`}
+                              } hover:text-blue-300 transition-colors`}
                             >
                               {d.name}
-                            </span>
+                            </Link>
                             <span
                               className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-black ${
                                 i === 0
@@ -797,15 +840,16 @@ export default function RepaymentPlanPage() {
                             >
                               {i + 1}
                             </div>
-                            <span
+                            <Link
+                              to={`/debts/${d.id}`}
                               className={`flex-1 text-[12px] font-bold truncate ${
                                 i === 0
                                   ? "text-[var(--color-text-primary)]"
                                   : "text-[var(--color-text-muted)]"
-                              }`}
+                              } hover:text-emerald-300 transition-colors`}
                             >
                               {d.name}
-                            </span>
+                            </Link>
                             <span
                               className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-black ${
                                 i === 0
@@ -847,16 +891,26 @@ export default function RepaymentPlanPage() {
               </div>
             )}
 
-            {recommendation && (
-              <div className="flex items-start gap-3 px-5 py-4 rounded-2xl border border-blue-500/15 bg-blue-500/5 relative overflow-hidden">
-                <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl bg-gradient-to-b from-blue-500 to-cyan-400" />
-                <Bot size={16} className="text-blue-400 shrink-0 mt-0.5 ml-1" />
-                <p className="text-[13px] text-blue-300 leading-relaxed">
-                  <span className="font-black text-blue-200">
-                    AI khuyến nghị:{" "}
-                  </span>
-                  {recommendation}
-                </p>
+            {repaymentWarnings.length > 0 && (
+              <div className="flex items-start gap-3 px-5 py-4 rounded-2xl border border-amber-500/20 bg-amber-500/6 relative overflow-hidden">
+                <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl bg-gradient-to-b from-amber-500 to-orange-400" />
+                <AlertTriangle
+                  size={16}
+                  className="text-amber-400 shrink-0 mt-0.5 ml-1"
+                />
+                <div className="space-y-1">
+                  <p className="text-[13px] text-amber-200 font-black">
+                    Cảnh báo mô phỏng
+                  </p>
+                  {repaymentWarnings.map((warning: any) => (
+                    <p
+                      key={warning.type}
+                      className="text-[12px] text-amber-100/80 leading-relaxed"
+                    >
+                      {warning.message}
+                    </p>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -872,7 +926,7 @@ export default function RepaymentPlanPage() {
                   <TrendingDown size={16} className="text-blue-400" /> Tiến
                   trình giảm dư nợ
                 </h3>
-                <div className="h-72">
+                <div className="h-[360px] md:h-[380px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={timelineData}>
                       <defs>
@@ -905,7 +959,10 @@ export default function RepaymentPlanPage() {
                       />
                       <Tooltip
                         contentStyle={TOOLTIP_STYLE}
-                        formatter={(v) => [formatVND(v), ""]}
+                        formatter={(v, name) => [
+                          formatVND(Number(v)),
+                          name === "Avalanche" ? "Avalanche" : "Snowball",
+                        ]}
                       />
                       <Legend
                         wrapperStyle={{ fontSize: "12px", paddingTop: "12px" }}
@@ -934,7 +991,9 @@ export default function RepaymentPlanPage() {
 
             {timelineData.length > 0 &&
               monthlyIncome > 0 &&
-              timelineData[0]?.avDti !== undefined && (
+              timelineData.some(
+                (d) => d.avDti !== undefined || d.snDti !== undefined,
+              ) && (
                 <div
                   className="relative rounded-3xl p-6 border overflow-hidden"
                   style={{
@@ -958,7 +1017,7 @@ export default function RepaymentPlanPage() {
                             Avalanche
                           </p>
                           <p className="text-[16px] font-black text-blue-400">
-                            Tháng {avSafeMonth + 1}
+                            {safeMonthLabel(avSafeMonth)}
                           </p>
                           <p className="text-[10px] text-[var(--color-text-muted)]">
                             DTI về &lt;20%
@@ -971,7 +1030,7 @@ export default function RepaymentPlanPage() {
                             Snowball
                           </p>
                           <p className="text-[16px] font-black text-emerald-400">
-                            Tháng {snSafeMonth + 1}
+                            {safeMonthLabel(snSafeMonth)}
                           </p>
                           <p className="text-[10px] text-[var(--color-text-muted)]">
                             DTI về &lt;20%
