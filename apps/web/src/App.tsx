@@ -28,6 +28,7 @@ import UpgradePage from './pages/UpgradePage';
 import InvoicePage from './pages/InvoicePage';
 import TransactionHistoryPage from './pages/TransactionHistoryPage';
 import KnowledgeBasePage from './pages/knowledge/KnowledgeBasePage';
+import ExpensePage from './pages/ExpensePage';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30000, retry: 1 } },
@@ -64,6 +65,7 @@ export default function App() {
                 <Route path="/upgrade" element={<UpgradePage />} />
                 <Route path="/invoice/:id" element={<InvoicePage />} />
                 <Route path="/transactions" element={<TransactionHistoryPage />} />
+                <Route path="/expenses" element={<ExpensePage />} />
               </Route>
               <Route path="*" element={<Navigate to="/home" />} />
             </Routes>

@@ -3,321 +3,197 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-// Helper: tạo ngày cách đây N tháng
-function monthsAgo(n) {
-  const d = new Date();
-  d.setMonth(d.getMonth() - n);
-  return d;
+const HIERARCHICAL_CATEGORIES = [
+  // ─── CHI (EXPENSE) ───────────────────────────────────────
+  {
+    name: 'Ăn uống', icon: '🍜', color: '#f59e0b', type: 'EXPENSE', sortOrder: 0,
+    children: [
+      { name: 'Ăn sáng', icon: '🥐', sortOrder: 0 },
+      { name: 'Ăn trưa', icon: '🍱', sortOrder: 1 },
+      { name: 'Ăn tối', icon: '🍽️', sortOrder: 2 },
+      { name: 'Cà phê', icon: '☕', sortOrder: 3 },
+      { name: 'Đồ ăn vặt', icon: '🍿', sortOrder: 4 },
+      { name: 'Ăn ngoài', icon: '🍔', sortOrder: 5 },
+    ],
+  },
+  {
+    name: 'Di chuyển', icon: '🚗', color: '#3b82f6', type: 'EXPENSE', sortOrder: 1,
+    children: [
+      { name: 'Xăng xe', icon: '⛽', sortOrder: 0 },
+      { name: 'Taxi / Grab', icon: '🚕', sortOrder: 1 },
+      { name: 'Xe buýt', icon: '🚌', sortOrder: 2 },
+      { name: 'Gửi xe', icon: '🅿️', sortOrder: 3 },
+      { name: 'Bảo dưỡng xe', icon: '🔧', sortOrder: 4 },
+    ],
+  },
+  {
+    name: 'Nhà cửa', icon: '🏠', color: '#8b5cf6', type: 'EXPENSE', sortOrder: 2,
+    children: [
+      { name: 'Tiền thuê nhà', icon: '🏡', sortOrder: 0 },
+      { name: 'Điện', icon: '⚡', sortOrder: 1 },
+      { name: 'Nước', icon: '💧', sortOrder: 2 },
+      { name: 'Internet', icon: '📡', sortOrder: 3 },
+      { name: 'Đồ dùng nhà', icon: '🛋️', sortOrder: 4 },
+    ],
+  },
+  {
+    name: 'Mua sắm', icon: '🛍️', color: '#ec4899', type: 'EXPENSE', sortOrder: 3,
+    children: [
+      { name: 'Quần áo', icon: '👕', sortOrder: 0 },
+      { name: 'Giày dép', icon: '👟', sortOrder: 1 },
+      { name: 'Điện tử', icon: '📱', sortOrder: 2 },
+      { name: 'Mỹ phẩm', icon: '💄', sortOrder: 3 },
+      { name: 'Tạp hóa', icon: '🛒', sortOrder: 4 },
+    ],
+  },
+  {
+    name: 'Sức khỏe', icon: '💊', color: '#10b981', type: 'EXPENSE', sortOrder: 4,
+    children: [
+      { name: 'Khám bệnh', icon: '🏥', sortOrder: 0 },
+      { name: 'Thuốc', icon: '💊', sortOrder: 1 },
+      { name: 'Tập gym', icon: '🏋️', sortOrder: 2 },
+      { name: 'Chăm sóc sức khỏe', icon: '🧘', sortOrder: 3 },
+    ],
+  },
+  {
+    name: 'Giải trí', icon: '🎮', color: '#06b6d4', type: 'EXPENSE', sortOrder: 5,
+    children: [
+      { name: 'Phim ảnh', icon: '🎬', sortOrder: 0 },
+      { name: 'Du lịch', icon: '✈️', sortOrder: 1 },
+      { name: 'Sách', icon: '📚', sortOrder: 2 },
+      { name: 'Game', icon: '🎮', sortOrder: 3 },
+      { name: 'Âm nhạc', icon: '🎵', sortOrder: 4 },
+    ],
+  },
+  {
+    name: 'Học tập', icon: '📚', color: '#f97316', type: 'EXPENSE', sortOrder: 6,
+    children: [
+      { name: 'Học phí', icon: '🎓', sortOrder: 0 },
+      { name: 'Sách vở', icon: '📖', sortOrder: 1 },
+      { name: 'Khóa học', icon: '💻', sortOrder: 2 },
+    ],
+  },
+  {
+    name: 'Hóa đơn', icon: '📄', color: '#64748b', type: 'EXPENSE', sortOrder: 7,
+    children: [
+      { name: 'Điện thoại', icon: '📞', sortOrder: 0 },
+      { name: 'Bảo hiểm', icon: '🛡️', sortOrder: 1 },
+      { name: 'Thuế', icon: '📋', sortOrder: 2 },
+    ],
+  },
+  {
+    name: 'Khác (Chi)', icon: '💸', color: '#6b7280', type: 'EXPENSE', sortOrder: 8,
+    children: [
+      { name: 'Quà tặng', icon: '🎁', sortOrder: 0 },
+      { name: 'Từ thiện', icon: '❤️', sortOrder: 1 },
+      { name: 'Chi tiêu khác', icon: '💰', sortOrder: 2 },
+    ],
+  },
+
+  // ─── THU (INCOME) ────────────────────────────────────────
+  {
+    name: 'Lương', icon: '💼', color: '#22c55e', type: 'INCOME', sortOrder: 0,
+    children: [
+      { name: 'Lương cơ bản', icon: '💵', sortOrder: 0 },
+      { name: 'Thưởng', icon: '🏆', sortOrder: 1 },
+      { name: 'Làm thêm', icon: '⏰', sortOrder: 2 },
+    ],
+  },
+  {
+    name: 'Đầu tư', icon: '📈', color: '#3b82f6', type: 'INCOME', sortOrder: 1,
+    children: [
+      { name: 'Cổ tức', icon: '📊', sortOrder: 0 },
+      { name: 'Lãi tiết kiệm', icon: '🏦', sortOrder: 1 },
+      { name: 'Crypto', icon: '🪙', sortOrder: 2 },
+    ],
+  },
+  {
+    name: 'Kinh doanh', icon: '🏪', color: '#f59e0b', type: 'INCOME', sortOrder: 2,
+    children: [
+      { name: 'Bán hàng', icon: '🛍️', sortOrder: 0 },
+      { name: 'Dịch vụ', icon: '🔧', sortOrder: 1 },
+      { name: 'Freelance', icon: '💻', sortOrder: 2 },
+    ],
+  },
+  {
+    name: 'Khác (Thu)', icon: '💰', color: '#10b981', type: 'INCOME', sortOrder: 3,
+    children: [
+      { name: 'Quà nhận', icon: '🎁', sortOrder: 0 },
+      { name: 'Hoàn tiền', icon: '↩️', sortOrder: 1 },
+      { name: 'Thu nhập khác', icon: '💰', sortOrder: 2 },
+    ],
+  },
+];
+
+const DEFAULT_WALLETS = [
+  { name: 'Ngân hàng', type: 'BANK', icon: '🏦', color: '#3b82f6', balance: 5000000, isDefault: true },
+  { name: 'Bóp', type: 'CASH', icon: '👛', color: '#f59e0b', balance: 500000, isDefault: false },
+];
+
+async function seedCategories() {
+  console.log('🌱 Seeding hierarchical categories...');
+  // Clear old categories (cascade will handle child expenses carefully)
+  // First, delete expenses so we can re-seed categories
+  await prisma.expense.deleteMany({});
+  await prisma.expenseCategory.deleteMany({});
+
+  for (const group of HIERARCHICAL_CATEGORIES) {
+    const { children, ...groupData } = group;
+    const parent = await prisma.expenseCategory.create({
+      data: { ...groupData, userId: null }
+    });
+    for (const child of children) {
+      await prisma.expenseCategory.create({
+        data: {
+          ...child,
+          type: groupData.type,
+          color: groupData.color,
+          parentId: parent.id,
+          userId: null,
+        }
+      });
+    }
+  }
+  console.log(`✅ Created ${HIERARCHICAL_CATEGORIES.length} category groups with subcategories`);
 }
 
-// Helper: tạo ngày sau N tháng kể từ hôm nay
-function monthsFromNow(n) {
-  const d = new Date();
-  d.setMonth(d.getMonth() + n);
-  return d;
+async function seedDemoUser() {
+  console.log('🌱 Seeding demo user...');
+  const email = 'demo@finsight.app';
+  let user = await prisma.user.findUnique({ where: { email } });
+
+  if (!user) {
+    const hashed = await bcrypt.hash('demo123456', 10);
+    user = await prisma.user.create({
+      data: {
+        email,
+        password: hashed,
+        fullName: 'Demo User',
+        monthlyIncome: 15000000,
+      }
+    });
+    console.log(`✅ Demo user created: ${email} / demo123456`);
+  } else {
+    console.log(`ℹ️  Demo user already exists: ${email}`);
+  }
+
+  // Reset wallets for demo user to match request
+  await prisma.wallet.deleteMany({ where: { userId: user.id } });
+  for (const w of DEFAULT_WALLETS) {
+    await prisma.wallet.create({ data: { ...w, userId: user.id } });
+  }
+  console.log('✅ Default wallets (Ngân hàng, Bóp) reset for demo user');
+
+  return user;
 }
 
 async function main() {
-  console.log('🌱 Seeding database...');
-
-  // ── Clean existing data ──────────────────────────────────
-  await prisma.allocation.deleteMany();
-  await prisma.payment.deleteMany();
-  await prisma.debtGoal.deleteMany();
-  await prisma.notification.deleteMany();
-  await prisma.debtSnapshot.deleteMany();
-  await prisma.debt.deleteMany();
-  await prisma.investorProfile.deleteMany();
-  await prisma.user.deleteMany();
-
-  // ── Demo User ────────────────────────────────────────────
-  const user = await prisma.user.create({
-    data: {
-      email: 'demo@finsight.vn',
-      password: await bcrypt.hash('Demo@123', 12),
-      fullName: 'Nguyễn Văn A',
-      monthlyIncome: 15000000,   // 15 triệu / tháng
-      extraBudget: 2000000,      // trả thêm 2 triệu / tháng
-    },
-  });
-  console.log('✅ Demo user:', user.email);
-
-  // ─────────────────────────────────────────────────────────
-  // DEBTS
-  //   Tổng originalAmount = 8M + 12M + 6M + 4M + 3M = 33M
-  //   Đã PAID:  SPayLater (8M) + LazPayLater cũ (3M) = 11M trả hết
-  //   Còn ACTIVE: balance 7.2M + 4.8M + 1.5M = 13.5M còn lại
-  //   → Đã trả ≈ 33M - 13.5M = 19.5M → ~59%  (milestone 25% ✅ + 50% ✅, 75% gần đạt)
-  // ─────────────────────────────────────────────────────────
-
-  // 1. PAID — SPayLater điện thoại (đã trả hết 4 tháng trước)
-  const debt1 = await prisma.debt.create({
-    data: {
-      userId: user.id,
-      name: 'Mua điện thoại Samsung S23',
-      platform: 'SPAYLATER',
-      originalAmount: 8000000,
-      balance: 0,
-      apr: 18,
-      rateType: 'FLAT',
-      feeProcessing: 0,
-      feeInsurance: 0,
-      feeManagement: 0,
-      feePenaltyPerDay: 0.05,
-      minPayment: 666667,
-      dueDay: 15,
-      termMonths: 12,
-      remainingTerms: 0,
-      startDate: monthsAgo(12),
-      status: 'PAID',
-      notes: 'Đã trả xong, tuyệt vời!',
-    },
-  });
-
-  // Lịch sử thanh toán cho debt1 (12 kỳ)
-  await prisma.payment.createMany({
-    data: Array.from({ length: 12 }, (_, i) => ({
-      debtId: debt1.id,
-      amount: 666667,
-      paidAt: monthsAgo(12 - i),
-      notes: `Kỳ ${i + 1}/12`,
-    })),
-  });
-
-  // 2. PAID — LazPayLater đồ gia dụng (đã trả hết 2 tháng trước)
-  const debt2 = await prisma.debt.create({
-    data: {
-      userId: user.id,
-      name: 'Mua máy lọc không khí Xiaomi',
-      platform: 'LAZPAYLATER',
-      originalAmount: 3000000,
-      balance: 0,
-      apr: 18,
-      rateType: 'FLAT',
-      feeProcessing: 0,
-      feeInsurance: 0,
-      feeManagement: 0,
-      feePenaltyPerDay: 0.05,
-      minPayment: 300000,
-      dueDay: 10,
-      termMonths: 10,
-      remainingTerms: 0,
-      startDate: monthsAgo(10),
-      status: 'PAID',
-    },
-  });
-
-  await prisma.payment.createMany({
-    data: Array.from({ length: 10 }, (_, i) => ({
-      debtId: debt2.id,
-      amount: 300000,
-      paidAt: monthsAgo(10 - i),
-      notes: `Kỳ ${i + 1}/10`,
-    })),
-  });
-
-  // ─── 3 khoản ACTIVE được thiết kế để Avalanche ≠ Snowball ───
-  //
-  //  Khoản          | APR  | Balance | minPay | Avalanche ưu tiên? | Snowball ưu tiên?
-  //  Thẻ tín dụng   | 36%  |  1.8M   | 300K   | Không (APR thấp)   | ✅ Có (balance nhỏ nhất)
-  //  Home Credit    | 30%  |  7.2M   | 1M     | Không              | Không
-  //  FE Credit      | 48%  |  8.5M   | 800K   | ✅ Có (APR cao nhất)| Không (balance lớn nhất)
-  //
-  //  → Avalanche: FE Credit trước (APR 48%, balance lớn → lãi tích lũy nhiều nhất)
-  //  → Snowball:  Thẻ tín dụng trước (balance 1.8M → trả xong nhanh, tạo động lực)
-  //  → Kết quả: Avalanche tiết kiệm lãi hơn, Snowball có "win" sớm hơn
-
-  // 3. ACTIVE — Thẻ tín dụng Vietcombank (balance THẤP NHẤT → Snowball chọn trước)
-  const debt3 = await prisma.debt.create({
-    data: {
-      userId: user.id,
-      name: 'Thẻ tín dụng Vietcombank',
-      platform: 'CREDIT_CARD',
-      originalAmount: 4000000,
-      balance: 1800000,   // nhỏ nhất → Snowball ưu tiên
-      apr: 36,
-      rateType: 'REDUCING',
-      feeProcessing: 0,
-      feeInsurance: 0,
-      feeManagement: 0.5,
-      feePenaltyPerDay: 0.07,
-      minPayment: 300000,
-      dueDay: 20,
-      termMonths: 12,
-      remainingTerms: 6,
-      startDate: monthsAgo(6),
-      status: 'ACTIVE',
-    },
-  });
-
-  await prisma.payment.createMany({
-    data: Array.from({ length: 6 }, (_, i) => ({
-      debtId: debt3.id,
-      amount: 300000,
-      paidAt: monthsAgo(6 - i),
-    })),
-  });
-
-  // 4. ACTIVE — Home Credit vay tiêu dùng (balance VỪA)
-  const debt4 = await prisma.debt.create({
-    data: {
-      userId: user.id,
-      name: 'Vay tiêu dùng Home Credit',
-      platform: 'HOME_CREDIT',
-      originalAmount: 12000000,
-      balance: 7200000,
-      apr: 30,
-      rateType: 'FLAT',
-      feeProcessing: 1,
-      feeInsurance: 0.5,
-      feeManagement: 0,
-      feePenaltyPerDay: 0.1,
-      minPayment: 1000000,
-      dueDay: 5,
-      termMonths: 18,
-      remainingTerms: 8,
-      startDate: monthsAgo(10),
-      status: 'ACTIVE',
-      notes: 'Vay mua laptop cho con học',
-    },
-  });
-
-  await prisma.payment.createMany({
-    data: Array.from({ length: 10 }, (_, i) => ({
-      debtId: debt4.id,
-      amount: 1000000,
-      paidAt: monthsAgo(10 - i),
-    })),
-  });
-
-  // 5. ACTIVE — FE Credit (APR CAO NHẤT 48% + balance LỚN NHẤT → Avalanche chọn trước)
-  const debt5 = await prisma.debt.create({
-    data: {
-      userId: user.id,
-      name: 'FE Credit mua nội thất',
-      platform: 'FE_CREDIT',
-      originalAmount: 12000000,
-      balance: 8500000,   // lớn nhất, APR cao nhất → Avalanche ưu tiên
-      apr: 48,
-      rateType: 'FLAT',
-      feeProcessing: 5,
-      feeInsurance: 1,
-      feeManagement: 0.5,
-      feePenaltyPerDay: 0.15,
-      minPayment: 800000,
-      dueDay: 25,
-      termMonths: 18,
-      remainingTerms: 10,
-      startDate: monthsAgo(8),
-      status: 'ACTIVE',
-      notes: 'Lãi cao — Avalanche ưu tiên trả khoản này để tiết kiệm tối đa!',
-    },
-  });
-
-  await prisma.payment.createMany({
-    data: Array.from({ length: 8 }, (_, i) => ({
-      debtId: debt5.id,
-      amount: 800000,
-      paidAt: monthsAgo(8 - i),
-    })),
-  });
-
-  //   Tổng originalAmount = 8M + 3M + 4M + 12M + 12M = 39M
-  //   Còn ACTIVE: 1.8M + 7.2M + 8.5M = 17.5M
-  //   Đã trả: 39M - 17.5M = 21.5M → ~55%
-  console.log('✅ 5 debts created (2 PAID + 3 ACTIVE)');
-  console.log('   📊 Tổng gốc: 39,000,000đ');
-  console.log('   ✅ Đã trả:  ~21,500,000đ (~55%)');
-  console.log('   💸 Còn lại: ~17,500,000đ');
-  console.log('   🎯 Avalanche: FE Credit trước (APR 48%, 8.5M)');
-  console.log('   🎯 Snowball : Thẻ tín dụng trước (1.8M nhỏ nhất)');
-  console.log('   🏁 Milestone 25% ✅  |  50% ✅  |  75% gần đạt  |  100% chưa');
-
-  // ── Debt Goal ────────────────────────────────────────────
-  await prisma.debtGoal.create({
-    data: {
-      userId: user.id,
-      targetDate: monthsFromNow(18),
-      strategy: 'AVALANCHE',
-    },
-  });
-  console.log('✅ Debt goal: trả hết trong 18 tháng, Avalanche');
-
-  // ── Investor Profile ─────────────────────────────────────
-  await prisma.investorProfile.create({
-    data: {
-      userId: user.id,
-      capital: 20000000,
-      monthlyAdd: 2000000,
-      goal: 'FINANCIAL_FREEDOM',
-      horizon: 'LONG',
-      riskLevel: 'MEDIUM',
-      riskScore: 55,
-    },
-  });
-  console.log('✅ Investor profile: 20tr vốn, MEDIUM risk');
-
-  // ── Notifications ─────────────────────────────────────────
-  await prisma.notification.createMany({
-    data: [
-      {
-        userId: user.id,
-        type: 'DEBT_DUE',
-        title: 'Nợ sắp đến hạn',
-        message: 'FE Credit 400,000đ đáo hạn ngày 25. Còn 2 ngày!',
-        severity: 'WARNING',
-      },
-      {
-        userId: user.id,
-        type: 'MILESTONE',
-        title: '🎉 Vượt mốc 50%!',
-        message: 'Bạn đã trả được hơn 50% tổng nợ. Tuyệt vời, tiếp tục nhé!',
-        severity: 'INFO',
-      },
-      {
-        userId: user.id,
-        type: 'DOMINO_RISK',
-        title: 'Gợi ý: Trả dứt FE Credit trước',
-        message: 'FE Credit có EAR cao nhất (>55%), trả sớm tiết kiệm được nhiều tiền lãi nhất.',
-        severity: 'INFO',
-      },
-    ],
-  });
-  console.log('✅ Notifications created');
-
-  // ── Debt Snapshots (lịch sử 6 tháng) ─────────────────────
-  await prisma.debtSnapshot.createMany({
-    data: [
-      { userId: user.id, totalDebt: 34000000, totalEAR: 42.5, debtToIncome: 31.0, createdAt: monthsAgo(5) },
-      { userId: user.id, totalDebt: 30500000, totalEAR: 40.2, debtToIncome: 27.5, createdAt: monthsAgo(4) },
-      { userId: user.id, totalDebt: 27200000, totalEAR: 39.0, debtToIncome: 25.0, createdAt: monthsAgo(3) },
-      { userId: user.id, totalDebt: 23800000, totalEAR: 37.8, debtToIncome: 22.3, createdAt: monthsAgo(2) },
-      { userId: user.id, totalDebt: 20500000, totalEAR: 36.5, debtToIncome: 19.7, createdAt: monthsAgo(1) },
-      { userId: user.id, totalDebt: 17500000, totalEAR: 35.0, debtToIncome: 14.0, createdAt: new Date() },
-    ],
-  });
-  console.log('✅ Debt snapshots (6 tháng lịch sử)');
-
-  console.log('\n🎉 Seed hoàn tất!');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('📧 Email    : demo@finsight.vn');
-  console.log('🔑 Mật khẩu: Demo@123');
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log('💰 Thu nhập : 15,000,000đ/tháng');
-  console.log('💳 Nợ còn lại: 17,500,000đ (3 khoản ACTIVE)');
-  console.log('✅ Đã trả xong: 11,000,000đ (2 khoản PAID)');
-  console.log('🎯 Mục tiêu: Trả hết trong 18 tháng (Avalanche)');
-  console.log('🏁 Milestone: 25% ✅  50% ✅  75% 🔄  100% 🔒');
-  console.log('');
-  console.log('🔵 Avalanche ưu tiên: FE Credit (APR 48%, 8.5M)');
-  console.log('🟢 Snowball  ưu tiên: Thẻ tín dụng (balance 1.8M nhỏ nhất)');
+  console.log('\n🚀 Starting FinSight seed...\n');
+  await seedCategories();
+  await seedDemoUser();
+  console.log('\n✅ Seed completed successfully!\n');
 }
 
 main()
-  .catch((e) => {
-    console.error('❌ Seed error:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+  .catch((e) => { console.error('❌ Seed failed:', e); process.exit(1); })
+  .finally(() => prisma.$disconnect());
