@@ -8,6 +8,7 @@ import { useExpenseMutations } from '../../../hooks/useExpenseQuery';
 import { useWallets } from '../../../hooks/useWalletQuery';
 import { CategoryPicker } from './CategoryPicker';
 import { EXPENSE_TYPES } from '../constants';
+import { WalletForm } from './WalletForm';
 
 interface ExpenseFormProps {
   onClose: () => void;
