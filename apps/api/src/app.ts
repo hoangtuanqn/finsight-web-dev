@@ -1,0 +1,72 @@
+import 'dotenv/config';
+import express, { Request, Response, NextFunction } from 'express';
+import { createServer } from 'http';
+import cors from 'cors';
+import fs from 'fs';
+
+const LOG_FILE = 'server_error.log';
+const originalError = console.error;
+console.error = (...args: any[]) => {
+  fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] ${args.join(' ')}\n`);
+  originalError.apply(console, args);
+};
+
+import authRoutes from './routes/auth.routes';
+import userRoutes from './routes/user.routes';
+import debtRoutes from './routes/debt.routes';
+import debtGoalRoutes from './routes/debt-goal.routes';
+import investmentRoutes from './routes/investment.routes';
+import marketRoutes from './routes/market.routes';
+import agenticRoutes from './routes/agentic.routes';
+import reportRoutes from './routes/report.routes';
+import subscriptionRoutes from './routes/subscription.routes';
+import articleRoutes from './routes/article.routes';
+import cronManager from './cron/index';
+import { initSocket } from './utils/socket';
+
+const app = express();
+const server = createServer(app);
+const io = initSocket(server);
+
+const PORT = process.env.PORT || 5001;
+
+// Middleware
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (origin.match(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/)) {
+      return callback(null, true);
+    }
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    if (origin === clientUrl) return callback(null, true);
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+}));
+app.use(express.json());
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/debts/goal', debtGoalRoutes);
+app.use('/api/debts', debtRoutes);
+app.use('/api/investment', investmentRoutes);
+app.use('/api/market', marketRoutes);
+app.use('/api/agentic', agenticRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/subscription', subscriptionRoutes);
+app.use('/api/articles', articleRoutes);
+
+// Health check
+app.get('/api/health', (req: Request, res: Response) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Error handler
+app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ success: false, error: 'Internal server error' });
+});
+
+export { app, server };
+export default app;
