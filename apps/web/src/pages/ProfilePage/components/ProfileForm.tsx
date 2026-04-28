@@ -11,6 +11,7 @@ import {
   CheckCircle,
   Wallet,
   Shield,
+  TrendingUp,
 } from "lucide-react";
 import FormattedInput from "../../../components/common/FormattedInput";
 import {
@@ -144,28 +145,23 @@ export function ProfileForm({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <label className={LABEL_CLASSES}>Thu nhập hằng tháng</label>
-              <div className="relative group">
-                <DollarSign
-                  size={16}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] group-focus-within:text-emerald-500 transition-colors"
-                />
                 <Controller
                   name="monthlyIncome"
                   control={control}
                   render={({ field }) => (
                     <FormattedInput
+                      icon={DollarSign}
                       kind="integer"
                       value={field.value}
                       onValueChange={(v) =>
                         field.onChange(v === "" ? 0 : Number(v))
                       }
-                      className={inputCls(errors.monthlyIncome) + " pl-11"}
+                      className={inputCls(errors.monthlyIncome)}
                       placeholder="0"
                       suffix="đ"
                     />
                   )}
                 />
-              </div>
               {errors.monthlyIncome && (
                 <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1.5 font-medium">
                   <AlertTriangle size={12} /> {errors.monthlyIncome.message}
@@ -174,28 +170,23 @@ export function ProfileForm({
             </div>
             <div>
               <label className={LABEL_CLASSES}>Khả năng trả nợ thêm</label>
-              <div className="relative group">
-                <TrendingDown
-                  size={16}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] group-focus-within:text-amber-500 transition-colors"
-                />
                 <Controller
                   name="extraBudget"
                   control={control}
                   render={({ field }) => (
                     <FormattedInput
+                      icon={TrendingDown}
                       kind="integer"
                       value={field.value}
                       onValueChange={(v) =>
                         field.onChange(v === "" ? 0 : Number(v))
                       }
-                      className={inputCls(errors.extraBudget) + " pl-11"}
+                      className={inputCls(errors.extraBudget)}
                       placeholder="0"
                       suffix="đ"
                     />
                   )}
                 />
-              </div>
               {errors.extraBudget && (
                 <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1.5 font-medium">
                   <AlertTriangle size={12} /> {errors.extraBudget.message}
@@ -207,28 +198,23 @@ export function ProfileForm({
             <label className={LABEL_CLASSES}>
               Tổng vốn khả dụng (Tiền mặt/Tiết kiệm)
             </label>
-            <div className="relative group">
-              <Wallet
-                size={16}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] group-focus-within:text-blue-500 transition-colors"
-              />
-              <Controller
-                name="capital"
-                control={control}
-                render={({ field }) => (
-                  <FormattedInput
-                    kind="integer"
-                    value={field.value}
-                    onValueChange={(v) =>
-                      field.onChange(v === "" ? 0 : Number(v))
-                    }
-                    className={inputCls(errors.capital) + " pl-11"}
-                    placeholder="100.000.000"
-                    suffix="đ"
-                  />
-                )}
-              />
-            </div>
+                <Controller
+                  name="capital"
+                  control={control}
+                  render={({ field }) => (
+                    <FormattedInput
+                      icon={Wallet}
+                      kind="integer"
+                      value={field.value}
+                      onValueChange={(v) =>
+                        field.onChange(v === "" ? 0 : Number(v))
+                      }
+                      className={inputCls(errors.capital)}
+                      placeholder="100.000.000"
+                      suffix="đ"
+                    />
+                  )}
+                />
             {errors.capital && (
               <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1.5 font-medium">
                 <AlertTriangle size={12} /> {errors.capital.message}
@@ -244,12 +230,13 @@ export function ProfileForm({
                   control={control}
                   render={({ field }) => (
                     <FormattedInput
+                      icon={TrendingUp}
                       kind="decimal"
                       value={field.value}
                       onValueChange={(v) =>
                         field.onChange(v === "" ? 0 : Number(v))
                       }
-                      className={inputCls(errors.savingsRate) + " px-4"}
+                      className={inputCls(errors.savingsRate)}
                       placeholder="6,0"
                       suffix="%"
                     />
@@ -265,12 +252,13 @@ export function ProfileForm({
                   control={control}
                   render={({ field }) => (
                     <FormattedInput
+                      icon={AlertTriangle}
                       kind="decimal"
                       value={field.value}
                       onValueChange={(v) =>
                         field.onChange(v === "" ? 0 : Number(v))
                       }
-                      className={inputCls(errors.inflationRate) + " px-4"}
+                      className={inputCls(errors.inflationRate)}
                       placeholder="3,5"
                       suffix="%"
                     />
