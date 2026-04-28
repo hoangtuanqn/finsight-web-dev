@@ -1,23 +1,23 @@
-import { useState, useEffect, Dispatch, SetStateAction } from "react";
+import { useState, useEffect, type Dispatch, type SetStateAction } from "react";
 
 export const useDarkMode = (): [boolean, Dispatch<SetStateAction<boolean>>] => {
   const [dark, setDark] = useState(() => {
-    const saved = localStorage.getItem('finsight-theme');
-    if (saved) return saved === 'dark';
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    let saved = localStorage.getItem("finsight-theme") ?? "dark";
+    if (saved) return saved === "dark";
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
   });
 
   useEffect(() => {
     const root = document.documentElement;
     if (dark) {
-      root.classList.add('dark');
-      root.setAttribute('data-theme', 'dark');
+      root.classList.add("dark");
+      root.setAttribute("data-theme", "dark");
     } else {
-      root.classList.remove('dark');
-      root.setAttribute('data-theme', 'light');
+      root.classList.remove("dark");
+      root.setAttribute("data-theme", "light");
     }
-    localStorage.setItem('finsight-theme', dark ? 'dark' : 'light');
+    localStorage.setItem("finsight-theme", dark ? "dark" : "light");
   }, [dark]);
 
   return [dark, setDark];
-}
+};
