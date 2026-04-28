@@ -1,122 +1,75 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
+import LandingPage from './pages/LandingPage';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider } from './context/AuthContext';
+import { SocketProvider } from './context/SocketContext';
+import Layout from './components/layout/Layout';
+import ScrollToTop from './components/layout/ScrollToTop';
+import PublicRoute from './components/layout/PublicRoute';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import QRConfirmPage from './pages/QRConfirmPage';
+import ProtectedRoute from './components/layout/ProtectedRoute';
+import DebtOverviewPage from './pages/debt/DebtOverviewPage';
+import AddDebtPage from './pages/debt/AddDebtPage';
+import DebtDetailPage from './pages/debt/DebtDetailPage';
+import EditDebtPage from './pages/debt/EditDebtPage';
+import EarAnalysisPage from './pages/debt/EarAnalysisPage';
+import RepaymentPlanPage from './pages/debt/RepaymentPlanPage';
+import DtiAnalysisPage from './pages/debt/DtiAnalysisPage';
+import DebtGoalPage from './pages/debt/DebtGoalPage';
+import InvestmentPage from './pages/InvestmentPage';
+import MyPortfolioPage from './pages/MyPortfolioPage';
+import RiskAssessmentPage from './pages/RiskAssessmentPage';
+import ProfilePage from './pages/ProfilePage';
+import DashboardPage from './pages/DashboardPage';
+import UpgradePage from './pages/UpgradePage';
+import InvoicePage from './pages/InvoicePage';
+import TransactionHistoryPage from './pages/TransactionHistoryPage';
+import KnowledgeBasePage from './pages/knowledge/KnowledgeBasePage';
 
-function App() {
-  const [count, setCount] = useState(0)
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: 30000, retry: 1 } },
+});
 
+export default function App() {
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <SocketProvider>
+          <BrowserRouter>
+            <ScrollToTop />
+            <Toaster richColors position="top-right" />
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+              <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+              <Route path="/qr-confirm" element={<ProtectedRoute><QRConfirmPage /></ProtectedRoute>} />
+              <Route element={<Layout />}>
+                <Route path="/home" element={<DashboardPage />} />
+                <Route path="/knowledge" element={<KnowledgeBasePage />} />
+                <Route path="/debts" element={<DebtOverviewPage />} />
+                <Route path="/debts/add" element={<AddDebtPage />} />
+                <Route path="/debts/ear-analysis" element={<EarAnalysisPage />} />
+                <Route path="/debts/goal" element={<DebtGoalPage />} />
+                <Route path="/debts/repayment" element={<RepaymentPlanPage />} />
+                <Route path="/debts/dti" element={<DtiAnalysisPage />} />
+                <Route path="/debts/:id" element={<DebtDetailPage />} />
+                <Route path="/debts/:id/edit" element={<EditDebtPage />} />
+                <Route path="/investment" element={<InvestmentPage />} />
+                <Route path="/investment/my-portfolio" element={<MyPortfolioPage />} />
+                <Route path="/risk-assessment" element={<RiskAssessmentPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/upgrade" element={<UpgradePage />} />
+                <Route path="/invoice/:id" element={<InvoicePage />} />
+                <Route path="/transactions" element={<TransactionHistoryPage />} />
+              </Route>
+              <Route path="*" element={<Navigate to="/home" />} />
+            </Routes>
+          </BrowserRouter>
+        </SocketProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
 }
-
-export default App
