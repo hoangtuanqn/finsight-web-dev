@@ -7,6 +7,7 @@ import {
   calcAPY,
   calcEAR,
   simulateRepayment,
+  resolveRepaymentExtraBudget,
   calcDebtToIncomeRatio,
   detectDominoRisk,
 } from "../utils/calculations";
@@ -428,8 +429,10 @@ export async function getRepaymentPlan(
       });
     }
 
-    const extraBudget =
-      parseFloat(req.query.extraBudget as string) || user.extraBudget || 0;
+    const extraBudget = resolveRepaymentExtraBudget(
+      req.query.extraBudget,
+      user?.extraBudget,
+    );
     const totalMin = debts.reduce(
       (sum: number, d: any) => sum + d.minPayment,
       0,

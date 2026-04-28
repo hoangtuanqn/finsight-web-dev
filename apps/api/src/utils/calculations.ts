@@ -57,10 +57,21 @@ interface PaymentScheduleItem {
   }>;
 }
 
+export function resolveRepaymentExtraBudget(queryValue: unknown, savedValue: unknown): number {
+  const getFirstValue = (value: unknown) => (Array.isArray(value) ? value[0] : value);
+  const firstQueryValue = getFirstValue(queryValue);
+  const hasQueryValue = firstQueryValue !== undefined && firstQueryValue !== null && String(firstQueryValue).trim() !== '';
+  const rawValue = hasQueryValue ? firstQueryValue : getFirstValue(savedValue);
+  const parsedValue = Number(rawValue);
+
+  if (!Number.isFinite(parsedValue)) return 0;
+  return Math.max(0, parsedValue);
+}
+
 /**
  * CALCULATION 5: Avalanche / Snowball simulation
  */
-export function simulateRepayment(debts: DebtItem[], extraBudget: number, method: 'AVALANCHE' | 'SNOWBALL' = 'AVALANCHE') {
+export function simulateRepayment(debts: DebtItem[], monthlyBudget: number, method: 'AVALANCHE' | 'SNOWBALL' = 'AVALANCHE') {
   let ds = debts.map(d => ({
     id: d.id,
     name: d.name,
@@ -75,7 +86,7 @@ export function simulateRepayment(debts: DebtItem[], extraBudget: number, method
 
   while (ds.some(d => d.balance > 0.01) && months < 360) {
     months++;
-    let remaining = extraBudget;
+    let remaining = Math.max(0, Number.isFinite(monthlyBudget) ? monthlyBudget : 0);
     const monthPayments: PaymentScheduleItem['payments'] = [];
 
     // Step 1: Accrue interest
@@ -98,9 +109,11 @@ export function simulateRepayment(debts: DebtItem[], extraBudget: number, method
       }
     });
 
-    // Step 3: Apply extra to priority target
-    if (remaining > 0) {
+    // Step 3: Apply extra to priority targets until the monthly budget is exhausted.
+    while (remaining > 0.01) {
       const activeDebts = ds.filter(d => d.balance > 0.01);
+      if (activeDebts.length === 0) break;
+
       let target = null;
 
       if (method === 'AVALANCHE') {
@@ -111,12 +124,16 @@ export function simulateRepayment(debts: DebtItem[], extraBudget: number, method
 
       if (target) {
         const pay = Math.min(remaining, target.balance);
+        if (pay <= 0) break;
         target.balance -= pay;
+        remaining -= pay;
         target.balance = Math.max(0, target.balance);
         const existing = monthPayments.find(p => p.debtId === target.id);
         if (existing) {
           existing.paid += pay;
           existing.balance = target.balance;
+        } else {
+          monthPayments.push({ debtId: target.id, name: target.name, paid: pay, balance: target.balance });
         }
       }
     }
