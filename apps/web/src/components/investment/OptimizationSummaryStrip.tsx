@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Activity,
   AlertCircle,
@@ -6,24 +6,24 @@ import {
   Database,
   Gauge,
   LineChart,
-} from 'lucide-react';
-import { formatPercent } from '../../utils/calculations';
+} from "lucide-react";
+import { formatPercent } from "../../utils/calculations";
 
 const QUALITY_STYLES = {
   full: {
-    label: 'Historical 5y',
-    className: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300',
-    dotClassName: 'bg-emerald-400',
+    label: "Historical 5y",
+    className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+    dotClassName: "bg-emerald-400",
   },
   partial: {
-    label: 'Partial fallback',
-    className: 'border-amber-500/20 bg-amber-500/10 text-amber-300',
-    dotClassName: 'bg-amber-400',
+    label: "Partial fallback",
+    className: "border-amber-500/20 bg-amber-500/10 text-amber-300",
+    dotClassName: "bg-amber-400",
   },
   fallback: {
-    label: 'Fallback',
-    className: 'border-red-500/20 bg-red-500/10 text-red-300',
-    dotClassName: 'bg-red-400',
+    label: "Fallback",
+    className: "border-red-500/20 bg-red-500/10 text-red-300",
+    dotClassName: "bg-red-400",
   },
 };
 
@@ -34,22 +34,24 @@ function safeNumber(value) {
 
 function formatMetricPercent(value) {
   const number = safeNumber(value);
-  return number === null ? '—' : formatPercent(number * 100);
+  return number === null ? "-" : formatPercent(number * 100);
 }
 
 function formatSharpe(value) {
   const number = safeNumber(value);
-  return number === null ? '—' : number.toFixed(2);
+  return number === null ? "-" : number.toFixed(2);
 }
 
 function getQuality(value) {
-  return QUALITY_STYLES[String(value || '').toLowerCase()] || QUALITY_STYLES.fallback;
+  return (
+    QUALITY_STYLES[String(value || "").toLowerCase()] || QUALITY_STYLES.fallback
+  );
 }
 
 function getMethodLabel(value) {
-  const method = String(value || 'markowitz').toLowerCase();
-  if (method.includes('markowitz')) return 'Markowitz MVO';
-  return value || 'Markowitz MVO';
+  const method = String(value || "markowitz").toLowerCase();
+  if (method.includes("markowitz")) return "Markowitz MVO";
+  return value || "Markowitz MVO";
 }
 
 function SummaryItem({ icon: Icon, label, value }) {
@@ -76,8 +78,8 @@ export default function OptimizationSummaryStrip({
   const iterations = safeNumber(optimization.iterations);
   const SolverIcon = converged ? CheckCircle2 : AlertCircle;
   const solverTone = converged
-    ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300'
-    : 'border-amber-500/20 bg-amber-500/10 text-amber-300';
+    ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
+    : "border-amber-500/20 bg-amber-500/10 text-amber-300";
 
   return (
     <div className="rounded-3xl border border-white/5 bg-slate-900/50 p-4 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.45)] backdrop-blur-xl">
@@ -89,14 +91,22 @@ export default function OptimizationSummaryStrip({
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-black text-white">
-                {getMethodLabel(optimizationMethod || optimization.optimizationMethod)}
+                {getMethodLabel(
+                  optimizationMethod || optimization.optimizationMethod,
+                )}
               </p>
-              <p className="text-[11px] font-semibold text-slate-500">Nguồn phân bổ danh mục</p>
+              <p className="text-[11px] font-semibold text-slate-500">
+                Nguồn phân bổ danh mục
+              </p>
             </div>
           </div>
 
-          <div className={`inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-black ${quality.className}`}>
-            <span className={`h-1.5 w-1.5 rounded-full ${quality.dotClassName}`} />
+          <div
+            className={`inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-black ${quality.className}`}
+          >
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${quality.dotClassName}`}
+            />
             {quality.label}
           </div>
         </div>
@@ -108,8 +118,8 @@ export default function OptimizationSummaryStrip({
               <span className="truncate">Solver</span>
             </div>
             <div className="truncate text-sm font-black">
-              {converged ? 'Converged' : 'Review'}
-              {iterations !== null ? ` · ${iterations} vòng` : ''}
+              {converged ? "Converged" : "Review"}
+              {iterations !== null ? ` · ${iterations} vòng` : ""}
             </div>
           </div>
 
