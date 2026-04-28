@@ -1,21 +1,13 @@
-import express from "express";
-import cors from "cors";
-import type { ApiResponse, User } from "@repo/types";
+import { server } from './app';
+import cronManager from './cron/index';
 
-const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 5001;
 
-app.use(cors({ origin: "http://localhost:5173" }));
-app.use(express.json());
+server.listen(PORT, () => {
+  console.log(`🚀 FinSight API running at http://localhost:${PORT}`);
+  console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`🔌 Socket.io initialized`);
 
-app.get("/api/health", (_, res) => {
-  const response: ApiResponse<{ status: string }> = {
-    success: true,
-    data: { status: "ok" },
-  };
-  res.json(response);
-});
-
-app.listen(PORT, () => {
-  console.log(`API running at http://localhost:${PORT}`);
+  // Initialize background jobs
+  (cronManager as any).init();
 });
