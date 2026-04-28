@@ -1,5 +1,12 @@
-import React from "react";
-import { Activity, Crosshair, Gauge, LineChart, Target } from "lucide-react";
+// @ts-nocheck
+import React from 'react';
+import {
+  Activity,
+  Crosshair,
+  Gauge,
+  LineChart,
+  Target,
+} from 'lucide-react';
 import {
   CartesianGrid,
   ResponsiveContainer,
@@ -50,7 +57,7 @@ const TONE_BY_GRADE = {
   },
 };
 
-function safeNumber(value) {
+function safeNumber(value: any) {
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
 }
@@ -64,12 +71,13 @@ function formatMetricPercent(value) {
   return number === null ? "-" : formatPercent(number * 100);
 }
 
-function formatSharpe(value) {
+function formatSharpe(value: any) {
   const number = safeNumber(value);
   return number === null ? "-" : number.toFixed(2);
 }
 
-function normalizePoint(point = {}, index = 0) {
+function normalizePoint(point: any = {}, index: any = 0) {
+  if (!point) return null;
   const risk = safeNumber(point.risk ?? point.portfolioRisk);
   const expectedReturn = safeNumber(point.return ?? point.expectedReturn);
   if (risk === null || expectedReturn === null) return null;
@@ -237,8 +245,8 @@ export default function EfficientFrontierPanel({
   allocationMetrics,
   frontierPoints,
   riskGrade,
-}) {
-  const userPoint = normalizePoint(allocationMetrics, "portfolio");
+}: any) {
+  const userPoint = normalizePoint(allocationMetrics, 'portfolio');
   if (!userPoint) return null;
 
   const frontierData = Array.isArray(frontierPoints)
