@@ -385,6 +385,10 @@ export default function RepaymentPlanPage() {
   const allDebts = debtsData?.debts || [];
   const monthlyIncome =
     planData?.monthlyIncome ?? debtSummary?.monthlyIncome ?? user?.monthlyIncome ?? 0;
+  const minimumBudget =
+    planData?.minimumBudget ?? avalanche?.minimumBudget ?? debtSummary?.totalMinPayment ?? 0;
+  const totalMonthlyBudget =
+    planData?.totalMonthlyBudget ?? avalanche?.totalMonthlyBudget ?? minimumBudget + extraBudget;
 
   const progress = goalData?.progress;
   const reachedCount =
@@ -599,6 +603,26 @@ export default function RepaymentPlanPage() {
               {saved ? <Check size={14} /> : <Save size={14} />}
               {saved ? "Đã lưu" : "Lưu"}
             </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-5">
+            {[
+              { label: "Tối thiểu", value: minimumBudget },
+              { label: "Trả thêm", value: extraBudget },
+              { label: "Tổng/tháng", value: totalMonthlyBudget },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="rounded-xl border border-white/6 bg-white/4 px-3 py-2.5"
+              >
+                <p className="text-[10px] text-[var(--color-text-muted)] font-black uppercase tracking-wider">
+                  {item.label}
+                </p>
+                <p className="text-[13px] text-[var(--color-text-primary)] font-black mt-1">
+                  {formatVND(item.value)}
+                </p>
+              </div>
+            ))}
           </div>
 
           <input
