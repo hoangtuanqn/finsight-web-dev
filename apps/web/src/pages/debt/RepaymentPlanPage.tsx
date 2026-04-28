@@ -428,6 +428,24 @@ export default function RepaymentPlanPage() {
   );
   const safeMonthLabel = (index: number) =>
     timelineData[index]?.month ?? `T${index + 1}`;
+  const repaymentWarnings = Array.from(
+    new Map(
+      [
+        ...(avalanche?.warnings || []),
+        ...(snowball?.warnings || []),
+        ...(avalanche?.isScheduleTruncated || snowball?.isScheduleTruncated
+          ? [
+              {
+                type: "SCHEDULE_TRUNCATED",
+                severity: "WARNING",
+                message:
+                  "Biểu đồ chỉ hiển thị tối đa 24 tháng đầu sau mốc hiện tại.",
+              },
+            ]
+          : []),
+      ].map((warning: any) => [warning.type, warning]),
+    ).values(),
+  );
 
   return (
     <>
@@ -858,6 +876,29 @@ export default function RepaymentPlanPage() {
                   </span>
                   {recommendation}
                 </p>
+              </div>
+            )}
+
+            {repaymentWarnings.length > 0 && (
+              <div className="flex items-start gap-3 px-5 py-4 rounded-2xl border border-amber-500/20 bg-amber-500/6 relative overflow-hidden">
+                <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl bg-gradient-to-b from-amber-500 to-orange-400" />
+                <AlertTriangle
+                  size={16}
+                  className="text-amber-400 shrink-0 mt-0.5 ml-1"
+                />
+                <div className="space-y-1">
+                  <p className="text-[13px] text-amber-200 font-black">
+                    Cảnh báo mô phỏng
+                  </p>
+                  {repaymentWarnings.map((warning: any) => (
+                    <p
+                      key={warning.type}
+                      className="text-[12px] text-amber-100/80 leading-relaxed"
+                    >
+                      {warning.message}
+                    </p>
+                  ))}
+                </div>
               </div>
             )}
 
