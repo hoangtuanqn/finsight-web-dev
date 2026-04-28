@@ -1,9 +1,9 @@
 import { Response } from 'express';
-import prisma from '../lib/prisma';
-import { success, error } from '../utils/apiResponse';
-import { getOptimalAllocation } from '../services/portfolioOptimizer.service';
-import { fetchFearGreedIndex } from '../services/market.service';
-import { AuthenticatedRequest } from '../types';
+import prisma from '../lib/prisma.js';
+import { success, error } from '../utils/apiResponse.js';
+import { getOptimalAllocation } from '../services/portfolioOptimizer.service.js';
+import { fetchFearGreedIndex } from '../services/market.service.js';
+import { AuthenticatedRequest } from '../types/index.js';
 
 function shortUserId(userId: string | undefined): string {
   return String(userId || 'unknown').slice(0, 8);
@@ -60,9 +60,11 @@ export async function generateStrategy(req: AuthenticatedRequest, res: Response)
         savings:       result.savings,
         gold:          result.gold,
         stocks:        result.stocks,
+        stocks_us:     result.stocks_us || 0,
         bonds:         result.bonds,
         crypto:        result.crypto,
         recommendation: result.recommendation,
+        marketViews:   result.marketViews,
       },
     });
 
@@ -101,14 +103,14 @@ export async function getMyPortfolio(req: AuthenticatedRequest, res: Response) {
 
 export async function upsertPortfolio(req: AuthenticatedRequest, res: Response) {
   try {
-    const { savings, gold, stocks, bonds, crypto, notes, sourceStrategyId } = req.body;
+    const { savings, gold, stocks, stocks_us, bonds, crypto, notes, sourceStrategyId } = req.body;
 
-    const total = (savings || 0) + (gold || 0) + (stocks || 0) + (bonds || 0) + (crypto || 0);
+    const total = (savings || 0) + (gold || 0) + (stocks || 0) + (stocks_us || 0) + (bonds || 0) + (crypto || 0);
     if (Math.abs(total - 100) > 0.5) {
       return error(res, `Tổng phân bổ phải bằng 100% (hiện tại: ${total.toFixed(1)}%)`, 400);
     }
 
-    if ([savings, gold, stocks, bonds, crypto].some(v => v < 0)) {
+    if ([savings, gold, stocks, stocks_us, bonds, crypto].some(v => v < 0)) {
       return error(res, 'Phân bổ không được âm', 400);
     }
 
@@ -118,6 +120,7 @@ export async function upsertPortfolio(req: AuthenticatedRequest, res: Response) 
         savings,
         gold,
         stocks,
+        stocks_us: stocks_us || 0,
         bonds,
         crypto,
         notes:            notes ?? null,
@@ -129,6 +132,7 @@ export async function upsertPortfolio(req: AuthenticatedRequest, res: Response) 
         savings,
         gold,
         stocks,
+        stocks_us: stocks_us || 0,
         bonds,
         crypto,
         notes:            notes ?? null,
@@ -151,15 +155,16 @@ export async function updatePortfolio(req: AuthenticatedRequest, res: Response) 
       return error(res, 'Bạn chưa có danh mục đầu tư. Hãy tạo mới trước.', 404);
     }
 
-    const { savings, gold, stocks, bonds, crypto, notes } = req.body;
+    const { savings, gold, stocks, stocks_us, bonds, crypto, notes } = req.body;
 
-    const newSavings = savings ?? existing.savings;
-    const newGold    = gold    ?? existing.gold;
-    const newStocks  = stocks  ?? existing.stocks;
-    const newBonds   = bonds   ?? existing.bonds;
-    const newCrypto  = crypto  ?? existing.crypto;
+    const newSavings  = savings   ?? existing.savings;
+    const newGold     = gold      ?? existing.gold;
+    const newStocks   = stocks    ?? existing.stocks;
+    const newStocksUs = stocks_us ?? existing.stocks_us;
+    const newBonds    = bonds     ?? existing.bonds;
+    const newCrypto   = crypto    ?? existing.crypto;
 
-    const total = newSavings + newGold + newStocks + newBonds + newCrypto;
+    const total = newSavings + newGold + newStocks + newStocksUs + newBonds + newCrypto;
     if (Math.abs(total - 100) > 0.5) {
       return error(res, `Tổng phân bổ phải bằng 100% (hiện tại: ${total.toFixed(1)}%)`, 400);
     }
@@ -170,6 +175,7 @@ export async function updatePortfolio(req: AuthenticatedRequest, res: Response) 
         savings: newSavings,
         gold:    newGold,
         stocks:  newStocks,
+        stocks_us: newStocksUs,
         bonds:   newBonds,
         crypto:  newCrypto,
         notes:   notes !== undefined ? notes : existing.notes,
