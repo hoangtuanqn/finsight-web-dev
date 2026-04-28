@@ -1,52 +1,53 @@
 import cron from 'node-cron';
 import { checkSepayPayments, expirePendingInvoices } from './jobs/payment.job';
+import { syncAllBankWallets } from './jobs/wallet-sync.job';
 import { checkExpiredSubscriptions } from './jobs/subscription.job';
 import { checkDueDebtsAndDominoRisk, purgeSoftDeletedDebts } from './jobs/debt.job';
 import { checkMarketSentimentChanges } from './jobs/market.job';
 
 class CronManager {
-  private isInitialized: boolean;
-
-  constructor() {
-    this.isInitialized = false;
-  }
+  private isInitialized = false;
 
   init() {
     if (this.isInitialized) return;
-    
     console.log('⏰ Initializing Background Cron Jobs Manager...');
 
-    // Job 1: 10-second check for SePay payments
+    // Job 1: Kiểm tra thanh toán subscription (10s)
     setInterval(async () => {
-      try {
-        await checkSepayPayments();
-      } catch (error) {
-        console.error('❌ 10s SePay Cron Error:', error);
+      try { await checkSepayPayments(); } catch (e: any) {
+        console.error('❌ Payment Cron Error:', e.message);
       }
-    }, 10000);
+    }, 10_000);
 
-    // Job 2: General Background Jobs (Every minute for Demo/Dev)
+    // Job 2: Đồng bộ số dư & giao dịch ví ngân hàng — realtime (10s)
+    setInterval(async () => {
+      try { await syncAllBankWallets(); } catch (e: any) {
+        console.error('❌ WalletSync Cron Error:', e.message);
+      }
+    }, 10_000);
+
+    // Job 3: Background jobs mỗi phút
     cron.schedule('* * * * *', async () => {
       try {
         await Promise.allSettled([
           checkDueDebtsAndDominoRisk(),
           checkMarketSentimentChanges(),
-          expirePendingInvoices()
+          expirePendingInvoices(),
         ]);
-      } catch (error) {
-        console.error('❌ Minute Cron Job Error:', error);
+      } catch (e: any) {
+        console.error('❌ Minute Cron Error:', e.message);
       }
     });
 
-    // Job 3: Subscription Expiry & Garbage Collection (Daily at 00:05)
+    // Job 4: Maintenance hàng ngày 00:05
     cron.schedule('5 0 * * *', async () => {
       try {
         await Promise.allSettled([
           checkExpiredSubscriptions(),
-          purgeSoftDeletedDebts()
+          purgeSoftDeletedDebts(),
         ]);
-      } catch (error) {
-        console.error('❌ Daily Maintenance Cron Error:', error);
+      } catch (e: any) {
+        console.error('❌ Daily Maintenance Cron Error:', e.message);
       }
     });
 
