@@ -49,18 +49,56 @@ interface DebtItem {
 
 interface PaymentScheduleItem {
   month: number;
+  totalBalance: number;
+  interestAccrued: number;
+  minimumPaid: number;
+  extraPaid: number;
+  totalPaid: number;
+  dti?: number;
   payments: Array<{
     debtId: string | number;
     name: string;
     paid: number;
     balance: number;
+    endingBalance: number;
+    minimumPaid: number;
+    extraPaid: number;
+    interestAccrued: number;
   }>;
+}
+
+interface RepaymentSimulationOptions {
+  monthlyIncome?: number;
+  maxMonths?: number;
+}
+
+interface RepaymentWarning {
+  type: 'NEGATIVE_AMORTIZATION' | 'NOT_COMPLETED';
+  severity: 'WARNING' | 'DANGER';
+  message: string;
+  debtIds?: Array<string | number>;
+}
+
+export function resolveRepaymentExtraBudget(queryValue: unknown, savedValue: unknown): number {
+  const getFirstValue = (value: unknown) => (Array.isArray(value) ? value[0] : value);
+  const firstQueryValue = getFirstValue(queryValue);
+  const hasQueryValue = firstQueryValue !== undefined && firstQueryValue !== null && String(firstQueryValue).trim() !== '';
+  const rawValue = hasQueryValue ? firstQueryValue : getFirstValue(savedValue);
+  const parsedValue = Number(rawValue);
+
+  if (!Number.isFinite(parsedValue)) return 0;
+  return Math.max(0, parsedValue);
 }
 
 /**
  * CALCULATION 5: Avalanche / Snowball simulation
  */
-export function simulateRepayment(debts: DebtItem[], extraBudget: number, method: 'AVALANCHE' | 'SNOWBALL' = 'AVALANCHE') {
+export function simulateRepayment(
+  debts: DebtItem[],
+  monthlyBudget: number,
+  method: 'AVALANCHE' | 'SNOWBALL' = 'AVALANCHE',
+  options: RepaymentSimulationOptions = {},
+) {
   let ds = debts.map(d => ({
     id: d.id,
     name: d.name,
@@ -71,18 +109,61 @@ export function simulateRepayment(debts: DebtItem[], extraBudget: number, method
 
   let months = 0;
   let totalInterest = 0;
+  const normalizedMonthlyBudget = Math.max(0, Number.isFinite(monthlyBudget) ? monthlyBudget : 0);
+  const initialBalance = ds.reduce((sum, d) => sum + d.balance, 0);
+  const minimumBudget = ds.reduce((sum, d) => sum + d.minPayment, 0);
+  const monthlyIncome = Math.max(0, Number.isFinite(options.monthlyIncome) ? options.monthlyIncome ?? 0 : 0);
+  const maxMonths = Math.max(1, Number.isFinite(options.maxMonths) ? options.maxMonths ?? 360 : 360);
+  const warnings: RepaymentWarning[] = [];
+  const negativeAmortizationDebts = ds.filter(d => {
+    const firstMonthInterest = d.balance * (d.apr / 100) / 12;
+    return d.balance > 0.01 && d.minPayment <= firstMonthInterest;
+  });
+
+  if (negativeAmortizationDebts.length > 0) {
+    warnings.push({
+      type: 'NEGATIVE_AMORTIZATION',
+      severity: 'DANGER',
+      message: 'Có khoản nợ có tiền trả tối thiểu không đủ bù lãi tháng đầu, dư nợ có thể tăng nếu không trả thêm.',
+      debtIds: negativeAmortizationDebts.map(d => d.id),
+    });
+  }
+  const calculateDti = () => {
+    if (monthlyIncome <= 0) return undefined;
+    const activeMinimum = ds
+      .filter(d => d.balance > 0.01)
+      .reduce((sum, d) => sum + d.minPayment, 0);
+    return parseFloat(((activeMinimum / monthlyIncome) * 100).toFixed(1));
+  };
   const schedule: PaymentScheduleItem[] = [];
 
-  while (ds.some(d => d.balance > 0.01) && months < 360) {
+  schedule.push({
+    month: 0,
+    totalBalance: Math.round(initialBalance),
+    interestAccrued: 0,
+    minimumPaid: 0,
+    extraPaid: 0,
+    totalPaid: 0,
+    dti: calculateDti(),
+    payments: [],
+  });
+
+  while (ds.some(d => d.balance > 0.01) && months < maxMonths) {
     months++;
-    let remaining = extraBudget;
+    let remaining = normalizedMonthlyBudget;
     const monthPayments: PaymentScheduleItem['payments'] = [];
+    let monthInterest = 0;
+    let monthMinimumPaid = 0;
+    let monthExtraPaid = 0;
+    const debtInterest = new Map<string | number, number>();
 
     // Step 1: Accrue interest
     ds.forEach(d => {
       if (d.balance > 0) {
         const interest = d.balance * (d.apr / 100) / 12;
         totalInterest += interest;
+        monthInterest += interest;
+        debtInterest.set(d.id, interest);
         d.balance += interest;
       }
     });
@@ -93,14 +174,26 @@ export function simulateRepayment(debts: DebtItem[], extraBudget: number, method
         const pay = Math.min(d.minPayment, d.balance);
         d.balance -= pay;
         remaining -= pay;
+        monthMinimumPaid += pay;
         d.balance = Math.max(0, d.balance);
-        monthPayments.push({ debtId: d.id, name: d.name, paid: pay, balance: d.balance });
+        monthPayments.push({
+          debtId: d.id,
+          name: d.name,
+          paid: pay,
+          balance: d.balance,
+          endingBalance: d.balance,
+          minimumPaid: pay,
+          extraPaid: 0,
+          interestAccrued: debtInterest.get(d.id) ?? 0,
+        });
       }
     });
 
-    // Step 3: Apply extra to priority target
-    if (remaining > 0) {
+    // Step 3: Apply extra to priority targets until the monthly budget is exhausted.
+    while (remaining > 0.01) {
       const activeDebts = ds.filter(d => d.balance > 0.01);
+      if (activeDebts.length === 0) break;
+
       let target = null;
 
       if (method === 'AVALANCHE') {
@@ -111,25 +204,82 @@ export function simulateRepayment(debts: DebtItem[], extraBudget: number, method
 
       if (target) {
         const pay = Math.min(remaining, target.balance);
+        if (pay <= 0) break;
         target.balance -= pay;
+        remaining -= pay;
+        monthExtraPaid += pay;
         target.balance = Math.max(0, target.balance);
         const existing = monthPayments.find(p => p.debtId === target.id);
         if (existing) {
           existing.paid += pay;
+          existing.extraPaid += pay;
           existing.balance = target.balance;
+          existing.endingBalance = target.balance;
+        } else {
+          monthPayments.push({
+            debtId: target.id,
+            name: target.name,
+            paid: pay,
+            balance: target.balance,
+            endingBalance: target.balance,
+            minimumPaid: 0,
+            extraPaid: pay,
+            interestAccrued: debtInterest.get(target.id) ?? 0,
+          });
         }
       }
     }
 
-    schedule.push({ month: months, payments: monthPayments });
+    schedule.push({
+      month: months,
+      totalBalance: Math.round(ds.reduce((sum, d) => sum + Math.max(0, d.balance), 0)),
+      interestAccrued: Math.round(monthInterest),
+      minimumPaid: Math.round(monthMinimumPaid),
+      extraPaid: Math.round(monthExtraPaid),
+      totalPaid: Math.round(monthMinimumPaid + monthExtraPaid),
+      dti: calculateDti(),
+      payments: monthPayments,
+    });
+  }
+
+  const isCompleted = months < maxMonths;
+
+  if (!isCompleted) {
+    warnings.push({
+      type: 'NOT_COMPLETED',
+      severity: 'WARNING',
+      message: `Kế hoạch chưa tất toán sau ${maxMonths} tháng mô phỏng. Cần tăng ngân sách trả thêm hoặc rà lại khoản nợ có lãi cao.`,
+    });
   }
 
   return {
     months,
+    initialBalance: Math.round(initialBalance),
+    minimumBudget: Math.round(minimumBudget),
+    extraBudgetUsed: Math.round(Math.max(0, normalizedMonthlyBudget - minimumBudget)),
+    totalMonthlyBudget: Math.round(normalizedMonthlyBudget),
     totalInterest: Math.round(totalInterest),
     schedule,
-    isCompleted: months < 360,
+    isCompleted,
+    warnings,
   };
+}
+
+export function simulateRepaymentWithExtraBudget(
+  debts: DebtItem[],
+  extraBudget: number,
+  method: 'AVALANCHE' | 'SNOWBALL' = 'AVALANCHE',
+  options: RepaymentSimulationOptions = {},
+) {
+  const minimumBudget = debts.reduce((sum, debt) => sum + debt.minPayment, 0);
+  const normalizedExtraBudget = Math.max(0, Number.isFinite(extraBudget) ? extraBudget : 0);
+
+  return simulateRepayment(
+    debts,
+    minimumBudget + normalizedExtraBudget,
+    method,
+    options,
+  );
 }
 
 /**

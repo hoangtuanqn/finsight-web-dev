@@ -76,7 +76,7 @@ export const investmentAPI = {
   getProfile: () => api.get('/investment/profile'),
   createProfile: (data: any) => api.post('/investment/profile', data),
   updateProfile: (data: any) => api.put('/investment/profile', data),
-  getAllocation: (params: any) => api.get('/investment/allocation', { params }),
+  getAllocation: (params?: any) => api.get('/investment/allocation', { params }),
   getHistory: () => api.get('/investment/history'),
   submitRiskAssessment: (data: any) => api.post('/investment/risk-assessment', data),
   getCryptoPrices: () => api.get('/investment/crypto-prices'),
@@ -131,6 +131,26 @@ export const subscriptionAPI = {
 export const articleAPI = {
   getArticles: () => api.get('/articles'),
   seedArticles: () => api.post('/articles/seed'),
+};
+
+// EXPENSES
+export const expenseAPI = {
+  getAll: (params?: any) => api.get('/expenses', { params }),
+  create: (data: any) => api.post('/expenses', data),
+  update: (id: string, data: any) => api.patch(`/expenses/${id}`, data),
+  delete: (id: string) => api.delete(`/expenses/${id}`),
+  getStats: (params?: any) => api.get('/expenses/stats', { params }),
+  getCategories: () => api.get('/expenses/categories'),
+  createCategory: (data: any) => api.post('/expenses/categories', data),
+};
+
+// WALLETS
+export const walletAPI = {
+  getAll: () => api.get('/wallets'),
+  getBalance: () => api.get('/wallets/balance'),
+  create: (data: any) => api.post('/wallets', data),
+  update: (id: string, data: any) => api.patch(`/wallets/${id}`, data),
+  delete: (id: string) => api.delete(`/wallets/${id}`),
 };
 
 export default api;

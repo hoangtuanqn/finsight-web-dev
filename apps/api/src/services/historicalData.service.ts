@@ -270,7 +270,7 @@ export async function buildMarketParams(savingsRate: number = 0.05, options: any
   };
 }
 
-const MARKET_PARAMS_CACHE_KEY = 'market:params';
+const MARKET_PARAMS_CACHE_KEY = 'market:params:v2';
 const MARKET_PARAMS_TTL = 86400;
 
 export async function getMarketParams(savingsRate: number = 0.05) {
