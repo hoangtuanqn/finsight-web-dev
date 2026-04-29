@@ -139,14 +139,10 @@ export class ReferralService {
       })
     ]);
 
-    const user = await (prisma as any).user.findUnique({
-      where: { id: userId },
-      select: { referralCode: true }
-    });
+    const referralCode = await this.getOrCreateReferralCode(userId);
 
     return {
-      referralCode: user?.referralCode,
-      stats: {
+      referralCode,
         clicks,
         totalReferrals,
         completedReferrals,

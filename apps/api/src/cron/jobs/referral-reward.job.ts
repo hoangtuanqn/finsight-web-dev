@@ -6,7 +6,6 @@ export async function processReferralRewards() {
     const qualifiedReferrals = await (prisma as any).referral.findMany({
       where: {
         status: 'PENDING',
-        hasToppedUp: true,
         activeDaysCount: { gte: 3 }
       },
       include: {
