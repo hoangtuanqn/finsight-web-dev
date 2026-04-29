@@ -4,6 +4,7 @@ import jwt, { SignOptions } from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 import { success, error } from '../utils/apiResponse';
 import { AuthenticatedRequest } from '../types';
+import { ReferralService } from '../services/referral.service';
 
 export async function register(req: Request, res: Response) {
   try {
@@ -16,13 +17,27 @@ export async function register(req: Request, res: Response) {
 
     const hashedPassword = await bcrypt.hash(password, 12);
     const user = await (prisma as any).user.create({
-      data: { email, password: hashedPassword, fullName },
+      data: { 
+        email, 
+        password: hashedPassword, 
+        fullName,
+        referralCode: `temp_${Date.now()}` // Sẽ được cập nhật ngay sau đây
+      },
       select: { id: true, email: true, fullName: true, monthlyIncome: true, extraBudget: true, createdAt: true },
     });
 
+    // Tạo mã giới thiệu chính thức cho user mới
+    const finalCode = await ReferralService.getOrCreateReferralCode(user.id);
+    
+    // Xử lý nếu user này được giới thiệu bởi người khác
+    const { referralCode } = req.body;
+    if (referralCode) {
+      await ReferralService.processReferral(user.id, referralCode);
+    }
+
     const token = jwt.sign(
       { userId: user.id, email: user.email },
-      (process.env.JWT_SECRET as string),
+      (process.env.JWT_SECRET as string).trim(),
       { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'] }
     );
 
@@ -49,9 +64,12 @@ export async function login(req: Request, res: Response) {
 
     const token = jwt.sign(
       { userId: user.id, email: user.email },
-      (process.env.JWT_SECRET as string),
+      (process.env.JWT_SECRET as string).trim(),
       { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'] }
     );
+
+    // Ghi nhận hoạt động
+    await ReferralService.recordActivity(user.id);
 
     const fullUser = await (prisma as any).user.findUnique({
       where: { id: user.id },
@@ -73,6 +91,9 @@ export async function me(req: AuthenticatedRequest, res: Response) {
       include: { investorProfile: true },
     });
     if (!user) return error(res, 'User not found', 404);
+
+    // Ghi nhận hoạt động
+    await ReferralService.recordActivity(user.id);
     return success(res, { user });
   } catch (err) {
     console.error('Me error:', err);
