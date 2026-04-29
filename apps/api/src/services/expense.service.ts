@@ -121,26 +121,32 @@ export class ExpenseService {
       .reduce((sum, e) => sum + e.amount, 0);
 
     // Group by parent category name (top-level group)
-    const byCategory = expenses
-      .filter((e) => e.type === 'EXPENSE')
-      .reduce((acc: any, e) => {
-        const cat = e.category;
-        const groupName = cat.parent?.name || cat.name;
-        const groupIcon = cat.parent?.icon || cat.icon;
-        const groupColor = cat.parent?.color || cat.color;
+    const groupByCat = (type: 'EXPENSE' | 'INCOME') => {
+      return expenses
+        .filter((e) => e.type === type)
+        .reduce((acc: any, e) => {
+          const cat = e.category;
+          const groupName = cat?.parent?.name || cat?.name || 'Chưa phân loại';
+          const groupIcon = cat?.parent?.icon || cat?.icon || '📦';
+          const groupColor = cat?.parent?.color || cat?.color || '#64748b';
 
-        if (!acc[groupName]) {
-          acc[groupName] = { name: groupName, value: 0, color: groupColor, icon: groupIcon };
-        }
-        acc[groupName].value += e.amount;
-        return acc;
-      }, {});
+          if (!acc[groupName]) {
+            acc[groupName] = { name: groupName, value: 0, color: groupColor, icon: groupIcon };
+          }
+          acc[groupName].value += e.amount;
+          return acc;
+        }, {});
+    };
+
+    const byCategoryExpense = groupByCat('EXPENSE');
+    const byCategoryIncome = groupByCat('INCOME');
 
     return {
       totalIncome,
       totalExpense,
       balance: totalIncome - totalExpense,
-      byCategory: Object.values(byCategory).sort((a: any, b: any) => b.value - a.value),
+      byCategory: Object.values(byCategoryExpense).sort((a: any, b: any) => b.value - a.value),
+      byCategoryIncome: Object.values(byCategoryIncome).sort((a: any, b: any) => b.value - a.value),
     };
   }
 }
