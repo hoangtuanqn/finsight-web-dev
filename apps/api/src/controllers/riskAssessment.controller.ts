@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import prisma from '../lib/prisma';
 import { success, error } from '../utils/apiResponse';
+import { invalidateCache } from '../middleware/cache.middleware';
 import { RISK_CONFIG } from '../constants/investmentConstants';
 import { AuthenticatedRequest } from '../types';
 
@@ -43,6 +44,7 @@ export async function submitRiskAssessment(req: AuthenticatedRequest, res: Respo
       update: { riskScore: avgScore, riskLevel, lastUpdated: new Date() },
       create: { userId: req.userId, riskScore: avgScore, riskLevel },
     });
+    invalidateCache([`investment:allocation:${req.userId}:*`]);
 
     return success(res, { riskScore: avgScore, riskLevel, riskDescription, consistencyWarning });
   } catch (err) {

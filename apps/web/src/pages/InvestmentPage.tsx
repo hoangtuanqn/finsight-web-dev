@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Target,
-  Bot,
   Sparkles,
   Zap,
   ChevronRight,
@@ -30,8 +29,7 @@ import RiskMetricsPanel from '../components/investment/RiskMetricsPanel';
 import OptimizationSummaryStrip from '../components/investment/OptimizationSummaryStrip';
 import EfficientFrontierPanel from '../components/investment/EfficientFrontierPanel';
 import EconomicNewsFeed from '../components/investment/EconomicNewsFeed';
-import StressTestSimulator from '../components/investment/StressTestSimulator';
-import BlackLittermanViews from '../components/investment/BlackLittermanViews';
+import StrategyRecommendation from '../components/investment/StrategyRecommendation';
 import IncompleteProfile from '../components/investment/IncompleteProfile';
 import SentimentGauge from '../components/investment/SentimentGauge';
 import AssetFilterPanel from '../components/investment/AssetFilterPanel';
@@ -204,6 +202,8 @@ export default function InvestmentPage() {
   const [applyTarget, setApplyTarget] = useState<any>(null);
   const [activeStrategyIndex, setActiveStrategyIndex] = useState(0);
   const [showGeneratePopup, setShowGeneratePopup] = useState(false);
+  const [historyPage, setHistoryPage] = useState(0);
+  const HISTORY_PAGE_SIZE = 10;
   // excludedAssets only used internally via popup — persisted to localStorage
   const [excludedAssets, setExcludedAssets] = useState<string[]>(() => {
     try {
@@ -584,28 +584,10 @@ export default function InvestmentPage() {
                 }
               />
 
-              <StressTestSimulator
-                stressTests={viewModel?.stressTests || activeStrategy?.stressTests || []}
-              />
-
-              <BlackLittermanViews
+              <StrategyRecommendation
+                recommendation={viewModel?.recommendation || ''}
                 views={viewModel?.marketViews || activeStrategy?.marketViews || []}
               />
-
-              {/* AI Recommendation */}
-              {viewModel?.recommendation && (
-                <div className="bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 p-6 rounded-2xl flex items-start gap-5 shadow-[0_0_30px_rgba(59,130,246,0.1)] group">
-                  <div className="p-2.5 rounded-full bg-blue-500/20 shrink-0 group-hover:scale-110 transition-transform shadow-inner">
-                    <Bot size={20} className="text-blue-400" />
-                  </div>
-                  <p className="text-base font-medium text-blue-100 leading-relaxed">
-                    <span className="text-xs font-bold uppercase tracking-widest text-blue-400 block mb-1">
-                      Khuyến nghị chiến lược:
-                    </span>
-                    "{viewModel.recommendation}"
-                  </p>
-                </div>
-              )}
 
               <OptimizationSummaryStrip
                 optimization={viewModel?.optimization}
@@ -687,7 +669,7 @@ export default function InvestmentPage() {
               <div className="flex items-center gap-3 mb-4">
                 <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em]">
-                  Lịch sử chiến lược AI
+                  Lịch sử chiến lược
                 </span>
                 <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
               </div>
@@ -740,67 +722,87 @@ export default function InvestmentPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {strategies.map((s, i) => (
-                        <tr
-                          key={s.id}
-                          className={`border-b border-white/5 transition-colors cursor-pointer ${activeStrategyIndex === i ? "bg-blue-500/5" : "hover:bg-white/2"}`}
-                          onClick={() => setActiveStrategyIndex(i)}
-                        >
-                          <td className="px-5 py-3.5">
-                            <div className="flex items-center gap-2">
-                              {activeStrategyIndex === i && (
-                                <div className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
-                              )}
-                              <span className="text-slate-400 font-medium">
-                                {i + 1}
+                      {strategies.slice(historyPage * HISTORY_PAGE_SIZE, (historyPage + 1) * HISTORY_PAGE_SIZE).map((s, i) => {
+                        const globalIndex = historyPage * HISTORY_PAGE_SIZE + i;
+                        return (
+                          <tr
+                            key={s.id}
+                            className={`border-b border-white/5 transition-colors cursor-pointer ${activeStrategyIndex === globalIndex ? "bg-blue-500/5" : "hover:bg-white/2"}`}
+                            onClick={() => setActiveStrategyIndex(globalIndex)}
+                          >
+                            <td className="px-5 py-3.5">
+                              <div className="flex items-center gap-2">
+                                {activeStrategyIndex === globalIndex && (
+                                  <div className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                                )}
+                                <span className="text-slate-400 font-medium">
+                                  {globalIndex + 1}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3.5 text-slate-300 whitespace-nowrap">
+                              <div className="text-sm">{new Date(s.createdAt).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}</div>
+                              <div className="text-[11px] text-slate-500 mt-0.5">{new Date(s.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}</div>
+                            </td>
+                            <td className="px-4 py-3.5">
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-slate-300">
+                                {SENTIMENT_LABEL_VI[s.sentimentLabel] || s.sentimentLabel}
                               </span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3.5 text-slate-300 whitespace-nowrap">
-                            {new Date(s.createdAt).toLocaleDateString("vi-VN", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric",
-                            })}
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-slate-300">
-                              {SENTIMENT_LABEL_VI[s.sentimentLabel] ||
-                                s.sentimentLabel}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3.5 text-right font-bold text-emerald-400">
-                            {s.savings}%
-                          </td>
-                          <td className="px-4 py-3.5 text-right font-bold text-amber-400">
-                            {s.gold}%
-                          </td>
-                          <td className="px-4 py-3.5 text-right font-bold text-blue-400">
-                            {s.stocks}%
-                          </td>
-                          <td className="px-4 py-3.5 text-right font-bold text-purple-400">
-                            {s.bonds}%
-                          </td>
-                          <td className="px-4 py-3.5 text-right font-bold text-pink-400">
-                            {s.crypto}%
-                          </td>
-                          <td className="px-5 py-3.5 text-right">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setApplyTarget(s);
-                              }}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-400 text-xs font-bold transition-colors whitespace-nowrap"
-                            >
-                              <ChevronRight size={12} />
-                              Áp dụng
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                            <td className="px-4 py-3.5 text-right font-bold text-emerald-400">{s.savings}%</td>
+                            <td className="px-4 py-3.5 text-right font-bold text-amber-400">{s.gold}%</td>
+                            <td className="px-4 py-3.5 text-right font-bold text-blue-400">{s.stocks}%</td>
+                            <td className="px-4 py-3.5 text-right font-bold text-purple-400">{s.bonds}%</td>
+                            <td className="px-4 py-3.5 text-right font-bold text-pink-400">{s.crypto}%</td>
+                            <td className="px-5 py-3.5 text-right">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setApplyTarget(s); }}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-400 text-xs font-bold transition-colors whitespace-nowrap"
+                              >
+                                <ChevronRight size={12} />
+                                Áp dụng
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
+
+                {/* Pagination */}
+                {strategies.length > HISTORY_PAGE_SIZE && (
+                  <div className="flex items-center justify-between px-5 py-3.5 border-t border-white/5">
+                    <span className="text-[11px] text-slate-500">
+                      {historyPage * HISTORY_PAGE_SIZE + 1}–{Math.min((historyPage + 1) * HISTORY_PAGE_SIZE, strategies.length)} / {strategies.length} chiến lược
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setHistoryPage(p => Math.max(0, p - 1))}
+                        disabled={historyPage === 0}
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      >
+                        ← Trước
+                      </button>
+                      {Array.from({ length: Math.ceil(strategies.length / HISTORY_PAGE_SIZE) }, (_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setHistoryPage(idx)}
+                          className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${historyPage === idx ? "bg-blue-500/20 text-blue-400 border border-blue-500/30" : "text-slate-500 hover:text-white hover:bg-white/5"}`}
+                        >
+                          {idx + 1}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => setHistoryPage(p => Math.min(Math.ceil(strategies.length / HISTORY_PAGE_SIZE) - 1, p + 1))}
+                        disabled={historyPage >= Math.ceil(strategies.length / HISTORY_PAGE_SIZE) - 1}
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      >
+                        Sau →
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
 

@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import prisma from '../lib/prisma';
 import { success, error } from '../utils/apiResponse';
+import { invalidateCache } from '../middleware/cache.middleware';
 import { AuthenticatedRequest } from '../types';
 
 export async function getInvestorProfile(req: AuthenticatedRequest, res: Response) {
@@ -21,6 +22,7 @@ export async function createInvestorProfile(req: AuthenticatedRequest, res: Resp
       update: { capital, monthlyAdd, goal, horizon, riskLevel, riskScore, savingsRate, inflationRate, lastUpdated: new Date() },
       create: { userId: req.userId, capital, monthlyAdd, goal, horizon, riskLevel, riskScore, savingsRate, inflationRate },
     });
+    invalidateCache([`investment:allocation:${req.userId}:*`]);
     return success(res, { investorProfile: profile }, 201);
   } catch (err) {
     console.error('createInvestorProfile error:', err);
@@ -35,6 +37,7 @@ export async function updateInvestorProfile(req: AuthenticatedRequest, res: Resp
       where: { userId: req.userId },
       data,
     });
+    invalidateCache([`investment:allocation:${req.userId}:*`]);
     return success(res, { investorProfile: profile });
   } catch (err) {
     console.error('updateInvestorProfile error:', err);
