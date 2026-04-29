@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Users, MousePointerClick, Gift, Copy, CheckCircle2, 
-  Clock, AlertCircle, Share2, Info, ChevronRight, Sparkles, Target
+  Clock, Share2, Info, ChevronRight, Sparkles, Target
 } from 'lucide-react';
 import { useAffiliateQuery } from '../../hooks/useAffiliateQuery';
 
@@ -163,7 +163,7 @@ export default function AffiliatePage() {
                 </div>
                 <div>
                   <p className="font-black text-sm text-[var(--color-text-primary)]">Bạn nhận +15 lượt</p>
-                  <p className="text-xs text-[var(--color-text-muted)] mt-1 font-medium leading-relaxed">Khi bạn bè nạp tiền & hoạt động 3 ngày.</p>
+                  <p className="text-xs text-[var(--color-text-muted)] mt-1 font-medium leading-relaxed">Khi bạn bè hoạt động ít nhất 3 ngày trên hệ thống.</p>
                 </div>
               </div>
               <div className="p-5 rounded-2xl bg-[var(--color-bg-secondary)] border border-[var(--color-border)] flex gap-4 items-start">
@@ -184,13 +184,13 @@ export default function AffiliatePage() {
             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl" />
             <h3 className="text-lg font-black flex items-center gap-2 mb-4">
               <Info className="w-5 h-5 text-blue-400" />
-              Lưu ý quan trọng
+              Điều kiện nhận thưởng
             </h3>
             <ul className="space-y-3">
               {[
                 'Người được mời phải dùng link của bạn',
-                'Hoàn thành ít nhất 1 lần nạp tiền',
-                'Đăng nhập trong 3 ngày khác nhau',
+                'Hoạt động ít nhất 3 ngày khác nhau',
+                'Đăng nhập ít nhất 1 lần/ngày',
                 'Hệ thống tự động quét mỗi 5 phút'
               ].map((text, i) => (
                 <li key={i} className="flex items-start gap-3 text-sm text-slate-400 font-medium">
@@ -218,7 +218,6 @@ export default function AffiliatePage() {
               <thead>
                 <tr className="bg-[var(--color-bg-secondary)]/50 border-b border-[var(--color-border)]">
                   <th className="px-8 py-5 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest">Người dùng</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest text-center">Nạp tiền</th>
                   <th className="px-8 py-5 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest text-center">Hoạt động</th>
                   <th className="px-8 py-5 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest text-right">Trạng thái</th>
                 </tr>
@@ -226,7 +225,7 @@ export default function AffiliatePage() {
               <tbody className="divide-y divide-[var(--color-border)]">
                 {data?.referrals?.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-8 py-16 text-center">
+                    <td colSpan={3} className="px-8 py-16 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <Users className="w-10 h-10 text-[var(--color-text-muted)] opacity-20" />
                         <p className="text-[var(--color-text-muted)] font-bold text-sm italic">Bạn chưa mời ai tham gia. Hãy bắt đầu chia sẻ link nhé!</p>
@@ -248,22 +247,9 @@ export default function AffiliatePage() {
                         </div>
                       </td>
                       <td className="px-8 py-5 text-center">
-                        <div className="flex justify-center">
-                          {ref.hasToppedUp ? (
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded-lg text-[10px] font-black uppercase border border-emerald-500/20">
-                              <CheckCircle2 className="w-3.5 h-3.5" /> Đã nạp
-                            </div>
-                          ) : (
-                            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-500/10 text-orange-500 rounded-lg text-[10px] font-black uppercase border border-orange-500/20">
-                              <Clock className="w-3.5 h-3.5" /> Chờ nạp
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-8 py-5 text-center">
-                        <div className="flex flex-col items-center gap-1.5 min-w-[100px]">
+                        <div className="flex flex-col items-center gap-1.5 min-w-[150px] max-w-[250px] mx-auto">
                           <div className="flex justify-between w-full text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-wider">
-                            <span>Tiến độ</span>
+                            <span>Đăng nhập tích lũy</span>
                             <span className={ref.activeDays >= 3 ? 'text-emerald-500' : 'text-blue-500'}>{ref.activeDays}/3 ngày</span>
                           </div>
                           <div className="w-full h-1.5 bg-[var(--color-bg-secondary)] rounded-full overflow-hidden border border-[var(--color-border)]/50">
@@ -282,7 +268,7 @@ export default function AffiliatePage() {
                           </span>
                         ) : (
                           <div className="flex items-center justify-end gap-1 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest italic group-hover:text-blue-400 transition-colors">
-                            Chưa đủ ĐK <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
+                            Chờ hoạt động đủ 3 ngày <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
                           </div>
                         )}
                       </td>
