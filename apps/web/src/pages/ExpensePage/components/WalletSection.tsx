@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Eye, EyeOff, MoreHorizontal, Trash2, Edit2, Wallet, RefreshCw } from 'lucide-react';
 import { useWallets, useWalletBalance, useWalletMutations } from '../../../hooks/useWalletQuery';
@@ -19,7 +20,8 @@ const WALLET_TYPE_COLORS: Record<string, string> = {
   OTHER: '#64748b',
 };
 
-export function WalletSection({ onViewPending }: { onViewPending?: () => void }) {
+export function WalletSection() {
+  const navigate = useNavigate();
   const [hideBalance, setHideBalance] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingWallet, setEditingWallet] = useState<any>(null);
@@ -146,7 +148,7 @@ export function WalletSection({ onViewPending }: { onViewPending?: () => void })
                             <button
                               onClick={() => {
                                 fetch.mutate(wallet.id);
-                                onViewPending?.();
+                                navigate(`/wallets/${wallet.id}`);
                                 setOpenMenu(null);
                               }}
                               disabled={fetch.isPending}
