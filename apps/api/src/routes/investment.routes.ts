@@ -1,10 +1,9 @@
 import { Router } from 'express';
-import {
-  getInvestorProfile, createInvestorProfile, updateInvestorProfile,
-  getAllocationRecommendation, getAllocationHistory, submitRiskAssessment,
-  getCryptoPrices, getStockPrices, getGoldPrices, getSavingsRates, getBondsRates,
-  getAssetHistory,
-} from '../controllers/investment.controller';
+import { getInvestorProfile, createInvestorProfile, updateInvestorProfile } from '../controllers/profile.controller';
+import { getAllocationRecommendation, getAllocationHistory } from '../controllers/allocation.controller';
+import { submitRiskAssessment } from '../controllers/riskAssessment.controller';
+import { getAssetHistory } from '../controllers/assetHistory.controller';
+import { getCryptoPrices, getStockPrices, getGoldPrices, getSavingsRates, getBondsRates } from '../controllers/assetGuide.controller';
 import {
   getMyStrategies, generateStrategy,
   getMyPortfolio, upsertPortfolio, updatePortfolio,
