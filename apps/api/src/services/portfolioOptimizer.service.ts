@@ -106,9 +106,21 @@ export function projectOntoConstraints(weights: number[], bounds: any): number[]
   return redistribute(clamped, lowerBounds, upperBounds);
 }
 
-export function optimizePortfolio(marketParams: any, expectedReturns: number[], riskLevel: RiskLevel = RiskLevel.MEDIUM, profile: any = {}) {
+export function optimizePortfolio(
+  marketParams: any,
+  expectedReturns: number[],
+  riskLevel: RiskLevel = RiskLevel.MEDIUM,
+  profile: any = {},
+  boundsOverride: Record<string, [number, number]> | null = null,
+) {
   const normalizedRisk: RiskLevel = WEIGHT_BOUNDS[riskLevel] ? riskLevel : RiskLevel.MEDIUM;
-  const bounds = getBoundsArrays(WEIGHT_BOUNDS[normalizedRisk]);
+
+  // Merge exclusion override into risk bounds
+  const effectiveBounds = boundsOverride
+    ? { ...WEIGHT_BOUNDS[normalizedRisk], ...boundsOverride }
+    : WEIGHT_BOUNDS[normalizedRisk];
+
+  const bounds = getBoundsArrays(effectiveBounds);
   const lambda = RISK_AVERSION[normalizedRisk] || RISK_AVERSION[RiskLevel.MEDIUM];
   let weights = redistribute(getInitialWeights(normalizedRisk, bounds), bounds.lowerBounds, bounds.upperBounds);
   let converged = false;
@@ -121,7 +133,7 @@ export function optimizePortfolio(marketParams: any, expectedReturns: number[], 
     const gradient = expectedReturns.map((mean, index) => mean - lambda * sigmaW[index]);
 
     weights = weights.map((weight, index) => weight + SOLVER_CONFIG.learningRate * gradient[index]);
-    weights = projectOntoConstraints(weights, WEIGHT_BOUNDS[normalizedRisk]);
+    weights = projectOntoConstraints(weights, effectiveBounds);
 
     const change = Math.sqrt(weights.reduce((sum, weight, index) => sum + (weight - previous[index]) ** 2, 0));
     if (change < SOLVER_CONFIG.tolerance) {
@@ -152,7 +164,12 @@ export function optimizePortfolio(marketParams: any, expectedReturns: number[], 
   };
 }
 
-export async function getOptimalAllocation(profile: any, sentimentValue: number = 50, marketParamsOverride: any = null) {
+export async function getOptimalAllocation(
+  profile: any,
+  sentimentValue: number = 50,
+  marketParamsOverride: any = null,
+  excludedAssets: string[] = [],
+) {
   const savingsRate = (profile?.savingsRate ?? 5) / 100;
   const marketParams = marketParamsOverride || await (async () => {
     const { getMarketParams } = await import('./historicalData.service.js');
@@ -165,7 +182,14 @@ export async function getOptimalAllocation(profile: any, sentimentValue: number 
   const { computePosteriorReturns } = await import('./blackLitterman.service.js');
   const { posteriorMeans } = computePosteriorReturns(priorMeans, marketParams.covMatrix, marketViews);
 
-  const result = optimizePortfolio(marketParams, posteriorMeans, (profile?.riskLevel as RiskLevel) || RiskLevel.MEDIUM, profile);
+  // Build bounds override for excluded assets (savings is always protected)
+  const EXCLUDABLE_ASSETS = ['gold', 'stocks', 'stocks_us', 'bonds', 'crypto'];
+  const validExcluded = excludedAssets.filter(a => EXCLUDABLE_ASSETS.includes(a));
+  const exclusionOverride = validExcluded.length > 0
+    ? Object.fromEntries(validExcluded.map(a => [a, [0, 0] as [number, number]]))
+    : null;
+
+  const result = optimizePortfolio(marketParams, posteriorMeans, (profile?.riskLevel as RiskLevel) || RiskLevel.MEDIUM, profile, exclusionOverride);
   const sentimentLabel = getSentimentLabel(sentimentValue);
 
   const allocation: any = {
