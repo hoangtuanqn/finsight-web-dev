@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -36,17 +36,19 @@ export default function RegisterPage() {
   const { register: registerAuth } = useAuth() as any;
   const navigate = useNavigate();
   const [dark, setDark] = useDarkMode() as [boolean, (val: boolean) => void];
+  const [searchParams] = useSearchParams();
+  const refCode = searchParams.get('ref') || '';
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(registerSchema),
-    defaultValues: { fullName: '', email: '', password: '', confirmPassword: '' }
+    defaultValues: { fullName: '', email: '', password: '', confirmPassword: '', referralCode: refCode }
   });
 
   const onSubmit = async (data: any) => {
     setServerError('');
     setLoading(true);
     try {
-      await registerAuth(data.email, data.password, data.fullName);
+      await registerAuth(data.email, data.password, data.fullName, data.referralCode);
       navigate('/home');
     } catch (err: any) {
       setServerError(err.response?.data?.error || 'Đăng ký thất bại. Vui lòng thử lại.');
@@ -195,6 +197,21 @@ export default function RegisterPage() {
                   </div>
                   {errors.confirmPassword && <p className="text-[11px] font-bold text-red-500 ml-1">{errors.confirmPassword.message}</p>}
                 </div>
+
+                {refCode && (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-emerald-500 dark:text-emerald-400 uppercase tracking-[0.2em] ml-1">Mã giới thiệu (Đã áp dụng)</label>
+                    <div className="relative group/input">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-400"><ShieldCheck size={18} /></div>
+                      <input
+                        {...register('referralCode')}
+                        type="text"
+                        disabled
+                        className="w-full bg-emerald-500/5 border border-emerald-500/20 rounded-2xl px-12 py-3.5 text-emerald-600 dark:text-emerald-400 font-bold outline-none cursor-not-allowed text-sm"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <button
                   type="submit"

@@ -30,6 +30,7 @@ import TransactionHistoryPage from './pages/TransactionHistoryPage';
 import KnowledgeBasePage from './pages/knowledge/KnowledgeBasePage';
 import ExpensePage from './pages/ExpensePage';
 import WalletDetailPage from './pages/WalletDetailPage';
+import AffiliatePage from './pages/AffiliatePage';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30000, retry: 1 } },
@@ -68,6 +69,7 @@ export default function App() {
                 <Route path="/transactions" element={<TransactionHistoryPage />} />
                 <Route path="/expenses" element={<ExpensePage />} />
                 <Route path="/wallets/:id" element={<WalletDetailPage />} />
+                <Route path="/affiliate" element={<AffiliatePage />} />
               </Route>
               <Route path="*" element={<Navigate to="/home" />} />
             </Routes>
