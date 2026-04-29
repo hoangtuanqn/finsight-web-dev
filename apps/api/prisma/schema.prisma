@@ -37,6 +37,7 @@ model User {
   expenses        Expense[]
   expenseCategories ExpenseCategory[]
   wallets         Wallet[]
+  bankTransactionsPending BankTransactionPending[]
 
   @@map("users")
 }
@@ -293,21 +294,50 @@ model UserPortfolio {
 // ── Expense Management ─────────────────────────────────────
 
 model Wallet {
-  id        String    @id @default(cuid())
-  userId    String
-  name      String
-  type      String    @default("CASH") // CASH | BANK | EWALLET | OTHER
-  icon      String?   // emoji icon
-  color     String?   @default("#3b82f6")
-  balance   Float     @default(0)
-  isDefault Boolean   @default(false)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id                String    @id @default(cuid())
+  userId            String
+  name              String
+  type              String    @default("CASH") // CASH | BANK | EWALLET | OTHER
+  icon              String?   // emoji icon
+  color             String?   @default("#3b82f6")
+  balance           Float     @default(0)
+  isDefault         Boolean   @default(false)
+  // Bank & SePay sync fields
+  bankName          String?   // Tên ngân hàng (e.g. "TPBank", "Vietcombank")
+  bankAccountNumber String?   // Số tài khoản ngân hàng
+  sepayToken        String?   // Token API SePay của người dùng
+  sepayLinkedAt     DateTime? // Thời điểm liên kết SePay
+  lastSyncedTxId    String?   // ID giao dịch SePay cuối đã đồng bộ (dùng làm since_id)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expenses Expense[]
+  expenses     Expense[]
+  bankTransactionsPending BankTransactionPending[]
 
   @@map("wallets")
+}
+
+// Giao dịch ngân hàng địa từ SePay — chờ user duyệt
+model BankTransactionPending {
+  id              String   @id @default(cuid())
+  userId          String
+  walletId        String
+  sepayTxId       String   // ID gốc từ SePay (unique per wallet)
+  amount          Float
+  type            String   // INCOME | EXPENSE
+  transactionDate DateTime
+  description     String?
+  bankBrandName   String?
+  accountNumber   String?
+  status          String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  createdAt       DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@unique([walletId, sepayTxId])
+  @@map("bank_transactions_pending")
 }
 
 model Expense {

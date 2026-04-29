@@ -12,6 +12,20 @@ export class WalletController {
     }
   }
 
+  static async getById(req: Request, res: Response) {
+    try {
+      const userId = (req as any).userId;
+      const { id } = req.params;
+      const wallet = await WalletService.getById(id, userId);
+      if (!wallet) {
+        return res.status(404).json({ success: false, message: 'Wallet not found' });
+      }
+      res.json({ success: true, data: wallet });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
   static async getTotalBalance(req: Request, res: Response) {
     try {
       const userId = (req as any).userId;

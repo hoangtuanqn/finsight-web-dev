@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Eye, EyeOff, MoreHorizontal, Trash2, Edit2, Wallet } from 'lucide-react';
+import { Plus, Eye, EyeOff, MoreHorizontal, Trash2, Edit2, Wallet, RefreshCw } from 'lucide-react';
 import { useWallets, useWalletBalance, useWalletMutations } from '../../../hooks/useWalletQuery';
+import { useBankSyncMutations } from '../../../hooks/useBankSyncQuery';
 import { WalletForm } from './WalletForm';
 
 const WALLET_TYPE_LABELS: Record<string, string> = {
@@ -19,6 +21,7 @@ const WALLET_TYPE_COLORS: Record<string, string> = {
 };
 
 export function WalletSection() {
+  const navigate = useNavigate();
   const [hideBalance, setHideBalance] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingWallet, setEditingWallet] = useState<any>(null);
@@ -27,6 +30,7 @@ export function WalletSection() {
   const { data: wallets, isLoading } = useWallets();
   const { data: balanceData } = useWalletBalance();
   const { deleteWallet } = useWalletMutations();
+  const { fetch } = useBankSyncMutations();
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
@@ -139,6 +143,23 @@ export function WalletSection() {
                         exit={{ opacity: 0, scale: 0.9, y: -4 }}
                         className="absolute top-12 right-2 z-20 bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-xl shadow-2xl overflow-hidden min-w-[130px]"
                       >
+                        {wallet.sepayToken && (
+                          <>
+                            <button
+                              onClick={() => {
+                                fetch.mutate(wallet.id);
+                                navigate(`/wallets/${wallet.id}`);
+                                setOpenMenu(null);
+                              }}
+                              disabled={fetch.isPending}
+                              className="flex items-center gap-2 w-full px-4 py-3 text-[13px] font-bold hover:bg-[var(--color-bg-secondary)] transition-colors text-emerald-500"
+                            >
+                              <RefreshCw size={13} className={fetch.isPending ? 'animate-spin' : ''} /> 
+                              {fetch.isPending ? 'Đang quét...' : 'Xem chi tiết GD'}
+                            </button>
+                            <div className="h-px bg-[var(--color-border)]" />
+                          </>
+                        )}
                         <button
                           onClick={() => handleEdit(wallet)}
                           className="flex items-center gap-2 w-full px-4 py-3 text-[13px] font-bold hover:bg-[var(--color-bg-secondary)] transition-colors text-[var(--color-text-primary)]"

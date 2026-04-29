@@ -23,6 +23,7 @@ import subscriptionRoutes from './routes/subscription.routes';
 import articleRoutes from './routes/article.routes';
 import expenseRoutes from './routes/expense.routes';
 import walletRoutes from './routes/wallet.routes';
+import bankSyncRoutes from './routes/bank-sync.routes';
 import cronManager from './cron/index';
 import { initSocket } from './utils/socket';
 
@@ -60,6 +61,7 @@ app.use('/api/agentic', agenticRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/articles', articleRoutes);
+app.use('/api/bank-sync', bankSyncRoutes);
 
 // Health check
 app.get('/api/health', (req: Request, res: Response) => {
