@@ -8,7 +8,7 @@ interface AuthContextType {
   login: (email: any, password: any) => Promise<any>;
   loginWithGoogle: (credential: any) => Promise<any>;
   loginWithFacebook: (accessToken: any) => Promise<any>;
-  register: (email: any, password: any, fullName: any) => Promise<any>;
+  register: (email: any, password: any, fullName: any, referralCode?: string) => Promise<any>;
   logout: () => void;
   loading: boolean;
   googleClientId: string | null;
@@ -79,8 +79,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return user;
   };
 
-  const register = async (email: any, password: any, fullName: any) => {
-    const res = await (authAPI as any).register({ email, password, fullName });
+  const register = async (email: any, password: any, fullName: any, referralCode?: string) => {
+    const res = await (authAPI as any).register({ email, password, fullName, referralCode });
     const { user, token } = res.data.data;
     localStorage.setItem('finsight_token', token);
     setUser(user);

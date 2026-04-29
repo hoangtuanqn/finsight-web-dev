@@ -4,6 +4,7 @@ import { syncAllBankWallets } from './jobs/wallet-sync.job';
 import { checkExpiredSubscriptions } from './jobs/subscription.job';
 import { checkDueDebtsAndDominoRisk, purgeSoftDeletedDebts } from './jobs/debt.job';
 import { checkMarketSentimentChanges } from './jobs/market.job';
+import { processReferralRewards } from './jobs/referral-reward.job';
 
 class CronManager {
   private isInitialized = false;
@@ -33,6 +34,7 @@ class CronManager {
           checkDueDebtsAndDominoRisk(),
           checkMarketSentimentChanges(),
           expirePendingInvoices(),
+          processReferralRewards(),
         ]);
       } catch (e: any) {
         console.error('❌ Minute Cron Error:', e.message);
