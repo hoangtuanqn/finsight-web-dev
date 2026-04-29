@@ -185,10 +185,10 @@ export default function RegisterPage() {
 
               <SocialLoginButtons setError={setServerError} />
 
-              <div className="flex items-center gap-4 my-8 opacity-20">
-                <div className="flex-1 border-t border-white"></div>
-                <span className="text-[10px] font-black uppercase tracking-widest">Hoặc</span>
-                <div className="flex-1 border-t border-white"></div>
+              <div className="flex items-center gap-4 my-8">
+                <div className="flex-1 border-t border-white opacity-20"></div>
+                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Hoặc</span>
+                <div className="flex-1 border-t border-white opacity-20"></div>
               </div>
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
