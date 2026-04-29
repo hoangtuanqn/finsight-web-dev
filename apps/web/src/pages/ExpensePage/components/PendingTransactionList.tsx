@@ -5,6 +5,7 @@ import {
   ArrowUpRight, ArrowDownLeft, Info, Search
 } from 'lucide-react';
 import { useBankSyncMutations } from '../../../hooks/useBankSyncQuery';
+import { CategoryPicker } from './CategoryPicker';
 
 interface PendingTransactionListProps {
   transactions: any[];
@@ -25,13 +26,19 @@ export function PendingTransactionList({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [categoryId, setCategoryId] = useState('');
   const [description, setDescription] = useState('');
+  const [localType, setLocalType] = useState<'EXPENSE' | 'INCOME'>('EXPENSE');
 
   const fmt = (n: number) =>
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
 
   const handleApprove = (tx: any) => {
     if (!categoryId) return;
-    approve.mutate({ id: tx.id, categoryId, description: description || tx.description });
+    approve.mutate({ 
+      id: tx.id, 
+      categoryId, 
+      description: description || tx.description,
+      // Truyền thêm type nếu bạn muốn cập nhật lại loại giao dịch (cần update API sau nếu cần)
+    });
     setSelectedId(null);
     setCategoryId('');
     setDescription('');
@@ -139,7 +146,7 @@ export function PendingTransactionList({
                         onClick={() => {
                           setSelectedId(tx.id);
                           setDescription(tx.description);
-                          // Tự động tìm category gợi ý nếu có (về sau có thể dùng AI)
+                          setLocalType(tx.type as any);
                           setCategoryId('');
                         }}
                         className="p-2 rounded-xl bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white transition-all shadow-sm border border-blue-500/20"
@@ -171,6 +178,31 @@ export function PendingTransactionList({
                     className="overflow-hidden"
                   >
                     <div className="mt-5 pt-5 border-t border-[var(--color-border)] space-y-4">
+                      {/* Type Toggle */}
+                      <div className="flex bg-[var(--color-bg-secondary)] p-1 rounded-2xl border border-[var(--color-border)] gap-1">
+                        {[
+                          { value: 'EXPENSE', label: '💸 Chi phí', color: '#ef4444' },
+                          { value: 'INCOME', label: '💰 Thu nhập', color: '#10b981' }
+                        ].map(t => (
+                          <button
+                            key={t.value}
+                            type="button"
+                            onClick={() => {
+                              setLocalType(t.value as any);
+                              setCategoryId('');
+                            }}
+                            className={`flex-1 py-2 rounded-xl text-[12px] font-bold transition-all ${
+                              localType === t.value
+                                ? 'bg-[var(--color-bg-card)] shadow-sm border border-[var(--color-border)]'
+                                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+                            }`}
+                            style={localType === t.value ? { color: t.color } : {}}
+                          >
+                            {t.label}
+                          </button>
+                        ))}
+                      </div>
+
                       <div>
                         <label className="text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-wider mb-2 block">
                           Ghi chú & Tên giao dịch
@@ -186,25 +218,12 @@ export function PendingTransactionList({
                         <label className="text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-wider mb-2 block">
                           Chọn danh mục chi tiêu/thu nhập
                         </label>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                          {categories
-                            .filter(c => c.type === tx.type)
-                            .map(cat => (
-                              <button
-                                key={cat.id}
-                                type="button"
-                                onClick={() => setCategoryId(cat.id)}
-                                className={`flex items-center gap-2 px-3 py-2.5 rounded-2xl text-xs font-bold transition-all border ${
-                                  categoryId === cat.id
-                                    ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20'
-                                    : 'bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-blue-500/40'
-                                }`}
-                              >
-                                <span className="text-lg">{cat.icon}</span>
-                                <span className="truncate">{cat.name}</span>
-                              </button>
-                            ))}
-                        </div>
+                        <CategoryPicker
+                          categories={categories}
+                          selectedId={categoryId}
+                          type={localType}
+                          onSelect={(id) => setCategoryId(id)}
+                        />
                       </div>
 
                       <div className="flex gap-3 pt-2">
