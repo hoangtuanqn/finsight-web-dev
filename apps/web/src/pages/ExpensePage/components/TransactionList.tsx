@@ -121,7 +121,7 @@ export function TransactionList({ expenses, loading, onEdit }: TransactionListPr
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className={`text-[15px] font-black ${item.type === 'INCOME' ? 'text-emerald-500' : 'text-[var(--color-text-primary)]'}`}>
+                  <span className={`text-[15px] font-black ${item.type === 'INCOME' ? 'text-emerald-500' : 'text-red-500'}`}>
                     {item.type === 'INCOME' ? '+' : '-'}{formatCurrency(item.amount)}
                   </span>
                   <ChevronRight size={16} className="text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 transition-opacity -mr-2" />

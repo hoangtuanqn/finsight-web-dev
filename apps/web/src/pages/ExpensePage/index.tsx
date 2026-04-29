@@ -89,7 +89,7 @@ export default function ExpensePage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 pt-2">
         <div>
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 text-xs font-bold uppercase tracking-widest mb-4">
-            <Wallet size={14} /> Quản lý chi tiêu
+            <Wallet size={14} /> Quản lý thu chi
           </div>
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-[var(--color-text-primary)]">
             Sổ thu chi

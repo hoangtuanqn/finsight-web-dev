@@ -23,8 +23,8 @@ export const useBankSyncMutations = () => {
   const queryClient = useQueryClient();
 
   const approveMutation = useMutation({
-    mutationFn: async ({ id, categoryId, description }: { id: string, categoryId: string, description?: string }) => {
-      const res = await bankSyncAPI.approve(id, { categoryId, description });
+    mutationFn: async ({ id, categoryId, description, type }: { id: string, categoryId: string, description?: string, type?: string }) => {
+      const res = await bankSyncAPI.approve(id, { categoryId, description, type });
       return res.data;
     },
     onSuccess: () => {
