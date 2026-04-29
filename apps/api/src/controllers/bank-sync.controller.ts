@@ -23,13 +23,13 @@ export class BankSyncController {
     try {
       const userId = (req as any).userId;
       const { id } = req.params;
-      const { categoryId, description } = req.body;
+      const { categoryId, description, type } = req.body;
 
       if (!categoryId) {
         return res.status(400).json({ message: 'Vui lòng chọn danh mục' });
       }
 
-      const expense = await BankSyncService.approveTransaction(userId, id, { categoryId, description });
+      const expense = await BankSyncService.approveTransaction(userId, id, { categoryId, description, type });
       res.json({ success: true, message: 'Đã duyệt giao dịch', expense });
     } catch (error: any) {
       res.status(400).json({ message: error.message });
