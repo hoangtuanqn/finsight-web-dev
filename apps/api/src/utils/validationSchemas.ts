@@ -14,7 +14,14 @@ export const authSchemas = {
       .min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
     confirmPassword: z.string()
       .min(1, 'Xác nhận mật khẩu là bắt buộc')
-  }).refine((data) => data.password === data.confirmPassword, {
+      .optional(),
+    referralCode: z.string().optional()
+  }).refine((data) => {
+    if (data.confirmPassword && data.password !== data.confirmPassword) {
+      return false;
+    }
+    return true;
+  }, {
     message: 'Mật khẩu xác nhận không khớp',
     path: ['confirmPassword']
   }),
