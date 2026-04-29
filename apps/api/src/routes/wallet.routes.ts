@@ -7,6 +7,7 @@ router.use(authenticate);
 
 router.get('/balance', WalletController.getTotalBalance);
 router.get('/', WalletController.getAll);
+router.get('/:id', WalletController.getById);
 router.post('/', WalletController.create);
 router.patch('/:id', WalletController.update);
 router.delete('/:id', WalletController.delete);

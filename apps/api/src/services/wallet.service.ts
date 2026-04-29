@@ -1,12 +1,16 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma';
 
 export class WalletService {
   static async getAll(userId: string) {
-    return prisma.wallet.findMany({
+    return (prisma as any).wallet.findMany({
       where: { userId },
       orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
+    });
+  }
+
+  static async getById(id: string, userId: string) {
+    return (prisma as any).wallet.findUnique({
+      where: { id, userId },
     });
   }
 
