@@ -55,7 +55,7 @@ export default function RegisterPage() {
     }
   }, [refCode]);
 
-  const { register, handleSubmit, formState: { errors, watch } } = useForm({
+  const { register, handleSubmit, watch, formState: { errors } } = useForm({
     resolver: zodResolver(registerSchema),
     defaultValues: { fullName: '', email: '', password: '', confirmPassword: '', referralCode: refCode }
   });
