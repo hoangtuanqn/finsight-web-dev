@@ -11,11 +11,12 @@ export function authenticate(req: AuthenticatedRequest, res: Response, next: Nex
 
   const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
+    const decoded = jwt.verify(token, (process.env.JWT_SECRET as string).trim()) as any;
     req.userId = decoded.userId;
     req.userEmail = decoded.email;
     next();
-  } catch {
+  } catch (err: any) {
+    console.error('[AuthMiddleware] Verification failed:', err.message);
     return error(res, 'Unauthorized — invalid token', 401);
   }
 }

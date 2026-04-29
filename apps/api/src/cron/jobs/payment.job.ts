@@ -52,6 +52,11 @@ export async function checkSepayPayments() {
           where: { id: invoice.userId },
           data: { level: invoice.plan, levelExpiresAt: expiresAt, strategyQuota: { increment: quotaBonus } },
         }),
+        // Cập nhật trạng thái nạp tiền cho Referral
+        (prisma as any).referral.updateMany({
+          where: { referredId: invoice.userId, status: 'PENDING' },
+          data: { hasToppedUp: true }
+        }),
         (prisma as any).notification.create({
           data: {
             userId: invoice.userId,
