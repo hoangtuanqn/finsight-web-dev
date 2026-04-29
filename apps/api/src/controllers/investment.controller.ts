@@ -83,7 +83,13 @@ export async function getAllocationRecommendation(req: AuthenticatedRequest, res
       sentimentValue = sentiment.value;
     }
 
-    const allocation = await getOptimalAllocation(profile, sentimentValue);
+    const EXCLUDABLE_ASSETS = ['gold', 'stocks', 'stocks_us', 'bonds', 'crypto'];
+    const rawExcluded = req.query.excludedAssets as string | undefined;
+    const excludedAssets = rawExcluded
+      ? rawExcluded.split(',').map(s => s.trim()).filter(s => EXCLUDABLE_ASSETS.includes(s))
+      : [];
+
+    const allocation = await getOptimalAllocation(profile, sentimentValue, null, excludedAssets);
 
     await (prisma as any).allocation.create({
       data: {

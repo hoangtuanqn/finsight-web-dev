@@ -49,7 +49,11 @@ export async function generateStrategy(req: AuthenticatedRequest, res: Response)
     const sentiment = await fetchFearGreedIndex();
     const sentimentValue = sentiment.value ?? 50;
 
-    const result = await getOptimalAllocation(user.investorProfile, sentimentValue);
+    const EXCLUDABLE_ASSETS = ['gold', 'stocks', 'stocks_us', 'bonds', 'crypto'];
+    const rawExcluded: string[] = Array.isArray(req.body.excludedAssets) ? req.body.excludedAssets : [];
+    const excludedAssets = rawExcluded.filter(a => EXCLUDABLE_ASSETS.includes(a));
+
+    const result = await getOptimalAllocation(user.investorProfile, sentimentValue, null, excludedAssets);
 
     const strategy = await (prisma as any).aIStrategy.create({
       data: {
