@@ -148,9 +148,19 @@ export const expenseAPI = {
 export const walletAPI = {
   getAll: () => api.get('/wallets'),
   getBalance: () => api.get('/wallets/balance'),
+  getById: (id: string) => api.get(`/wallets/${id}`),
   create: (data: any) => api.post('/wallets', data),
   update: (id: string, data: any) => api.patch(`/wallets/${id}`, data),
   delete: (id: string) => api.delete(`/wallets/${id}`),
+};
+
+// BANK SYNC
+export const bankSyncAPI = {
+  getPending: (params?: any) => api.get('/bank-sync/pending', { params }),
+  fetch: (walletId: string) => api.post(`/bank-sync/fetch/${walletId}`),
+  approve: (id: string, data: any) => api.post(`/bank-sync/approve/${id}`, data),
+  reject: (id: string) => api.post(`/bank-sync/reject/${id}`),
+  clear: () => api.delete('/bank-sync/clear'),
 };
 
 export default api;

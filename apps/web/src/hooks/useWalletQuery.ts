@@ -12,6 +12,18 @@ export function useWallets() {
   });
 }
 
+export function useWalletDetail(id: string | undefined) {
+  return useQuery({
+    queryKey: ['wallet', id],
+    queryFn: async () => {
+      if (!id) return null;
+      const res = await walletAPI.getById(id);
+      return res.data.data;
+    },
+    enabled: !!id,
+  });
+}
+
 export function useWalletBalance() {
   return useQuery({
     queryKey: queryKeys.WALLETS.BALANCE,
