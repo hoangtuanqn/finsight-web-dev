@@ -23,7 +23,8 @@ const registerSchema = z.object({
     .min(1, 'Mật khẩu không được để trống')
     .min(6, 'Mật khẩu phải có ít nhất 6 ký tự'),
   confirmPassword: z.string()
-    .min(1, 'Xác nhận mật khẩu là bắt buộc')
+    .min(1, 'Xác nhận mật khẩu là bắt buộc'),
+  referralCode: z.string().optional()
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Mật khẩu xác nhận không khớp',
   path: ['confirmPassword']
