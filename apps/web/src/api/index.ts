@@ -76,7 +76,7 @@ export const investmentAPI = {
   getProfile: () => api.get('/investment/profile'),
   createProfile: (data: any) => api.post('/investment/profile', data),
   updateProfile: (data: any) => api.put('/investment/profile', data),
-  getAllocation: (params?: any) => api.get('/investment/allocation', { params }),
+  getAllocation: (params?: { mockSentiment?: number; excludedAssets?: string }) => api.get('/investment/allocation', { params }),
   getHistory: () => api.get('/investment/history'),
   submitRiskAssessment: (data: any) => api.post('/investment/risk-assessment', data),
   getCryptoPrices: () => api.get('/investment/crypto-prices'),
@@ -87,7 +87,7 @@ export const investmentAPI = {
   getBondsRates: (params: any) => api.get('/investment/bonds-rates', { params }),
   // ── AI Strategy & User Portfolio ──
   getStrategies: () => api.get('/investment/strategies'),
-  generateStrategy: () => api.post('/investment/strategies/generate'),
+  generateStrategy: (excludedAssets?: string[]) => api.post('/investment/strategies/generate', { excludedAssets: excludedAssets ?? [] }),
   getPortfolio: () => api.get('/investment/portfolio'),
   upsertPortfolio: (data: any) => api.post('/investment/portfolio', data),
   updatePortfolio: (data: any) => api.put('/investment/portfolio', data),
