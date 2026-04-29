@@ -42,10 +42,19 @@ const SUMMARY_CARDS = (stats: any) => [
 ];
 
 export default function AffiliatePage() {
-  const { data, isLoading } = useAffiliateQuery();
+  const { data, isLoading, error } = useAffiliateQuery();
   const [copied, setCopied] = useState(false);
 
-  const referralLink = `${window.location.origin}/register?ref=${data?.referralCode || ''}`;
+  // Debug client-side
+  if (data) {
+    console.log('[AffiliatePage] Render with data:', data);
+  }
+  if (error) {
+    console.error('[AffiliatePage] Query error:', error);
+  }
+
+  const referralCode = data?.referralCode;
+  const referralLink = `${window.location.origin}/register?ref=${referralCode || ''}`;
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -85,7 +94,7 @@ export default function AffiliatePage() {
           <div className="bg-[var(--color-bg-card)] border border-[var(--color-border)] p-4 rounded-2xl shadow-sm flex items-center gap-4">
             <div>
               <p className="text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-0.5">Mã giới thiệu của bạn</p>
-              <p className="text-xl font-black text-blue-500 tracking-wider">{data?.referralCode || '------'}</p>
+              <p className="text-xl font-black text-blue-500 tracking-wider">{referralCode || '------'}</p>
             </div>
             <button 
               onClick={() => handleCopy(data?.referralCode || '')}
