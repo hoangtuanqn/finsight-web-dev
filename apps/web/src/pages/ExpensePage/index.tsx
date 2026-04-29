@@ -45,8 +45,15 @@ export default function ExpensePage() {
   const handleEdit = (expense: any) => { setEditingExpense(expense); setIsFormOpen(true); };
   const closeForm = () => { setIsFormOpen(false); setEditingExpense(null); };
 
-  const formatCompact = (n: number) =>
-    new Intl.NumberFormat('vi-VN', { notation: 'compact', maximumFractionDigits: 1 }).format(n) + 'đ';
+  const formatCompact = (n: number) => {
+    if (n < 1000000) {
+      return new Intl.NumberFormat('vi-VN').format(n) + 'đ';
+    }
+    return new Intl.NumberFormat('vi-VN', { 
+      notation: 'compact', 
+      maximumFractionDigits: 1 
+    }).format(n).replace('tr', ' Tr').replace('tỷ', ' Tỷ') + 'đ';
+  };
 
   const summaryCards = [
     {
