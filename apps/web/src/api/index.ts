@@ -163,4 +163,10 @@ export const bankSyncAPI = {
   clear: () => api.delete('/bank-sync/clear'),
 };
 
+// REFERRAL
+export const referralAPI = {
+  trackClick: (code: string) => api.get(`/referral/click/${code}`),
+  getStats: () => api.get('/referral/stats'),
+};
+
 export default api;

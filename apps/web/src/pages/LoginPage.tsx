@@ -1,18 +1,20 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 import SocialLoginButtons from '../components/auth/SocialLoginButtons';
-import { AlertTriangle, Mail, Lock, Eye, EyeOff, ArrowRight, Sparkles, ShieldCheck, Zap, ChevronRight } from 'lucide-react';
-import { GradientText, Spotlight } from './LandingPage/components/Shared';
+import { 
+  AlertTriangle, Mail, Lock, Eye, EyeOff, 
+  ArrowRight, Sparkles, ShieldCheck, Zap, 
+  ChevronRight, QrCode, Monitor, Globe, Cpu 
+} from 'lucide-react';
 import { ToggleMode } from '../components/layout/components/ToggleMode';
 import { useDarkMode } from '../hooks/useDarkMode';
 import QRCodeLogin from '../components/auth/QRCodeLogin';
-import { QrCode, Monitor } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Email không được để trống').email('Email không hợp lệ'),
@@ -56,197 +58,230 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#030712] text-slate-900 dark:text-slate-50 overflow-hidden font-sans relative selection:bg-blue-500/30">
-      {/* Dynamic Web3 Background (Direct from Landing Page) */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHBhdGggZD0iTTAgMGg0MHY0MEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0wIDM5LjVoNDBNMzkuNSAwdi00ME0wIDAuNWg0ME0wLjUgMHY0MCIgc3Ryb2tlPSJyZ2JhKDAsMCwwLDAuMDMpIiBzdHJva2Utd2lkdGg9IjEiLz48L3N2Zz4=')] dark:bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHBhdGggZD0iTTAgMGg0MHY0MEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0wIDM5LjVoNDBNMzkuNSAwdi00ME0wIDAuNWg0ME0wLjUgMHY0MCIgc3Ryb2tlPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMDIpIiBzdHJva2Utd2lkdGg9IjEiLz48L3N2Zz4=')]" />
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-500/10 dark:bg-blue-600/20 blur-[120px] animate-pulse" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-cyan-400/10 dark:bg-cyan-500/20 blur-[150px] animate-pulse [animation-delay:2s]" />
-        <Spotlight className="-top-40 left-0 md:left-60 md:-top-20" />
+    <div className="min-h-screen bg-[#020617] text-slate-50 overflow-hidden font-sans relative selection:bg-indigo-500/30">
+      
+      {/* Immersive Moving Mesh Background */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] rounded-full bg-indigo-600/20 blur-[160px] animate-[pulse_10s_infinite]" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] rounded-full bg-rose-600/10 blur-[160px] animate-[pulse_15s_infinite_2s]" />
+        <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] rounded-full bg-blue-600/10 blur-[120px] animate-[pulse_12s_infinite_4s]" />
+        
+        {/* Animated Particles Grid */}
+        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" 
+             style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
       </div>
 
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-6">
-        <div className="w-full max-w-7xl grid lg:grid-cols-2 gap-16 items-center">
+      {/* Floating Decorative Elements */}
+      <div className="fixed inset-0 z-10 pointer-events-none">
+         <motion.div animate={{ y: [0, -20, 0], x: [0, 10, 0] }} transition={{ duration: 6, repeat: Infinity }} className="absolute top-20 left-[15%] opacity-20"><Globe size={120} /></motion.div>
+         <motion.div animate={{ y: [0, 20, 0], x: [0, -10, 0] }} transition={{ duration: 8, repeat: Infinity }} className="absolute bottom-40 right-[10%] opacity-10"><Cpu size={160} /></motion.div>
+      </div>
 
-          {/* Left Side: Hero-style Content */}
+      <div className="relative z-20 min-h-screen flex flex-col items-center justify-center p-4 md:p-8">
+        
+        {/* Navigation / Header */}
+        <div className="absolute top-8 left-0 right-0 px-8 flex justify-between items-center w-full max-w-7xl mx-auto">
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/10 group-hover:bg-white/20 transition-all">
+              <img src="https://i.ibb.co/84xLmWTK/LOGO.png" alt="Logo" className="h-6 w-auto" />
+            </div>
+            <span className="text-sm font-black uppercase tracking-[0.4em] opacity-80">FinSight</span>
+          </Link>
+          <ToggleMode dark={dark} setDark={setDark} />
+        </div>
+
+        {/* Main Centered Content */}
+        <div className="w-full max-w-5xl grid lg:grid-cols-12 gap-12 items-center">
+          
+          {/* Left Text: Floating Labels (Hidden on mobile) */}
+          <div className="hidden lg:flex lg:col-span-4 flex-col gap-8">
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }} 
+              animate={{ opacity: 1, x: 0 }} 
+              transition={{ delay: 0.3 }}
+              className="p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl"
+            >
+              <h3 className="text-xl font-black mb-2 flex items-center gap-2 text-white">
+                <ShieldCheck className="text-indigo-500" size={20} /> Bảo mật tối đa
+              </h3>
+              <p className="text-sm text-slate-400 font-medium leading-relaxed">Giao thức mã hóa lượng tử bảo vệ tài sản và định danh số của bạn 24/7.</p>
+            </motion.div>
+
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }} 
+              animate={{ opacity: 1, x: 0 }} 
+              transition={{ delay: 0.5 }}
+              className="p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl"
+            >
+              <h3 className="text-xl font-black mb-2 flex items-center gap-2 text-white">
+                <Zap className="text-rose-500" size={20} /> Phân tích Real-time
+              </h3>
+              <p className="text-sm text-slate-400 font-medium leading-relaxed">Mọi biến động nợ và tài sản được AI bóc tách trong mili giây.</p>
+            </motion.div>
+          </div>
+
+          {/* Center Card: The Portal */}
           <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            className="hidden lg:block"
+            className="lg:col-span-8 w-full max-w-md mx-auto relative group"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 dark:bg-blue-500/20 border border-blue-500/20 dark:border-blue-500/30 text-blue-600 dark:text-blue-300 text-xs font-bold uppercase tracking-widest mb-8">
-              <Sparkles size={14} className="animate-spin-slow" />
-              Fintech Intelligence Protocol
-            </div>
+            {/* Card Aura */}
+            <div className="absolute -inset-1 bg-gradient-to-br from-indigo-500 via-purple-500 to-rose-500 rounded-[3rem] blur-2xl opacity-20 group-hover:opacity-40 transition-opacity duration-700" />
+            
+            <div className="relative bg-slate-900/40 backdrop-blur-[40px] rounded-[3rem] border border-white/10 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)] p-8 md:p-12 overflow-hidden">
+              
+              {/* Subtle light reflection on top */}
+              <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
-            <h1 className="text-6xl font-black text-slate-900 dark:text-white leading-[1.1] mb-8 tracking-tighter">
-              Chào mừng bạn đến với <span> </span>
-              <GradientText from="from-blue-600" to="to-cyan-500">FinSight</GradientText>
-            </h1>
-
-            <p className="text-xl text-slate-600 dark:text-slate-400 mb-12 max-w-lg font-medium leading-relaxed">
-              Giao thức quản lý tài chính thế hệ mới. Đăng nhập để tối ưu hóa nợ và gia tăng tài sản cùng trí tuệ nhân tạo.
-            </p>
-
-            <div className="flex flex-wrap gap-8">
-              {[
-                { icon: ShieldCheck, text: 'Mã hóa quân sự' },
-                { icon: Zap, text: 'Xử lý Real-time' }
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-3 text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                    <item.icon size={20} className="text-blue-500" />
-                  </div>
-                  {item.text}
+              <div className="mb-10 text-center">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-widest mb-4">
+                  <Sparkles size={12} /> Authentication Gateway
                 </div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Right Side: Auth Card (Matches Landing Page Cards) */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="w-full max-w-md mx-auto relative group"
-          >
-            {/* Card Glow Effect */}
-            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-[2.5rem] blur opacity-20 group-hover:opacity-30 transition duration-1000" />
-
-            <div className="relative bg-white/70 dark:bg-slate-900/40 backdrop-blur-2xl rounded-[2.5rem] border border-white dark:border-white/10 shadow-2xl p-10 lg:p-12">
-              {/* Theme Toggle in Corner */}
-              <div className="absolute top-8 right-8">
-                <ToggleMode dark={dark} setDark={setDark} />
-              </div>
-
-              {/* Header */}
-              <div className="mb-10">
-                <div className="flex items-center gap-3 mb-6 lg:hidden">
-                   <img src="https://i.ibb.co/84xLmWTK/LOGO.png" alt="FinSight Logo" className="h-8 w-auto object-contain" />
-                </div>
-                <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2 tracking-tighter">Đăng nhập</h2>
-                <p className="text-slate-500 dark:text-slate-400 font-medium">Tiếp tục hành trình tài chính của bạn</p>
+                <h2 className="text-3xl font-black mb-2 tracking-tighter text-white">Đăng nhập</h2>
+                <p className="text-slate-400 text-sm font-medium">Tiếp tục hành trình tài chính của bạn</p>
               </div>
 
               {serverError && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="bg-red-500/10 border border-red-500/20 rounded-2xl px-5 py-4 mb-8 text-sm text-red-500 dark:text-red-400 flex items-start gap-3"
-                >
-                  <AlertTriangle size={18} className="shrink-0" />
-                  <span className="font-bold">{serverError}</span>
-                </motion.div>
+                <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-4 mb-8 flex items-center gap-3 text-xs text-rose-500 font-bold">
+                  <AlertTriangle size={16} /> {serverError}
+                </div>
               )}
 
               <SocialLoginButtons setError={setServerError} />
 
-              <div className="flex items-center gap-4 mb-8 opacity-60">
-                 <div className="flex-1 border-t border-slate-300 dark:border-slate-700"></div>
-                 <button 
+              <div className="flex items-center gap-4 my-8">
+                <div className="flex-1 border-t border-white opacity-20"></div>
+                <button 
                   onClick={() => setLoginMode(loginMode === 'email' ? 'qr' : 'email')}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full border border-blue-500/20 bg-blue-500/5 text-[10px] font-black uppercase tracking-widest text-blue-500 hover:bg-blue-500/10 transition-all cursor-pointer"
-                 >
-                   {loginMode === 'email' ? <><QrCode size={14} /> Đăng nhập qua QR</> : <><Monitor size={14} /> Đăng nhập qua Email</>}
-                 </button>
-                 <div className="flex-1 border-t border-slate-300 dark:border-slate-700"></div>
+                  className="flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-white/10 text-[10px] font-black uppercase tracking-widest text-white hover:bg-white/20 transition-all cursor-pointer pointer-events-auto shadow-lg"
+                >
+                  {loginMode === 'email' ? <><QrCode size={14} /> Mã QR</> : <><Monitor size={14} /> Email</>}
+                </button>
+                <div className="flex-1 border-t border-white opacity-20"></div>
               </div>
 
-              {loginMode === 'email' ? (
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest ml-1">Email</label>
-                  <div className="relative group/input">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-blue-500 transition-colors">
-                      <Mail size={18} />
+              <AnimatePresence mode="wait">
+                {loginMode === 'email' ? (
+                  <motion.form 
+                    key="email"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    onSubmit={handleSubmit(onSubmit)} 
+                    className="space-y-4"
+                  >
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Email</label>
+                      <div className="relative group/input">
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within/input:text-indigo-500 transition-colors" size={18} />
+                        <input
+                          {...register('email')}
+                          type="email"
+                          className={`w-full bg-white/5 border rounded-2xl px-12 py-3.5 text-white font-bold focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all text-sm ${errors.email ? 'border-rose-500' : 'border-white/10 focus:border-indigo-500'}`}
+                          placeholder="Email của bạn"
+                        />
+                      </div>
                     </div>
-                    <input
-                      {...register('email')}
-                      type="email"
-                      className={`w-full bg-slate-100/50 dark:bg-white/5 border rounded-2xl px-12 py-4 text-slate-900 dark:text-white font-bold focus:ring-4 focus:ring-blue-500/10 outline-none transition-all ${errors.email ? 'border-red-500 focus:border-red-500' : 'border-slate-200 dark:border-white/10 focus:border-blue-500'}`}
-                      placeholder="Email của bạn"
-                    />
-                  </div>
-                  {errors.email && <p className="text-[11px] font-bold text-red-500 ml-1">{errors.email.message}</p>}
-                </div>
 
-                <div className="space-y-2">
-                  <div className="flex justify-between px-1">
-                    <label className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Password</label>
-                    <Link to="/forgot" className="text-xs font-bold text-blue-500 hover:underline">Quên mật khẩu?</Link>
-                  </div>
-                  <div className="relative group/input">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-blue-500 transition-colors">
-                      <Lock size={18} />
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center px-1">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Mật khẩu</label>
+                        <Link to="/forgot" className="text-[10px] font-black text-indigo-400 hover:text-indigo-300 uppercase tracking-widest">Quên mật khẩu?</Link>
+                      </div>
+                      <div className="relative group/input">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within/input:text-indigo-500 transition-colors" size={18} />
+                        <input
+                          {...register('password')}
+                          type={showPassword ? 'text' : 'password'}
+                          className={`w-full bg-white/5 border rounded-2xl pl-12 pr-12 py-3.5 text-white font-bold focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all text-sm ${errors.password ? 'border-rose-500' : 'border-white/10 focus:border-indigo-500'}`}
+                          placeholder="••••"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                        >
+                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
                     </div>
-                    <input
-                      {...register('password')}
-                      type={showPassword ? 'text' : 'password'}
-                      className={`w-full bg-slate-100/50 dark:bg-white/5 border rounded-2xl px-12 py-4 text-slate-900 dark:text-white font-bold focus:ring-4 focus:ring-blue-500/10 outline-none transition-all ${errors.password ? 'border-red-500 focus:border-red-500' : 'border-slate-200 dark:border-white/10 focus:border-blue-500'}`}
-                      placeholder="Mật khẩu"
-                    />
+
                     <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-500 transition-colors"
+                      type="submit"
+                      disabled={loading}
+                      className="group relative w-full flex items-center justify-center gap-2 px-8 py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-[0_20px_40px_-12px_rgba(79,70,229,0.4)] hover:shadow-[0_20px_60px_-12px_rgba(79,70,229,0.6)] transition-all active:scale-[0.98] disabled:opacity-70 mt-6 cursor-pointer overflow-hidden"
                     >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-rose-600 opacity-100 group-hover:scale-110 transition-transform duration-500" />
+                      {loading ? (
+                        <div className="relative w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <span className="relative flex items-center gap-2 uppercase tracking-widest text-[11px]">
+                          Xác nhận đăng nhập <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                        </span>
+                      )}
                     </button>
-                  </div>
-                  {errors.password && <p className="text-[11px] font-bold text-red-500 ml-1">{errors.password.message}</p>}
-                </div>
+                  </motion.form>
+                ) : (
+                  <motion.div 
+                    key="qr"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="py-4 flex justify-center"
+                  >
+                    <div className="p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md">
+                      <QRCodeLogin onLoginSuccess={onQRSuccess} />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="group relative w-full flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 text-white font-bold rounded-2xl shadow-[0_0_30px_rgba(37,99,235,0.3)] hover:shadow-[0_0_50px_rgba(37,99,235,0.5)] transition-all disabled:opacity-70 cursor-pointer"
-                >
-                  {loading ? (
-                    <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      Đăng nhập <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
-                    </>
-                  )}
-                  <div className="absolute inset-0 bg-white/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl pointer-events-none" />
-                </button>
-              </form>
-              ) : (
-                <div className="py-2">
-                  <QRCodeLogin onLoginSuccess={onQRSuccess} />
-                </div>
-              )}
-
-              <div className="mt-10 pt-8 border-t border-slate-100 dark:border-white/5 text-center">
-                <p className="text-slate-500 dark:text-slate-400 font-bold mb-4">
-                  Chưa kích hoạt tài khoản?
+              <div className="mt-8 pt-8 border-t border-white/5 text-center">
+                <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-4">
+                  Chưa có định danh tài chính?
                 </p>
-                <Link
-                  to="/register"
-                  className="inline-flex items-center gap-2 text-blue-500 font-black hover:gap-3 transition-all"
-                >
-                  Đăng ký tài khoản mới <ArrowRight size={18} />
+                <Link to="/register" className="text-[10px] font-black text-indigo-400 uppercase tracking-widest hover:text-indigo-300 transition-colors inline-flex items-center gap-2 group">
+                  Đăng ký tài khoản mới <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                 </Link>
               </div>
 
-              {/* Demo Sandbox Alert */}
-              <div className="mt-8 p-4 rounded-2xl bg-blue-500/5 dark:bg-blue-500/10 border border-blue-500/10 dark:border-blue-500/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                  <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Demo Sandbox Access</span>
+              {/* Demo Sandbox Alert - Re-styled */}
+              <div className="mt-8 p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/10">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                  <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Demo Sandbox Access</span>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                    Email: <span className="text-slate-900 dark:text-white">demo@finsight.vn</span>
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between items-center text-[10px] font-bold text-slate-400">
+                    <span>Email:</span>
+                    <span className="text-white">demo@finsight.vn</span>
                   </div>
-                  <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                    Pass: <span className="text-slate-900 dark:text-white">Demo@123</span>
+                  <div className="flex justify-between items-center text-[10px] font-bold text-slate-400">
+                    <span>Mật khẩu:</span>
+                    <span className="text-white tracking-widest">Demo@123</span>
                   </div>
                 </div>
               </div>
             </div>
           </motion.div>
+
+          {/* Right Text / Extra Info (Hidden on mobile) */}
+          <div className="hidden lg:flex lg:col-span-12 justify-center gap-20 mt-8 opacity-40">
+             <div className="flex flex-col items-center gap-2">
+                <span className="text-2xl font-black text-white">2.4k+</span>
+                <span className="text-[10px] uppercase font-bold tracking-[0.2em]">Người dùng</span>
+             </div>
+             <div className="flex flex-col items-center gap-2">
+                <span className="text-2xl font-black text-white">99.9%</span>
+                <span className="text-[10px] uppercase font-bold tracking-[0.2em]">Trạng thái</span>
+             </div>
+             <div className="flex flex-col items-center gap-2">
+                <span className="text-2xl font-black text-white">256-bit</span>
+                <span className="text-[10px] uppercase font-bold tracking-[0.2em]">Bảo mật</span>
+             </div>
+          </div>
 
         </div>
       </div>
