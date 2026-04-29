@@ -15,6 +15,7 @@ import { BellRing } from 'lucide-react';
 
 export default function ExpensePage() {
   const [activeTab, setActiveTab] = useState<'TRANSACTIONS' | 'REPORTS' | 'PENDING'>('TRANSACTIONS');
+  const [selectedWalletId, setSelectedWalletId] = useState<string | undefined>(undefined);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<any>(null);
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'EXPENSE' | 'INCOME'>('ALL');
@@ -35,7 +36,7 @@ export default function ExpensePage() {
   const { data: expenses, isLoading: loadingExpenses } = useExpenseQuery(queryParams);
   const { data: stats, isLoading: loadingStats } = useExpenseStats({ startDate, endDate });
   const { data: categories } = useExpenseCategories();
-  const { data: pendingTxs, isLoading: loadingPending } = useBankSyncQuery();
+  const { data: pendingTxs, isLoading: loadingPending } = useBankSyncQuery(selectedWalletId);
 
   const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
@@ -99,7 +100,7 @@ export default function ExpensePage() {
       </div>
 
       {/* Wallet Section */}
-      <WalletSection onViewPending={() => setActiveTab('PENDING')} />
+      <WalletSection />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-5">
@@ -161,14 +162,17 @@ export default function ExpensePage() {
             { id: 'REPORTS', label: 'Báo cáo', icon: PieChartIcon },
             { 
               id: 'PENDING', 
-              label: 'Chờ duyệt', 
+              label: selectedWalletId ? 'Chi tiết GD ví' : 'Chờ duyệt', 
               icon: BellRing,
               badge: pendingTxs?.length > 0 ? pendingTxs.length : null
             },
           ].map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => {
+                setActiveTab(tab.id as any);
+                if (tab.id !== 'PENDING') setSelectedWalletId(undefined);
+              }}
               className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
                 activeTab === tab.id
                   ? 'bg-[var(--color-bg-card)] text-blue-500 shadow-sm border border-blue-500/20'
@@ -235,6 +239,8 @@ export default function ExpensePage() {
               transactions={pendingTxs || []}
               loading={loadingPending}
               categories={categories || []}
+              walletId={selectedWalletId}
+              onClearFilter={() => setSelectedWalletId(undefined)}
             />
           </motion.div>
         ) : (

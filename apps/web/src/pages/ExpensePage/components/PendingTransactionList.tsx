@@ -10,9 +10,17 @@ interface PendingTransactionListProps {
   transactions: any[];
   categories: any[];
   loading: boolean;
+  walletId?: string;
+  onClearFilter?: () => void;
 }
 
-export function PendingTransactionList({ transactions, categories, loading }: PendingTransactionListProps) {
+export function PendingTransactionList({ 
+  transactions, 
+  categories, 
+  loading, 
+  walletId, 
+  onClearFilter 
+}: PendingTransactionListProps) {
   const { approve, reject } = useBankSyncMutations();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [categoryId, setCategoryId] = useState('');
@@ -55,10 +63,27 @@ export function PendingTransactionList({ transactions, categories, loading }: Pe
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between px-2">
-        <p className="text-sm font-bold text-[var(--color-text-muted)]">
-          Cần xử lý <span className="text-blue-500">{transactions.length}</span> giao dịch
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-2">
+        <div>
+          <h2 className="text-xl font-black text-[var(--color-text-primary)]">
+            {walletId ? 'Giao dịch mới của ví' : 'Giao dịch chờ duyệt'}
+          </h2>
+          <p className="text-sm font-bold text-[var(--color-text-muted)] mt-1">
+            {walletId 
+              ? `Đang hiển thị ${transactions.length} giao dịch cần xử lý của ví này`
+              : `Cần xử lý ${transactions.length} giao dịch từ ngân hàng`
+            }
+          </p>
+        </div>
+        
+        {walletId && (
+          <button
+            onClick={onClearFilter}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500/10 text-blue-500 text-xs font-black hover:bg-blue-500 hover:text-white transition-all border border-blue-500/20"
+          >
+            Xem tất cả ví
+          </button>
+        )}
       </div>
 
       <div className="space-y-3">

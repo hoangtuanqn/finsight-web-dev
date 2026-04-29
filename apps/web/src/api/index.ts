@@ -148,6 +148,7 @@ export const expenseAPI = {
 export const walletAPI = {
   getAll: () => api.get('/wallets'),
   getBalance: () => api.get('/wallets/balance'),
+  getById: (id: string) => api.get(`/wallets/${id}`),
   create: (data: any) => api.post('/wallets', data),
   update: (id: string, data: any) => api.patch(`/wallets/${id}`, data),
   delete: (id: string) => api.delete(`/wallets/${id}`),
