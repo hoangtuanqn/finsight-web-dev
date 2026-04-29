@@ -3,6 +3,7 @@ import prisma from '../lib/prisma.js';
 import { success, error } from '../utils/apiResponse.js';
 import { getOptimalAllocation } from '../services/portfolioOptimizer.service.js';
 import { fetchFearGreedIndex } from '../services/market.service.js';
+import { invalidateCache } from '../middleware/cache.middleware.js';
 import { AuthenticatedRequest } from '../types/index.js';
 
 function shortUserId(userId: string | undefined): string {
@@ -82,6 +83,7 @@ export async function generateStrategy(req: AuthenticatedRequest, res: Response)
       `[InvestmentAdvisor] strategy-generate:complete user=${shortUserId(req.userId)} strategy=${strategy.id} sentiment=${sentimentValue} dataQuality=${result.optimization?.marketDataQuality || 'unknown'} quotaAfter=${updatedUser.strategyQuota} durationMs=${Date.now() - startedAt}`
     );
 
+    invalidateCache([`investment:allocation:${req.userId}:*`]);
     return success(res, {
       strategy,
       remainingQuota: updatedUser.strategyQuota,

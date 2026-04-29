@@ -82,31 +82,53 @@ export interface NewsArticle {
   source: string;
 }
 
-export async function fetchNews(apiKey: string | undefined): Promise<{ articles: NewsArticle[] }> {
+const RSS_FEEDS = [
+  { url: 'https://vnexpress.net/rss/kinh-doanh.rss', source: 'VnExpress' },
+  { url: 'https://cafef.vn/rss/home.rss', source: 'CafeF' },
+  { url: 'https://vneconomy.vn/rss/tai-chinh.rss', source: 'VnEconomy' },
+];
+
+function parseRssXml(xml: string, source: string): NewsArticle[] {
+  const items: NewsArticle[] = [];
+  const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+  let match;
+  while ((match = itemRegex.exec(xml)) !== null) {
+    const block = match[1];
+    const get = (tag: string) => {
+      const m = block.match(new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${tag}>`, 'i'));
+      return m ? m[1].trim() : '';
+    };
+    const title = get('title');
+    const url = get('link') || get('guid');
+    const publishedAt = get('pubDate');
+    const description = get('description');
+    if (title && url) {
+      items.push({ title, description, url, publishedAt: publishedAt ? new Date(publishedAt).toISOString() : new Date().toISOString(), source });
+    }
+  }
+  return items;
+}
+
+export async function fetchNews(_apiKey?: string): Promise<{ articles: NewsArticle[] }> {
   if (redis) {
     const cached = await redis.get('market:news').catch(() => null);
     if (cached) return JSON.parse(cached);
   }
 
-  if (!apiKey || apiKey === 'your_key_here') {
-    return { articles: [
-      { title: 'Tin tức tài chính sẽ hiển thị khi bạn cấu hình NEWS_API_KEY', description: 'Vui lòng đăng ký tại newsapi.org', url: 'https://newsapi.org', publishedAt: new Date().toISOString(), source: 'System' },
-    ]};
-  }
-
   try {
-    const response = await axios.get(
-      `https://newsapi.org/v2/everything?q=kinh+tế+tài+chính&language=vi&sortBy=publishedAt&pageSize=10&apiKey=${apiKey}`,
-      { timeout: 5000 }
+    const results = await Promise.allSettled(
+      RSS_FEEDS.map(feed =>
+        axios.get(feed.url, { timeout: 5000, headers: { 'User-Agent': 'Mozilla/5.0' } })
+          .then(res => parseRssXml(res.data, feed.source))
+      )
     );
 
-    const articles: NewsArticle[] = response.data.articles.map((a: any) => ({
-      title: a.title,
-      description: a.description,
-      url: a.url,
-      publishedAt: a.publishedAt,
-      source: a.source?.name || 'Unknown',
-    }));
+    const articles: NewsArticle[] = results
+      .flatMap(r => r.status === 'fulfilled' ? r.value : [])
+      .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+      .slice(0, 10);
+
+    if (articles.length === 0) return { articles: [] };
 
     const result = { articles };
     if (redis) await redis.setex('market:news', 1800, JSON.stringify(result));
