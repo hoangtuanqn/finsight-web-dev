@@ -143,6 +143,7 @@ export class ReferralService {
 
     return {
       referralCode,
+      stats: {
         clicks,
         totalReferrals,
         completedReferrals,
