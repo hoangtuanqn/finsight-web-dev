@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { motion } from 'framer-motion';
 import { PieChart as PieChartIcon, TrendingUp, TrendingDown, Target } from 'lucide-react';
@@ -8,7 +9,10 @@ interface ExpenseStatsProps {
 }
 
 export function ExpenseStats({ stats, loading }: ExpenseStatsProps) {
-  const data = stats?.byCategory || [];
+  const [view, setView] = useState<'EXPENSE' | 'INCOME'>('EXPENSE');
+  
+  const data = view === 'EXPENSE' ? (stats?.byCategory || []) : (stats?.byCategoryIncome || []);
+  const totalValue = view === 'EXPENSE' ? stats?.totalExpense : stats?.totalIncome;
 
   if (loading) {
     return (
@@ -18,12 +22,37 @@ export function ExpenseStats({ stats, loading }: ExpenseStatsProps) {
 
   return (
     <div className="rounded-3xl border bg-[var(--color-bg-card)] border-[var(--color-border)] p-6 space-y-8 shadow-sm">
-      <div>
-        <h3 className="font-bold text-[15px] flex items-center gap-2 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <h3 className="font-bold text-[15px] flex items-center gap-2">
           <PieChartIcon size={18} className="text-blue-500" />
-          Phân bổ chi tiêu
+          Phân bổ {view === 'EXPENSE' ? 'chi tiêu' : 'thu nhập'}
         </h3>
-        
+
+        <div className="flex bg-[var(--color-bg-secondary)] p-1 rounded-xl border border-[var(--color-border)] gap-1">
+          <button
+            onClick={() => setView('EXPENSE')}
+            className={`px-3 py-1.5 rounded-lg text-[11px] font-black transition-all ${
+              view === 'EXPENSE' 
+                ? 'bg-[var(--color-bg-card)] text-red-500 shadow-sm' 
+                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+            }`}
+          >
+            CHI PHÍ
+          </button>
+          <button
+            onClick={() => setView('INCOME')}
+            className={`px-3 py-1.5 rounded-lg text-[11px] font-black transition-all ${
+              view === 'INCOME' 
+                ? 'bg-[var(--color-bg-card)] text-emerald-500 shadow-sm' 
+                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+            }`}
+          >
+            THU NHẬP
+          </button>
+        </div>
+      </div>
+      
+      <div>
         {data.length > 0 ? (
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -57,7 +86,9 @@ export function ExpenseStats({ stats, loading }: ExpenseStatsProps) {
         ) : (
           <div className="h-[300px] flex flex-col items-center justify-center text-center p-8 space-y-3 opacity-50">
             <PieChartIcon size={40} className="text-[var(--color-text-muted)]" />
-            <p className="text-[12px] font-medium">Chưa có dữ liệu chi tiêu để hiển thị biểu đồ.</p>
+            <p className="text-[12px] font-medium">
+              Chưa có dữ liệu {view === 'EXPENSE' ? 'chi tiêu' : 'thu nhập'} để hiển thị biểu đồ.
+            </p>
           </div>
         )}
       </div>
@@ -65,7 +96,7 @@ export function ExpenseStats({ stats, loading }: ExpenseStatsProps) {
       {/* Legend & Breakdown */}
       <div className="space-y-4">
         {data.map((item: any) => {
-          const percentage = stats?.totalExpense ? Math.round((item.value / stats.totalExpense) * 100) : 0;
+          const percentage = totalValue ? Math.round((item.value / totalValue) * 100) : 0;
           return (
             <div key={item.name} className="space-y-2">
               <div className="flex items-center justify-between">

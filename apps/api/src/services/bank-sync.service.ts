@@ -23,7 +23,7 @@ export class BankSyncService {
   /**
    * Duyệt giao dịch: Chuyển từ PENDING sang APPROVED và tạo một bản ghi Expense
    */
-  static async approveTransaction(userId: string, pendingId: string, data: { categoryId: string, description?: string }) {
+  static async approveTransaction(userId: string, pendingId: string, data: { categoryId: string, description?: string, type?: 'INCOME' | 'EXPENSE' }) {
     const pending = await prisma.bankTransactionPending.findUnique({
       where: { id: pendingId, userId }
     });
@@ -39,7 +39,7 @@ export class BankSyncService {
           userId: pending.userId,
           walletId: pending.walletId,
           amount: pending.amount,
-          type: pending.type as 'INCOME' | 'EXPENSE',
+          type: data.type || (pending.type as 'INCOME' | 'EXPENSE'),
           categoryId: data.categoryId,
           date: pending.transactionDate,
           description: data.description || pending.description || 'Giao dịch ngân hàng',
