@@ -40,6 +40,8 @@ import StressTestSimulator from '../components/investment/StressTestSimulator';
 import BlackLittermanViews from '../components/investment/BlackLittermanViews';
 import IncompleteProfile from '../components/investment/IncompleteProfile';
 import SentimentGauge from '../components/investment/SentimentGauge';
+import AssetFilterPanel from '../components/investment/AssetFilterPanel';
+import GenerateStrategyPopup from '../components/investment/GenerateStrategyPopup';
 
 import {
   ASSET_LABELS,
@@ -631,8 +633,21 @@ export default function InvestmentPage() {
   const [advisorLoading, setAdvisorLoading] = useState(false);
   const [advisorError, setAdvisorError] = useState<any>(null);
   const [showNoStrategyPopup, setShowNoStrategyPopup] = useState(false);
-  const [applyTarget, setApplyTarget] = useState<any>(null); // strategy sedang mo modal
+  const [applyTarget, setApplyTarget] = useState<any>(null);
   const [activeStrategyIndex, setActiveStrategyIndex] = useState(0);
+  const [showGeneratePopup, setShowGeneratePopup] = useState(false);
+  // excludedAssets only used internally via popup — persisted to localStorage
+  const [excludedAssets, setExcludedAssets] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('finsight_excluded_assets') || '[]');
+    } catch {
+      return [];
+    }
+  });
+  // Persist excluded assets selection across page reloads
+  useEffect(() => {
+    localStorage.setItem('finsight_excluded_assets', JSON.stringify(excludedAssets));
+  }, [excludedAssets]);
 
   const isProfileIncomplete =
     !user?.fullName ||
@@ -647,11 +662,14 @@ export default function InvestmentPage() {
     [user?.investorProfile],
   );
 
-  const refreshAdvisorAnalysis = useCallback(async () => {
+  const refreshAdvisorAnalysis = useCallback(async (excluded: string[] = []) => {
     setAdvisorLoading(true);
     setAdvisorError(null);
     try {
-      const res = await investmentAPI.getAllocation();
+      const params = excluded.length > 0
+        ? { excludedAssets: excluded.join(',') }
+        : undefined;
+      const res = await investmentAPI.getAllocation(params);
       const analysis = normalizeAllocationAnalysis(
         res.data.data,
         advisorProfile,
@@ -691,7 +709,13 @@ export default function InvestmentPage() {
         if (loadedStrategies.length === 0) {
           setShowNoStrategyPopup(true);
         } else {
-          await refreshAdvisorAnalysis();
+          // Read directly from localStorage to avoid stale closure
+          const savedExcluded = (() => {
+            try {
+              return JSON.parse(localStorage.getItem('finsight_excluded_assets') || '[]');
+            } catch { return []; }
+          })();
+          await refreshAdvisorAnalysis(savedExcluded);
         }
       } catch (e) {
         console.error("InvestmentPage load error:", e);
@@ -704,16 +728,18 @@ export default function InvestmentPage() {
   }, [isProfileIncomplete, refreshAdvisorAnalysis, user?.strategyQuota]);
 
   // ── Generate chiến lược mới ───────────────────────────────
-  const handleGenerate = useCallback(async () => {
+  const handleGenerate = useCallback(async (newExcludedAssets: string[] = []) => {
     setGenerating(true);
+    setShowGeneratePopup(false);
+    setShowNoStrategyPopup(false);
+    setExcludedAssets(newExcludedAssets);
     try {
-      const res = await investmentAPI.generateStrategy();
+      const res = await investmentAPI.generateStrategy(newExcludedAssets);
       const { strategy, remainingQuota } = res.data.data;
       setStrategies((prev) => [strategy, ...prev]);
       setQuota(remainingQuota);
       setActiveStrategyIndex(0);
-      setShowNoStrategyPopup(false);
-      await refreshAdvisorAnalysis();
+      await refreshAdvisorAnalysis(newExcludedAssets);
       toast.success("Chiến lược đầu tư mới đã được tạo!");
     } catch (err: any) {
       const msg =
@@ -798,9 +824,22 @@ export default function InvestmentPage() {
         {showNoStrategyPopup && (
           <NoStrategyPopup
             quota={quota}
-            onGenerate={handleGenerate}
+            onGenerate={() => setShowGeneratePopup(true)}
             generating={generating}
             onClose={() => setShowNoStrategyPopup(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── Popup chọn tài sản + tạo chiến lược ── */}
+      <AnimatePresence>
+        {showGeneratePopup && (
+          <GenerateStrategyPopup
+            quota={quota}
+            generating={generating}
+            riskLevel={advisorProfile?.riskLevel}
+            onGenerate={handleGenerate}
+            onClose={() => setShowGeneratePopup(false)}
           />
         )}
       </AnimatePresence>
@@ -853,9 +892,9 @@ export default function InvestmentPage() {
               </span>
             </div>
 
-            {/* Nút tạo chiến lược mới */}
+            {/* Nút tạo chiến lược mới → mở popup chọn tài sản */}
             <button
-              onClick={handleGenerate}
+              onClick={() => setShowGeneratePopup(true)}
               disabled={generating || quota <= 0}
               className="group flex items-center gap-2.5 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 rounded-full shadow-[0_0_20px_rgba(59,130,246,0.3)] text-white"
             >
@@ -899,6 +938,22 @@ export default function InvestmentPage() {
             </Link>
           </div>
         </header>
+
+        {/* ── Tài sản trong chiến lược hiện tại (read-only) ── */}
+        {(() => {
+          const EXCLUDABLE = ['gold', 'stocks', 'stocks_us', 'bonds', 'crypto'] as const;
+          const lockedExcluded = strategies.length > 0
+            ? EXCLUDABLE.filter(a => !(activeAllocation[a] > 0))
+            : excludedAssets; // fallback khi chưa có chiến lược
+          return (
+            <AssetFilterPanel
+              excludedAssets={lockedExcluded}
+              onChange={() => {}} // no-op: locked
+              riskLevel={advisorProfile?.riskLevel}
+              locked={true}
+            />
+          );
+        })()}
 
         {/* ── Market Pulse ── */}
         <MarketLivePulse prices={marketSummary?.prices} />
