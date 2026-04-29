@@ -11,6 +11,9 @@ import { GradientText, Spotlight } from './LandingPage/components/Shared';
 import { ToggleMode } from '../components/layout/components/ToggleMode';
 import { useDarkMode } from '../hooks/useDarkMode';
 
+import { useEffect, useRef } from 'react';
+import { referralAPI } from '../api/index';
+
 const registerSchema = z.object({
   fullName: z.string()
     .min(1, 'Họ tên không được để trống')
@@ -39,6 +42,16 @@ export default function RegisterPage() {
   const [dark, setDark] = useDarkMode() as [boolean, (val: boolean) => void];
   const [searchParams] = useSearchParams();
   const refCode = searchParams.get('ref') || '';
+  const hasTracked = useRef(false);
+
+  useEffect(() => {
+    if (refCode && !hasTracked.current) {
+      hasTracked.current = true;
+      referralAPI.trackClick(refCode).catch(err => {
+        console.error('[Referral] Failed to track click:', err);
+      });
+    }
+  }, [refCode]);
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(registerSchema),
