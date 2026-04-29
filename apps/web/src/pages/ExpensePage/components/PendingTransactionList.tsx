@@ -37,7 +37,7 @@ export function PendingTransactionList({
       id: tx.id, 
       categoryId, 
       description: description || tx.description,
-      // Truyền thêm type nếu bạn muốn cập nhật lại loại giao dịch (cần update API sau nếu cần)
+      type: localType
     });
     setSelectedId(null);
     setCategoryId('');
@@ -177,47 +177,17 @@ export function PendingTransactionList({
                     exit={{ height: 0, opacity: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="mt-5 pt-5 border-t border-[var(--color-border)] space-y-4">
-                      {/* Type Toggle */}
-                      <div className="flex bg-[var(--color-bg-secondary)] p-1 rounded-2xl border border-[var(--color-border)] gap-1">
-                        {[
-                          { value: 'EXPENSE', label: '💸 Chi phí', color: '#ef4444' },
-                          { value: 'INCOME', label: '💰 Thu nhập', color: '#10b981' }
-                        ].map(t => (
-                          <button
-                            key={t.value}
-                            type="button"
-                            onClick={() => {
-                              setLocalType(t.value as any);
-                              setCategoryId('');
-                            }}
-                            className={`flex-1 py-2 rounded-xl text-[12px] font-bold transition-all ${
-                              localType === t.value
-                                ? 'bg-[var(--color-bg-card)] shadow-sm border border-[var(--color-border)]'
-                                : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
-                            }`}
-                            style={localType === t.value ? { color: t.color } : {}}
-                          >
-                            {t.label}
-                          </button>
-                        ))}
-                      </div>
-
+                    <div className="mt-5 pt-5 border-t border-[var(--color-border)] space-y-5">
                       <div>
-                        <label className="text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-wider mb-2 block">
-                          Ghi chú & Tên giao dịch
-                        </label>
-                        <input 
-                          value={description}
-                          onChange={(e) => setDescription(e.target.value)}
-                          className="w-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500/50"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-wider mb-2 block">
-                          Chọn danh mục chi tiêu/thu nhập
-                        </label>
+                        <div className="flex items-center justify-between mb-3">
+                          <label className="text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest flex items-center gap-2">
+                            <div className={`w-1.5 h-1.5 rounded-full ${localType === 'INCOME' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                            Chọn danh mục {localType === 'INCOME' ? 'thu nhập' : 'chi tiêu'}
+                          </label>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${localType === 'INCOME' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                            {localType === 'INCOME' ? 'Tiền cộng vào' : 'Tiền trừ đi'}
+                          </span>
+                        </div>
                         <CategoryPicker
                           categories={categories}
                           selectedId={categoryId}
@@ -230,9 +200,11 @@ export function PendingTransactionList({
                         <button
                           onClick={() => handleApprove(tx)}
                           disabled={!categoryId || approve.isPending}
-                          className="flex-1 py-3.5 rounded-2xl bg-emerald-600 text-white font-black text-sm hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-600/20 active:scale-95 disabled:opacity-50"
+                          className={`flex-1 py-3.5 rounded-2xl text-white font-black text-sm transition-all shadow-lg active:scale-95 disabled:opacity-50 ${
+                            localType === 'INCOME' ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20' : 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/20'
+                          }`}
                         >
-                          {approve.isPending ? 'Đang duyệt...' : 'Duyệt giao dịch'}
+                          {approve.isPending ? 'Đang duyệt...' : `Duyệt ${localType === 'INCOME' ? 'thu nhập' : 'chi tiêu'}`}
                         </button>
                         <button
                           onClick={() => setSelectedId(null)}
