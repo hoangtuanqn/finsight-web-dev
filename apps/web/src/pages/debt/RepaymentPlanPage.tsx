@@ -1070,10 +1070,20 @@ export default function RepaymentPlanPage() {
                         />
                         <Tooltip
                           contentStyle={TOOLTIP_STYLE}
-                          formatter={(v, name) => [
-                            `${v}%`,
-                            name === "avDti" ? "Avalanche DTI" : "Snowball DTI",
-                          ]}
+                          content={({ payload, label }) => {
+                            const filtered = (payload || []).filter((p) => p.dataKey !== "safe-zone" && p.name !== "safe-zone");
+                            if (!filtered.length) return null;
+                            return (
+                              <div style={{ ...TOOLTIP_STYLE, padding: "8px 12px" }}>
+                                <p style={{ margin: 0, fontWeight: 900, fontSize: 12 }}>{label}</p>
+                                {filtered.map((p) => (
+                                  <p key={p.dataKey} style={{ margin: "4px 0 0", fontSize: 12, color: p.color }}>
+                                    {p.dataKey === "avDti" ? "Avalanche DTI" : "Snowball DTI"} : {p.value}%
+                                  </p>
+                                ))}
+                              </div>
+                            );
+                          }}
                         />
                         <Legend
                           wrapperStyle={{
