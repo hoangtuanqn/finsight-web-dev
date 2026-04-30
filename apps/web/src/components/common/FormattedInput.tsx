@@ -1,5 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { formatDecimalInput, formatIntegerInput, normalizeLocaleNumberInput } from '../../utils/calculations';
+import type { LucideIcon } from 'lucide-react';
+
+interface FormattedInputProps {
+  kind?: 'integer' | 'decimal';
+  value: any;
+  onValueChange: (value: string) => void;
+  onCommitValue?: (value: string) => void;
+  suffix?: string;
+  icon?: LucideIcon;
+  className?: string;
+  placeholder?: string;
+  maxValue?: number;
+}
 
 export default function FormattedInput({
   kind = 'integer',
@@ -11,7 +24,7 @@ export default function FormattedInput({
   className = '',
   placeholder,
   maxValue = kind === 'integer' ? 100000000000 : undefined,
-}) {
+}: FormattedInputProps) {
   const normalizeInputValue = (rawValue) => (
     kind === 'decimal'
       ? normalizeLocaleNumberInput(rawValue)
