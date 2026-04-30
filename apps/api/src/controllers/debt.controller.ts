@@ -13,6 +13,8 @@ import {
 } from "../utils/calculations";
 import { AuthenticatedRequest } from "../types";
 
+const MAX_REPAYMENT_SCHEDULE_POINTS = 361;
+
 export async function getAllDebts(req: AuthenticatedRequest, res: Response) {
   try {
     const { platform, amountRange, dueInDays, status } = req.query;
@@ -458,8 +460,8 @@ export async function getRepaymentPlan(
       totalInterest: simulation.totalInterest,
       isCompleted: simulation.isCompleted,
       warnings: simulation.warnings,
-      isScheduleTruncated: simulation.schedule.length > 25,
-      schedule: simulation.schedule.slice(0, 25),
+      isScheduleTruncated: simulation.schedule.length > MAX_REPAYMENT_SCHEDULE_POINTS,
+      schedule: simulation.schedule.slice(0, MAX_REPAYMENT_SCHEDULE_POINTS),
     });
 
     return success(res, {

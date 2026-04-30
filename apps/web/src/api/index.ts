@@ -71,6 +71,16 @@ export const debtGoalAPI = {
   delete: () => api.delete('/debts/goal'),
 };
 
+// REPAYMENT PLANS
+export const repaymentPlanAPI = {
+  getAll: () => api.get('/repayment-plans'),
+  create: (data: any) => api.post('/repayment-plans', data),
+  getById: (id: string | number) => api.get(`/repayment-plans/${id}`),
+  update: (id: string | number, data: any) => api.put(`/repayment-plans/${id}`, data),
+  delete: (id: string | number) => api.delete(`/repayment-plans/${id}`),
+  simulate: (data: any) => api.post('/repayment-plans/simulate', data),
+};
+
 // INVESTMENT
 export const investmentAPI = {
   getProfile: () => api.get('/investment/profile'),
