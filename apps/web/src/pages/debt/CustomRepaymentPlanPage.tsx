@@ -598,6 +598,13 @@ export default function CustomRepaymentPlanPage() {
         className="pb-8 space-y-7 pt-2"
       >
         <div>
+          <Link
+            to="/debts/repayment"
+            className="inline-flex items-center gap-2 text-[12px] font-bold text-[var(--color-text-muted)] hover:text-blue-300 transition-colors mb-4"
+          >
+            <ArrowLeft size={14} /> Quay lại kế hoạch tổng
+          </Link>
+          <br />
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/25 bg-blue-500/10 text-blue-300 text-[10px] font-black uppercase tracking-widest mb-4">
             <ClipboardList size={11} /> Bản kế hoạch
           </div>
@@ -977,6 +984,10 @@ export default function CustomRepaymentPlanPage() {
                       tick={{ fill: "var(--color-text-muted)", fontSize: 11 }}
                       axisLine={false}
                       tickLine={false}
+                      interval={0}
+                      minTickGap={0}
+                      padding={{ left: 18, right: 18 }}
+                      tickMargin={8}
                     />
                     <YAxis
                       tick={{ fill: "var(--color-text-muted)", fontSize: 11 }}
