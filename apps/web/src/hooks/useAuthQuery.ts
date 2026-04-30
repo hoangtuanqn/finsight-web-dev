@@ -20,7 +20,14 @@ export function useUpdateProfile() {
   return useMutation({
     mutationFn: userAPI.updateProfile,
     onSuccess: (res) => {
-      queryClient.setQueryData(queryKeys.AUTH.ME, res.data.data || res.data.user);
+      const updatedUser = res?.data?.data?.user ?? res?.data?.user;
+      if (updatedUser) {
+        queryClient.setQueryData(queryKeys.AUTH.ME, (old: any) => {
+          if (old?.user) return { ...old, user: { ...old.user, ...updatedUser } };
+          if (old) return { ...old, ...updatedUser };
+          return { user: updatedUser };
+        });
+      }
       queryClient.invalidateQueries({ queryKey: queryKeys.AUTH.ME });
     }
   });

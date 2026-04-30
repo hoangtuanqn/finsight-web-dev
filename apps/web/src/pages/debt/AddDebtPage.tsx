@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useDebtMutations } from "../../hooks/useDebtQuery";
 import FormattedInput from "../../components/common/FormattedInput";
+import { formInputClass } from "../../components/common/formStyles";
 import { calcEAR, calcAPY, formatPercent } from "../../utils/calculations";
 import { Plus, AlertTriangle, BarChart2 } from "lucide-react";
 
@@ -170,8 +171,7 @@ export default function AddDebtPage() {
     }
   };
 
-  const inputCls = (hasError: any) =>
-    `input-field ${hasError ? "border-red-500/60 focus:border-red-500" : ""}`;
+  const inputCls = formInputClass;
 
   return (
     <motion.div
