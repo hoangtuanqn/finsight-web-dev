@@ -1,49 +1,35 @@
-import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
-import { Controller } from "react-hook-form";
-import {
-  User,
-  Mail,
-  DollarSign,
-  TrendingDown,
-  AlertTriangle,
-  Rocket,
-  CheckCircle,
-  Wallet,
-  Shield,
-  TrendingUp,
-} from "lucide-react";
-import FormattedInput from "../../../components/common/FormattedInput";
-import {
-  LABEL_CLASSES,
-  INPUT_CLASSES,
-  HORIZON_OPTIONS,
-  SELECT_CLASSES,
-  RISK_META,
-} from "../constants";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Rocket, CheckCircle, Shield, User, Wallet, TrendingUp, Lock } from "lucide-react";
+import type { Control, UseFormRegister, FieldErrors } from "react-hook-form";
 
-// Helper for Section Header
-function SectionHeader({ dot, label }: { dot: string; label: string }) {
+import SecuritySection from "./SecuritySection";
+import BasicInfoSection from "./BasicInfoSection";
+import FinanceSection from "./FinanceSection";
+import InvestmentSection from "./InvestmentSection";
+
+// Helper for Section Header (Clean & Minimalist)
+function SectionHeader({ icon: Icon, color, label }: { icon: any; color: string; label: string }) {
   return (
-    <h3
-      className="text-[11px] font-black uppercase tracking-widest flex items-center gap-2 mb-4"
-      style={{ color: dot }}
-    >
-      <span
-        className="w-1.5 h-1.5 rounded-full animate-pulse"
-        style={{ background: dot }}
-      />
-      {label}
-    </h3>
+    <div className="flex items-center gap-3 mb-6 border-b border-[var(--color-border)] pb-4">
+      <div 
+        className="w-9 h-9 rounded-full flex items-center justify-center shadow-sm"
+        style={{ backgroundColor: `${color}15`, color: color }}
+      >
+        <Icon size={16} />
+      </div>
+      <h3 className="text-lg font-bold text-[var(--color-text-primary)] tracking-tight">{label}</h3>
+    </div>
   );
 }
 
 interface ProfileFormProps {
-  register: any;
+  register: UseFormRegister<any>;
   handleSubmit: any;
-  control: any;
-  errors: any;
+  control: Control<any>;
+  errors: FieldErrors<any>;
   onSubmit: (data: any) => void;
+  onUpdate: () => void;
   loading: boolean;
   saved: boolean;
   user: any;
@@ -56,325 +42,172 @@ export function ProfileForm({
   control,
   errors,
   onSubmit,
+  onUpdate,
   loading,
   saved,
   user,
   hasCompletedQuiz,
 }: ProfileFormProps) {
-  const riskLevel = user?.investorProfile?.riskLevel || "MEDIUM";
-  const riskMeta = RISK_META[riskLevel as keyof typeof RISK_META];
-
-  const inputCls = (hasError: any) =>
-    `${INPUT_CLASSES} ${hasError ? "border-red-500/60 focus:border-red-500 ring-2 ring-red-500/10" : "focus:ring-2 focus:ring-blue-500/10"}`;
+  const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile');
 
   return (
-    <div
-      className="relative rounded-3xl border overflow-hidden shadow-xl shadow-blue-500/5"
-      style={{
-        background: "var(--color-bg-card)",
-        borderColor: "var(--color-border)",
-      }}
-    >
-      <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-blue-500/30 to-transparent" />
-      <form onSubmit={handleSubmit(onSubmit)} className="p-8 space-y-8">
-        {saved && (
-          <motion.div
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-3 px-5 py-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/8 text-[14px] font-bold text-emerald-400 shadow-sm"
-          >
-            <CheckCircle size={18} className="shrink-0" />
-            <div>
-              <p>Cập nhật thành công!</p>
-              <p className="text-[11px] font-medium opacity-80">
-                Thông tin của bạn đã được AI ghi nhận.
-              </p>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Section 1: Basic Info */}
-        <div className="space-y-5">
-          <SectionHeader dot="#3b82f6" label="Thông tin cá nhân" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label className={LABEL_CLASSES}>Họ và tên</label>
-              <div className="relative group">
-                <User
-                  size={16}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] group-focus-within:text-blue-500 transition-colors"
-                />
-                <input
-                  {...register("fullName")}
-                  className={inputCls(errors.fullName) + " pl-11"}
-                  placeholder="Nguyễn Văn A"
-                />
-              </div>
-              {errors.fullName && (
-                <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1.5 font-medium">
-                  <AlertTriangle size={12} /> {errors.fullName.message}
-                </p>
-              )}
-            </div>
-            <div>
-              <label className={LABEL_CLASSES}>Email định danh</label>
-              <div className="relative">
-                <Mail
-                  size={16}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] opacity-50"
-                />
-                <input
-                  type="email"
-                  value={user?.email || ""}
-                  className={
-                    INPUT_CLASSES +
-                    " pl-11 opacity-50 cursor-not-allowed bg-[var(--color-bg-secondary)]/50"
-                  }
-                  disabled
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="h-px bg-gradient-to-r from-transparent via-[var(--color-border)] to-transparent opacity-50" />
-
-        {/* Section 2: Finance */}
-        <div className="space-y-5">
-          <SectionHeader dot="#10b981" label="Tài chính & Thu nhập" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label className={LABEL_CLASSES}>Thu nhập hằng tháng</label>
-                <Controller
-                  name="monthlyIncome"
-                  control={control}
-                  render={({ field }) => (
-                    <FormattedInput
-                      icon={DollarSign}
-                      kind="integer"
-                      value={field.value}
-                      onValueChange={(v) =>
-                        field.onChange(v === "" ? 0 : Number(v))
-                      }
-                      className={inputCls(errors.monthlyIncome)}
-                      placeholder="0"
-                      suffix="đ"
-                    />
-                  )}
-                />
-              {errors.monthlyIncome && (
-                <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1.5 font-medium">
-                  <AlertTriangle size={12} /> {errors.monthlyIncome.message}
-                </p>
-              )}
-            </div>
-            <div>
-              <label className={LABEL_CLASSES}>Khả năng trả nợ thêm</label>
-                <Controller
-                  name="extraBudget"
-                  control={control}
-                  render={({ field }) => (
-                    <FormattedInput
-                      icon={TrendingDown}
-                      kind="integer"
-                      value={field.value}
-                      onValueChange={(v) =>
-                        field.onChange(v === "" ? 0 : Number(v))
-                      }
-                      className={inputCls(errors.extraBudget)}
-                      placeholder="0"
-                      suffix="đ"
-                    />
-                  )}
-                />
-              {errors.extraBudget && (
-                <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1.5 font-medium">
-                  <AlertTriangle size={12} /> {errors.extraBudget.message}
-                </p>
-              )}
-            </div>
-          </div>
-          <div>
-            <label className={LABEL_CLASSES}>
-              Tổng vốn khả dụng (Tiền mặt/Tiết kiệm)
-            </label>
-                <Controller
-                  name="capital"
-                  control={control}
-                  render={({ field }) => (
-                    <FormattedInput
-                      icon={Wallet}
-                      kind="integer"
-                      value={field.value}
-                      onValueChange={(v) =>
-                        field.onChange(v === "" ? 0 : Number(v))
-                      }
-                      className={inputCls(errors.capital)}
-                      placeholder="100.000.000"
-                      suffix="đ"
-                    />
-                  )}
-                />
-            {errors.capital && (
-              <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1.5 font-medium">
-                <AlertTriangle size={12} /> {errors.capital.message}
-              </p>
-            )}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <label className={LABEL_CLASSES}>Lãi suất ngân hàng (%)</label>
-              <div className="relative group">
-                <Controller
-                  name="savingsRate"
-                  control={control}
-                  render={({ field }) => (
-                    <FormattedInput
-                      icon={TrendingUp}
-                      kind="decimal"
-                      value={field.value}
-                      onValueChange={(v) =>
-                        field.onChange(v === "" ? 0 : Number(v))
-                      }
-                      className={inputCls(errors.savingsRate)}
-                      placeholder="6,0"
-                      suffix="%"
-                    />
-                  )}
-                />
-              </div>
-            </div>
-            <div>
-              <label className={LABEL_CLASSES}>Mức lạm phát kỳ vọng (%)</label>
-              <div className="relative group">
-                <Controller
-                  name="inflationRate"
-                  control={control}
-                  render={({ field }) => (
-                    <FormattedInput
-                      icon={AlertTriangle}
-                      kind="decimal"
-                      value={field.value}
-                      onValueChange={(v) =>
-                        field.onChange(v === "" ? 0 : Number(v))
-                      }
-                      className={inputCls(errors.inflationRate)}
-                      placeholder="3,5"
-                      suffix="%"
-                    />
-                  )}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="h-px bg-gradient-to-r from-transparent via-[var(--color-border)] to-transparent opacity-50" />
-
-        {/* Section 3: Investment */}
-        <div className="space-y-5">
-          <SectionHeader dot="#f59e0b" label="Định hướng đầu tư" />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div>
-              <label className={LABEL_CLASSES}>Mục tiêu tài chính</label>
-              <select className={SELECT_CLASSES} {...register("goal")}>
-                <option value="GROWTH">Tăng trưởng tài sản</option>
-                <option value="INCOME">Tạo dòng tiền thụ động</option>
-                <option value="STABILITY">Bảo toàn vốn</option>
-                <option value="SPECULATION">Đầu cơ mạo hiểm</option>
-              </select>
-            </div>
-            <div>
-              <label className={LABEL_CLASSES}>Thời hạn đầu tư</label>
-              <select className={SELECT_CLASSES} {...register("horizon")}>
-                {HORIZON_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className={LABEL_CLASSES}>
-                Khẩu vị rủi ro{" "}
-                {hasCompletedQuiz && (
-                  <span className="normal-case font-medium text-emerald-500 ml-1">
-                    (Từ Quiz)
-                  </span>
-                )}
-              </label>
-              <select className={SELECT_CLASSES} {...register("riskLevel")}>
-                <option value="LOW">Thấp - An toàn</option>
-                <option value="MEDIUM">Vừa phải - Cân bằng</option>
-                <option value="HIGH">Cao - Mạo hiểm</option>
-              </select>
-              {hasCompletedQuiz && (
-                <p
-                  className="text-[10px] mt-2 font-bold tracking-tight uppercase"
-                  style={{ color: riskMeta.color }}
-                >
-                  AI gợi ý: {riskMeta.label}
-                </p>
-              )}
-            </div>
-          </div>
-          {!hasCompletedQuiz && (
+    <div className="space-y-6">
+      {/* Sleek Underlined Tab Switcher */}
+      <div className="flex gap-8 border-b border-[var(--color-border)]">
+        <button
+          type="button"
+          onClick={() => setActiveTab('profile')}
+          className={`relative pb-4 flex items-center gap-2 text-[15px] font-bold transition-all ${
+            activeTab === 'profile' 
+              ? 'text-blue-500' 
+              : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+          }`}
+        >
+          <User size={18} />
+          Hồ sơ định danh
+          {activeTab === 'profile' && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex items-start gap-4 px-5 py-4 rounded-2xl border border-amber-500/20 bg-amber-500/5 shadow-inner"
+              layoutId="tab-underline"
+              className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-blue-500 rounded-t-full"
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            />
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('security')}
+          className={`relative pb-4 flex items-center gap-2 text-[15px] font-bold transition-all ${
+            activeTab === 'security' 
+              ? 'text-rose-500' 
+              : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+          }`}
+        >
+          <Lock size={18} />
+          Bảo mật tài khoản
+          {activeTab === 'security' && (
+            <motion.div
+              layoutId="tab-underline"
+              className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-rose-500 rounded-t-full"
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            />
+          )}
+        </button>
+      </div>
+
+      <div
+        className="relative rounded-[2rem] border overflow-hidden shadow-sm transition-all duration-300 min-h-[400px]"
+        style={{
+          background: "var(--color-bg-card)",
+          borderColor: "var(--color-border)",
+        }}
+      >
+        <AnimatePresence mode="wait">
+          {activeTab === 'profile' ? (
+            <motion.form 
+              key="profile"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              onSubmit={handleSubmit(onSubmit)} 
+              className="p-6 sm:p-10 space-y-12"
             >
-              <AlertTriangle
-                size={18}
-                className="text-amber-400 shrink-0 mt-0.5"
-              />
-              <div className="space-y-1">
-                <p className="text-[13px] text-amber-200 font-bold">
-                  Chưa hoàn thành đánh giá rủi ro
-                </p>
-                <p className="text-[12px] text-amber-300/80 font-medium">
-                  Hãy làm bài kiểm tra 10 câu hỏi để AI thấu hiểu phong cách đầu
-                  tư của bạn hơn.{" "}
-                  <Link
-                    to="/risk-assessment"
-                    className="font-black text-amber-400 underline decoration-2 underline-offset-4 hover:text-amber-200 transition-all"
+              {saved && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  className="flex items-center gap-3 px-5 py-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-500 shadow-sm"
+                >
+                  <div className="p-1.5 rounded-full bg-emerald-500 text-white">
+                    <CheckCircle size={16} />
+                  </div>
+                  <div>
+                    <p className="text-[14px] font-bold">Cập nhật thành công</p>
+                    <p className="text-[12px] font-medium opacity-80">
+                      Dữ liệu đã được lưu trữ an toàn trên hệ thống.
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Section 1: Basic Info */}
+              <div>
+                <SectionHeader icon={User} color="#3b82f6" label="Thông tin cá nhân" />
+                <BasicInfoSection register={register} errors={errors} user={user} />
+              </div>
+
+              {/* Section 2: Finance */}
+              <div>
+                <SectionHeader icon={Wallet} color="#10b981" label="Tài chính & Thu nhập" />
+                <FinanceSection control={control} errors={errors} />
+              </div>
+
+              {/* Section 3: Investment */}
+              <div>
+                <SectionHeader icon={TrendingUp} color="#f59e0b" label="Định hướng đầu tư" />
+                <InvestmentSection register={register} user={user} hasCompletedQuiz={hasCompletedQuiz} />
+              </div>
+
+              <div className="pt-8 border-t border-[var(--color-border)]">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-slate-500">
+                      <Shield size={16} />
+                    </div>
+                    <p className="text-[12px] text-[var(--color-text-secondary)] font-medium leading-relaxed max-w-[320px]">
+                      Dữ liệu của bạn được mã hoá theo chuẩn bảo mật cấp cao nhất và chỉ sử dụng cho <strong>tư vấn AI cá nhân hóa</strong>.
+                    </p>
+                  </div>
+                  
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-10 py-3.5 rounded-xl bg-blue-600 text-white font-bold text-[14px] hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-600/30 active:scale-95 transition-all disabled:opacity-60 disabled:pointer-events-none"
                   >
-                    Làm ngay →
-                  </Link>
-                </p>
+                    {loading ? (
+                      <>
+                        <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />{" "}
+                        Đang lưu...
+                      </>
+                    ) : (
+                      <>
+                        <Rocket size={18} /> Cập nhật hồ sơ
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </motion.form>
+          ) : (
+            <motion.div 
+              key="security"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="p-6 sm:p-10"
+            >
+              <div>
+                <SectionHeader icon={Lock} color="#ef4444" label="Quản lý bảo mật" />
+                <SecuritySection user={user} onUpdate={onUpdate} />
+                
+                <div className="mt-8 p-6 rounded-2xl bg-[var(--color-bg-secondary)] border border-[var(--color-border)] flex items-start gap-4">
+                   <div className="w-10 h-10 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0">
+                      <Lock size={18} />
+                   </div>
+                   <div>
+                      <h4 className="text-sm font-bold text-[var(--color-text-primary)] mb-1">Xác thực đa lớp 2FA</h4>
+                      <p className="text-[13px] text-[var(--color-text-secondary)] leading-relaxed">
+                         Để đảm bảo an toàn tuyệt đối cho tài sản và dữ liệu, FinSight khuyến nghị bạn luôn bật tính năng Xác thực đa lớp. Mọi thao tác rút tiền và thay đổi thông tin quan trọng đều sẽ yêu cầu mã OTP từ ứng dụng.
+                      </p>
+                   </div>
+                </div>
               </div>
             </motion.div>
           )}
-        </div>
-
-        <div className="pt-6 border-t border-[var(--color-border)]">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-10 py-3.5 rounded-2xl bg-blue-600 text-white font-black text-[15px] hover:bg-blue-500 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-blue-600/30 cursor-pointer disabled:opacity-60 disabled:scale-100 disabled:hover:bg-blue-600"
-            >
-              {loading ? (
-                <>
-                  <span className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />{" "}
-                  Đang đồng bộ...
-                </>
-              ) : (
-                <>
-                  <Rocket size={18} /> Cập nhật hồ sơ
-                </>
-              )}
-            </button>
-            <div className="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-blue-500/5 border border-blue-500/10">
-              <Shield size={16} className="text-blue-400" />
-              <p className="text-[11px] text-[var(--color-text-muted)] font-medium leading-relaxed max-w-[300px]">
-                Dữ liệu tài chính của bạn được mã hoá và chỉ sử dụng cho mục
-                đích <strong>tư vấn AI cá nhân hóa</strong>.
-              </p>
-            </div>
-          </div>
-        </div>
-      </form>
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

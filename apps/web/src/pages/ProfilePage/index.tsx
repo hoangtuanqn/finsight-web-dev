@@ -45,6 +45,15 @@ export default function ProfilePage() {
     }
   }, [user, reset]);
 
+  const fetchUser = async () => {
+    try {
+      const res = await userAPI.getProfile();
+      setUser(res.data.data);
+    } catch (e) {
+      console.error("Fetch user error:", e);
+    }
+  };
+
   const onSubmit = async (data: any) => {
     setLoading(true);
     setSaved(false);
@@ -71,7 +80,7 @@ export default function ProfilePage() {
       className="pb-10 space-y-8"
     >
       {/* Header Section */}
-      <ProfileHeader />
+      <ProfileHeader user={user} />
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 items-start">
         {/* Main Column */}
@@ -84,6 +93,7 @@ export default function ProfilePage() {
             control={control}
             errors={errors}
             onSubmit={onSubmit}
+            onUpdate={fetchUser}
             loading={loading}
             saved={saved}
             user={user}
