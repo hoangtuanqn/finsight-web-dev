@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { HeartPulse, Target, TrendingUp, Scale, ShieldCheck } from 'lucide-react';
+import { Target, TrendingUp, Scale, ShieldCheck } from 'lucide-react';
 
 function useCountUp(target, duration = 1200) {
   const [val, setVal] = useState(0);
@@ -129,7 +129,7 @@ export default function PortfolioHealthMetrics({ allocation, projection, profile
             </div>
           </div>
 
-          <div className="grid  grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <SubMetric
               icon={Target}
               label="Đa dạng hóa"

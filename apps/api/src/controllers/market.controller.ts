@@ -37,6 +37,26 @@ export async function getNews(req: Request, res: Response) {
   }
 }
 
+export async function getCryptoPricesHandler(req: Request, res: Response) {
+  try {
+    const crypto = await fetchCryptoPrices();
+    return success(res, { bitcoin: crypto.bitcoin, ethereum: crypto.ethereum });
+  } catch (err) {
+    console.error('getCryptoPrices error:', err);
+    return error(res, 'Internal server error');
+  }
+}
+
+export async function getGoldPriceHandler(req: Request, res: Response) {
+  try {
+    const gold = await fetchGoldPrice();
+    return success(res, { gold });
+  } catch (err) {
+    console.error('getGoldPrice error:', err);
+    return error(res, 'Internal server error');
+  }
+}
+
 export async function getMarketSummary(req: Request, res: Response) {
   try {
     const [fearGreed, crypto, gold, news] = await Promise.all([
@@ -49,7 +69,7 @@ export async function getMarketSummary(req: Request, res: Response) {
     return success(res, {
       sentiment: fearGreed,
       prices: { bitcoin: crypto.bitcoin, ethereum: crypto.ethereum, gold },
-      news: news.articles?.slice(0, 40) || [],
+      news: news.articles?.slice(0, 15) || [],
     });
   } catch (err) {
     console.error('getMarketSummary error:', err);
