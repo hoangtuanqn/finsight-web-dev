@@ -11,6 +11,8 @@ import {
   Calendar,
   CreditCard,
   ChevronRight,
+  ShieldCheck,
+  Zap,
 } from "lucide-react";
 import { formatPercent, formatVND } from "../../../utils/calculations";
 import { RISK_META, GOAL_LABEL, HORIZON_LABEL } from "../constants";
@@ -60,7 +62,7 @@ export function ProfileSidebar({
     },
     {
       icon: TrendingUp,
-      label: "Lãi gửi ngân hàng",
+      label: "Lãi ngân hàng",
       value: formatPercent(user?.investorProfile?.savingsRate ?? 6.0),
       color: "#06b6d4",
     },
@@ -116,68 +118,70 @@ export function ProfileSidebar({
   const quickLinks = [
     {
       to: "/risk-assessment",
-      icon: Target,
-      label: hasCompletedQuiz ? "Làm lại quiz rủi ro" : "Đánh giá rủi ro ngay",
-      color: "#8b5cf6",
+      icon: Zap,
+      label: hasCompletedQuiz ? "Cập nhật rủi ro" : "Đánh giá ngay",
+      color: "#f59e0b",
     },
     {
       to: "/investment",
       icon: TrendingUp,
-      label: "Phân bổ đầu tư AI",
+      label: "Phân bổ AI",
       color: "#3b82f6",
     },
     {
       to: "/debts",
       icon: CreditCard,
-      label: "Quản lý khoản nợ",
+      label: "Quản lý nợ",
       color: "#ef4444",
-    },
-    {
-      to: "/debts/dti",
-      icon: BarChart2,
-      label: "Phân tích DTI",
-      color: "#10b981",
     },
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Profile Card */}
       <motion.div
         initial={{ opacity: 0, x: 12 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.1 }}
-        className="relative rounded-3xl border p-6 text-center overflow-hidden shadow-lg shadow-blue-500/5"
+        className="relative rounded-3xl border p-8 text-center overflow-hidden shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
         style={{
           background: "var(--color-bg-card)",
-          borderColor: "rgba(59,130,246,0.15)",
+          borderColor: "var(--color-border)",
         }}
       >
-        <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-blue-500/30 to-transparent" />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-purple-500 opacity-80" />
         <div
-          className="w-20 h-20 rounded-3xl flex items-center justify-center text-2xl font-black mx-auto mb-4 text-white ring-4 ring-blue-500/10"
+          className="w-24 h-24 rounded-[2rem] flex items-center justify-center text-3xl font-black mx-auto mb-5 text-white ring-8 ring-[var(--color-bg-secondary)]"
           style={{
             background: "linear-gradient(135deg,#3b82f6,#8b5cf6)",
-            boxShadow: "0 12px 24px rgba(59,130,246,0.3)",
+            boxShadow: "0 12px 30px rgba(59,130,246,0.25)",
           }}
         >
           {initials}
         </div>
-        <p className="font-black text-[var(--color-text-primary)] text-lg tracking-tight">
-          {user?.fullName || "-"}
+        <p className="font-black text-[var(--color-text-primary)] text-xl tracking-tight">
+          {user?.fullName || "Người dùng ẩn danh"}
         </p>
-        <p className="text-[13px] text-[var(--color-text-muted)] mt-1 font-medium">
+        <p className="text-sm text-[var(--color-text-muted)] mt-1 font-medium">
           {user?.email || "-"}
         </p>
-        <div
-          className="inline-flex items-center gap-2 mt-4 px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider ring-1 ring-inset"
-          style={{
-            background: `${riskMeta.color}10`,
-            color: riskMeta.color,
-            boxShadow: `inset 0 0 0 1px ${riskMeta.color}30`,
-          }}
-        >
-          <RiskIcon size={12} /> {riskMeta.label}
+        
+        <div className="mt-5 flex items-center justify-center gap-3">
+          <div
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider"
+            style={{
+              background: `${riskMeta.color}15`,
+              color: riskMeta.color,
+              border: `1px solid ${riskMeta.color}30`
+            }}
+          >
+            <RiskIcon size={14} /> {riskMeta.label}
+          </div>
+          {user?.isTwoFactorEnabled && (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/15 text-emerald-500 text-xs font-bold uppercase tracking-wider border border-emerald-500/30">
+              <ShieldCheck size={14} /> 2FA
+            </div>
+          )}
         </div>
       </motion.div>
 
@@ -186,28 +190,28 @@ export function ProfileSidebar({
         initial={{ opacity: 0, x: 12 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.15 }}
-        className="rounded-3xl border p-6 shadow-sm"
+        className="rounded-3xl border p-6 hover:border-[var(--color-text-muted)] transition-colors"
         style={{
           background: "var(--color-bg-card)",
           borderColor: "var(--color-border)",
         }}
       >
-        <p className="text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-[0.2em] mb-4">
-          Tóm tắt hồ sơ
+        <p className="text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-4 flex items-center gap-2">
+          <DollarSign size={14} /> Tóm tắt tài sản
         </p>
         <div className="space-y-3">
           {summaryRows.map((row) => (
-            <div
-              key={row.label}
-              className="flex items-center justify-between py-1"
-            >
-              <span className="text-[13px] text-[var(--color-text-secondary)] font-medium flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg flex items-center justify-center bg-[var(--color-bg-secondary)] border border-[var(--color-border)]">
-                  <row.icon size={13} style={{ color: row.color }} />
+            <div key={row.label} className="flex items-center justify-between py-1.5 group">
+              <span className="text-sm text-[var(--color-text-secondary)] font-medium flex items-center gap-3">
+                <div 
+                  className="w-7 h-7 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110"
+                  style={{ backgroundColor: `${row.color}15`, color: row.color }}
+                >
+                  <row.icon size={14} />
                 </div>
                 {row.label}
               </span>
-              <span className="text-[13px] font-bold text-[var(--color-text-primary)] tabular-nums">
+              <span className="text-sm font-bold text-[var(--color-text-primary)] tabular-nums">
                 {row.value}
               </span>
             </div>
@@ -220,31 +224,28 @@ export function ProfileSidebar({
         initial={{ opacity: 0, x: 12 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.2 }}
-        className="rounded-3xl border p-6 shadow-sm"
+        className="rounded-3xl border p-6 hover:border-[var(--color-text-muted)] transition-colors"
         style={{
           background: "var(--color-bg-card)",
           borderColor: "var(--color-border)",
         }}
       >
-        <p className="text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-[0.2em] mb-4">
-          Chiến lược của bạn
+        <p className="text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-4 flex items-center gap-2">
+          <Target size={14} /> Chiến lược
         </p>
         <div className="space-y-3">
           {strategyRows.map((row) => (
-            <div
-              key={row.label}
-              className="flex items-center justify-between py-1"
-            >
-              <span className="text-[13px] text-[var(--color-text-secondary)] font-medium flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg flex items-center justify-center bg-[var(--color-bg-secondary)] border border-[var(--color-border)]">
-                  <row.icon size={13} style={{ color: row.color }} />
+            <div key={row.label} className="flex items-center justify-between py-1.5 group">
+              <span className="text-sm text-[var(--color-text-secondary)] font-medium flex items-center gap-3">
+                <div 
+                  className="w-7 h-7 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110"
+                  style={{ backgroundColor: `${row.color}15`, color: row.color }}
+                >
+                  <row.icon size={14} />
                 </div>
                 {row.label}
               </span>
-              <span
-                className="text-[13px] font-bold tracking-tight"
-                style={{ color: row.color }}
-              >
+              <span className="text-sm font-bold tracking-tight" style={{ color: row.color }}>
                 {row.value}
               </span>
             </div>
@@ -257,26 +258,35 @@ export function ProfileSidebar({
         initial={{ opacity: 0, x: 12 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.25 }}
-        className="rounded-3xl border p-6 shadow-sm"
+        className="rounded-3xl border p-6"
         style={{
           background: "var(--color-bg-card)",
           borderColor: "var(--color-border)",
         }}
       >
-        <p className="text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-[0.2em] mb-4">
+        <p className="text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-4">
           Thao tác nhanh
         </p>
-        <div className="grid grid-cols-1 gap-2">
+        <div className="grid grid-cols-1 gap-3">
           {quickLinks.map((link) => (
             <Link
               key={link.to}
               to={link.to}
-              className="flex items-center gap-3 px-4 py-3 rounded-2xl text-[13px] font-bold text-[var(--color-text-secondary)] bg-[var(--color-bg-secondary)] border border-[var(--color-border)]/50 hover:text-blue-500 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all group"
+              className="flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold text-[var(--color-text-secondary)] border border-[var(--color-border)] hover:text-white hover:border-transparent transition-all group"
+              style={{
+                background: "var(--color-bg-secondary)",
+                boxShadow: "0 2px 10px rgba(0,0,0,0)"
+              }}
             >
-              <link.icon size={15} style={{ color: link.color }} />
+              <div 
+                className="w-8 h-8 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform"
+                style={{ backgroundColor: `${link.color}15`, color: link.color }}
+              >
+                <link.icon size={14} />
+              </div>
               <span className="flex-1">{link.label}</span>
               <ChevronRight
-                size={14}
+                size={16}
                 className="text-[var(--color-text-muted)] group-hover:translate-x-1 group-hover:text-blue-500 transition-all"
               />
             </Link>
