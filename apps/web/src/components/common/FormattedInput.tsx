@@ -11,6 +11,7 @@ export default function FormattedInput({
   className = '',
   placeholder,
   maxValue = kind === 'integer' ? 100000000000 : undefined,
+  ...inputProps
 }) {
   const normalizeInputValue = (rawValue) => (
     kind === 'decimal'
@@ -134,6 +135,7 @@ export default function FormattedInput({
         }}
         className={`${className}${suffix ? ' pr-10' : ''}${Icon ? ' pl-11' : ''}`}
         placeholder={placeholder}
+        {...inputProps}
       />
       {suffix && (
         <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] text-sm font-bold z-10">
