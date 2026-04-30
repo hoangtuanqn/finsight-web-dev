@@ -31,7 +31,7 @@ const FacebookFallback = ({ setError, dark }) => (
   </button>
 );
 
-export default function SocialLoginButtons({ setError }) {
+export default function SocialLoginButtons({ setError, onSuccess: parentOnSuccess }) {
   const { loginWithGoogle, loginWithFacebook, googleClientId, facebookAppId } = useAuth();
   const navigate = useNavigate();
   const [dark] = useDarkMode();
@@ -63,8 +63,12 @@ export default function SocialLoginButtons({ setError }) {
   const handleFacebookSuccess = async (response) => {
     try {
       if (response.accessToken) {
-        await loginWithFacebook(response.accessToken);
-        navigate('/home');
+        const result = await loginWithFacebook(response.accessToken);
+        if (parentOnSuccess) {
+          parentOnSuccess(result);
+        } else if (result && !result.require2FA) {
+          navigate('/home');
+        }
       } else {
         setError('Đăng nhập Facebook bị hủy hoặc lỗi.');
       }
@@ -98,8 +102,12 @@ export default function SocialLoginButtons({ setError }) {
               <GoogleLogin
                 onSuccess={async (credentialResponse) => {
                   try {
-                    await loginWithGoogle(credentialResponse.credential);
-                    navigate('/home');
+                    const result = await loginWithGoogle(credentialResponse.credential);
+                    if (parentOnSuccess) {
+                      parentOnSuccess(result);
+                    } else if (result && !result.require2FA) {
+                      navigate('/home');
+                    }
                   } catch (err) {
                     setError(err?.response?.data?.error || 'Đăng nhập Google thất bại');
                   }

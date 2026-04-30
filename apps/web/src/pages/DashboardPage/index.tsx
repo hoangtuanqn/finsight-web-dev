@@ -7,6 +7,7 @@ import { useDashboardData } from "./hooks/useDashboardData";
 import { staggerContainer, fadeUp } from "./constants";
 
 import DominoAlerts from "./components/DominoAlerts";
+import TwoFactorBanner from "../../components/auth/TwoFactorBanner";
 import KPICards from "./components/KPICards";
 import QuickActions from "./components/QuickActions";
 import EARChart from "./components/EARChart";
@@ -177,6 +178,7 @@ export default function DashboardPage() {
 
       {/* ── Domino Alerts ── */}
       <motion.div variants={fadeUp} className="relative z-10">
+        <TwoFactorBanner user={user} />
         <DominoAlerts alerts={debtSummary.dominoAlerts || []} />
       </motion.div>
 

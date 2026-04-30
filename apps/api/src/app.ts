@@ -50,6 +50,12 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Set COOP header for social login popups
+app.use((req, res, next) => {
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+  next();
+});
+
 // Routes
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/wallets', walletRoutes);

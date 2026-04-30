@@ -8,6 +8,7 @@ interface AuthContextType {
   login: (email: any, password: any) => Promise<any>;
   loginWithGoogle: (credential: any) => Promise<any>;
   loginWithFacebook: (accessToken: any) => Promise<any>;
+  verify2FALogin: (tempToken: string, otpCode: string, trustDevice?: boolean) => Promise<any>;
   register: (email: any, password: any, fullName: any, referralCode?: string) => Promise<any>;
   logout: () => void;
   loading: boolean;
@@ -57,6 +58,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: any, password: any) => {
     const res = await (authAPI as any).login({ email, password });
+    if (res.data.data.require2FA) {
+      return { require2FA: true, tempToken: res.data.data.tempToken };
+    }
     const { user, token } = res.data.data;
     localStorage.setItem('finsight_token', token);
     setUser(user);
@@ -65,6 +69,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithGoogle = async (credential: any) => {
     const res = await (authAPI as any).googleLogin({ credential });
+    if (res.data.data.require2FA) {
+      return { require2FA: true, tempToken: res.data.data.tempToken };
+    }
     const { user, token } = res.data.data;
     localStorage.setItem('finsight_token', token);
     setUser(user);
@@ -73,8 +80,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithFacebook = async (accessToken: any) => {
     const res = await (authAPI as any).facebookLogin({ accessToken });
+    if (res.data.data.require2FA) {
+      return { require2FA: true, tempToken: res.data.data.tempToken };
+    }
     const { user, token } = res.data.data;
     localStorage.setItem('finsight_token', token);
+    setUser(user);
+    return user;
+  };
+
+  const verify2FALogin = async (tempToken: string, otpCode: string, trustDevice?: boolean) => {
+    const res = await (authAPI as any).verify2FA({ tempToken, otpCode, trustDevice });
+    const { user, token, trustToken } = res.data.data;
+    localStorage.setItem('finsight_token', token);
+    if (trustToken) {
+      localStorage.setItem('finsight_trust_token', trustToken);
+    }
     setUser(user);
     return user;
   };
@@ -112,6 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{ 
       user, setUser, refreshUser,
       login, loginWithGoogle, loginWithFacebook, 
+      verify2FALogin,
       register, logout, loading, 
       googleClientId, facebookAppId 
     }}>

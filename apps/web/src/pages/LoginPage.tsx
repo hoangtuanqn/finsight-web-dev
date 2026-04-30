@@ -15,36 +15,64 @@ import {
 import { ToggleMode } from '../components/layout/components/ToggleMode';
 import { useDarkMode } from '../hooks/useDarkMode';
 import QRCodeLogin from '../components/auth/QRCodeLogin';
+import OTPInput from '../components/auth/OTPInput';
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Email không được để trống').email('Email không hợp lệ'),
   password: z.string().min(1, 'Mật khẩu không được để trống')
 });
 
+interface LoginFormValues {
+  email: string;
+  password: string;
+}
+
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, setUser } = useAuth() as any;
+  const [is2FARequired, setIs2FARequired] = useState(false);
+  const [tempToken, setTempToken] = useState('');
+  const { login, setUser, verify2FALogin } = useAuth()!;
   const navigate = useNavigate();
   const [dark, setDark] = useDarkMode() as [boolean, (val: boolean) => void];
   const [loginMode, setLoginMode] = useState<'email' | 'qr'>('email'); 
   const [searchParams] = useSearchParams();
   const redirect = searchParams.get('redirect') || '/home';
 
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' }
   });
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: LoginFormValues) => {
     setServerError('');
     setLoading(true);
     try {
-      await login(data.email, data.password);
-      navigate(redirect);
+      const result = await login(data.email, data.password);
+      if (result && result.require2FA) {
+        setIs2FARequired(true);
+        setTempToken(result.tempToken);
+        toast.info('Vui lòng nhập mã 2FA để tiếp tục');
+      } else {
+        navigate(redirect);
+      }
     } catch (err: any) {
       setServerError(err.response?.data?.error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handle2FAVerify = async (otpCode: string) => {
+    setLoading(true);
+    setServerError('');
+    try {
+      await verify2FALogin(tempToken, otpCode);
+      toast.success('Xác thực 2FA thành công!');
+      navigate(redirect);
+    } catch (err: any) {
+      setServerError(err.response?.data?.error || 'Mã 2FA không chính xác hoặc đã hết hạn.');
     } finally {
       setLoading(false);
     }
@@ -149,8 +177,19 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <SocialLoginButtons setError={setServerError} />
-
+              {!is2FARequired && <>
+              <SocialLoginButtons 
+                setError={setServerError} 
+                onSuccess={(result) => {
+                  if (result && result.require2FA) {
+                    setIs2FARequired(true);
+                    setTempToken(result.tempToken);
+                    toast.info('Vui lòng nhập mã 2FA để tiếp tục');
+                  } else {
+                    navigate(redirect);
+                  }
+                }}
+                />
               <div className="flex items-center gap-4 my-8">
                 <div className="flex-1 border-t border-white opacity-20"></div>
                 <button 
@@ -160,10 +199,36 @@ export default function LoginPage() {
                   {loginMode === 'email' ? <><QrCode size={14} /> Mã QR</> : <><Monitor size={14} /> Email</>}
                 </button>
                 <div className="flex-1 border-t border-white opacity-20"></div>
-              </div>
+              </div></>
+              }
 
               <AnimatePresence mode="wait">
-                {loginMode === 'email' ? (
+                {is2FARequired ? (
+                  <motion.div
+                    key="2fa"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="space-y-6"
+                  >
+                    <div className="text-center mb-4">
+                      <p className="text-xs text-slate-400 font-medium">Chúng tôi đã phát hiện tài khoản của bạn được bảo mật bằng 2FA.</p>
+                    </div>
+
+                    <OTPInput 
+                      onComplete={handle2FAVerify} 
+          
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => setIs2FARequired(false)}
+                      className="w-full text-center text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors"
+                    >
+                      Quay lại đăng nhập
+                    </button>
+                  </motion.div>
+                ) : loginMode === 'email' ? (
                   <motion.form 
                     key="email"
                     initial={{ opacity: 0, x: -10 }}
@@ -237,7 +302,7 @@ export default function LoginPage() {
                   </motion.div>
                 )}
               </AnimatePresence>
-
+              {!is2FARequired && <>
               <div className="mt-8 pt-8 border-t border-white/5 text-center">
                 <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mb-4">
                   Chưa có định danh tài chính?
@@ -263,7 +328,9 @@ export default function LoginPage() {
                     <span className="text-white tracking-widest">Demo@123</span>
                   </div>
                 </div>
-              </div>
+              </div> 
+              </>}
+             
             </div>
           </motion.div>
 
