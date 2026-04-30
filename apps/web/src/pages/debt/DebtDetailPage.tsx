@@ -10,6 +10,7 @@ import { formatVND, formatPercent } from '../../utils/calculations';
 import EARBreakdown from '../../components/debt/EARBreakdown';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
 import FormattedInput from '../../components/common/FormattedInput';
+import { FORM_LABEL_CLASSES, formInputClass } from '../../components/common/formStyles';
 import { Pencil, FileText, DollarSign, CheckCircle, ArrowLeft, Search, Trash2, ChevronRight, Calendar, AlertTriangle } from 'lucide-react';
 import { generateGoogleCalendarLink } from '../../utils/calendar';
 import DebtFluctuationChart from '../../components/debt/DebtFluctuationChart';
@@ -277,7 +278,7 @@ export default function DebtDetailPage() {
             ) : (
               <form onSubmit={handleSubmit(onPaymentSubmit)} className="space-y-4">
                 <div>
-                  <label className="block text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-1.5">Số tiền</label>
+                  <label className={FORM_LABEL_CLASSES}>Số tiền</label>
                   <Controller
                     name="amount"
                     control={control}
@@ -289,7 +290,7 @@ export default function DebtDetailPage() {
                         onValueChange={(v) => field.onChange(v === '' ? 0 : Number(v))}
                         placeholder="0"
                         suffix="đ"
-                        className={`w-full px-4 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] text-sm outline-none focus:border-emerald-500/60 transition-colors ${errors.amount ? 'border-red-500/60 focus:border-red-500' : 'border-[var(--color-border)]'}`}
+                        className={formInputClass(errors.amount)}
                       />
                     )}
                   />
