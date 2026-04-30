@@ -1,8 +1,7 @@
 import prisma from '../../lib/prisma';
 import { getIO } from '../../utils/socket';
 import { fetchSepayTransactions } from '../../services/sepay.service';
-
-// ─── Kiểm tra thanh toán subscription qua SePay (env token) ──────────────────
+import { processReferralCommission } from '../../services/commission.service';
 
 export async function checkSepayPayments() {
   const apiToken = process.env.SEPAY_API_TOKEN;
@@ -52,7 +51,6 @@ export async function checkSepayPayments() {
           where: { id: invoice.userId },
           data: { level: invoice.plan, levelExpiresAt: expiresAt, strategyQuota: { increment: quotaBonus } },
         }),
-        // Cập nhật trạng thái nạp tiền cho Referral
         (prisma as any).referral.updateMany({
           where: { referredId: invoice.userId, status: 'PENDING' },
           data: { hasToppedUp: true }
@@ -70,6 +68,13 @@ export async function checkSepayPayments() {
 
       console.log(`[Payment] ✅ Activated ${invoice.plan} for user ${invoice.userId} (ref: ${sepayRefId})`);
 
+      await processReferralCommission(
+        invoice.userId,
+        invoice.amount,
+        invoice.plan,
+        invoice.id,
+      );
+
       try {
         const io = getIO();
         if (io) {
@@ -78,7 +83,7 @@ export async function checkSepayPayments() {
             message: `Tài khoản đã được nâng cấp lên gói ${invoice.plan}.`,
           });
         }
-      } catch { /* socket chưa init */ }
+      } catch { }
     }
   } catch (err: any) {
     if (err.response?.status === 429) {
@@ -88,8 +93,6 @@ export async function checkSepayPayments() {
     }
   }
 }
-
-// ─── Hết hạn pending invoices ─────────────────────────────────────────────────
 
 export async function expirePendingInvoices() {
   const now = new Date();
