@@ -22,11 +22,9 @@ import {
 import MarketLivePulse from '../components/investment/MarketLivePulse';
 import PortfolioHealthMetrics from '../components/investment/PortfolioHealthMetrics';
 import AllocationEngine from '../components/investment/AllocationEngine';
-import AIRationalPanel from '../components/investment/AIRationalPanel';
 import SmartAssetGuide from '../components/investment/SmartAssetGuide';
 import WealthProjection from '../components/investment/WealthProjection';
 import RiskMetricsPanel from '../components/investment/RiskMetricsPanel';
-import OptimizationSummaryStrip from '../components/investment/OptimizationSummaryStrip';
 import EfficientFrontierPanel from '../components/investment/EfficientFrontierPanel';
 import EconomicNewsFeed from '../components/investment/EconomicNewsFeed';
 import StrategyRecommendation from '../components/investment/StrategyRecommendation';
@@ -110,7 +108,7 @@ function buildRenderData(allocation: any, profile: any) {
     savings: savingsRate / 100,
     gold: 0.08,
     stocks: 0.12,
-    bonds: 0.07,
+    bonds: 0.042,
     crypto: 0.15,
   };
 
@@ -589,16 +587,12 @@ export default function InvestmentPage() {
                 views={viewModel?.marketViews || activeStrategy?.marketViews || []}
               />
 
-              <OptimizationSummaryStrip
-                optimization={viewModel?.optimization}
-                allocationMetrics={viewModel?.allocationMetrics}
-                optimizationMethod={viewModel?.optimizationMethod}
-              />
-
               <EfficientFrontierPanel
                 allocationMetrics={viewModel?.allocationMetrics}
                 frontierPoints={viewModel?.optimization?.frontierPoints}
                 riskGrade={viewModel?.riskMetrics?.riskGrade}
+                optimization={viewModel?.optimization}
+                optimizationMethod={viewModel?.optimizationMethod}
               />
 
               {(advisorLoading || advisorError) &&
@@ -644,14 +638,6 @@ export default function InvestmentPage() {
                 pieData={pieData}
                 portfolioBreakdown={portfolioBreakdown}
                 history={[]}
-              />
-              <AIRationalPanel
-                allocation={activeAllocation}
-                profile={mockProfile}
-                sentimentValue={sentimentValue}
-                portfolioBreakdown={portfolioBreakdown}
-                optimization={viewModel?.optimization}
-                allocationMetrics={viewModel?.allocationMetrics}
               />
               <WealthProjection
                 projectionData={projectionData}

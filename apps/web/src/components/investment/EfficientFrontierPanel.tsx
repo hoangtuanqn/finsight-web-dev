@@ -2,6 +2,8 @@
 import React from 'react';
 import {
   Activity,
+  AlertCircle,
+  CheckCircle2,
   Crosshair,
   Gauge,
   LineChart,
@@ -54,6 +56,24 @@ const TONE_BY_GRADE = {
     halo: "bg-red-400/20",
     border: "border-red-400/40",
     fill: "#f87171",
+  },
+};
+
+const QUALITY_STYLES = {
+  full: {
+    label: "Historical 5y",
+    className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+    dotClassName: "bg-emerald-400",
+  },
+  partial: {
+    label: "Partial fallback",
+    className: "border-amber-500/20 bg-amber-500/10 text-amber-300",
+    dotClassName: "bg-amber-400",
+  },
+  fallback: {
+    label: "Fallback",
+    className: "border-red-500/20 bg-red-500/10 text-red-300",
+    dotClassName: "bg-red-400",
   },
 };
 
@@ -241,10 +261,19 @@ function CurrentPortfolioCard({ userPoint, tone }) {
   );
 }
 
+function getMethodLabel(value) {
+  const method = String(value || "markowitz").toLowerCase();
+  if (method.includes("black") || method.includes("litterman")) return "Black-Litterman";
+  if (method.includes("markowitz")) return "Markowitz MVO";
+  return value || "Markowitz MVO";
+}
+
 export default function EfficientFrontierPanel({
   allocationMetrics,
   frontierPoints,
   riskGrade,
+  optimization,
+  optimizationMethod,
 }: any) {
   const userPoint = normalizePoint(allocationMetrics, 'portfolio');
   if (!userPoint) return null;
@@ -255,18 +284,39 @@ export default function EfficientFrontierPanel({
   const hasFrontier = frontierData.length >= 2;
   const tone = TONE_BY_GRADE[riskGrade] || TONE_BY_GRADE.C;
 
+  const qualityKey = String(optimization?.marketDataQuality || "fallback").toLowerCase();
+  const quality = QUALITY_STYLES[qualityKey] || QUALITY_STYLES.fallback;
+  const converged = optimization?.converged === true;
+  const iterations = safeNumber(optimization?.iterations);
+  const SolverIcon = converged ? CheckCircle2 : AlertCircle;
+  const solverColor = converged ? "text-emerald-400" : "text-amber-400";
+  const methodLabel = getMethodLabel(optimizationMethod || optimization?.optimizationMethod);
+
   return (
     <div className="rounded-3xl border border-white/5 bg-slate-900/60 p-5 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5)] backdrop-blur-xl">
-      <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      {/* Header — gộp từ OptimizationSummaryStrip */}
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-2">
             <Crosshair size={16} className="text-cyan-300" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white">Vị trí danh mục</h3>
-            <p className="text-[11px] font-semibold text-slate-500">
-              Risk-return hiện tại{hasFrontier ? " trên frontier" : ""}
-            </p>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold text-white">{methodLabel}</h3>
+              <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-black ${quality.className}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${quality.dotClassName}`} />
+                {quality.label}
+              </span>
+            </div>
+            <div className="mt-0.5 flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
+              <SolverIcon size={11} className={solverColor} />
+              <span>
+                {converged ? "Converged" : "Review"}
+                {iterations !== null ? ` · ${iterations} vòng` : ""}
+              </span>
+              <span className="text-slate-600">·</span>
+              <span>Risk-return hiện tại{hasFrontier ? " trên frontier" : ""}</span>
+            </div>
           </div>
         </div>
         <div
