@@ -58,7 +58,7 @@ export default function App() {
                 <Route path="/debts/ear-analysis" element={<EarAnalysisPage />} />
                 <Route path="/debts/goal" element={<DebtGoalPage />} />
                 <Route path="/debts/repayment" element={<RepaymentPlanPage />} />
-                <Route path="/debts/plan" element={<CustomRepaymentPlanPage />} />
+                <Route path="/debts/plan/:planId" element={<CustomRepaymentPlanPage />} />
                 <Route path="/debts/dti" element={<DtiAnalysisPage />} />
                 <Route path="/debts/:id" element={<DebtDetailPage />} />
                 <Route path="/debts/:id/edit" element={<EditDebtPage />} />

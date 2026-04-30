@@ -425,7 +425,37 @@ export async function getGoldPrices(req: Request, res: Response) {
 // ─── Stocks ──────────────────────────────────────────────────────
 
 let stockCache: { data: any; fetchedAt: number } = { data: null, fetchedAt: 0 };
-const STOCK_CACHE_TTL = 10 * 60 * 1000;
+
+// Trả về TTL (ms) dựa theo trạng thái phiên giao dịch HOSE (UTC+7)
+// Trong phiên (9:00–15:00, T2–T6): 3 phút
+// Ngoài phiên / cuối tuần: đến 9:00 sáng phiên kế tiếp
+function getStockCacheTTL(): number {
+  const now = new Date();
+  const vn = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+  const day = vn.getDay(); // 0=CN, 6=T7
+  const hour = vn.getHours();
+  const minute = vn.getMinutes();
+  const totalMinutes = hour * 60 + minute;
+
+  const isWeekday = day >= 1 && day <= 5;
+  const isInSession = totalMinutes >= 9 * 60 && totalMinutes < 15 * 60;
+
+  if (isWeekday && isInSession) {
+    return 3 * 60 * 1000; // 3 phút trong phiên
+  }
+
+  // Tính số ms đến 9:00 sáng phiên kế tiếp
+  const next = new Date(vn);
+  next.setHours(9, 0, 0, 0);
+  if (totalMinutes >= 15 * 60 || !isWeekday) {
+    next.setDate(next.getDate() + 1);
+  }
+  // Bỏ qua cuối tuần
+  while (next.getDay() === 0 || next.getDay() === 6) {
+    next.setDate(next.getDate() + 1);
+  }
+  return Math.max(60 * 1000, next.getTime() - vn.getTime());
+}
 
 interface StockMeta {
   ticker: string;
@@ -547,7 +577,7 @@ export async function getStockPrices(req: Request, res: Response) {
     const now = Date.now();
 
     let quotes: Record<string, any>;
-    if (stockCache.data && now - stockCache.fetchedAt < STOCK_CACHE_TTL) {
+    if (stockCache.data && now - stockCache.fetchedAt < getStockCacheTTL()) {
       quotes = stockCache.data;
     } else {
       const results = await Promise.allSettled(

@@ -297,7 +297,7 @@ export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
           <div className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
             <Sparkles size={14} className="text-amber-500" />
           </div>
-          Hướng dẫn Đầu tư Thông minh
+          Gợi ý Đầu tư Thông minh
         </h3>
 
         <div className="flex flex-nowrap gap-1 bg-white/[0.02] p-1 rounded-full border border-white/5 overflow-x-auto scrollbar-none min-w-0">
@@ -417,6 +417,7 @@ export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
     </div>
   );
 }
+
 
 function AssetCard({ item, color, type, isExpanded, onToggle }) {
   const name = item.name;
