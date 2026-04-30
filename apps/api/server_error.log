@@ -1,2 +1,6 @@
 [2026-04-29T02:33:35.775Z] [AuthMiddleware] Verification failed: jwt malformed
 [2026-04-29T02:33:36.797Z] [AuthMiddleware] Verification failed: jwt malformed
+[2026-04-30T23:19:07.157Z] [KYC] submitKyc error: [object Object]
+[2026-04-30T23:19:18.555Z] [KYC] submitKyc error: [object Object]
+[2026-04-30T23:34:04.622Z] [Affiliate] checkBankOwner error: [object Object]
+[2026-04-30T23:34:17.309Z] [Affiliate] checkBankOwner error: [object Object]

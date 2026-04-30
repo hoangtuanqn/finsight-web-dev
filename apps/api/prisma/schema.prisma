@@ -19,35 +19,45 @@ model User {
   fullName       String
   monthlyIncome  Float     @default(0)
   extraBudget    Float     @default(0)
-  level          String    @default("BASIC") // BASIC | PRO | PROMAX
-  levelExpiresAt DateTime?
-  strategyQuota  Int       @default(10) // Số lượt tạo chiến lược AI còn lại
-  referralCode   String?   @unique
-  referralCodeUsed String?   // Mã đã dùng khi đăng ký
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  level            String    @default("BASIC")
+  levelExpiresAt   DateTime?
+  strategyQuota    Int       @default(10)
+  referralCode     String?   @unique
+  referralCodeUsed String?
+  commissionBalance Float    @default(0)
+  totalCommissionEarned Float @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
   twoFactorSecret String?
   isTwoFactorEnabled Boolean @default(false)
-  twoFactorBackupCodes String? // Serialized JSON array of backup codes
-  
-  debts           Debt[]
-  investorProfile InvestorProfile?
-  notifications   Notification[]
-  debtSnapshots   DebtSnapshot[]
-  chatSessions    ChatSession[]
-  debtGoal        DebtGoal?
-  transactions    Transaction[]
-  aiStrategies    AIStrategy[]
-  userPortfolio   UserPortfolio?
-  expenses        Expense[]
-  expenseCategories ExpenseCategory[]
-  wallets         Wallet[]
+  twoFactorBackupCodes String?
+  kycStatus            String    @default("NONE")
+  kycVerifiedAt        DateTime?
+  kycName              String?
+  kycIdNumber          String?
+
+  debts               Debt[]
+  investorProfile     InvestorProfile?
+  notifications       Notification[]
+  debtSnapshots       DebtSnapshot[]
+  chatSessions        ChatSession[]
+  debtGoal            DebtGoal?
+  transactions        Transaction[]
+  aiStrategies        AIStrategy[]
+  userPortfolio       UserPortfolio?
+  expenses            Expense[]
+  expenseCategories   ExpenseCategory[]
+  wallets             Wallet[]
   bankTransactionsPending BankTransactionPending[]
-  referrals       Referral[] @relation("Referrer")
-  referredBy      Referral?  @relation("Referee")
-  referralClicks  ReferralClick[]
-  activities      UserActivity[]
-  trustedDevices  TrustedDevice[]
+  referrals           Referral[]       @relation("Referrer")
+  referredBy          Referral?        @relation("Referee")
+  referralClicks      ReferralClick[]
+  activities          UserActivity[]
+  trustedDevices      TrustedDevice[]
+  commissionLogs      CommissionLog[]  @relation("CommissionRecipient")
+  bankAccounts        BankAccount[]
+  withdrawalRequests  WithdrawalRequest[]
+  kycRecord           KycRecord?
 
   @@map("users")
 }
@@ -88,11 +98,10 @@ model Debt {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  // ── Smart Deletion System ──
-  deletedAt        DateTime? // Thời điểm user thực hiện xoá mềm
-  scheduledPurgeAt DateTime? // Thời điểm Cronjob sẽ Hard Delete
-  deleteReason     String? // Lý do xoá
-  deleteCommitment Boolean   @default(false) // Trạng thái đã xác nhận rủi ro
+  deletedAt        DateTime?
+  scheduledPurgeAt DateTime?
+  deleteReason     String?
+  deleteCommitment Boolean   @default(false)
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   payments Payment[]
@@ -191,14 +200,12 @@ model DebtGoal {
   @@map("debt_goals")
 }
 
-// ── Subscription & Payment ──────────────────────────────────
-
 model Transaction {
   id           String    @id @default(cuid())
   userId       String
-  plan         String // PRO | PROMAX
+  plan         String
   amount       Float
-  status       String    @default("PENDING") // PENDING | PAID | EXPIRED | CANCELLED
+  status       String    @default("PENDING")
   transferCode String    @unique
   sepayRef     String?
   qrUrl        String
@@ -212,13 +219,11 @@ model Transaction {
   @@map("transactions")
 }
 
-// ── Agentic AI: Chat & RAG Models ──────────────────────────
-
 model ChatSession {
   id        String   @id @default(cuid())
   userId    String
-  title     String? // Auto-generated từ message đầu tiên
-  metadata  Json? // Lưu context bổ sung
+  title     String?
+  metadata  Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -231,12 +236,12 @@ model ChatSession {
 model ChatMessage {
   id         String   @id @default(cuid())
   sessionId  String
-  role       String // "user" | "assistant" | "tool" | "system"
-  content    String // Nội dung tin nhắn
-  toolCalls  Json? // Lưu tool calls nếu có
-  toolResult Json? // Kết quả tool execution
-  actionType String? // "text_response" | "form_population"
-  payload    Json? // trigger_payload cho form_population
+  role       String
+  content    String
+  toolCalls  Json?
+  toolResult Json?
+  actionType String?
+  payload    Json?
   createdAt  DateTime @default(now())
 
   session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
@@ -247,10 +252,10 @@ model ChatMessage {
 model FinanceKnowledge {
   id        String                       @id @default(cuid())
   title     String
-  content   String // Nội dung gốc
-  chunk     String // Đoạn đã chunk
-  category  String // "CONCEPT" | "REGULATION" | "STRATEGY"
-  embedding Unsupported("vector(1024)")? // pgvector embedding
+  content   String
+  chunk     String
+  category  String
+  embedding Unsupported("vector(1024)")?
   metadata  Json?
   createdAt DateTime                     @default(now())
 
@@ -268,7 +273,6 @@ model Article {
   category  String   @default("STORY")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  // ── Investment Strategy ─────────────────────────────────────
 
   @@map("articles")
 }
@@ -304,7 +308,7 @@ model UserPortfolio {
   stocks           Float
   stocks_us        Float    @default(0)
   bonds            Float
-  crypto           Float
+  crypto         Float
   notes            String?  @db.Text
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -314,23 +318,21 @@ model UserPortfolio {
 
   @@map("user_portfolios")
 }
-// ── Expense Management ─────────────────────────────────────
 
 model Wallet {
   id                String    @id @default(cuid())
   userId            String
   name              String
-  type              String    @default("CASH") // CASH | BANK | EWALLET | OTHER
-  icon              String?   // emoji icon
+  type              String    @default("CASH")
+  icon              String?
   color             String?   @default("#3b82f6")
   balance           Float     @default(0)
   isDefault         Boolean   @default(false)
-  // Bank & SePay sync fields
-  bankName          String?   // Tên ngân hàng (e.g. "TPBank", "Vietcombank")
-  bankAccountNumber String?   // Số tài khoản ngân hàng
-  sepayToken        String?   // Token API SePay của người dùng
-  sepayLinkedAt     DateTime? // Thời điểm liên kết SePay
-  lastSyncedTxId    String?   // ID giao dịch SePay cuối đã đồng bộ (dùng làm since_id)
+  bankName          String?
+  bankAccountNumber String?
+  sepayToken        String?
+  sepayLinkedAt     DateTime?
+  lastSyncedTxId    String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
@@ -341,19 +343,18 @@ model Wallet {
   @@map("wallets")
 }
 
-// Giao dịch ngân hàng địa từ SePay — chờ user duyệt
 model BankTransactionPending {
   id              String   @id @default(cuid())
   userId          String
   walletId        String
-  sepayTxId       String   // ID gốc từ SePay (unique per wallet)
+  sepayTxId       String
   amount          Float
-  type            String   // INCOME | EXPENSE
+  type            String
   transactionDate DateTime
   description     String?
   bankBrandName   String?
   accountNumber   String?
-  status          String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  status          String   @default("PENDING")
   createdAt       DateTime @default(now())
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -367,7 +368,7 @@ model Expense {
   id          String   @id @default(cuid())
   userId      String
   amount      Float
-  type        String   @default("EXPENSE") // EXPENSE | INCOME
+  type        String   @default("EXPENSE")
   categoryId  String
   walletId    String?
   date        DateTime @default(now())
@@ -384,12 +385,12 @@ model Expense {
 
 model ExpenseCategory {
   id        String   @id @default(cuid())
-  userId    String?  // null = system default
-  parentId  String?  // null = top-level group
+  userId    String?
+  parentId  String?
   name      String
-  icon      String?  // emoji icon
-  color     String?  // Hex color
-  type      String   @default("EXPENSE") // EXPENSE | INCOME
+  icon      String?
+  color     String?
+  type      String   @default("EXPENSE")
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
 
@@ -400,12 +401,63 @@ model ExpenseCategory {
 
   @@map("expense_categories")
 }
-// ── Affiliate & Referral ──────────────────────────────────
+
+model CommissionLog {
+  id              String   @id @default(cuid())
+  recipientId     String
+  payerId         String
+  transactionId   String
+  commissionAmount Float
+  originalAmount  Float
+  commissionRate  Float
+  plan            String
+  status          String   @default("EARNED")
+  createdAt       DateTime @default(now())
+
+  recipient User @relation("CommissionRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@map("commission_logs")
+}
+
+model BankAccount {
+  id            String   @id @default(cuid())
+  userId        String
+  bankCode      String
+  bankName      String
+  bankShortName String
+  bankLogo      String?
+  accountNumber String
+  accountName   String
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  withdrawalRequests WithdrawalRequest[]
+
+  @@map("bank_accounts")
+}
+
+model WithdrawalRequest {
+  id            String   @id @default(cuid())
+  userId        String
+  bankAccountId String
+  amount        Float
+  status        String   @default("PENDING")
+  adminNote     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bankAccount BankAccount @relation(fields: [bankAccountId], references: [id])
+
+  @@map("withdrawal_requests")
+}
+
 model Referral {
   id               String   @id @default(cuid())
   referrerId       String
   referredId       String   @unique
-  status           String   @default("PENDING") // PENDING | QUALIFIED | REWARDED
+  status           String   @default("PENDING")
   hasToppedUp      Boolean  @default(false)
   activeDaysCount  Int      @default(0)
   rewardedAt       DateTime?
@@ -433,10 +485,35 @@ model ReferralClick {
 model UserActivity {
   id        String   @id @default(cuid())
   userId    String
-  date      String   // Định dạng YYYY-MM-DD để dễ quản lý unique per day
+  date      String
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date])
   @@map("user_activities")
+}
+
+model KycRecord {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  idNumber       String
+  fullName       String
+  dob            String
+  sex            String
+  address        String
+  issueDate      String
+  issueLoc       String
+  fptFrontRaw    Json?
+  fptBackRaw     Json?
+  livenessRaw    Json?
+  isLive         Boolean  @default(false)
+  faceMatchScore String?
+  status         String   @default("PENDING")
+  rejectReason   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("kyc_records")
 }
