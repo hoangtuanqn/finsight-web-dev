@@ -90,20 +90,7 @@ export default function AffiliatePage() {
           <p className="text-[var(--color-text-secondary)] text-base mt-2">Mời bạn bè tham gia FinSight để nhận thêm lượt sử dụng Strategy AI.</p>
         </div>
         
-        <div className="flex gap-3">
-          <div className="bg-[var(--color-bg-card)] border border-[var(--color-border)] p-4 rounded-2xl shadow-sm flex items-center gap-4">
-            <div>
-              <p className="text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-0.5">Mã giới thiệu của bạn</p>
-              <p className="text-xl font-black text-blue-500 tracking-wider">{referralCode || '------'}</p>
-            </div>
-            <button 
-              onClick={() => handleCopy(data?.referralCode || '')}
-              className="p-2.5 bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 rounded-xl transition-all"
-            >
-              {copied ? <CheckCircle2 className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
-            </button>
-          </div>
-        </div>
+      
       </div>
 
       {/* Stats Cards */}

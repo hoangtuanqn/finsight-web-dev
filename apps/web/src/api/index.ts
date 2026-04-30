@@ -7,11 +7,16 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// Add auth token to requests
+// Add auth token and trust token to requests
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = localStorage.getItem('finsight_token');
+  const trustToken = localStorage.getItem('finsight_trust_token');
+  
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+  if (trustToken && config.headers) {
+    config.headers['x-trust-token'] = trustToken;
   }
   return config;
 });
@@ -31,6 +36,12 @@ export const authAPI = {
   getFacebookConfig: () => api.get('/auth/facebook-config'),
   me: () => api.get('/auth/me'),
   logout: () => api.post('/auth/logout'),
+  // 2FA
+  setup2FA: () => api.get('/auth/2fa/setup'),
+  enable2FA: (data: { token: string }) => api.post('/auth/2fa/enable', data),
+  disable2FA: (data: { token: string }) => api.post('/auth/2fa/disable', data),
+  verify2FA: (data: { tempToken: string; otpCode: string; trustDevice?: boolean }) => api.post('/auth/2fa/verify', data),
+  trustDevice: () => api.post('/auth/2fa/trust'),
 };
 
 export const qrAPI = {

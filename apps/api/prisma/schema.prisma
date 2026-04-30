@@ -26,7 +26,10 @@ model User {
   referralCodeUsed String?   // Mã đã dùng khi đăng ký
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
-
+  twoFactorSecret String?
+  isTwoFactorEnabled Boolean @default(false)
+  twoFactorBackupCodes String? // Serialized JSON array of backup codes
+  
   debts           Debt[]
   investorProfile InvestorProfile?
   notifications   Notification[]
@@ -44,8 +47,22 @@ model User {
   referredBy      Referral?  @relation("Referee")
   referralClicks  ReferralClick[]
   activities      UserActivity[]
+  trustedDevices  TrustedDevice[]
 
   @@map("users")
+}
+
+model TrustedDevice {
+  id        String   @id @default(cuid())
+  userId    String
+  userAgent String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("trusted_devices")
 }
 
 model Debt {
