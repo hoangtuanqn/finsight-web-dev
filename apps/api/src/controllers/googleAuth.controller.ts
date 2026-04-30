@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 import { success, error } from '../utils/apiResponse';
+import { handleUserLoginResponse } from '../utils/auth';
 import { OAuth2Client } from 'google-auth-library';
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -41,20 +42,7 @@ export async function googleLogin(req: Request, res: Response) {
       }
     }
 
-    const token = jwt.sign(
-      { userId: user.id, email: user.email },
-      (process.env.JWT_SECRET as string),
-      { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'] }
-    );
-
-    const fullUser = await (prisma as any).user.findUnique({
-      where: { id: user.id },
-      include: { investorProfile: true }
-    });
-    
-    const { password: _, ...userData } = fullUser;
-    
-    return success(res, { user: userData, token }, 200);
+    return handleUserLoginResponse(req, res, user);
   } catch (err) {
     console.error('Google Login error:', err);
     return error(res, 'Authentication failed during Google login', 500);
