@@ -126,7 +126,7 @@ export const ASSET_CLASSES = {
   },
   bonds: {
     label: "Trái phiếu",
-    expectedReturn: 0.058, // 5.8%/năm - lợi suất TPCP kỳ hạn 5-10 năm cuối 2024 (nguồn: HNX)
+    expectedReturn: 0.042, // 4.2%/năm - yield TPCP 10 năm đấu thầu VBMA/HNX 2025
     stdDev: 0.04,
   },
   stocks: {
