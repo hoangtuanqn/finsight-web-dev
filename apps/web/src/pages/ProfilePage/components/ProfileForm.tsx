@@ -7,6 +7,7 @@ import SecuritySection from "./SecuritySection";
 import BasicInfoSection from "./BasicInfoSection";
 import FinanceSection from "./FinanceSection";
 import InvestmentSection from "./InvestmentSection";
+import KycStatusCard from "../../KycPage/components/KycStatusCard";
 
 // Helper for Section Header (Clean & Minimalist)
 function SectionHeader({ icon: Icon, color, label }: { icon: any; color: string; label: string }) {
@@ -48,7 +49,7 @@ export function ProfileForm({
   user,
   hasCompletedQuiz,
 }: ProfileFormProps) {
-  const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'kyc'>('profile');
 
   return (
     <div className="space-y-6">
@@ -89,6 +90,26 @@ export function ProfileForm({
             <motion.div
               layoutId="tab-underline"
               className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-rose-500 rounded-t-full"
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            />
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('kyc')}
+          className={`relative pb-4 flex items-center gap-2 text-[15px] font-bold transition-all ${
+            activeTab === 'kyc' 
+              ? 'text-emerald-500' 
+              : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+          }`}
+        >
+          <Shield size={18} />
+          Xác minh danh tính
+          {activeTab === 'kyc' && (
+            <motion.div
+              layoutId="tab-underline"
+              className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-emerald-500 rounded-t-full"
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
             />
           )}
@@ -179,7 +200,7 @@ export function ProfileForm({
                 </div>
               </div>
             </motion.form>
-          ) : (
+          ) : activeTab === 'security' ? (
             <motion.div 
               key="security"
               initial={{ opacity: 0, y: 10 }}
@@ -203,6 +224,20 @@ export function ProfileForm({
                       </p>
                    </div>
                 </div>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div 
+              key="kyc"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="p-6 sm:p-10"
+            >
+              <div>
+                <SectionHeader icon={Shield} color="#10b981" label="Xác minh danh tính (eKYC)" />
+                <KycStatusCard />
               </div>
             </motion.div>
           )}
