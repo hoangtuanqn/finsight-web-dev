@@ -3,6 +3,7 @@ import prisma from '../lib/prisma';
 import { success, error } from '../utils/apiResponse';
 import { AuthenticatedRequest } from '../types';
 import { banks } from '../data/banks';
+import { checkBankOwner } from '../services/kyc.service';
 
 const MIN_WITHDRAWAL_AMOUNT = 50_000;
 
@@ -169,6 +170,26 @@ export async function addBankAccount(req: AuthenticatedRequest, res: Response) {
     });
     if (existing) {
       return error(res, 'Tài khoản ngân hàng này đã được thêm rồi', 400);
+    }
+
+    const user = await (prisma as any).user.findUnique({
+      where: { id: userId },
+      select: { kycStatus: true, kycName: true },
+    });
+
+    if (user?.kycStatus !== 'VERIFIED' || !user?.kycName) {
+      return error(res, 'Vui lòng xác minh danh tính (eKYC) trước khi thêm tài khoản ngân hàng', 403);
+    }
+
+    // Call BankLookup API
+    try {
+      const bankLookupRes = await checkBankOwner(bankCode, accountNumber, user.kycName);
+      if (bankLookupRes.code !== 200 || !bankLookupRes.success) {
+        return error(res, `Tên chủ tài khoản không khớp với danh tính đã xác minh (${user.kycName}). Lỗi: ${bankLookupRes.msg}`, 422);
+      }
+    } catch (apiErr: any) {
+      console.error('[Affiliate] checkBankOwner error:', apiErr?.response?.data || apiErr.message);
+      return error(res, 'Lỗi kết nối khi xác thực chủ tài khoản. Vui lòng thử lại sau', 502);
     }
 
     const existingCount = await (prisma as any).bankAccount.count({ where: { userId } });
