@@ -5,6 +5,7 @@ import prisma from '../lib/prisma';
 import { success, error } from '../utils/apiResponse';
 import { AuthenticatedRequest } from '../types';
 import { ReferralService } from '../services/referral.service';
+import { handleUserLoginResponse } from '../utils/auth';
 
 export async function register(req: Request, res: Response) {
   try {
@@ -62,22 +63,10 @@ export async function login(req: Request, res: Response) {
       return error(res, 'Invalid email or password', 401);
     }
 
-    const token = jwt.sign(
-      { userId: user.id, email: user.email },
-      (process.env.JWT_SECRET as string).trim(),
-      { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'] }
-    );
-
     // Ghi nhận hoạt động
     await ReferralService.recordActivity(user.id);
 
-    const fullUser = await (prisma as any).user.findUnique({
-      where: { id: user.id },
-      include: { investorProfile: true }
-    });
-
-    const { password: _, ...userData } = fullUser;
-    return success(res, { user: userData, token });
+    return handleUserLoginResponse(req, res, user);
   } catch (err) {
     console.error('Login error:', err);
     return error(res, 'Internal server error');
