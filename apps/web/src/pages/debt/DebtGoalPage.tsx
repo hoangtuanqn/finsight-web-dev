@@ -17,6 +17,7 @@ import {
   Trash2,
   Plus,
   ChevronRight,
+  ArrowLeft,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -163,18 +164,16 @@ function GoalForm({
               key={value}
               type="button"
               onClick={() => setStrategy(value)}
-              className={`relative p-4 rounded-2xl border text-left transition-all cursor-pointer ${
-                strategy === value
+              className={`relative p-4 rounded-2xl border text-left transition-all cursor-pointer ${strategy === value
                   ? `border-${color}-500/40 bg-${color}-500/10`
                   : "border-[var(--color-border)] hover:border-[var(--color-border-hover)] bg-transparent"
-              }`}
+                }`}
             >
               <div
-                className={`w-7 h-7 rounded-lg mb-2 flex items-center justify-center ${
-                  strategy === value
+                className={`w-7 h-7 rounded-lg mb-2 flex items-center justify-center ${strategy === value
                     ? `bg-${color}-500/20 text-${color}-400`
                     : "bg-white/5 text-[var(--color-text-muted)]"
-                }`}
+                  }`}
               >
                 <Icon size={14} />
               </div>
@@ -238,13 +237,12 @@ function MilestoneCard({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
-      className={`relative rounded-2xl p-4 border overflow-hidden transition-all ${
-        reached
+      className={`relative rounded-2xl p-4 border overflow-hidden transition-all ${reached
           ? isLast
             ? "border-amber-500/40 bg-amber-500/8"
             : "border-emerald-500/30 bg-emerald-500/8"
           : "border-[var(--color-border)] bg-[var(--color-bg-card)] opacity-60"
-      }`}
+        }`}
     >
       {reached && (
         <div
@@ -254,24 +252,22 @@ function MilestoneCard({
 
       <div className="flex items-center justify-between mb-3">
         <div
-          className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-            reached
+          className={`w-9 h-9 rounded-xl flex items-center justify-center ${reached
               ? isLast
                 ? "bg-amber-500/20 text-amber-400"
                 : "bg-emerald-500/20 text-emerald-400"
               : "bg-white/5 text-[var(--color-text-muted)]"
-          }`}
+            }`}
         >
           {reached ? <Icon size={18} /> : <Lock size={16} />}
         </div>
         <span
-          className={`text-[22px] font-black ${
-            reached
+          className={`text-[22px] font-black ${reached
               ? isLast
                 ? "text-amber-400"
                 : "text-emerald-400"
               : "text-[var(--color-text-muted)]"
-          }`}
+            }`}
         >
           {percent}%
         </span>
@@ -288,11 +284,10 @@ function MilestoneCard({
 
       {reached && (
         <div
-          className={`mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black ${
-            isLast
+          className={`mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black ${isLast
               ? "bg-amber-500/15 text-amber-300"
               : "bg-emerald-500/15 text-emerald-300"
-          }`}
+            }`}
         >
           <CheckCircle2 size={10} /> Đã đạt!
         </div>
@@ -347,6 +342,14 @@ export default function DebtGoalPage() {
       className="pb-8 space-y-6"
     >
       <div className="pt-2">
+        <div className="mb-4">
+          <Link
+            to="/debts/repayment"
+            className="inline-flex items-center gap-2 text-[12px] font-bold text-[var(--color-text-muted)] hover:text-cyan-300 transition-colors"
+          >
+            <ArrowLeft size={14} /> Kế hoạch trả nợ
+          </Link>
+        </div>
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-violet-500/20 bg-violet-500/8 text-violet-400 text-[10px] font-black uppercase tracking-widest mb-3">
           <Target size={11} /> Mục tiêu trả nợ
         </div>
@@ -416,11 +419,10 @@ export default function DebtGoalPage() {
                 Chiến lược:
               </span>
               <span
-                className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                  goal?.strategy === "AVALANCHE"
+                className={`px-2 py-0.5 rounded-full text-[10px] font-black ${goal?.strategy === "AVALANCHE"
                     ? "bg-blue-500/15 text-blue-300"
                     : "bg-emerald-500/15 text-emerald-300"
-                }`}
+                  }`}
               >
                 {goal?.strategy === "AVALANCHE" ? "Avalanche" : "Snowball"}
               </span>
