@@ -33,11 +33,9 @@ import AssetFilterPanel from '../components/investment/AssetFilterPanel';
 import GenerateStrategyPopup from '../components/investment/GenerateStrategyPopup';
 import NoStrategyPopup from '../components/investment/NoStrategyPopup';
 import ApplyStrategyModal from '../components/investment/ApplyStrategyModal';
-import MyPortfolioSection from '../components/investment/MyPortfolioSection';
 
 import {
   ASSET_LABELS,
-  COLORS,
 } from "../components/investment/InvestmentConstants";
 import { calcFV } from "../components/investment/InvestmentUtils";
 
@@ -144,7 +142,9 @@ export default function InvestmentPage() {
   const [strategies, setStrategies] = useState<any[]>([]);
   const [portfolio, setPortfolio] = useState<any>(null);
   const [quota, setQuota] = useState(0);
-  const [marketSummary, setMarketSummary] = useState<any>(null);
+  const [cryptoPrices, setCryptoPrices] = useState<any>(null);
+  const [goldPrice, setGoldPrice] = useState<any>(null);
+  const [marketNews, setMarketNews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [advisorAnalysis, setAdvisorAnalysis] = useState<any>(null);
@@ -214,20 +214,28 @@ export default function InvestmentPage() {
 
     const load = async () => {
       try {
-        const [strategiesRes, portfolioRes, marketRes] = await Promise.all([
+        const [strategiesRes, portfolioRes, cryptoRes] = await Promise.all([
           investmentAPI.getStrategies().catch(() => ({ data: { data: [] } })),
           investmentAPI.getPortfolio().catch(() => ({ data: { data: null } })),
-          marketAPI.getSummary().catch(() => ({ data: { data: {} } })),
+          marketAPI.getCryptoPrices().catch(() => ({ data: { data: {} } })),
         ]);
 
         const loadedStrategies = (strategiesRes as any).data.data || [];
         setStrategies(loadedStrategies);
         setPortfolio((portfolioRes as any).data.data);
-        setMarketSummary((marketRes as any).data.data);
+        setCryptoPrices((cryptoRes as any).data.data);
         setQuota(user.strategyQuota ?? 0);
 
         // Hiển thị trang ngay — không chờ getAllocation nữa
         setLoading(false);
+
+        // Tải vàng + tin tức sau khi trang đã hiển thị
+        marketAPI.getGoldPrice()
+          .then(res => setGoldPrice(res.data.data?.gold || null))
+          .catch(() => {});
+        marketAPI.getNews()
+          .then(res => setMarketNews(res.data.data?.articles || []))
+          .catch(() => {});
 
         if (loadedStrategies.length === 0) {
           setShowNoStrategyPopup(true);
@@ -387,7 +395,7 @@ export default function InvestmentPage() {
               <Sparkles size={11} /> Chiến lược đầu tư
             </div>
             <h1 className="text-3xl font-black tracking-tighter text-[var(--color-text-primary)]">
-              Cố vấn đầu tư AI
+              Cố vấn đầu tư Cá nhân hóa
             </h1>
             <p className="text-[var(--color-text-secondary)] text-sm mt-1">
               Phân bổ danh mục thông minh theo tâm lý thị trường thực tế
@@ -476,7 +484,7 @@ export default function InvestmentPage() {
         })()}
 
         {/* ── Market Pulse ── */}
-        <MarketLivePulse prices={marketSummary?.prices} />
+        <MarketLivePulse prices={{ ...cryptoPrices, gold: goldPrice }} />
 
         {/* ── Nếu chưa có strategy, không render phần phân tích ── */}
         {strategies.length > 0 && activeStrategy && (
@@ -691,7 +699,7 @@ export default function InvestmentPage() {
               </div>
             </section>
 
-            <EconomicNewsFeed news={marketSummary?.news} />
+            <EconomicNewsFeed news={marketNews} />
           </>
         )}
 
