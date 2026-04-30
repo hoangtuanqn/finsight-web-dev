@@ -12,7 +12,7 @@ const ASSET_LABELS: Record<string, string> = {
 const DEFAULT_RATES: Record<string, number> = {
   gold: 0.08,
   stocks: 0.12,
-  bonds: 0.07,
+  bonds: 0.042,
   crypto: 0.15,
 };
 
