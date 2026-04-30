@@ -70,6 +70,7 @@ interface PaymentScheduleItem {
 interface RepaymentSimulationOptions {
   monthlyIncome?: number;
   maxMonths?: number;
+  customOrder?: Array<string | number>;
 }
 
 interface RepaymentWarning {
@@ -96,7 +97,7 @@ export function resolveRepaymentExtraBudget(queryValue: unknown, savedValue: unk
 export function simulateRepayment(
   debts: DebtItem[],
   monthlyBudget: number,
-  method: 'AVALANCHE' | 'SNOWBALL' = 'AVALANCHE',
+  method: 'AVALANCHE' | 'SNOWBALL' | 'CUSTOM' = 'AVALANCHE',
   options: RepaymentSimulationOptions = {},
 ) {
   let ds = debts.map(d => ({
@@ -198,8 +199,14 @@ export function simulateRepayment(
 
       if (method === 'AVALANCHE') {
         target = activeDebts.sort((a, b) => b.apr - a.apr)[0];
-      } else {
+      } else if (method === 'SNOWBALL') {
         target = activeDebts.sort((a, b) => a.balance - b.balance)[0];
+      } else {
+        const customOrder = options.customOrder || [];
+        target =
+          customOrder
+            .map(id => activeDebts.find(d => String(d.id) === String(id)))
+            .find(Boolean) || activeDebts[0];
       }
 
       if (target) {
@@ -279,6 +286,29 @@ export function simulateRepaymentWithExtraBudget(
     minimumBudget + normalizedExtraBudget,
     method,
     options,
+  );
+}
+
+export function simulateCustomRepaymentWithExtraBudget(
+  debts: DebtItem[],
+  extraBudget: number,
+  debtIds: Array<string | number>,
+  options: RepaymentSimulationOptions = {},
+) {
+  const selectedDebtIds = new Set(debtIds.map(id => String(id)));
+  const orderedDebts = debtIds
+    .map(id => debts.find(debt => String(debt.id) === String(id)))
+    .filter(Boolean) as DebtItem[];
+  const remainingDebts = debts.filter(debt => !selectedDebtIds.has(String(debt.id)));
+  const planDebts = [...orderedDebts, ...remainingDebts];
+  const minimumBudget = planDebts.reduce((sum, debt) => sum + debt.minPayment, 0);
+  const normalizedExtraBudget = Math.max(0, Number.isFinite(extraBudget) ? extraBudget : 0);
+
+  return simulateRepayment(
+    planDebts,
+    minimumBudget + normalizedExtraBudget,
+    'CUSTOM',
+    { ...options, customOrder: debtIds },
   );
 }
 

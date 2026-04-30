@@ -442,7 +442,7 @@ export default function RepaymentPlanPage() {
                 type: "SCHEDULE_TRUNCATED",
                 severity: "WARNING",
                 message:
-                  "Biểu đồ chỉ hiển thị tối đa 24 tháng đầu sau mốc hiện tại.",
+                  "Biểu đồ chỉ hiển thị tối đa 360 tháng đầu sau mốc hiện tại.",
               },
             ]
           : []),
@@ -1130,6 +1130,39 @@ export default function RepaymentPlanPage() {
               )}
           </>
         )}
+
+        <Link to="/debts/plan" className="block">
+          <motion.div
+            whileHover={{ y: -2 }}
+            className="group relative rounded-3xl p-5 md:p-6 border overflow-hidden transition-all"
+            style={{
+              background: "linear-gradient(135deg, rgba(14,165,233,0.10), rgba(16,185,129,0.08))",
+              borderColor: "rgba(14,165,233,0.22)",
+            }}
+          >
+            <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
+            <div className="flex flex-col md:flex-row md:items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-cyan-500/15 border border-cyan-500/20 flex items-center justify-center text-cyan-300">
+                <ClipboardList size={22} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] uppercase tracking-widest font-black text-cyan-300/80 mb-1">
+                  Kế hoạch của bạn
+                </p>
+                <h3 className="text-lg font-black text-[var(--color-text-primary)]">
+                  Bạn muốn lập kế hoạch trả nợ riêng?
+                </h3>
+                <p className="text-sm text-[var(--color-text-secondary)] mt-1">
+                  Chọn một vài khoản nợ, tự kéo-thả thứ tự trả và so sánh với Avalanche/Snowball trên đúng nhóm nợ đó.
+                </p>
+              </div>
+              <div className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-cyan-500/12 border border-cyan-500/20 text-cyan-300 text-sm font-black group-hover:bg-cyan-500/18 transition-colors">
+                Mở workspace
+                <ArrowRight size={16} />
+              </div>
+            </div>
+          </motion.div>
+        </Link>
       </motion.div>
 
       <AnimatePresence>
