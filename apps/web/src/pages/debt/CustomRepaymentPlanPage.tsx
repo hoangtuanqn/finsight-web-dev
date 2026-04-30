@@ -13,6 +13,7 @@ import {
   Check,
   ChevronRight,
   ClipboardList,
+  DollarSign,
   GripVertical,
   LineChart as LineChartIcon,
   Plus,
@@ -576,7 +577,7 @@ export default function CustomRepaymentPlanPage() {
             to="/debts/repayment"
             className="inline-flex items-center gap-2 text-[12px] font-bold text-[var(--color-text-muted)] hover:text-cyan-300 transition-colors mb-3"
           >
-            <ArrowLeft size={14} /> Quay lại kế hoạch tổng
+            <ArrowLeft size={14} /> Kế hoạch trả nợ
           </Link>
           <h1 className="text-3xl font-black tracking-tighter text-[var(--color-text-primary)]">
             Lập kế hoạch trả nợ
@@ -642,37 +643,19 @@ export default function CustomRepaymentPlanPage() {
           </aside>
 
           <section className="space-y-5 min-w-0">
-            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_220px] gap-4">
-              <div>
-                <label className="block text-[11px] uppercase tracking-widest font-black text-[var(--color-text-muted)] mb-2">
-                  Tên bản kế hoạch
-                </label>
-                <input
-                  value={planName}
-                  onChange={(event) => setPlanName(event.target.value)}
-                  className="w-full px-4 py-3 rounded-2xl border bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] font-bold outline-none focus:border-cyan-500/50"
-                  style={{ borderColor: "var(--color-border)" }}
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] uppercase tracking-widest font-black text-[var(--color-text-muted)] mb-2">
-                  Trả thêm / tháng
-                </label>
-                <FormattedInput
-                  kind="integer"
-                  value={extraBudget}
-                  onValueChange={(value) =>
-                    setExtraBudget(
-                      Math.max(0, parseInt(String(value || "0"), 10) || 0),
-                    )
-                  }
-                  suffix="đ"
-                  className="w-full px-4 py-3 rounded-2xl border bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] font-bold outline-none focus:border-cyan-500/50"
-                />
-              </div>
+            <div>
+              <label className="block text-[11px] uppercase tracking-widest font-black text-[var(--color-text-muted)] mb-2">
+                Tên bản kế hoạch
+              </label>
+              <input
+                value={planName}
+                onChange={(event) => setPlanName(event.target.value)}
+                className="w-full px-4 py-3 rounded-2xl border bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] font-bold outline-none focus:border-cyan-500/50"
+                style={{ borderColor: "var(--color-border)" }}
+              />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
                 <p className="text-[10px] uppercase tracking-widest font-black text-[var(--color-text-muted)]">
                   Số khoản chọn
@@ -689,14 +672,85 @@ export default function CustomRepaymentPlanPage() {
                   {formatVND(selectedSummary.balance)}
                 </p>
               </div>
-              <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
-                <p className="text-[10px] uppercase tracking-widest font-black text-[var(--color-text-muted)]">
-                  Tối thiểu / tháng
-                </p>
-                <p className="text-lg font-black text-[var(--color-text-primary)] mt-1">
-                  {formatVND(selectedSummary.minPayment)}
-                </p>
+            </div>
+
+            <div
+              className="relative rounded-3xl p-6 border overflow-hidden"
+              style={{
+                background: "var(--color-bg-card)",
+                borderColor: "rgba(14,165,233,0.15)",
+              }}
+            >
+              <div className="absolute top-0 left-5 right-5 h-px bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent" />
+              <div className="absolute -top-8 -right-8 w-28 h-28 rounded-full blur-3xl opacity-10 bg-cyan-500" />
+              <div className="flex items-center gap-2 mb-5">
+                <div className="w-8 h-8 rounded-xl bg-cyan-500/15 flex items-center justify-center text-cyan-400">
+                  <DollarSign size={16} />
+                </div>
+                <span className="text-[13px] font-black text-[var(--color-text-primary)]">
+                  Ngân sách trả thêm mỗi tháng
+                </span>
               </div>
+
+              <div className="flex flex-col md:flex-row md:items-center gap-3 mb-5">
+                <div className="flex-1 relative">
+                  <FormattedInput
+                    kind="integer"
+                    value={extraBudget}
+                    onValueChange={(value) =>
+                      setExtraBudget(
+                        Math.max(0, parseInt(String(value || "0"), 10) || 0),
+                      )
+                    }
+                    maxValue={100000000000}
+                    placeholder="Nhập số tiền..."
+                    suffix="đ"
+                    className="w-full px-4 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-cyan-400 font-black text-[14px] outline-none focus:border-cyan-500/50 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-5">
+                {[
+                  { label: "Tối thiểu", value: selectedSummary.minPayment },
+                  { label: "Trả thêm", value: extraBudget },
+                  { label: "Tổng/tháng", value: selectedSummary.minPayment + extraBudget },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-xl border border-white/6 bg-white/4 px-3 py-2.5"
+                  >
+                    <p className="text-[10px] text-[var(--color-text-muted)] font-black uppercase tracking-wider">
+                      {item.label}
+                    </p>
+                    <p className="text-[13px] text-[var(--color-text-primary)] font-black mt-1">
+                      {formatVND(item.value)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <input
+                type="range"
+                min="0"
+                max="100000000"
+                step="500000"
+                value={Math.min(extraBudget, 100000000)}
+                onChange={(e) => setExtraBudget(+e.target.value)}
+                className="w-full accent-cyan-500"
+              />
+              <div className="flex justify-between text-[10px] text-[var(--color-text-muted)] mt-1.5">
+                <span>0đ</span>
+                <span>25tr</span>
+                <span>50tr</span>
+                <span>75tr</span>
+                <span>100tr</span>
+              </div>
+              {extraBudget > 100000000 && (
+                <p className="text-[11px] text-amber-400 mt-2 font-medium">
+                  Giá trị vượt thanh kéo - tính toán vẫn dùng đúng số bạn nhập.
+                </p>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-2">
@@ -1049,8 +1103,8 @@ export default function CustomRepaymentPlanPage() {
                     setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
                   }}
                   className={`px-4 py-2.5 rounded-xl font-bold text-sm transition-colors cursor-pointer ${confirmDialog.actionType === "danger"
-                      ? "bg-red-500/10 text-red-400 hover:bg-red-500/20"
-                      : "bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20"
+                    ? "bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                    : "bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20"
                     }`}
                 >
                   {confirmDialog.actionLabel}
