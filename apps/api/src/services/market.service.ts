@@ -126,7 +126,7 @@ export async function fetchNews(_apiKey?: string): Promise<{ articles: NewsArtic
     const articles: NewsArticle[] = results
       .flatMap(r => r.status === 'fulfilled' ? r.value : [])
       .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-      .slice(0, 40);
+      .slice(0, 20);
 
     if (articles.length === 0) return { articles: [] };
 
