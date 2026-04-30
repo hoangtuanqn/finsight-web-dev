@@ -5,6 +5,17 @@ import { getOptimalAllocation } from '../services/portfolioOptimizer.service.js'
 import { fetchFearGreedIndex } from '../services/market.service.js';
 import { invalidateCache } from '../middleware/cache.middleware.js';
 import { AuthenticatedRequest } from '../types/index.js';
+async function warmHistoricalDataCache(profile: any, userId: string) {
+  try {
+    // Pre-run optimizer in background to warm Redis hist:* keys from Yahoo Finance.
+    // This way the next GET /allocation hits cache instead of fetching 5y history live.
+    const sentiment = await fetchFearGreedIndex();
+    await getOptimalAllocation(profile, sentiment.value, null, []);
+    console.info(`[InvestmentAdvisor] hist-cache:warmed user=${shortUserId(userId)}`);
+  } catch (err: any) {
+    console.warn(`[InvestmentAdvisor] hist-cache:warm-failed user=${shortUserId(userId)} err=${err.message}`);
+  }
+}
 
 function shortUserId(userId: string | undefined): string {
   return String(userId || 'unknown').slice(0, 8);
@@ -84,6 +95,10 @@ export async function generateStrategy(req: AuthenticatedRequest, res: Response)
     );
 
     invalidateCache([`investment:allocation:${req.userId}:*`]);
+
+    // Fire-and-forget: pre-warm hist:* Redis keys so next GET /allocation is fast
+    warmHistoricalDataCache(user.investorProfile, req.userId!);
+
     return success(res, {
       strategy,
       remainingQuota: updatedUser.strategyQuota,

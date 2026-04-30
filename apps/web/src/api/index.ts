@@ -108,6 +108,8 @@ export const investmentAPI = {
 export const marketAPI = {
   getSentiment: () => api.get('/market/sentiment'),
   getPrices: () => api.get('/market/prices'),
+  getCryptoPrices: () => api.get('/market/prices/crypto'),
+  getGoldPrice: () => api.get('/market/prices/gold'),
   getNews: () => api.get('/market/news'),
   getSummary: () => api.get('/market/summary'),
 };
