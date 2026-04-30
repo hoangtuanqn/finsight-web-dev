@@ -587,16 +587,6 @@ export default function CustomRepaymentPlanPage() {
             và Snowball trên đúng nhóm nợ đó.
           </p>
         </div>
-
-        <div className="flex flex-col sm:flex-row gap-3">
-          <button
-            type="button"
-            onClick={openNewPlan}
-            className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 text-cyan-300 text-sm font-black hover:bg-cyan-500/16 transition-colors"
-          >
-            <Plus size={16} /> Tạo mới
-          </button>
-        </div>
       </div>
 
       <div
