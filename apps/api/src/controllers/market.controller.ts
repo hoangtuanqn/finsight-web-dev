@@ -49,7 +49,7 @@ export async function getMarketSummary(req: Request, res: Response) {
     return success(res, {
       sentiment: fearGreed,
       prices: { bitcoin: crypto.bitcoin, ethereum: crypto.ethereum, gold },
-      news: news.articles?.slice(0, 6) || [],
+      news: news.articles?.slice(0, 40) || [],
     });
   } catch (err) {
     console.error('getMarketSummary error:', err);
