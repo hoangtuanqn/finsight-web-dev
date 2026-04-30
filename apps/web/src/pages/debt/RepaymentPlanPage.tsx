@@ -16,6 +16,7 @@ import { useDebts, useDebtGoal } from "../../hooks/useDebtQuery";
 import { useUpdateProfile } from "../../hooks/useAuthQuery";
 import { PageSkeleton } from "../../components/common/LoadingSpinner";
 import FormattedInput from "../../components/common/FormattedInput";
+import { formInputClass } from "../../components/common/formStyles";
 import { formatVND } from "../../utils/calculations";
 import {
   buildRepaymentPlanFromDebts,
@@ -603,7 +604,7 @@ export default function RepaymentPlanPage() {
                 maxValue={100000000000}
                 placeholder="Nhập số tiền..."
                 suffix="đ"
-                className="w-full px-4 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-blue-400 font-black text-[14px] outline-none focus:border-blue-500/50 transition-colors"
+                className={`${formInputClass()} text-blue-400 font-black text-[14px]`}
               />
             </div>
             <button
