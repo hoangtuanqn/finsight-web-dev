@@ -9,6 +9,8 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { debtAPI } from "../../api/index";
+import FormattedInput from "../common/FormattedInput";
+import { formInputClass } from "../common/formStyles";
 
 export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
   const [loading, setLoading] = useState(false);
@@ -266,20 +268,15 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
                   >
                     Số tiền gốc (VNĐ) <span className="text-rose-400">*</span>
                   </label>
-                  <input
-                    type="number"
+                  <FormattedInput
+                    kind="integer"
                     value={form.originalAmount}
-                    onChange={(e) =>
-                      updateField("originalAmount", e.target.value)
+                    onValueChange={(value) =>
+                      updateField("originalAmount", value)
                     }
-                    placeholder="10000000"
-                    min="0"
-                    className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
-                    style={{
-                      background: "var(--color-bg-secondary)",
-                      color: "var(--color-text-primary)",
-                      border: "1px solid var(--color-border)",
-                    }}
+                    placeholder="10.000.000"
+                    suffix="đ"
+                    className={formInputClass()}
                   />
                   {+form.originalAmount > 0 && (
                     <p className="text-[10px] mt-1 text-emerald-400">
@@ -295,21 +292,16 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
                     Dư nợ hiện tại (VNĐ){" "}
                     <span className="text-rose-400">*</span>
                   </label>
-                  <input
-                    type="number"
+                  <FormattedInput
+                    kind="integer"
                     value={form.balance}
-                    onChange={(e) => {
-                      updateField("balance", e.target.value);
+                    onValueChange={(value) => {
+                      updateField("balance", value);
                       setForm((prev) => ({ ...prev, _manualBalance: true }));
                     }}
-                    placeholder="10000000"
-                    min="0"
-                    className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
-                    style={{
-                      background: "var(--color-bg-secondary)",
-                      color: "var(--color-text-primary)",
-                      border: "1px solid var(--color-border)",
-                    }}
+                    placeholder="10.000.000"
+                    suffix="đ"
+                    className={formInputClass()}
                   />
                   {+form.balance > 0 && (
                     <p className="text-[10px] mt-1 text-emerald-400">
@@ -377,21 +369,16 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
                     Trả tối thiểu/tháng (VNĐ){" "}
                     <span className="text-rose-400">*</span>
                   </label>
-                  <input
-                    type="number"
+                  <FormattedInput
+                    kind="integer"
                     value={form.minPayment}
-                    onChange={(e) => {
-                      updateField("minPayment", e.target.value);
+                    onValueChange={(value) => {
+                      updateField("minPayment", value);
                       setForm((prev) => ({ ...prev, _manualMinPayment: true }));
                     }}
-                    placeholder="833333"
-                    min="0"
-                    className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
-                    style={{
-                      background: "var(--color-bg-secondary)",
-                      color: "var(--color-text-primary)",
-                      border: "1px solid var(--color-border)",
-                    }}
+                    placeholder="833.333"
+                    suffix="đ"
+                    className={formInputClass()}
                   />
                   {+form.minPayment > 0 && (
                     <p className="text-[10px] mt-1 text-emerald-400">

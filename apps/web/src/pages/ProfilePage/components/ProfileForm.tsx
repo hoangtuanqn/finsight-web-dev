@@ -21,6 +21,7 @@ import {
   SELECT_CLASSES,
   RISK_META,
 } from "../constants";
+import { formInputClass } from "../../../components/common/formStyles";
 
 // Helper for Section Header
 function SectionHeader({ dot, label }: { dot: string; label: string }) {
@@ -64,8 +65,7 @@ export function ProfileForm({
   const riskLevel = user?.investorProfile?.riskLevel || "MEDIUM";
   const riskMeta = RISK_META[riskLevel as keyof typeof RISK_META];
 
-  const inputCls = (hasError: any) =>
-    `${INPUT_CLASSES} ${hasError ? "border-red-500/60 focus:border-red-500 ring-2 ring-red-500/10" : "focus:ring-2 focus:ring-blue-500/10"}`;
+  const inputCls = formInputClass;
 
   return (
     <div

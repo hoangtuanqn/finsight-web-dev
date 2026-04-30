@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Wallet, Building2, Link2, Key, ChevronDown, Info, Check, Search, Zap } from 'lucide-react';
 import { useWalletMutations } from '../../../hooks/useWalletQuery';
 import { INPUT_CLASSES, LABEL_CLASSES } from '../constants';
+import FormattedInput from '../../../components/common/FormattedInput';
+import { formInputClass } from '../../../components/common/formStyles';
 
 const WALLET_ICONS = ['👛','💰','🏦','💳','📱','🏧','💵','🪙'];
 const WALLET_COLORS = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4899','#64748b'];
@@ -328,10 +330,14 @@ export function WalletForm({ wallet, onClose }: WalletFormProps) {
           <div>
             <label className={LABEL_CLASSES}>{isBank && syncEnabled ? 'Số dư (tự động cập nhật)' : 'Số dư ban đầu'}</label>
             <div className="relative">
-              <input type="number" value={form.balance} onChange={e => set('balance', e.target.value)} placeholder="0"
-                min="0" readOnly={isBank && syncEnabled && !!wallet?.sepayToken}
-                className={INPUT_CLASSES + ' pr-10'} />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] text-sm font-black">đ</span>
+              <FormattedInput
+                kind="integer"
+                value={form.balance}
+                onValueChange={(value) => set('balance', value)}
+                placeholder="0"
+                suffix="đ"
+                className={`${formInputClass()} ${isBank && syncEnabled && !!wallet?.sepayToken ? 'opacity-60 pointer-events-none' : ''}`}
+              />
             </div>
           </div>
 
