@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   LineChart,
   Line,
@@ -16,6 +16,8 @@ import {
   useRepaymentPlan,
   useDebts,
   useDebtGoal,
+  useRepaymentPlans,
+  useRepaymentPlanMutations,
 } from "../../hooks/useDebtQuery";
 import { useUpdateProfile } from "../../hooks/useAuthQuery";
 import { PageSkeleton } from "../../components/common/LoadingSpinner";
@@ -40,6 +42,8 @@ import {
   XCircle,
   ArrowRight,
   Brain,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -309,6 +313,7 @@ const TOOLTIP_STYLE = {
 };
 
 export default function RepaymentPlanPage() {
+  const navigate = useNavigate();
   const { user } = useAuth() as any;
   const defaultBudget = user?.extraBudget || 0;
 
@@ -337,6 +342,9 @@ export default function RepaymentPlanPage() {
     isLoading: boolean;
   };
   const { mutateAsync: updateProfile, isPending: saving } = useUpdateProfile();
+  const { data: plansData } = useRepaymentPlans() as { data: any };
+  const { deletePlan, isDeletingPlan } = useRepaymentPlanMutations();
+  const customPlans = plansData?.plans || [];
 
   const loading = planLoading || debtsLoading || goalLoading;
 
@@ -468,6 +476,8 @@ export default function RepaymentPlanPage() {
             So sánh Avalanche vs Snowball để chọn chiến lược tối ưu
           </p>
         </div>
+
+
 
         {goalData && (
           <Link to="/debts/goal" className="block">
@@ -1131,38 +1141,82 @@ export default function RepaymentPlanPage() {
           </>
         )}
 
-        <Link to="/debts/plan" className="block">
-          <motion.div
-            whileHover={{ y: -2 }}
-            className="group relative rounded-3xl p-5 md:p-6 border overflow-hidden transition-all"
-            style={{
-              background: "linear-gradient(135deg, rgba(14,165,233,0.10), rgba(16,185,129,0.08))",
-              borderColor: "rgba(14,165,233,0.22)",
-            }}
-          >
-            <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
-            <div className="flex flex-col md:flex-row md:items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-cyan-500/15 border border-cyan-500/20 flex items-center justify-center text-cyan-300">
+        {/* Plan List Section */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-cyan-500/15 flex items-center justify-center text-cyan-400">
+                <ClipboardList size={16} />
+              </div>
+              <h2 className="text-[15px] font-black text-[var(--color-text-primary)]">Bản kế hoạch tùy chỉnh</h2>
+            </div>
+            <button
+              onClick={() => navigate("/debts/plan/new")}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-cyan-500/25 bg-cyan-500/10 text-cyan-300 text-sm font-black hover:bg-cyan-500/16 transition-colors cursor-pointer"
+            >
+              <Plus size={16} /> Tạo kế hoạch
+            </button>
+          </div>
+
+          {customPlans.length === 0 ? (
+            <div className="rounded-3xl border p-8 text-center" style={{ background: "var(--color-bg-card)", borderColor: "var(--color-border)" }}>
+              <div className="w-12 h-12 mx-auto rounded-2xl bg-cyan-500/12 text-cyan-300 flex items-center justify-center mb-4">
                 <ClipboardList size={22} />
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] uppercase tracking-widest font-black text-cyan-300/80 mb-1">
-                  Kế hoạch của bạn
-                </p>
-                <h3 className="text-lg font-black text-[var(--color-text-primary)]">
-                  Bạn muốn lập kế hoạch trả nợ riêng?
-                </h3>
-                <p className="text-sm text-[var(--color-text-secondary)] mt-1">
-                  Chọn một vài khoản nợ, tự kéo-thả thứ tự trả và so sánh với Avalanche/Snowball trên đúng nhóm nợ đó.
-                </p>
-              </div>
-              <div className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-cyan-500/12 border border-cyan-500/20 text-cyan-300 text-sm font-black group-hover:bg-cyan-500/18 transition-colors">
-                Mở workspace
-                <ArrowRight size={16} />
-              </div>
+              <h3 className="text-lg font-black text-[var(--color-text-primary)]">Chưa có bản kế hoạch nào</h3>
+              <p className="text-sm text-[var(--color-text-muted)] mt-1">Bắt đầu bằng cách tạo một kế hoạch trả nợ riêng.</p>
             </div>
-          </motion.div>
-        </Link>
+          ) : (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+              {customPlans.map((plan: any) => {
+                const summary = plan.summary || {};
+                return (
+                  <motion.div
+                    key={plan.id}
+                    whileHover={{ y: -2 }}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate(`/debts/plan/${plan.id}`)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/debts/plan/${plan.id}`); } }}
+                    className="group relative rounded-3xl border p-5 md:p-6 overflow-hidden cursor-pointer transition-colors hover:border-cyan-500/35"
+                    style={{ background: "var(--color-bg-card)", borderColor: "var(--color-border)" }}
+                  >
+                    <ChevronRight size={18} className="absolute top-6 right-6 text-[var(--color-text-muted)] group-hover:text-cyan-300 transition-colors" />
+                    <div className="flex items-start gap-4 mb-5 pr-8">
+                      <div className="w-11 h-11 rounded-2xl bg-cyan-500/15 text-cyan-300 flex items-center justify-center shrink-0">
+                        <Zap size={20} />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-lg font-black text-[var(--color-text-primary)] truncate">{plan.name}</h3>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                      <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
+                        <p className="text-[10px] uppercase tracking-widest font-black text-[var(--color-text-muted)]">Khoản nợ</p>
+                        <p className="text-lg font-black text-[var(--color-text-primary)] mt-1">{summary.debtCount || 0}</p>
+                      </div>
+                      <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
+                        <p className="text-[10px] uppercase tracking-widest font-black text-[var(--color-text-muted)]">Tổng dư nợ</p>
+                        <p className="text-lg font-black text-[var(--color-text-primary)] mt-1">{formatVND(summary.totalBalance || 0)}</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); deletePlan(plan.id); }}
+                        disabled={isDeletingPlan}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs font-black hover:bg-red-500/16 transition-colors disabled:opacity-50 cursor-pointer"
+                      >
+                        <Trash2 size={13} /> Xóa
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      
       </motion.div>
 
       <AnimatePresence>

@@ -1,13 +1,11 @@
 import {
-  memo,
-  type DragEvent,
   useCallback,
   useEffect,
   useMemo,
   useState,
 } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { motion, Reorder, AnimatePresence, useDragControls } from "framer-motion";
 import {
   ArrowDown,
   ArrowLeft,
@@ -95,137 +93,121 @@ function buildTimeline(simulationData: any) {
   });
 }
 
-const DebtRow = memo(function DebtRow({
-  debt,
-  index,
-  selected,
-  onAdd,
-  onRemove,
-  onMove,
-  onDragStart,
-  onDrop,
-}: {
-  debt: any;
-  index?: number;
-  selected?: boolean;
-  onAdd?: (debtId: string) => void;
-  onRemove?: (debtId: string) => void;
-  onMove?: (debtId: string, direction: -1 | 1) => void;
-  onDragStart: (debtId: string) => void;
-  onDrop?: (debtId: string) => void;
-}) {
+function AvailableDebtRow({ debt, onAdd }: { debt: any; onAdd: (id: string) => void }) {
   const debtId = String(debt.id);
-  const navigate = useNavigate();
-
   return (
-    <div
-      draggable
-      role="button"
-      tabIndex={0}
-      onClick={() => navigate(`/debts/${debtId}`)}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          navigate(`/debts/${debtId}`);
-        }
-      }}
-      onDragStart={() => onDragStart(debtId)}
-      onDragOver={(event) => event.preventDefault()}
-      onDrop={onDrop ? () => onDrop(debtId) : undefined}
-      className="group rounded-2xl border p-3.5 cursor-grab active:cursor-grabbing transition-all"
-      style={{
-        background: selected
-          ? "rgba(14,165,233,0.08)"
-          : "var(--color-bg-secondary)",
-        borderColor: selected ? "rgba(14,165,233,0.22)" : "var(--color-border)",
-      }}
+    <motion.div
+      layout
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20, transition: { duration: 0.15 } }}
+      className="group rounded-2xl border p-3.5 transition-all hover:border-cyan-500/30"
+      style={{ background: "var(--color-bg-secondary)", borderColor: "var(--color-border)" }}
     >
       <div className="flex items-center gap-3">
-        {selected ? (
-          <div className="w-8 h-8 rounded-xl bg-cyan-500/15 text-cyan-300 flex items-center justify-center text-xs font-black shrink-0">
-            {(index || 0) + 1}
-          </div>
-        ) : (
-          <div className="w-8 h-8 rounded-xl bg-white/5 text-[var(--color-text-muted)] flex items-center justify-center shrink-0">
-            <GripVertical size={15} />
-          </div>
-        )}
-
+        <div className="w-8 h-8 rounded-xl bg-white/5 text-[var(--color-text-muted)] flex items-center justify-center shrink-0">
+          <GripVertical size={15} />
+        </div>
         <div className="min-w-0 flex-1">
-          <Link
-            to={`/debts/${debt.id}`}
-            className="block text-sm font-black text-[var(--color-text-primary)] truncate hover:text-cyan-300 transition-colors"
-          >
+          <Link to={`/debts/${debt.id}`} className="block text-sm font-black text-[var(--color-text-primary)] truncate hover:text-cyan-300 transition-colors">
             {debt.name}
           </Link>
           <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5 truncate">
-            {debt.platform} · APR {debt.apr}% · Tối thiểu{" "}
-            {formatVND(debt.minPayment)}
+            {debt.platform} · APR {debt.apr}% · Tối thiểu {formatVND(debt.minPayment)}
           </p>
         </div>
-
         <div className="text-right shrink-0">
-          <p className="text-sm font-black text-[var(--color-text-primary)]">
-            {formatVND(debt.balance)}
-          </p>
+          <p className="text-sm font-black text-[var(--color-text-primary)]">{formatVND(debt.balance)}</p>
           <p className="text-[10px] text-[var(--color-text-muted)]">dư nợ</p>
         </div>
-
-        {selected ? (
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                onMove?.(debtId, -1);
-              }}
-              className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 text-[var(--color-text-muted)] hover:text-cyan-300 transition-colors"
-              title="Đưa lên"
-            >
-              <ArrowUp size={14} className="mx-auto" />
-            </button>
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                onMove?.(debtId, 1);
-              }}
-              className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 text-[var(--color-text-muted)] hover:text-cyan-300 transition-colors"
-              title="Đưa xuống"
-            >
-              <ArrowDown size={14} className="mx-auto" />
-            </button>
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                onRemove?.(debtId);
-              }}
-              className="w-8 h-8 rounded-xl bg-red-500/10 hover:bg-red-500/18 text-red-300 transition-colors"
-              title="Bỏ khỏi kế hoạch"
-            >
-              <X size={14} className="mx-auto" />
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onAdd?.(debtId);
-            }}
-            className="w-9 h-9 rounded-xl bg-cyan-500/12 hover:bg-cyan-500/20 border border-cyan-500/20 text-cyan-300 transition-colors shrink-0"
-            title="Thêm vào kế hoạch"
-          >
-            <Plus size={16} className="mx-auto" />
-          </button>
-        )}
+        <motion.button
+          type="button"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => onAdd(debtId)}
+          className="w-9 h-9 rounded-xl bg-cyan-500/12 hover:bg-cyan-500/20 border border-cyan-500/20 text-cyan-300 transition-colors shrink-0 cursor-pointer"
+          title="Thêm vào kế hoạch"
+        >
+          <Plus size={16} className="mx-auto" />
+        </motion.button>
       </div>
-    </div>
+    </motion.div>
   );
-});
+}
 
-const MethodPlanCard = memo(function MethodPlanCard({
+function SelectedDebtItem({ debt, index, onRemove, onMove }: {
+  debt: any; index: number;
+  onRemove: (id: string) => void;
+  onMove: (id: string, dir: -1 | 1) => void;
+}) {
+  const debtId = String(debt.id);
+  const controls = useDragControls();
+
+  return (
+    <Reorder.Item
+      value={debtId}
+      dragListener={false}
+      dragControls={controls}
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+      whileDrag={{
+        scale: 1.03,
+        boxShadow: "0 12px 40px rgba(14,165,233,0.25), 0 0 0 2px rgba(14,165,233,0.4)",
+        zIndex: 50,
+        cursor: "grabbing",
+      }}
+      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+      className="rounded-2xl border p-3.5 cursor-default"
+      style={{
+        background: "rgba(14,165,233,0.08)",
+        borderColor: "rgba(14,165,233,0.22)",
+      }}
+    >
+      <div className="flex items-center gap-3">
+        <motion.div
+          onPointerDown={(e) => controls.start(e)}
+          className="w-8 h-8 rounded-xl bg-cyan-500/15 text-cyan-300 flex items-center justify-center text-xs font-black shrink-0 cursor-grab active:cursor-grabbing select-none touch-none"
+          whileHover={{ scale: 1.1, background: "rgba(14,165,233,0.25)" }}
+          whileTap={{ scale: 0.95 }}
+        >
+          {index + 1}
+        </motion.div>
+        <div className="min-w-0 flex-1">
+          <Link to={`/debts/${debt.id}`} className="block text-sm font-black text-[var(--color-text-primary)] truncate hover:text-cyan-300 transition-colors">
+            {debt.name}
+          </Link>
+          <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5 truncate">
+            {debt.platform} · APR {debt.apr}% · Tối thiểu {formatVND(debt.minPayment)}
+          </p>
+        </div>
+        <div className="text-right shrink-0">
+          <p className="text-sm font-black text-[var(--color-text-primary)]">{formatVND(debt.balance)}</p>
+          <p className="text-[10px] text-[var(--color-text-muted)]">dư nợ</p>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <motion.button type="button" whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.85 }}
+            onClick={() => onMove(debtId, -1)}
+            className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 text-[var(--color-text-muted)] hover:text-cyan-300 transition-colors cursor-pointer" title="Đưa lên">
+            <ArrowUp size={14} className="mx-auto" />
+          </motion.button>
+          <motion.button type="button" whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.85 }}
+            onClick={() => onMove(debtId, 1)}
+            className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 text-[var(--color-text-muted)] hover:text-cyan-300 transition-colors cursor-pointer" title="Đưa xuống">
+            <ArrowDown size={14} className="mx-auto" />
+          </motion.button>
+          <motion.button type="button" whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.85 }}
+            onClick={() => onRemove(debtId)}
+            className="w-8 h-8 rounded-xl bg-red-500/10 hover:bg-red-500/18 text-red-300 transition-colors cursor-pointer" title="Bỏ khỏi kế hoạch">
+            <X size={14} className="mx-auto" />
+          </motion.button>
+        </div>
+      </div>
+    </Reorder.Item>
+  );
+}
+
+function MethodPlanCard({
   type,
   debts,
   simulation,
@@ -354,9 +336,10 @@ const MethodPlanCard = memo(function MethodPlanCard({
       </div>
     </div>
   );
-});
+}
 
 export default function CustomRepaymentPlanPage() {
+  const navigate = useNavigate();
   const { user } = useAuth() as any;
   const { data: debtsData, isLoading: debtsLoading } = useDebts() as {
     data: any;
@@ -375,14 +358,20 @@ export default function CustomRepaymentPlanPage() {
     isDeletingPlan,
   } = useRepaymentPlanMutations();
 
+  const { planId: routePlanId } = useParams<{ planId: string }>();
   const plans = plansData?.plans || [];
   const debts = debtsData?.debts || [];
   const [activePlanId, setActivePlanId] = useState<string | null>(null);
   const [planName, setPlanName] = useState("Kế hoạch trả nợ riêng");
   const [extraBudget, setExtraBudget] = useState(user?.extraBudget || 0);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [draggingDebtId, setDraggingDebtId] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
+
+  // Load plan from route param
+  useEffect(() => {
+    if (routePlanId && routePlanId !== "new" && plans.length > 0) {
+      setActivePlanId(routePlanId);
+    }
+  }, [routePlanId, plans]);
 
   const activePlan = useMemo(
     () => plans.find((plan: any) => plan.id === activePlanId),
@@ -483,39 +472,7 @@ export default function CustomRepaymentPlanPage() {
     });
   }, []);
 
-  const insertOrMoveDebt = useCallback((debtId: string, targetId: string) => {
-    setSelectedIds((current) => {
-      const withoutDragged = current.filter((id) => id !== debtId);
-      const targetIndex = withoutDragged.indexOf(targetId);
-      const insertIndex = targetIndex >= 0 ? targetIndex : withoutDragged.length;
-      const next = [...withoutDragged];
-      next.splice(insertIndex, 0, debtId);
-      return next;
-    });
-  }, []);
 
-  const handleDragStart = useCallback((debtId: string) => {
-    setDraggingDebtId(debtId);
-  }, []);
-
-  const handleDropOnList = useCallback(
-    (event: DragEvent<HTMLDivElement>) => {
-      event.preventDefault();
-      if (!draggingDebtId) return;
-      addDebt(draggingDebtId);
-      setDraggingDebtId(null);
-    },
-    [addDebt, draggingDebtId],
-  );
-
-  const handleDropOnDebt = useCallback(
-    (targetDebtId: string) => {
-      if (!draggingDebtId) return;
-      insertOrMoveDebt(draggingDebtId, targetDebtId);
-      setDraggingDebtId(null);
-    },
-    [draggingDebtId, insertOrMoveDebt],
-  );
 
   const sortByAvalanche = useCallback(() => {
     setSelectedIds((current) =>
@@ -543,13 +500,7 @@ export default function CustomRepaymentPlanPage() {
 
   const openNewPlan = useCallback(() => {
     startNewPlan();
-    setIsEditing(true);
   }, [startNewPlan]);
-
-  const openExistingPlan = useCallback((planId: string) => {
-    setActivePlanId(planId);
-    setIsEditing(true);
-  }, []);
 
   const savePlan = async () => {
     if (selectedIds.length === 0) {
@@ -576,154 +527,10 @@ export default function CustomRepaymentPlanPage() {
   const removePlan = async () => {
     if (!activePlanId) return;
     await deletePlan(activePlanId);
-    startNewPlan();
-    setIsEditing(false);
-  };
-
-  const removePlanById = async (planId: string) => {
-    await deletePlan(planId);
-    if (activePlanId === planId) {
-      startNewPlan();
-      setIsEditing(false);
-    }
+    navigate("/debts/repayment");
   };
 
   if (debtsLoading || plansLoading) return <PageSkeleton />;
-
-  if (!isEditing) {
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="pb-8 space-y-7 pt-2"
-      >
-        <div>
-          <Link
-            to="/debts/repayment"
-            className="inline-flex items-center gap-2 text-[12px] font-bold text-[var(--color-text-muted)] hover:text-blue-300 transition-colors mb-4"
-          >
-            <ArrowLeft size={14} /> Quay lại kế hoạch tổng
-          </Link>
-          <br />
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/25 bg-blue-500/10 text-blue-300 text-[10px] font-black uppercase tracking-widest mb-4">
-            <ClipboardList size={11} /> Bản kế hoạch
-          </div>
-          <h1 className="text-3xl md:text-4xl font-black tracking-tighter text-[var(--color-text-primary)]">
-            Bản kế hoạch trả nợ
-          </h1>
-          <p className="text-[var(--color-text-secondary)] text-sm mt-2">
-            Tạo và so sánh nhiều kế hoạch trả nợ khác nhau
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={openNewPlan}
-          className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl border border-blue-500/25 bg-blue-500/10 text-blue-300 text-sm font-black hover:bg-blue-500/16 transition-colors"
-        >
-          <Plus size={17} /> Tạo kế hoạch mới
-        </button>
-
-        {plans.length === 0 ? (
-          <div
-            className="rounded-3xl border p-8 text-center"
-            style={{
-              background: "var(--color-bg-card)",
-              borderColor: "var(--color-border)",
-            }}
-          >
-            <div className="w-12 h-12 mx-auto rounded-2xl bg-blue-500/12 text-blue-300 flex items-center justify-center mb-4">
-              <ClipboardList size={22} />
-            </div>
-            <h3 className="text-lg font-black text-[var(--color-text-primary)]">
-              Chưa có bản kế hoạch nào
-            </h3>
-            <p className="text-sm text-[var(--color-text-muted)] mt-1">
-              Bắt đầu bằng cách tạo một kế hoạch trả nợ riêng.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-            {plans.map((plan: any) => {
-              const summary = plan.summary || {};
-              return (
-                <motion.div
-                  key={plan.id}
-                  whileHover={{ y: -2 }}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => openExistingPlan(plan.id)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      openExistingPlan(plan.id);
-                    }
-                  }}
-                  className="group relative rounded-3xl border p-5 md:p-6 overflow-hidden cursor-pointer transition-colors hover:border-blue-500/35"
-                  style={{
-                    background: "var(--color-bg-card)",
-                    borderColor: "var(--color-border)",
-                  }}
-                >
-                  <ChevronRight
-                    size={18}
-                    className="absolute top-6 right-6 text-[var(--color-text-muted)] group-hover:text-blue-300 transition-colors"
-                  />
-
-                  <div className="flex items-start gap-4 mb-5 pr-8">
-                    <div className="w-11 h-11 rounded-2xl bg-blue-500/15 text-blue-300 flex items-center justify-center shrink-0">
-                      <Zap size={20} />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="text-lg font-black text-[var(--color-text-primary)] truncate">
-                        {plan.name}
-                      </h3>
-                      <span className="inline-flex mt-2 px-2 py-0.5 rounded-lg bg-blue-500/12 text-blue-300 text-[10px] font-black">
-                        Avalanche
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                    <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
-                      <p className="text-[10px] uppercase tracking-widest font-black text-[var(--color-text-muted)]">
-                        Khoản nợ
-                      </p>
-                      <p className="text-lg font-black text-[var(--color-text-primary)] mt-1">
-                        {summary.debtCount || 0}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
-                      <p className="text-[10px] uppercase tracking-widest font-black text-[var(--color-text-muted)]">
-                        Tổng dư nợ
-                      </p>
-                      <p className="text-lg font-black text-[var(--color-text-primary)] mt-1">
-                        {formatVND(summary.totalBalance || 0)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        removePlanById(plan.id);
-                      }}
-                      disabled={isDeletingPlan}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs font-black hover:bg-red-500/16 transition-colors disabled:opacity-50"
-                    >
-                      <Trash2 size={13} /> Xóa
-                    </button>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        )}
-      </motion.div>
-    );
-  }
 
   return (
     <motion.div
@@ -734,14 +541,10 @@ export default function CustomRepaymentPlanPage() {
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5 pt-2">
         <div>
           <Link
-            to="/debts/plan"
-            onClick={(event) => {
-              event.preventDefault();
-              setIsEditing(false);
-            }}
+            to="/debts/repayment"
             className="inline-flex items-center gap-2 text-[12px] font-bold text-[var(--color-text-muted)] hover:text-cyan-300 transition-colors mb-3"
           >
-            <ArrowLeft size={14} /> Quay lại danh sách kế hoạch
+            <ArrowLeft size={14} /> Quay lại kế hoạch tổng
           </Link>
           <h1 className="text-3xl font-black tracking-tighter text-[var(--color-text-primary)]">
             Lập kế hoạch trả nợ
@@ -788,18 +591,19 @@ export default function CustomRepaymentPlanPage() {
               </div>
               <div className="space-y-3 max-h-[620px] overflow-y-auto pr-1">
                 {availableDebts.length === 0 ? (
-                  <div className="rounded-2xl border border-white/8 bg-white/4 p-5 text-sm text-[var(--color-text-muted)]">
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="rounded-2xl border border-white/8 bg-white/4 p-5 text-sm text-[var(--color-text-muted)]"
+                  >
                     Tất cả khoản nợ ACTIVE đã nằm trong bản kế hoạch này.
-                  </div>
+                  </motion.div>
                 ) : (
-                  availableDebts.map((debt: any) => (
-                    <DebtRow
-                      key={debt.id}
-                      debt={debt}
-                      onAdd={addDebt}
-                      onDragStart={handleDragStart}
-                    />
-                  ))
+                  <AnimatePresence mode="popLayout">
+                    {availableDebts.map((debt: any) => (
+                      <AvailableDebtRow key={debt.id} debt={debt} onAdd={addDebt} />
+                    ))}
+                  </AnimatePresence>
                 )}
               </div>
             </div>
@@ -906,8 +710,6 @@ export default function CustomRepaymentPlanPage() {
             </div>
 
             <div
-              onDrop={handleDropOnList}
-              onDragOver={(event) => event.preventDefault()}
               className="rounded-3xl border p-4 min-h-[180px]"
               style={{
                 background: "rgba(15,23,42,0.35)",
@@ -918,34 +720,44 @@ export default function CustomRepaymentPlanPage() {
                 <p className="text-[11px] uppercase tracking-widest font-black text-[var(--color-text-muted)]">
                   Thứ tự trả các khoản nợ (kéo thả để sắp xếp)
                 </p>
-                <button
+                <motion.button
                   type="button"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={clearSelectedDebts}
                   disabled={selectedIds.length === 0}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-[11px] font-black hover:bg-red-500/16 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-[11px] font-black hover:bg-red-500/16 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   <X size={12} /> Xóa tất cả
-                </button>
+                </motion.button>
               </div>
               {selectedDebts.length === 0 ? (
-                <div className="h-32 rounded-2xl border border-dashed border-cyan-500/25 bg-cyan-500/5 flex items-center justify-center text-sm text-cyan-200/75 text-center px-4">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="h-32 rounded-2xl border border-dashed border-cyan-500/25 bg-cyan-500/5 flex items-center justify-center text-sm text-cyan-200/75 text-center px-4"
+                >
                   Kéo khoản nợ từ bên trái vào đây hoặc bấm nút thêm.
-                </div>
+                </motion.div>
               ) : (
-                <div className="space-y-3">
-                  {selectedDebts.map((debt: any, index: number) => (
-                    <DebtRow
-                      key={debt.id}
-                      debt={debt}
-                      index={index}
-                      selected
-                      onRemove={removeDebt}
-                      onMove={moveDebt}
-                      onDragStart={handleDragStart}
-                      onDrop={handleDropOnDebt}
-                    />
-                  ))}
-                </div>
+                <Reorder.Group
+                  axis="y"
+                  values={selectedIds}
+                  onReorder={setSelectedIds}
+                  className="space-y-3"
+                >
+                  <AnimatePresence mode="popLayout">
+                    {selectedDebts.map((debt: any, index: number) => (
+                      <SelectedDebtItem
+                        key={debt.id}
+                        debt={debt}
+                        index={index}
+                        onRemove={removeDebt}
+                        onMove={moveDebt}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </Reorder.Group>
               )}
             </div>
           </section>

@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, CreditCard, Search, ClipboardList,
-  TrendingUp, Target, User, BarChart2, LogOut, ChevronRight, Zap, Receipt, Crown, BookOpen, Wallet, PieChart, Gift
+  TrendingUp, Target, User, BarChart2, LogOut, ChevronRight, Zap, Receipt, Crown, BookOpen, Wallet, PieChart, Gift, FolderOpen
 } from 'lucide-react';
 
 const NAV_GROUPS = [
@@ -27,8 +27,9 @@ const NAV_GROUPS = [
   {
     label: 'Phân tích',
     items: [
-      { id: 'tour-investment', to: '/investment',      icon: TrendingUp, label: 'Cố vấn đầu tư',       color: '#f59e0b', gradient: 'from-amber-500 to-orange-400' },
-      { id: 'tour-risk',       to: '/risk-assessment', icon: Target,     label: 'Đánh giá rủi ro', color: '#f43f5e', gradient: 'from-rose-500 to-pink-400'   },
+      { id: 'tour-investment',   to: '/investment',              icon: TrendingUp, label: 'Cố vấn đầu tư',    end: true, color: '#f59e0b', gradient: 'from-amber-500 to-orange-400' },
+      { id: 'tour-my-portfolio', to: '/investment/my-portfolio', icon: FolderOpen, label: 'Chiến lược của tôi',           color: '#10b981', gradient: 'from-emerald-500 to-teal-400' },
+      { id: 'tour-risk',         to: '/risk-assessment',         icon: Target,     label: 'Đánh giá rủi ro',              color: '#f43f5e', gradient: 'from-rose-500 to-pink-400'   },
     ],
   },
   {
@@ -131,7 +132,7 @@ export default function Sidebar({ isCollapsed, width, onClose, isMobile }: Sideb
                   title={isCollapsed ? item.label : ''}
                   onClick={() => isMobile && onClose?.()}
                   className={({ isActive }) =>
-                    `relative flex items-center gap-3  w-full px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all duration-200 group cursor-pointer ${
+                    `relative flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-semibold transition-all duration-200 group cursor-pointer ${
                       isActive ? 'text-white' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
                     }`
                   }

@@ -24,8 +24,7 @@ import PortfolioHealthMetrics from '../components/investment/PortfolioHealthMetr
 import AllocationEngine from '../components/investment/AllocationEngine';
 import SmartAssetGuide from '../components/investment/SmartAssetGuide';
 import WealthProjection from '../components/investment/WealthProjection';
-import RiskMetricsPanel from '../components/investment/RiskMetricsPanel';
-import EfficientFrontierPanel from '../components/investment/EfficientFrontierPanel';
+
 import EconomicNewsFeed from '../components/investment/EconomicNewsFeed';
 import StrategyRecommendation from '../components/investment/StrategyRecommendation';
 import IncompleteProfile from '../components/investment/IncompleteProfile';
@@ -34,11 +33,9 @@ import AssetFilterPanel from '../components/investment/AssetFilterPanel';
 import GenerateStrategyPopup from '../components/investment/GenerateStrategyPopup';
 import NoStrategyPopup from '../components/investment/NoStrategyPopup';
 import ApplyStrategyModal from '../components/investment/ApplyStrategyModal';
-import MyPortfolioSection from '../components/investment/MyPortfolioSection';
 
 import {
   ASSET_LABELS,
-  COLORS,
 } from "../components/investment/InvestmentConstants";
 import { calcFV } from "../components/investment/InvestmentUtils";
 
@@ -51,51 +48,6 @@ const SENTIMENT_LABEL_VI: Record<string, string> = {
   EXTREME_GREED: "Tham lam cực độ",
 };
 
-const DATA_QUALITY_BADGES: Record<
-  string,
-  { label: string; className: string }
-> = {
-  full: {
-    label: "Historical 5y",
-    className: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
-  },
-  partial: {
-    label: "Partial fallback",
-    className: "bg-amber-500/10 text-amber-300 border-amber-500/20",
-  },
-  fallback: {
-    label: "Fallback",
-    className: "bg-red-500/10 text-red-300 border-red-500/20",
-  },
-};
-
-function getMethodLabel(method: string | null | undefined) {
-  if (!method) return null;
-  return String(method).toLowerCase().includes("markowitz")
-    ? "Markowitz MVO"
-    : method;
-}
-
-function getHistoryAnalysisBadges(viewModel: any) {
-  if (!viewModel) return [];
-
-  const badges: any[] = [];
-  const methodLabel = getMethodLabel(viewModel.optimizationMethod);
-  if (methodLabel) {
-    badges.push({
-      key: "method",
-      label: methodLabel,
-      className: "bg-blue-500/10 text-blue-300 border-blue-500/20",
-    });
-  }
-
-  const dataQuality = DATA_QUALITY_BADGES[viewModel.dataQuality];
-  if (dataQuality) {
-    badges.push({ key: "data-quality", ...dataQuality });
-  }
-
-  return badges;
-}
 
 // [LEGACY] Client-side projection fallback for old strategy records.
 // Runtime analytics should come from investmentAdvisorAdapter.js.
@@ -190,7 +142,9 @@ export default function InvestmentPage() {
   const [strategies, setStrategies] = useState<any[]>([]);
   const [portfolio, setPortfolio] = useState<any>(null);
   const [quota, setQuota] = useState(0);
-  const [marketSummary, setMarketSummary] = useState<any>(null);
+  const [cryptoPrices, setCryptoPrices] = useState<any>(null);
+  const [goldPrice, setGoldPrice] = useState<any>(null);
+  const [marketNews, setMarketNews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [advisorAnalysis, setAdvisorAnalysis] = useState<any>(null);
@@ -260,33 +214,43 @@ export default function InvestmentPage() {
 
     const load = async () => {
       try {
-        const [strategiesRes, portfolioRes, marketRes] = await Promise.all([
+        const [strategiesRes, portfolioRes, cryptoRes] = await Promise.all([
           investmentAPI.getStrategies().catch(() => ({ data: { data: [] } })),
           investmentAPI.getPortfolio().catch(() => ({ data: { data: null } })),
-          marketAPI.getSummary().catch(() => ({ data: { data: {} } })),
+          marketAPI.getCryptoPrices().catch(() => ({ data: { data: {} } })),
         ]);
 
         const loadedStrategies = (strategiesRes as any).data.data || [];
         setStrategies(loadedStrategies);
         setPortfolio((portfolioRes as any).data.data);
-        setMarketSummary((marketRes as any).data.data);
+        setCryptoPrices((cryptoRes as any).data.data);
         setQuota(user.strategyQuota ?? 0);
+
+        // Hiển thị trang ngay — không chờ getAllocation nữa
+        setLoading(false);
+
+        // Tải vàng + tin tức sau khi trang đã hiển thị
+        marketAPI.getGoldPrice()
+          .then(res => setGoldPrice(res.data.data?.gold || null))
+          .catch(() => {});
+        marketAPI.getNews()
+          .then(res => setMarketNews(res.data.data?.articles || []))
+          .catch(() => {});
 
         if (loadedStrategies.length === 0) {
           setShowNoStrategyPopup(true);
         } else {
-          // Read directly from localStorage to avoid stale closure
+          // getAllocation chạy nền — advisorLoading spinner hiện riêng trong các component
           const savedExcluded = (() => {
             try {
               return JSON.parse(localStorage.getItem('finsight_excluded_assets') || '[]');
             } catch { return []; }
           })();
-          await refreshAdvisorAnalysis(savedExcluded);
+          refreshAdvisorAnalysis(savedExcluded);
         }
       } catch (e) {
         console.error("InvestmentPage load error:", e);
-      } finally {
-        setTimeout(() => setLoading(false), 400);
+        setLoading(false);
       }
     };
 
@@ -369,8 +333,6 @@ export default function InvestmentPage() {
       : legacyViewModel;
   const sentimentValue =
     viewModel?.sentimentData?.value || activeStrategy?.sentimentValue || 50;
-  const historyAnalysisBadges =
-    activeStrategyIndex === 0 ? getHistoryAnalysisBadges(viewModel) : [];
 
   const activeAllocation = viewModel?.allocation || {
     savings: 20,
@@ -433,7 +395,7 @@ export default function InvestmentPage() {
               <Sparkles size={11} /> Chiến lược đầu tư
             </div>
             <h1 className="text-3xl font-black tracking-tighter text-[var(--color-text-primary)]">
-              Cố vấn đầu tư AI
+              Cố vấn đầu tư Cá nhân hóa
             </h1>
             <p className="text-[var(--color-text-secondary)] text-sm mt-1">
               Phân bổ danh mục thông minh theo tâm lý thị trường thực tế
@@ -522,7 +484,7 @@ export default function InvestmentPage() {
         })()}
 
         {/* ── Market Pulse ── */}
-        <MarketLivePulse prices={marketSummary?.prices} />
+        <MarketLivePulse prices={{ ...cryptoPrices, gold: goldPrice }} />
 
         {/* ── Nếu chưa có strategy, không render phần phân tích ── */}
         {strategies.length > 0 && activeStrategy && (
@@ -572,27 +534,9 @@ export default function InvestmentPage() {
                 </div>
               </div>
 
-              <RiskMetricsPanel
-                riskMetrics={viewModel?.riskMetrics}
-                loading={advisorLoading && activeStrategyIndex === 0}
-                error={
-                  advisorError && activeStrategyIndex === 0
-                    ? advisorError
-                    : null
-                }
-              />
-
               <StrategyRecommendation
                 recommendation={viewModel?.recommendation || ''}
                 views={viewModel?.marketViews || activeStrategy?.marketViews || []}
-              />
-
-              <EfficientFrontierPanel
-                allocationMetrics={viewModel?.allocationMetrics}
-                frontierPoints={viewModel?.optimization?.frontierPoints}
-                riskGrade={viewModel?.riskMetrics?.riskGrade}
-                optimization={viewModel?.optimization}
-                optimizationMethod={viewModel?.optimizationMethod}
               />
 
               {(advisorLoading || advisorError) &&
@@ -610,43 +554,19 @@ export default function InvestmentPage() {
                   </div>
                 )}
 
-              {/* ── Chiến lược của tôi → trang riêng ── */}
-              <Link
-                to="/investment/my-portfolio"
-                className="flex items-center justify-between px-5 py-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-blue-500/20 hover:bg-blue-500/[0.03] transition-all duration-300 group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20">
-                    <Target size={15} className="text-blue-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-white">
-                      Chiến lược của tôi
-                    </p>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Xem % phân bổ & số tiền chi tiết
-                    </p>
-                  </div>
-                </div>
-                <ChevronRight
-                  size={16}
-                  className="text-slate-500 group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all"
-                />
-              </Link>
-
               <AllocationEngine
                 pieData={pieData}
                 portfolioBreakdown={portfolioBreakdown}
                 history={[]}
               />
+              <SmartAssetGuide
+                allocation={activeAllocation}
+                riskLevel={mockProfile?.riskLevel || "MEDIUM"}
+              />
               <WealthProjection
                 projectionData={projectionData}
                 monteCarloData={viewModel?.monteCarloData}
                 mockProfile={mockProfile}
-              />
-              <SmartAssetGuide
-                allocation={activeAllocation}
-                riskLevel={mockProfile?.riskLevel || "MEDIUM"}
               />
             </div>
 
@@ -659,19 +579,6 @@ export default function InvestmentPage() {
                 </span>
                 <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
               </div>
-
-              {historyAnalysisBadges.length > 0 && (
-                <div className="mb-3 flex flex-wrap justify-end gap-2">
-                  {historyAnalysisBadges.map((badge) => (
-                    <span
-                      key={badge.key}
-                      className={`rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-widest ${badge.className}`}
-                    >
-                      {badge.label}
-                    </span>
-                  ))}
-                </div>
-              )}
 
               <div className="bg-slate-900/60 backdrop-blur-xl border border-white/5 rounded-3xl overflow-hidden">
                 <div className="overflow-x-auto">
@@ -792,7 +699,7 @@ export default function InvestmentPage() {
               </div>
             </section>
 
-            <EconomicNewsFeed news={marketSummary?.news} />
+            <EconomicNewsFeed news={marketNews} />
           </>
         )}
 
