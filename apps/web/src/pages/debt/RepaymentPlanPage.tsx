@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
@@ -12,15 +12,16 @@ import {
   Legend,
 } from "recharts";
 import { useAuth } from "../../context/AuthContext";
-import {
-  useRepaymentPlan,
-  useDebts,
-  useDebtGoal,
-} from "../../hooks/useDebtQuery";
+import { useDebts, useDebtGoal } from "../../hooks/useDebtQuery";
 import { useUpdateProfile } from "../../hooks/useAuthQuery";
 import { PageSkeleton } from "../../components/common/LoadingSpinner";
 import FormattedInput from "../../components/common/FormattedInput";
 import { formatVND } from "../../utils/calculations";
+import {
+  buildRepaymentPlanFromDebts,
+  getAvalanchePriority,
+  getSnowballPriority,
+} from "../../utils/repaymentSimulation";
 import {
   ClipboardList,
   DollarSign,
@@ -309,7 +310,7 @@ const TOOLTIP_STYLE = {
 };
 
 export default function RepaymentPlanPage() {
-  const { user } = useAuth() as any;
+  const { user, setUser } = useAuth() as any;
   const defaultBudget = user?.extraBudget || 0;
 
   const [extraBudget, setExtraBudget] = useState(defaultBudget);
@@ -325,9 +326,6 @@ export default function RepaymentPlanPage() {
     return () => clearTimeout(timer);
   }, [extraBudget]);
 
-  const { data: planData, isLoading: planLoading } = useRepaymentPlan(
-    debouncedBudget,
-  ) as { data: any; isLoading: boolean };
   const { data: debtsData, isLoading: debtsLoading } = useDebts() as {
     data: any;
     isLoading: boolean;
@@ -338,7 +336,7 @@ export default function RepaymentPlanPage() {
   };
   const { mutateAsync: updateProfile, isPending: saving } = useUpdateProfile();
 
-  const loading = planLoading || debtsLoading || goalLoading;
+  const loading = debtsLoading || goalLoading;
 
   useEffect(() => {
     setBudgetInput(String(defaultBudget));
@@ -363,11 +361,17 @@ export default function RepaymentPlanPage() {
 
   const handleSaveBudget = async () => {
     try {
-      await updateProfile({
+      const res = await updateProfile({
         extraBudget,
         fullName: user?.fullName || "",
         monthlyIncome: user?.monthlyIncome || 0,
       });
+      const updatedUser = res?.data?.data?.user ?? res?.data?.user;
+      setUser((prev: any) => ({
+        ...prev,
+        ...(updatedUser || {}),
+        extraBudget,
+      }));
       setSaved(true);
       toast.success("Đã lưu ngân sách trả thêm");
       setTimeout(() => setSaved(false), 2500);
@@ -377,17 +381,29 @@ export default function RepaymentPlanPage() {
     }
   };
 
-  if (loading && !planData) return <PageSkeleton />;
-
-  const { avalanche, snowball, comparison } = planData || {};
   const debtSummary = debtsData?.summary;
-  const allDebts = debtsData?.debts || [];
+  const allDebts = useMemo(() => debtsData?.debts || [], [debtsData?.debts]);
   const monthlyIncome =
-    planData?.monthlyIncome ?? debtSummary?.monthlyIncome ?? user?.monthlyIncome ?? 0;
+    debtSummary?.monthlyIncome ?? user?.monthlyIncome ?? 0;
+  const planData = useMemo(
+    () => buildRepaymentPlanFromDebts(allDebts, debouncedBudget, monthlyIncome),
+    [allDebts, debouncedBudget, monthlyIncome],
+  );
+  const { avalanche, snowball, comparison } = planData || {};
+  const avalanchePriority = useMemo(
+    () => getAvalanchePriority(allDebts),
+    [allDebts],
+  );
+  const snowballPriority = useMemo(
+    () => getSnowballPriority(allDebts),
+    [allDebts],
+  );
   const minimumBudget =
     planData?.minimumBudget ?? avalanche?.minimumBudget ?? debtSummary?.totalMinPayment ?? 0;
   const totalMonthlyBudget =
     planData?.totalMonthlyBudget ?? avalanche?.totalMonthlyBudget ?? minimumBudget + extraBudget;
+
+  if (loading && !planData) return <PageSkeleton />;
 
   const progress = goalData?.progress;
   const reachedCount =
@@ -715,16 +731,14 @@ export default function RepaymentPlanPage() {
                     </p>
                   </div>
                 </div>
-                {allDebts.filter((d) => d.balance > 0).length > 0 && (
+                {avalanchePriority.length > 0 && (
                   <>
                     <div className="h-px bg-blue-500/10 mb-4" />
                     <p className="text-[10px] font-black text-blue-400/70 uppercase tracking-wider mb-3">
                       Thứ tự trả theo phương pháp này
                     </p>
                     <div className="space-y-2">
-                      {[...allDebts.filter((d) => d.balance > 0)]
-                        .sort((a, b) => b.apr - a.apr)
-                        .map((d, i) => (
+                      {avalanchePriority.map((d, i) => (
                           <div key={d.id} className="flex items-center gap-2.5">
                             <div
                               className={`shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${
@@ -820,16 +834,14 @@ export default function RepaymentPlanPage() {
                     </p>
                   </div>
                 </div>
-                {allDebts.filter((d) => d.balance > 0).length > 0 && (
+                {snowballPriority.length > 0 && (
                   <>
                     <div className="h-px bg-emerald-500/10 mb-4" />
                     <p className="text-[10px] font-black text-emerald-400/70 uppercase tracking-wider mb-3">
                       Thứ tự trả theo phương pháp này
                     </p>
                     <div className="space-y-2">
-                      {[...allDebts.filter((d) => d.balance > 0)]
-                        .sort((a, b) => a.balance - b.balance)
-                        .map((d, i) => (
+                      {snowballPriority.map((d, i) => (
                           <div key={d.id} className="flex items-center gap-2.5">
                             <div
                               className={`shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${
