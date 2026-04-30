@@ -222,6 +222,20 @@ export async function buildMarketParams(savingsRate: number = 0.05, options: any
     console.warn('[HistoricalData] All fetches failed — using full fallback');
   }
 
+  // Ghi đè yield bonds bằng dữ liệu thực từ VBMA auction (10Y)
+  try {
+    const { fetchVietnamGovBondAuctionHistory, getLatestVietnamGovBondYields } =
+      await import('./vietnamBondHistory.service.js');
+    const bondHistory = await fetchVietnamGovBondAuctionHistory(3);
+    const latestYields = getLatestVietnamGovBondYields(bondHistory);
+    if (latestYields[10] && latestYields[10] > 0) {
+      means.bonds = latestYields[10] / 100;
+      dataDetails.bonds = { source: 'vbma-auction', yield10y: latestYields[10] };
+    }
+  } catch {
+    // giữ fallback từ FALLBACK_PARAMS
+  }
+
   const covSize = ASSET_ORDER.length;
   const covArray = Array.from({ length: covSize }, () => new Array(covSize).fill(0));
 

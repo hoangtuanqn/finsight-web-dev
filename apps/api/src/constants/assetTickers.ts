@@ -21,5 +21,5 @@ export const FALLBACK_PARAMS: Record<string, { annualReturn: number, annualStdDe
   stocks:    { annualReturn: 0.100, annualStdDev: 0.220 },
   stocks_us: { annualReturn: 0.105, annualStdDev: 0.160 },
   crypto:    { annualReturn: 0.200, annualStdDev: 0.800 },
-  bonds:     { annualReturn: 0.058, annualStdDev: 0.040 },
+  bonds:     { annualReturn: 0.042, annualStdDev: 0.040 },
 };

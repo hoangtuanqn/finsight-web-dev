@@ -1,5 +1,7 @@
-import React from 'react';
-import { FileText, ExternalLink, Clock, Globe, TrendingUp } from 'lucide-react';
+import React, { useState } from 'react';
+import { FileText, ExternalLink, Clock, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
+
+const PAGE_SIZE = 8;
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -18,7 +20,12 @@ const SOURCE_COLORS: Record<string, string> = {
 };
 
 export default function EconomicNewsFeed({ news = [] }: { news: any[] }) {
+  const [page, setPage] = useState(0);
+
   if (news.length === 0) return null;
+
+  const totalPages = Math.min(4, Math.ceil(news.length / PAGE_SIZE));
+  const pageNews = news.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
 
   return (
     <div className="bg-slate-900/60 backdrop-blur-xl border border-white/5 p-8 rounded-3xl shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5)] relative overflow-hidden">
@@ -40,11 +47,11 @@ export default function EconomicNewsFeed({ news = [] }: { news: any[] }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
-        {news.map((article, i) => {
+        {pageNews.map((article, i) => {
           const sourceStyle = SOURCE_COLORS[article.source] || 'bg-white/5 border-white/10 text-slate-400';
           return (
             <a
-              key={i}
+              key={page * PAGE_SIZE + i}
               href={article.url}
               target="_blank"
               rel="noopener noreferrer"
@@ -82,6 +89,45 @@ export default function EconomicNewsFeed({ news = [] }: { news: any[] }) {
           );
         })}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-6 pt-5 border-t border-white/5 relative z-10">
+          <button
+            onClick={() => setPage(p => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-semibold text-slate-400 bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          >
+            <ChevronLeft size={13} />
+            Trước
+          </button>
+
+          <div className="flex items-center gap-2">
+            {Array.from({ length: totalPages }, (_, i) => (
+              <button
+                key={i}
+                onClick={() => setPage(i)}
+                className={`w-8 h-8 rounded-lg text-[12px] font-bold transition-all ${
+                  page === i
+                    ? 'bg-blue-500 text-white shadow-[0_0_12px_rgba(59,130,246,0.4)]'
+                    : 'bg-white/[0.02] border border-white/5 text-slate-500 hover:bg-white/[0.05] hover:text-white'
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+            disabled={page === totalPages - 1}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-semibold text-slate-400 bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+          >
+            Sau
+            <ChevronRight size={13} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
