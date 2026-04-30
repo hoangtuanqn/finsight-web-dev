@@ -66,7 +66,7 @@ export default function TwoFactorBanner({ user }: { user: any }) {
                    </div>
                    <div>
                       <h4 className="text-[12px] font-black text-white uppercase tracking-widest flex items-center gap-2">
-                         Bảo mật AI chưa kích hoạt <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                         Bảo mật chưa kích hoạt <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
                       </h4>
                       <p className="text-[11px] text-slate-400 font-medium">Bật 2FA ngay để bảo vệ tài sản của bạn trước các rủi ro bảo mật.</p>
                    </div>
