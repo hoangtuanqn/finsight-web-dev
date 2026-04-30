@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { referralAPI } from '../../../api';
 import { toast } from 'sonner';
+import { useKycStatus } from '../../../hooks/useKycQuery';
+import { Link } from 'react-router-dom';
 
 function formatVND(amount: number) {
   return amount.toLocaleString('vi-VN') + 'đ';
@@ -41,6 +43,8 @@ export default function WithdrawalTab({ stats }: WithdrawalTabProps) {
   const [selectedBankAccountId, setSelectedBankAccountId] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [isBankFocused, setIsBankFocused] = useState(false);
+
+  const { data: kyc } = useKycStatus();
 
   const { data: banksData } = useQuery({
     queryKey: ['banks-list'],
@@ -129,6 +133,27 @@ export default function WithdrawalTab({ stats }: WithdrawalTabProps) {
 
   return (
     <div className="space-y-8">
+      {/* KYC Banner */}
+      {kyc?.kycStatus !== 'VERIFIED' && (
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={20} />
+            <div>
+              <h4 className="text-sm font-bold text-amber-500">Yêu cầu xác minh danh tính</h4>
+              <p className="text-[13px] text-amber-500/80 mt-1">
+                Bạn cần hoàn thành xác minh danh tính (eKYC) trước khi có thể thêm tài khoản ngân hàng và rút tiền.
+              </p>
+            </div>
+          </div>
+          <Link 
+            to="/kyc"
+            className="px-4 py-2 bg-amber-500 text-white text-sm font-bold rounded-xl whitespace-nowrap hover:bg-amber-600 transition-colors"
+          >
+            Xác minh ngay
+          </Link>
+        </div>
+      )}
+
       <div className="relative rounded-3xl p-6 border overflow-hidden" style={{ background: 'var(--color-bg-card)', borderColor: '#3b82f620' }}>
         <div className="absolute top-0 left-6 right-6 h-px" style={{ background: 'linear-gradient(90deg,transparent,#3b82f660,transparent)' }} />
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -164,7 +189,8 @@ export default function WithdrawalTab({ stats }: WithdrawalTabProps) {
           </h3>
           <button
             onClick={() => setShowAddBank(!showAddBank)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-[12px] font-black hover:bg-blue-500 transition-all active:scale-95"
+            disabled={kyc?.kycStatus !== 'VERIFIED'}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-[12px] font-black hover:bg-blue-500 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus size={14} /> Thêm tài khoản
           </button>
