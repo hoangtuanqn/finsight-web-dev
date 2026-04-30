@@ -9,7 +9,6 @@ import { useDebt, useDebtMutations } from '../../hooks/useDebtQuery';
 import { calcEAR, calcAPY, formatPercent } from '../../utils/calculations';
 import { Pencil, AlertTriangle, BarChart2 } from 'lucide-react';
 import FormattedInput from '../../components/common/FormattedInput';
-import { formInputClass } from '../../components/common/formStyles';
 
 const debtSchema = z.object({
   name: z.string().min(1, 'Vui lòng nhập tên khoản vay.'),
@@ -116,7 +115,7 @@ export default function EditDebtPage() {
     );
   }
 
-  const inputCls = formInputClass;
+  const inputCls = (hasError: any) => `input-field ${hasError ? 'border-red-500/60 focus:border-red-500' : ''}`;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>

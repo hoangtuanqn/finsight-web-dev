@@ -2,15 +2,13 @@ import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { Controller, useForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useDebt, useDebtMutations } from '../../hooks/useDebtQuery';
 import { formatVND, formatPercent } from '../../utils/calculations';
 import EARBreakdown from '../../components/debt/EARBreakdown';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
-import FormattedInput from '../../components/common/FormattedInput';
-import { FORM_LABEL_CLASSES, formInputClass } from '../../components/common/formStyles';
 import { Pencil, FileText, DollarSign, CheckCircle, ArrowLeft, Search, Trash2, ChevronRight, Calendar, AlertTriangle } from 'lucide-react';
 import { generateGoogleCalendarLink } from '../../utils/calendar';
 import DebtFluctuationChart from '../../components/debt/DebtFluctuationChart';
@@ -29,7 +27,7 @@ export default function DebtDetailPage() {
   const [paySuccess, setPaySuccess] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const { register, handleSubmit, reset, control, formState: { errors } } = useForm({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm({
     resolver: zodResolver(paymentSchema),
     defaultValues: { amount: 0, notes: '' } as any
   });
@@ -278,21 +276,12 @@ export default function DebtDetailPage() {
             ) : (
               <form onSubmit={handleSubmit(onPaymentSubmit)} className="space-y-4">
                 <div>
-                  <label className={FORM_LABEL_CLASSES}>Số tiền</label>
-                  <Controller
-                    name="amount"
-                    control={control}
-                    render={({ field }) => (
-                      <FormattedInput
-                        icon={DollarSign}
-                        kind="integer"
-                        value={field.value}
-                        onValueChange={(v) => field.onChange(v === '' ? 0 : Number(v))}
-                        placeholder="0"
-                        suffix="đ"
-                        className={formInputClass(errors.amount)}
-                      />
-                    )}
+                  <label className="block text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-1.5">Số tiền</label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    className={`w-full px-4 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] text-sm outline-none focus:border-emerald-500/60 transition-colors ${errors.amount ? 'border-red-500/60 focus:border-red-500' : 'border-[var(--color-border)]'}`}
+                    {...register('amount', { valueAsNumber: true })}
                   />
                   {errors.amount && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={11} /> {errors.amount.message}</p>}
                 </div>

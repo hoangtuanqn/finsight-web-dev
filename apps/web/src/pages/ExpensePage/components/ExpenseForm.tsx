@@ -9,7 +9,6 @@ import { useWallets } from '../../../hooks/useWalletQuery';
 import { CategoryPicker } from './CategoryPicker';
 import { EXPENSE_TYPES } from '../constants';
 import { WalletForm } from './WalletForm';
-import FormattedInput from '../../../components/common/FormattedInput';
 
 interface ExpenseFormProps {
   onClose: () => void;
@@ -33,6 +32,10 @@ export function ExpenseForm({ onClose, expense, categories }: ExpenseFormProps) 
   const [selectedCategoryDisplay, setSelectedCategoryDisplay] = useState<any>(expense?.category || null);
   const [showWalletPicker, setShowWalletPicker] = useState(false);
 
+  const formatAmount = (val: string) => {
+    const num = val.replace(/\D/g, '');
+    return num ? parseInt(num).toLocaleString('vi-VN') : '';
+  };
   const parseAmount = (val: string) => parseInt(val.replace(/\./g, '').replace(/,/g, '')) || 0;
 
   const handleCategorySelect = (id: string, cat: any) => {
@@ -152,15 +155,17 @@ export function ExpenseForm({ onClose, expense, categories }: ExpenseFormProps) 
             >
               <p className="text-[11px] font-black uppercase tracking-widest mb-2" style={{ color: accentColor }}>Số tiền</p>
               <div className="flex items-center justify-center gap-1">
-                <FormattedInput
-                  kind="integer"
-                  value={amount}
-                  onValueChange={setAmount}
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={formatAmount(amount)}
+                  onChange={e => setAmount(e.target.value.replace(/\./g, '').replace(/,/g, ''))}
                   placeholder="0"
-                  suffix="đ"
-                  className={`bg-transparent text-4xl md:text-5xl font-black text-center outline-none w-full caret-current ${isExpense ? 'text-red-400' : 'text-emerald-400'}`}
+                  className={`bg-transparent text-4xl md:text-5xl font-black text-center outline-none w-full caret-current`}
+                  style={{ color: accentColor }}
                   autoFocus
                 />
+                <span className="text-2xl font-black" style={{ color: `${accentColor}80` }}>đ</span>
               </div>
             </div>
 
