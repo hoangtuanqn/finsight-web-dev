@@ -60,6 +60,16 @@ export const userAPI = {
   markAllRead: () => api.delete('/users/notifications/read-all'),
 };
 
+// KYC
+export const kycAPI = {
+  getStatus: () => api.get('/kyc/status'),
+  submit: (formData: FormData) =>
+    api.post('/kyc/submit', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60000,
+    }),
+};
+
 // DEBTS
 export const debtAPI = {
   getAllByStatus: (status: string) => api.get('/debts', { params: { status } }),

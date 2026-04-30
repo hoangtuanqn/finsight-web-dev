@@ -31,7 +31,11 @@ model User {
   twoFactorSecret String?
   isTwoFactorEnabled Boolean @default(false)
   twoFactorBackupCodes String?
-  
+  kycStatus            String    @default("NONE")
+  kycVerifiedAt        DateTime?
+  kycName              String?
+  kycIdNumber          String?
+
   debts               Debt[]
   investorProfile     InvestorProfile?
   notifications       Notification[]
@@ -53,6 +57,7 @@ model User {
   commissionLogs      CommissionLog[]  @relation("CommissionRecipient")
   bankAccounts        BankAccount[]
   withdrawalRequests  WithdrawalRequest[]
+  kycRecord           KycRecord?
 
   @@map("users")
 }
@@ -486,4 +491,29 @@ model UserActivity {
 
   @@unique([userId, date])
   @@map("user_activities")
+}
+
+model KycRecord {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  idNumber       String
+  fullName       String
+  dob            String
+  sex            String
+  address        String
+  issueDate      String
+  issueLoc       String
+  fptFrontRaw    Json?
+  fptBackRaw     Json?
+  livenessRaw    Json?
+  isLive         Boolean  @default(false)
+  faceMatchScore String?
+  status         String   @default("PENDING")
+  rejectReason   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("kyc_records")
 }
