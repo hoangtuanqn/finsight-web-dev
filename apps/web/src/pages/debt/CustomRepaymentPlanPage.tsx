@@ -20,6 +20,7 @@ import {
   Save,
   Sparkles,
   Trash2,
+  Target,
   X,
   Zap,
 } from "lucide-react";
@@ -216,25 +217,25 @@ function MethodPlanCard({
   const isAvalanche = type === "AVALANCHE";
   const tone = isAvalanche
     ? {
-        name: "Avalanche",
-        badge: "Tiết kiệm lãi",
-        subtitle: "Ưu tiên trả nợ lãi suất CAO nhất trước",
-        text: "text-blue-400",
-        border: "rgba(59,130,246,0.25)",
-        bg: "rgba(59,130,246,0.06)",
-        iconBg: "bg-blue-500/15",
-        icon: <Zap size={18} />,
-      }
+      name: "Avalanche",
+      badge: "Tiết kiệm lãi",
+      subtitle: "Ưu tiên trả nợ lãi suất CAO nhất trước",
+      text: "text-blue-400",
+      border: "rgba(59,130,246,0.25)",
+      bg: "rgba(59,130,246,0.06)",
+      iconBg: "bg-blue-500/15",
+      icon: <Zap size={18} />,
+    }
     : {
-        name: "Snowball",
-        badge: "Động lực tâm lý",
-        subtitle: "Ưu tiên trả nợ DƯ NỢ nhỏ nhất trước",
-        text: "text-emerald-400",
-        border: "rgba(16,185,129,0.25)",
-        bg: "rgba(16,185,129,0.06)",
-        iconBg: "bg-emerald-500/15",
-        icon: <Sparkles size={18} />,
-      };
+      name: "Snowball",
+      badge: "Động lực tâm lý",
+      subtitle: "Ưu tiên trả nợ DƯ NỢ nhỏ nhất trước",
+      text: "text-emerald-400",
+      border: "rgba(16,185,129,0.25)",
+      bg: "rgba(16,185,129,0.06)",
+      iconBg: "bg-emerald-500/15",
+      icon: <Sparkles size={18} />,
+    };
 
   return (
     <div
@@ -294,30 +295,27 @@ function MethodPlanCard({
         {debts.map((debt, index) => (
           <div key={debt.id} className="flex items-center gap-2.5">
             <div
-              className={`shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${
-                index === 0
-                  ? `${tone.iconBg} ${tone.text}`
-                  : "bg-white/5 text-[var(--color-text-muted)]"
-              }`}
+              className={`shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${index === 0
+                ? `${tone.iconBg} ${tone.text}`
+                : "bg-white/5 text-[var(--color-text-muted)]"
+                }`}
             >
               {index + 1}
             </div>
             <Link
               to={`/debts/${debt.id}`}
-              className={`flex-1 text-[12px] font-bold truncate ${
-                index === 0
-                  ? "text-[var(--color-text-primary)]"
-                  : "text-[var(--color-text-muted)]"
-              } hover:text-cyan-300 transition-colors`}
+              className={`flex-1 text-[12px] font-bold truncate ${index === 0
+                ? "text-[var(--color-text-primary)]"
+                : "text-[var(--color-text-muted)]"
+                } hover:text-cyan-300 transition-colors`}
             >
               {debt.name}
             </Link>
             <span
-              className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-black ${
-                index === 0
-                  ? `${tone.iconBg} ${tone.text}`
-                  : "bg-white/5 text-[var(--color-text-muted)]"
-              }`}
+              className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-black ${index === 0
+                ? `${tone.iconBg} ${tone.text}`
+                : "bg-white/5 text-[var(--color-text-muted)]"
+                }`}
             >
               {isAvalanche ? `${debt.apr}% APR` : formatVND(debt.balance)}
             </span>
@@ -360,6 +358,27 @@ export default function CustomRepaymentPlanPage() {
   const [planName, setPlanName] = useState("Kế hoạch trả nợ riêng");
   const [extraBudget, setExtraBudget] = useState(user?.extraBudget || 0);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    actionLabel: string;
+    actionType: "danger" | "primary";
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    actionLabel: "",
+    actionType: "primary",
+    onConfirm: () => { },
+  });
+
+  const openConfirm = (options: Omit<typeof confirmDialog, "isOpen">) => {
+    setConfirmDialog({ isOpen: true, ...options });
+  };
+
 
   // Load plan from route param
   useEffect(() => {
@@ -488,41 +507,59 @@ export default function CustomRepaymentPlanPage() {
 
   const startNewPlan = useCallback(() => {
     setActivePlanId(null);
-    setPlanName("Kế hoạch trả nợ riêng");
+    setPlanName("Kế hoạch trả nợ");
     setExtraBudget(user?.extraBudget || 0);
     setSelectedIds([]);
   }, [user?.extraBudget]);
 
   const openNewPlan = useCallback(() => {
+    navigate("/debts/plan/new");
     startNewPlan();
-  }, [startNewPlan]);
+  }, [navigate, startNewPlan]);
 
-  const savePlan = async () => {
-    if (selectedIds.length === 0) {
-      toast.error("Hãy chọn ít nhất một khoản nợ cho bản kế hoạch.");
-      return;
-    }
+  const savePlan = useCallback(() => {
+    if (selectedIds.length === 0) return;
 
-    const payload = {
-      name: planName.trim() || "Kế hoạch trả nợ riêng",
-      extraBudget,
-      debtIds: selectedIds,
-    };
+    openConfirm({
+      title: "Lưu bản kế hoạch",
+      message: "Bạn có chắc chắn muốn lưu bản kế hoạch này?",
+      actionLabel: "Lưu lại",
+      actionType: "primary",
+      onConfirm: async () => {
+        const payload = {
+          name: planName.trim() || "Kế hoạch trả nợ riêng",
+          extraBudget,
+          debtIds: selectedIds,
+        };
 
-    if (activePlanId) {
-      await updatePlan({ id: activePlanId, data: payload });
-      return;
-    }
+        if (activePlanId) {
+          await updatePlan({ id: activePlanId, data: payload });
+          return;
+        }
 
-    const res = await createPlan(payload);
-    const createdPlan = res?.data?.data?.plan;
-    if (createdPlan?.id) setActivePlanId(createdPlan.id);
-  };
+        const res = await createPlan(payload);
+        const createdPlan = res?.data?.data?.plan;
+        if (createdPlan?.id) {
+          setActivePlanId(createdPlan.id);
+          navigate(`/debts/plan/${createdPlan.id}`, { replace: true });
+        }
+      }
+    });
+  }, [activePlanId, createPlan, extraBudget, navigate, planName, selectedIds, updatePlan]);
 
   const removePlan = async () => {
     if (!activePlanId) return;
-    await deletePlan(activePlanId);
-    navigate("/debts/repayment");
+
+    openConfirm({
+      title: "Xóa bản kế hoạch",
+      message: "Bạn có chắc chắn muốn xóa bản kế hoạch này? Hành động này không thể hoàn tác.",
+      actionLabel: "Xóa bản kế hoạch",
+      actionType: "danger",
+      onConfirm: async () => {
+        await deletePlan(activePlanId);
+        navigate("/debts/repayment");
+      }
+    });
   };
 
   if (debtsLoading || plansLoading) return <PageSkeleton />;
@@ -948,6 +985,14 @@ export default function CustomRepaymentPlanPage() {
             </div>
           </div>
 
+          <div className="flex items-center gap-2 mb-4 mt-8">
+            <div className="w-8 h-8 rounded-xl bg-cyan-500/15 flex items-center justify-center text-cyan-400">
+              <Target size={16} />
+            </div>
+            <h2 className="text-xl font-black text-[var(--color-text-primary)]">
+              Chiến lược trả nợ
+            </h2>
+          </div>
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
             <MethodPlanCard
               type="AVALANCHE"
@@ -962,6 +1007,59 @@ export default function CustomRepaymentPlanPage() {
           </div>
         </>
       )}
+
+      <AnimatePresence>
+        {confirmDialog.isOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-sm rounded-3xl p-6 border shadow-2xl"
+              style={{
+                background: "var(--color-bg-card)",
+                borderColor: "var(--color-border)",
+              }}
+            >
+              <h3 className="text-xl font-black text-[var(--color-text-primary)] mb-2">
+                {confirmDialog.title}
+              </h3>
+              <p className="text-sm text-[var(--color-text-secondary)] mb-6 leading-relaxed">
+                {confirmDialog.message}
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
+                  className="px-4 py-2.5 rounded-xl font-bold text-sm text-[var(--color-text-muted)] hover:bg-white/5 transition-colors cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    confirmDialog.onConfirm();
+                    setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+                  }}
+                  className={`px-4 py-2.5 rounded-xl font-bold text-sm transition-colors cursor-pointer ${confirmDialog.actionType === "danger"
+                      ? "bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                      : "bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20"
+                    }`}
+                >
+                  {confirmDialog.actionLabel}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
