@@ -5,7 +5,7 @@ import {
   useState,
 } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { motion, Reorder, AnimatePresence, useDragControls } from "framer-motion";
+import { motion, Reorder, AnimatePresence } from "framer-motion";
 import {
   ArrowDown,
   ArrowLeft,
@@ -141,13 +141,10 @@ function SelectedDebtItem({ debt, index, onRemove, onMove }: {
   onMove: (id: string, dir: -1 | 1) => void;
 }) {
   const debtId = String(debt.id);
-  const controls = useDragControls();
 
   return (
     <Reorder.Item
       value={debtId}
-      dragListener={false}
-      dragControls={controls}
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
@@ -155,10 +152,9 @@ function SelectedDebtItem({ debt, index, onRemove, onMove }: {
         scale: 1.03,
         boxShadow: "0 12px 40px rgba(14,165,233,0.25), 0 0 0 2px rgba(14,165,233,0.4)",
         zIndex: 50,
-        cursor: "grabbing",
       }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
-      className="rounded-2xl border p-3.5 cursor-default"
+      className="rounded-2xl border p-3.5 cursor-grab active:cursor-grabbing"
       style={{
         background: "rgba(14,165,233,0.08)",
         borderColor: "rgba(14,165,233,0.22)",
@@ -166,8 +162,7 @@ function SelectedDebtItem({ debt, index, onRemove, onMove }: {
     >
       <div className="flex items-center gap-3">
         <motion.div
-          onPointerDown={(e) => controls.start(e)}
-          className="w-8 h-8 rounded-xl bg-cyan-500/15 text-cyan-300 flex items-center justify-center text-xs font-black shrink-0 cursor-grab active:cursor-grabbing select-none touch-none"
+          className="w-8 h-8 rounded-xl bg-cyan-500/15 text-cyan-300 flex items-center justify-center text-xs font-black shrink-0 select-none"
           whileHover={{ scale: 1.1, background: "rgba(14,165,233,0.25)" }}
           whileTap={{ scale: 0.95 }}
         >
