@@ -6,6 +6,7 @@ import { facebookLogin, getFacebookConfig } from '../controllers/facebookAuth.co
 import { authenticate } from '../middleware/auth.middleware';
 import { validate } from '../middleware/validate.middleware';
 import { authSchemas } from '../utils/validationSchemas';
+import { setup2FA, enable2FA, disable2FA, verify2FALogin, trustDevice } from '../controllers/twoFactor.controller';
 
 const router = Router();
 
@@ -13,6 +14,13 @@ router.post('/register', validate(authSchemas.register), register);
 router.post('/login', validate(authSchemas.login), login);
 router.get('/me', authenticate, me);
 router.post('/logout', authenticate, logout);
+
+// Two-Factor Authentication
+router.get('/2fa/setup', authenticate, setup2FA);
+router.post('/2fa/enable', authenticate, enable2FA);
+router.post('/2fa/disable', authenticate, disable2FA);
+router.post('/2fa/verify', verify2FALogin);
+router.post('/2fa/trust', authenticate, trustDevice);
 
 router.post('/google', googleLogin);
 router.get('/google-config', getGoogleConfig);
