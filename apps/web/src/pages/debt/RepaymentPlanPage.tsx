@@ -671,6 +671,14 @@ export default function RepaymentPlanPage() {
           </div>
         ) : (
           <>
+            <div className="flex items-center gap-2 mb-4 mt-8">
+              <div className="w-8 h-8 rounded-xl bg-cyan-500/15 flex items-center justify-center text-cyan-400">
+                <Target size={16} />
+              </div>
+              <h2 className="text-xl font-black text-[var(--color-text-primary)]">
+                Chiến lược trả nợ
+              </h2>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
