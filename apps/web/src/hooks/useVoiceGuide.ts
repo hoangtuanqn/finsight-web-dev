@@ -2,17 +2,17 @@ import { useRef, useCallback, useEffect } from 'react';
 import type { FaceChallenge } from '../pages/KycPage/components/FaceGuide3D';
 
 // ─── Audio file mapping ───────────────────────────────────────────────────────
-// Place these files in apps/web/public/sounds/
+// Place these files in apps/web/public/voices/
 const CHALLENGE_SOUNDS: Partial<Record<FaceChallenge, string>> = {
-  look_up:       '/sounds/on.mp3',
-  look_down:     '/sounds/below.mp3',
-  look_left:     '/sounds/left.mp3',
-  look_right:    '/sounds/right.mp3',
-  look_straight: '/sounds/left.mp3', // neutral — can replace with a dedicated file
-  open_mouth:    '/sounds/below.mp3', // reuse or add open-mouth.mp3
+  look_up:       '/voices/on.mp3',
+  look_down:     '/voices/below.mp3',
+  look_left:     '/voices/left.mp3',
+  look_right:    '/voices/right.mp3',
+  look_straight: '/voices/left.mp3', // neutral — can replace with a dedicated file
+  open_mouth:    '/voices/below.mp3', // reuse or add open-mouth.mp3
 };
 
-const SOUND_HOLD = '/sounds/keep-the-same.mp3'; // plays when user holds correct pose
+const SOUND_HOLD = '/voices/keep-the-same.mp3'; // plays when user holds correct pose
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 export function useVoiceGuide() {
