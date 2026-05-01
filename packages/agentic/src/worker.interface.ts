@@ -144,6 +144,7 @@ export const generalChatWorker: AgentWorker = {
   id: 'general',
   async run(state, onToken, _onToolStatus, isAborted) {
     const recentCtx = state.recentMessages
+      .slice(0, -1) // exclude last item (current user message already in state.input)
       .map((m) => `${m.role === 'user' ? 'Người dùng' : 'AI'}: ${m.content}`)
       .join('\n');
     const contextBlock = state.summary ? `Tóm tắt ngữ cảnh trước: ${state.summary}\n\n${recentCtx}` : recentCtx;
