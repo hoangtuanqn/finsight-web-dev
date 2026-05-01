@@ -45,6 +45,8 @@ interface DebtItem {
   apr: number;
   rateType?: string;
   minPayment: number;
+  termMonths?: number;
+  remainingTerms?: number;
 }
 
 interface PaymentScheduleItem {
@@ -71,13 +73,37 @@ interface RepaymentSimulationOptions {
   monthlyIncome?: number;
   maxMonths?: number;
   customOrder?: Array<string | number>;
+  stopOnTermBreach?: boolean;
 }
 
 interface RepaymentWarning {
-  type: 'NEGATIVE_AMORTIZATION' | 'NOT_COMPLETED';
+  type: 'NEGATIVE_AMORTIZATION' | 'NOT_COMPLETED' | 'TERM_BREACH';
   severity: 'WARNING' | 'DANGER';
   message: string;
   debtIds?: Array<string | number>;
+}
+
+interface TermBreach {
+  month: number;
+  debtId: string | number;
+  name: string;
+  deadlineMonth: number;
+  remainingBalance: number;
+}
+
+function getDebtDeadlineMonth(debt: DebtItem): number | undefined {
+  const remainingTerms = Number(debt.remainingTerms);
+  const termMonths = Number(debt.termMonths);
+
+  if (Number.isFinite(remainingTerms) && remainingTerms > 0) {
+    return Math.round(remainingTerms);
+  }
+
+  if (Number.isFinite(termMonths) && termMonths > 0) {
+    return Math.round(termMonths);
+  }
+
+  return undefined;
 }
 
 export function resolveRepaymentExtraBudget(queryValue: unknown, savedValue: unknown): number {
@@ -106,6 +132,7 @@ export function simulateRepayment(
     balance: d.balance,
     apr: d.apr,
     minPayment: d.minPayment,
+    deadlineMonth: getDebtDeadlineMonth(d),
   }));
 
   let months = 0;
@@ -115,7 +142,9 @@ export function simulateRepayment(
   const minimumBudget = ds.reduce((sum, d) => sum + d.minPayment, 0);
   const monthlyIncome = Math.max(0, Number.isFinite(options.monthlyIncome) ? options.monthlyIncome ?? 0 : 0);
   const maxMonths = Math.max(1, Number.isFinite(options.maxMonths) ? options.maxMonths ?? 360 : 360);
+  const stopOnTermBreach = options.stopOnTermBreach === true;
   const warnings: RepaymentWarning[] = [];
+  let termBreach: TermBreach | null = null;
   const negativeAmortizationDebts = ds.filter(d => {
     const firstMonthInterest = d.balance * (d.apr / 100) / 12;
     return d.balance > 0.01 && d.minPayment <= firstMonthInterest;
@@ -247,11 +276,35 @@ export function simulateRepayment(
       dti: calculateDti(),
       payments: monthPayments,
     });
+
+    const breachedDebt = ds.find(d =>
+      d.deadlineMonth !== undefined &&
+      months >= d.deadlineMonth &&
+      d.balance > 0.01,
+    );
+
+    if (breachedDebt) {
+      termBreach = {
+        month: months,
+        debtId: breachedDebt.id,
+        name: breachedDebt.name,
+        deadlineMonth: breachedDebt.deadlineMonth as number,
+        remainingBalance: Math.round(breachedDebt.balance),
+      };
+      warnings.push({
+        type: 'TERM_BREACH',
+        severity: 'DANGER',
+        message: `Khoản nợ ${breachedDebt.name} còn ${formatVND(Math.round(breachedDebt.balance))} sau tháng ${months}, vượt kỳ hạn hợp đồng ${breachedDebt.deadlineMonth} tháng.`,
+        debtIds: [breachedDebt.id],
+      });
+      if (stopOnTermBreach) break;
+    }
   }
 
-  const isCompleted = months < maxMonths;
+  const hasActiveDebt = ds.some(d => d.balance > 0.01);
+  const isCompleted = !hasActiveDebt;
 
-  if (!isCompleted) {
+  if (!isCompleted && !termBreach && months >= maxMonths) {
     warnings.push({
       type: 'NOT_COMPLETED',
       severity: 'WARNING',
@@ -268,7 +321,8 @@ export function simulateRepayment(
     totalInterest: Math.round(totalInterest),
     schedule,
     isCompleted,
-    warnings,
+    termBreach,
+    warnings: warnings.filter(w => !(w.type === 'TERM_BREACH' && (!w.debtIds || w.debtIds.length === 0))),
   };
 }
 

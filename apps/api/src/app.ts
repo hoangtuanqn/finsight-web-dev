@@ -26,6 +26,7 @@ import expenseRoutes from './routes/expense.routes';
 import walletRoutes from './routes/wallet.routes';
 import bankSyncRoutes from './routes/bank-sync.routes';
 import referralRoutes from './routes/referral.routes';
+import kycRoutes from './routes/kyc.routes';
 import cronManager from './cron/index';
 import { initSocket } from './utils/socket';
 
@@ -72,6 +73,7 @@ app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/articles', articleRoutes);
 app.use('/api/bank-sync', bankSyncRoutes);
 app.use('/api/referral', referralRoutes);
+app.use('/api/kyc', kycRoutes);
 
 // Health check
 app.get('/api/health', (req: Request, res: Response) => {

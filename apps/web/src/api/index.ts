@@ -60,6 +60,16 @@ export const userAPI = {
   markAllRead: () => api.delete('/users/notifications/read-all'),
 };
 
+// KYC
+export const kycAPI = {
+  getStatus: () => api.get('/kyc/status'),
+  submit: (formData: FormData) =>
+    api.post('/kyc/submit', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60000,
+    }),
+};
+
 // DEBTS
 export const debtAPI = {
   getAllByStatus: (status: string) => api.get('/debts', { params: { status } }),
@@ -186,10 +196,20 @@ export const bankSyncAPI = {
   clear: () => api.delete('/bank-sync/clear'),
 };
 
-// REFERRAL
+// REFERRAL & AFFILIATE
 export const referralAPI = {
   trackClick: (code: string) => api.get(`/referral/click/${code}`),
   getStats: () => api.get('/referral/stats'),
+  getCommissions: (page = 1) => api.get('/referral/commissions', { params: { page } }),
+  getBanks: () => api.get('/referral/banks'),
+  getBankAccounts: () => api.get('/referral/bank-accounts'),
+  addBankAccount: (data: { bankCode: string; accountNumber: string; accountName: string }) =>
+    api.post('/referral/bank-accounts', data),
+  setDefaultBankAccount: (id: string) => api.patch(`/referral/bank-accounts/${id}/default`),
+  deleteBankAccount: (id: string) => api.delete(`/referral/bank-accounts/${id}`),
+  requestWithdrawal: (data: { bankAccountId: string; amount: number }) =>
+    api.post('/referral/withdraw', data),
+  getWithdrawalHistory: () => api.get('/referral/withdrawals'),
 };
 
 export default api;
