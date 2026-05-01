@@ -1,5 +1,39 @@
 import Tesseract from 'tesseract.js';
 
+const MAX_DIMENSION = 1280;
+const JPEG_QUALITY = 0.85;
+
+/**
+ * Resize image to fit within MAX_DIMENSION while preserving aspect ratio.
+ * Pre-resizing is more efficient than letting Tesseract's internal scaler handle it,
+ * and reduces WASM memory pressure during recognition.
+ */
+function resizeImage(base64DataUri: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const { width, height } = img;
+      const scale = Math.min(1, MAX_DIMENSION / Math.max(width, height));
+
+      if (scale === 1) {
+        resolve(base64DataUri);
+        return;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(width * scale);
+      canvas.height = Math.round(height * scale);
+
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      resolve(canvas.toDataURL('image/jpeg', JPEG_QUALITY));
+    };
+    img.onerror = () => reject(new Error('Failed to load image for resize'));
+    img.src = base64DataUri;
+  });
+}
+
 let sharedWorker: any = null;
 
 async function getWorker(onProgress?: (progress: number) => void) {
@@ -28,7 +62,10 @@ export async function runOCR(
 ): Promise<{ success: boolean; text?: string; error?: string }> {
   try {
     const worker = await getWorker(onProgress);
-    const result = await worker.recognize(base64Image);
+    const resizedImage = await resizeImage(
+      base64Image.includes('base64,') ? base64Image : `data:image/jpeg;base64,${base64Image}`,
+    );
+    const result = await worker.recognize(resizedImage);
     const text = result.data.text?.trim() || '';
 
     if (!text || text.length < 5) {
