@@ -60,7 +60,7 @@ export async function submitKyc(req: AuthenticatedRequest, res: Response) {
     console.dir(frontRes, { depth: null });
     
     if (frontRes.errorCode !== 0 || !frontRes.data || frontRes.data.length === 0) {
-      return error(res, `Ảnh mặt trước không hợp lệ: ${frontRes.errorMessage || 'Không nhận diện được'}`, 400);
+      return error(res, `Ảnh mặt trước không hợp lệ: ${frontRes.errorMessage || 'Không nhận diện được'}`, 400, 'front');
     }
     const frontData = frontRes.data[0];
 
@@ -70,7 +70,7 @@ export async function submitKyc(req: AuthenticatedRequest, res: Response) {
     console.dir(backRes, { depth: null });
     
     if (backRes.errorCode !== 0 || !backRes.data || backRes.data.length === 0) {
-      return error(res, `Ảnh mặt sau không hợp lệ: ${backRes.errorMessage || 'Không nhận diện được'}`, 400);
+      return error(res, `Ảnh mặt sau không hợp lệ: ${backRes.errorMessage || 'Không nhận diện được'}`, 400, 'back');
     }
     const backData = backRes.data[0];
 
@@ -79,11 +79,11 @@ export async function submitKyc(req: AuthenticatedRequest, res: Response) {
     const backId = backData.mrz_details?.id;
     
     if (!frontId) {
-       return error(res, 'Không đọc được số CCCD mặt trước', 400);
+       return error(res, 'Không đọc được số CCCD mặt trước', 400, 'front');
     }
     
     if (backId && frontId !== backId) {
-      return error(res, 'Số CCCD mặt trước và mặt sau không khớp', 400);
+      return error(res, 'Số CCCD mặt trước và mặt sau không khớp', 400, 'back');
     }
 
     // 4. Liveness Check
@@ -92,7 +92,7 @@ export async function submitKyc(req: AuthenticatedRequest, res: Response) {
     console.dir(livenessRes, { depth: null });
     
     if (String(livenessRes.code) !== "200") {
-       return error(res, `Lỗi xác thực video: ${livenessRes.message} (Code: ${livenessRes.code})`, 400);
+       return error(res, `Lỗi xác thực video: ${livenessRes.message} (Code: ${livenessRes.code})`, 400, 'video');
     }
 
     const isLive = String(livenessRes.liveness?.is_live) === "true";
@@ -166,7 +166,7 @@ export async function submitKyc(req: AuthenticatedRequest, res: Response) {
         where: { id: userId },
         data: { kycStatus: 'REJECTED' }
       });
-      return error(res, `Xác minh thất bại: ${rejectReason}`, 400);
+      return error(res, `Xác minh thất bại: ${rejectReason}`, 400, 'video');
     }
 
   } catch (err: any) {
@@ -174,10 +174,10 @@ export async function submitKyc(req: AuthenticatedRequest, res: Response) {
     console.error('[KYC] submitKyc error:', apiError || err.message || err);
     
     if (apiError && apiError.errorMessage) {
-      return error(res, `Lỗi xác thực ảnh: ${apiError.errorMessage}`, 400);
+      return error(res, `Lỗi xác thực ảnh: ${apiError.errorMessage}`, 400, 'front');
     }
     if (apiError && apiError.message) {
-      return error(res, `Lỗi xác thực video: ${apiError.message}`, 400);
+      return error(res, `Lỗi xác thực video: ${apiError.message}`, 400, 'video');
     }
 
     return error(res, 'Lỗi hệ thống khi xử lý eKYC. Vui lòng thử lại sau.');
