@@ -1,4 +1,6 @@
+import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { type AgentGraphState } from './graph-state.js';
+import { getChatModel } from './llm-provider.js';
 import { type UiSignal } from './ui-signal.js';
 import { debtExtractionWorker } from './workers/debt-extraction.worker.js';
 import { debtSummaryWorker } from './workers/debt-summary.worker.js';
@@ -106,17 +108,6 @@ export class WorkerRegistry {
 const STUB_RESPONSE =
   'Tính năng này đang được phát triển. Vui lòng thử lại sau hoặc hỏi câu khác liên quan đến tài chính.';
 
-/** Off-topic refusal worker. */
-export const offTopicWorker: AgentWorker = {
-  id: 'off_topic',
-  async run(_state, onToken) {
-    const reply =
-      'Xin lỗi, tôi là FinSight Advisor chuyên về quản lý nợ và tài chính cá nhân. Tôi không thể hỗ trợ các chủ đề ngoài phạm vi chuyên môn. Bạn có thắc mắc về DTI, lãi suất, hay đầu tư không?';
-    onToken(reply);
-    return { text: reply, uiSignal: null };
-  },
-};
-
 /** Max-length refusal worker. */
 export const maxLengthWorker: AgentWorker = {
   id: 'max_length',
@@ -141,13 +132,51 @@ export function createStubWorker(id: string): AgentWorker {
   };
 }
 
-/** General-chat worker – echoes a short acknowledgement. */
+const GENERAL_CHAT_SYSTEM = `Bạn là FinSight Advisor trong các lượt hội thoại chung.
+Nhiệm vụ:
+1. Trả lời tự nhiên, ngắn gọn, thân thiện bằng tiếng Việt.
+2. Dùng cho lời cảm ơn, xác nhận, small talk, hoặc câu hỏi không khớp các luồng nghiệp vụ tài chính.
+3. Nếu câu hỏi không thuộc phạm vi tài chính cá nhân/quản lý nợ/đầu tư, không chặn cứng; hãy phản hồi lịch sự và gợi ý cách bạn có thể hỗ trợ nếu người dùng muốn quay lại chủ đề tài chính.
+4. Không gọi tool, không hứa tạo dữ liệu, không nhắc tới intent/worker/router, không gắn popup/card.`;
+
+/** General-chat worker – handles acknowledgements and soft fallback replies. */
 export const generalChatWorker: AgentWorker = {
   id: 'general',
-  async run(_state, onToken) {
-    const reply = 'Tôi đã ghi nhận. Bạn có thắc mắc gì về tài chính hoặc khoản nợ không?';
-    onToken(reply);
-    return { text: reply, uiSignal: null };
+  async run(state, onToken, _onToolStatus, isAborted) {
+    const recentCtx = state.recentMessages
+      .slice(0, -1) // exclude last item (current user message already in state.input)
+      .map((m) => `${m.role === 'user' ? 'Người dùng' : 'AI'}: ${m.content}`)
+      .join('\n');
+    const contextBlock = state.summary ? `Tóm tắt ngữ cảnh trước: ${state.summary}\n\n${recentCtx}` : recentCtx;
+    const userContent = contextBlock ? `${contextBlock}\n\nNgười dùng: ${state.input}` : state.input;
+
+    const llm = getChatModel({ streaming: true, temperature: 0.4, maxTokens: 320 });
+    let fullText = '';
+
+    try {
+      const stream = await llm.stream([new SystemMessage(GENERAL_CHAT_SYSTEM), new HumanMessage(userContent)]);
+      for await (const chunk of stream) {
+        if (isAborted?.()) break;
+        const token = typeof chunk.content === 'string' ? chunk.content : '';
+        if (token) {
+          fullText += token;
+          onToken(token);
+        }
+      }
+    } catch (err: any) {
+      console.error('[GeneralChatWorker] stream error:', err.message);
+    }
+
+    if (isAborted?.()) {
+      return { text: fullText, uiSignal: null };
+    }
+
+    if (!fullText.trim()) {
+      fullText = 'Tôi đã ghi nhận. Bạn muốn tôi hỗ trợ tiếp phần nào về tài chính cá nhân hoặc các khoản nợ?';
+      onToken(fullText);
+    }
+
+    return { text: fullText, uiSignal: null };
   },
 };
 
@@ -157,7 +186,6 @@ export function buildDefaultWorkerRegistry(): WorkerRegistry {
   const registry = new WorkerRegistry();
 
   registry
-    .register(offTopicWorker)
     .register(maxLengthWorker)
     .register(generalChatWorker)
     .register(debtExtractionWorker) // Task 2.5 — real implementation

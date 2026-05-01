@@ -12,8 +12,9 @@ import {
   marketOverviewHappyPath,
   ragHappyPath,
 } from '../__fixtures__/agent-contract.fixtures.js';
-import { AgentIntent } from '../graph-state.js';
+import { AgentIntent, normalizeIntent } from '../graph-state.js';
 import { routerNode } from '../router-node.js';
+import { buildDefaultWorkerRegistry } from '../worker.interface.js';
 
 describe('Task 5.2 - Contract tests cho Router và Worker outputs', () => {
   describe('Router routing tests based on Phase 0 fixtures', () => {
@@ -97,6 +98,36 @@ describe('Task 5.2 - Contract tests cho Router và Worker outputs', () => {
       const result = await routerNode(state);
       expect(result.intent).toBe(AgentIntent.MARKET_OVERVIEW);
       expect(result.worker).toBe('market');
+    });
+
+    test('Legacy OFF_TOPIC classifier output -> GENERAL_CHAT', () => {
+      expect(normalizeIntent('OFF_TOPIC')).toBe(AgentIntent.GENERAL_CHAT);
+    });
+
+    test('Registry không còn worker off_topic', () => {
+      const registry = buildDefaultWorkerRegistry();
+      expect(registry.has('off_topic')).toBe(false);
+      expect(registry.resolve('general')).toBeDefined();
+    });
+
+    test('Max-length guard dùng max_length worker mà không tạo OFF_TOPIC intent', async () => {
+      const state = {
+        userId: 'test',
+        sessionId: 'test',
+        input: 'a'.repeat(2001),
+        summary: '',
+        recentMessages: [],
+        activeContext: '',
+        intent: AgentIntent.GENERAL_CHAT,
+        worker: 'general',
+        textResponse: '',
+        uiSignal: null,
+        errors: [],
+      };
+
+      const result = await routerNode(state);
+      expect(result.intent).toBe(AgentIntent.GENERAL_CHAT);
+      expect(result.worker).toBe('max_length');
     });
   });
 });

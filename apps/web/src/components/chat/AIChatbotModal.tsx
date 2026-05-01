@@ -1,7 +1,21 @@
 import { AnimatePresence, motion, type Variants } from 'framer-motion';
-import { Bot, Maximize2, MessageSquare, Minimize2, Paperclip, Send, Sparkles, User, X } from 'lucide-react';
+import {
+  Bot,
+  Loader2,
+  Maximize2,
+  MessageSquare,
+  Mic,
+  MicOff,
+  Minimize2,
+  Paperclip,
+  Send,
+  Sparkles,
+  User,
+  X,
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useAgenticChat } from '../../hooks/useAgenticChat';
+import { useVoiceRecorder } from '../../hooks/useVoiceRecorder';
 import { runOCR } from '../../utils/ocr';
 import ChatHistory from './ChatHistory';
 import DebtConfirmModal from './DebtConfirmModal';
@@ -15,8 +29,24 @@ export default function AIChatbotModal() {
   const [showHistory, setShowHistory] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [selectedImage, setSelectedImage] = useState(null); // { file, preview, base64 }
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  const {
+    state: voiceState,
+    recordingError: voiceError,
+    startRecording,
+    stopRecording,
+    cancelRecording,
+  } = useVoiceRecorder({
+    onTranscribed: (text) => {
+      setInputValue((prev) => (prev ? `${prev} ${text}` : text));
+    },
+  });
+
+  const isVoiceRecording = voiceState === 'recording';
+  const isVoiceTranscribing = voiceState === 'transcribing';
 
   const {
     messages,
@@ -50,6 +80,13 @@ export default function AIChatbotModal() {
       }
     }
   }, [messages, isStreaming, toolStatus]);
+
+  // Reactive isMobile: updates on window resize
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
 
   // Load sessions when history panel opens
   useEffect(() => {
@@ -172,9 +209,6 @@ export default function AIChatbotModal() {
 
   // Determine status display text
   const statusText = isStreaming ? toolStatus || '🤔 Đang suy nghĩ...' : 'Sẵn sàng';
-
-  // Modal dimensions & positioning logic
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   const modalVariants: Variants = {
     closed: {
@@ -520,7 +554,7 @@ export default function AIChatbotModal() {
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        disabled={isStreaming}
+                        disabled={isStreaming || isVoiceRecording || isVoiceTranscribing}
                         className={`w-11 h-11 flex items-center justify-center rounded-[18px] transition-all ${
                           selectedImage
                             ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/30'
@@ -531,25 +565,83 @@ export default function AIChatbotModal() {
                         <Paperclip className="w-5 h-5" />
                       </button>
 
+                      {/* Microphone Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isVoiceRecording) stopRecording();
+                          else if (voiceState === 'idle') startRecording();
+                        }}
+                        disabled={isStreaming || isVoiceTranscribing || !!selectedImage}
+                        title={isVoiceRecording ? 'Dừng ghi âm' : 'Ghi âm giọng nói'}
+                        className={`relative w-11 h-11 flex items-center justify-center rounded-[18px] transition-all shrink-0 disabled:opacity-30 ${
+                          isVoiceRecording
+                            ? 'bg-rose-600 text-white shadow-lg shadow-rose-900/40'
+                            : isVoiceTranscribing
+                              ? 'bg-amber-500/20 text-amber-400'
+                              : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        {isVoiceTranscribing ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : isVoiceRecording ? (
+                          <>
+                            {/* Pulsing ring */}
+                            <span className="absolute inset-0 rounded-[18px] bg-rose-500 animate-ping opacity-30" />
+                            <MicOff className="w-5 h-5 relative z-10" />
+                          </>
+                        ) : (
+                          <Mic className="w-5 h-5" />
+                        )}
+                      </button>
+
                       <input
                         type="text"
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
-                        placeholder={selectedImage ? 'Thêm mô tả về ảnh...' : 'Hỏi bất kỳ điều gì về tài chính...'}
+                        placeholder={
+                          isVoiceRecording
+                            ? '🎙️ Đang ghi âm... (bấm mic để dừng)'
+                            : isVoiceTranscribing
+                              ? '⏳ Đang chuyển giọng nói thành văn bản...'
+                              : selectedImage
+                                ? 'Thêm mô tả về ảnh...'
+                                : 'Hỏi bất kỳ điều gì về tài chính...'
+                        }
                         maxLength={2000}
                         className="flex-1 px-2 py-3 text-[15px] bg-transparent border-none outline-none text-white placeholder:text-slate-500/70"
-                        disabled={isStreaming}
+                        disabled={isStreaming || isVoiceRecording || isVoiceTranscribing}
                       />
 
                       {/* Send Button */}
                       <button
                         type="submit"
-                        disabled={(!inputValue.trim() && !selectedImage) || isStreaming}
+                        disabled={
+                          (!inputValue.trim() && !selectedImage) ||
+                          isStreaming ||
+                          isVoiceRecording ||
+                          isVoiceTranscribing
+                        }
                         className="w-11 h-11 flex items-center justify-center rounded-[18px] bg-gradient-to-tr from-blue-500 to-indigo-600 text-white transition-all shadow-lg shadow-blue-900/40 hover:shadow-blue-500/40 hover:scale-105 active:scale-95 disabled:opacity-30 disabled:scale-100 shrink-0"
                       >
                         <Send className="w-5 h-5" />
                       </button>
                     </div>
+
+                    {/* Voice error message */}
+                    <AnimatePresence>
+                      {voiceError && (
+                        <motion.p
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          className="mt-2 text-[12px] font-semibold text-rose-400 flex items-center gap-1.5"
+                        >
+                          <MicOff className="w-3.5 h-3.5" />
+                          {voiceError}
+                        </motion.p>
+                      )}
+                    </AnimatePresence>
                   </form>
                 </div>
               </div>

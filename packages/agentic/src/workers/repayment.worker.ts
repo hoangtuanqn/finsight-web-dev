@@ -74,6 +74,7 @@ export const repaymentWorker: AgentWorker = {
 
     // Build context from memory
     const recentCtx = state.recentMessages
+      .slice(0, -1) // exclude last item (current user message already in state.input)
       .map((m) => `${m.role === 'user' ? 'Người dùng' : 'AI'}: ${m.content}`)
       .join('\n');
 

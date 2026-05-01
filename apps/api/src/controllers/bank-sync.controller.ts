@@ -22,7 +22,7 @@ export class BankSyncController {
   static async approve(req: Request, res: Response) {
     try {
       const userId = (req as any).userId;
-      const { id } = req.params;
+      const id = req.params.id as string;
       const { categoryId, description, type } = req.body;
 
       if (!categoryId) {
