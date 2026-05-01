@@ -12,3 +12,28 @@
 [2026-05-01T04:36:11.061Z] [Payment] SePay API error: read ECONNRESET
 [2026-05-01T04:36:21.733Z] [Payment] SePay API error: timeout of 15000ms exceeded
 [2026-05-01T04:36:31.737Z] [Payment] SePay API error: timeout of 15000ms exceeded
+[2026-05-01T14:16:12.134Z] [Payment] SePay API error: timeout of 15000ms exceeded
+[2026-05-01T14:16:22.120Z] [Payment] SePay API error: timeout of 15000ms exceeded
+[2026-05-01T14:16:32.133Z] [Payment] SePay API error: timeout of 15000ms exceeded
+[2026-05-01T15:33:54.407Z] [Payment] SePay API error: getaddrinfo ENOTFOUND my.sepay.vn
+[2026-05-01T16:25:45.721Z] [Payment] SePay API error: getaddrinfo ENOTFOUND my.sepay.vn
+[2026-05-01T16:25:45.813Z] [ReferralJob] Critical error: PrismaClientKnownRequestError: 
+Invalid `any).referral.findMany()` invocation in
+C:\Users\ad\Downloads\finsight-web-dev\apps\api\src\cron\jobs\referral-reward.job.ts:6:63
+
+  3 export async function processReferralRewards() {
+  4   try {
+  5     // 1. Tìm các referral đủ điều kiện nhưng chưa trao thưởng
+→ 6     const qualifiedReferrals = await (prisma as any).referral.findMany(
+Timed out fetching a new connection from the connection pool. More info: http://pris.ly/d/connection-pool (Current connection pool timeout: 10, connection limit: 13)
+[2026-05-01T17:56:36.939Z] [Payment] SePay API error: 
+Invalid `any).transaction.findMany()` invocation in
+C:\Users\ad\Downloads\finsight-web-dev\apps\api\src\cron\jobs\payment.job.ts:19:63
+
+  16   limit: 50,
+  17 });
+  18 
+→ 19 const pendingInvoices = await (prisma as any).transaction.findMany(
+Can't reach database server at `127.0.0.1:5445`
+
+Please make sure your database server is running at `127.0.0.1:5445`.
