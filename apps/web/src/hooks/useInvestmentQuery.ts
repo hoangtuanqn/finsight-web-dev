@@ -2,12 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { investmentAPI } from "../api";
 import { queryKeys } from "../api/queryKeys";
 
-// Cache 10 phút - dữ liệu giá tài sản thay đổi chậm, không cần refetch mỗi lần vào trang
-const ASSET_PRICE_STALE_TIME = 10 * 60 * 1000; // 10 phút
-
-// gcTime = 10 phút - xóa khỏi bộ nhớ đúng 10 phút sau lần fetch, kể cả khi user không dùng
-// Khi user quay lại trong vòng 10p → dùng cache ngay. Qua 10p → fetch lại.
-const ASSET_PRICE_GC_TIME = 10 * 60 * 1000;
+const ASSET_PRICE_STALE_TIME = 10 * 60 * 1000;
+const ASSET_PRICE_GC_TIME    = 10 * 60 * 1000;
 
 export function useCryptoPrices(riskLevel = "MEDIUM") {
   return useQuery({
