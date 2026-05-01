@@ -82,6 +82,7 @@ export default function KycPage() {
 
           {step === 2 && (
             <Step2_LivenessCapture 
+              initialVideo={videoFile}
               onBack={() => setStep(1)}
               onNext={(video) => {
                 setVideoFile(video);

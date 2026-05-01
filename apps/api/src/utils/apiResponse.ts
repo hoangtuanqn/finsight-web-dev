@@ -7,10 +7,11 @@ export function success(res: Response, data: any, statusCode = 200) {
   });
 }
 
-export function error(res: Response, message: string, statusCode = 500) {
+export function error(res: Response, message: string, statusCode = 500, field?: string) {
   return res.status(statusCode).json({
     success: false,
     error: message,
+    field,
   });
 }
 

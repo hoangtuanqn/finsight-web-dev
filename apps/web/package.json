@@ -12,11 +12,14 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
+    "@mediapipe/face_mesh": "^0.4.1633559619",
     "@react-oauth/google": "^0.13.5",
     "@repo/types": "*",
     "@tanstack/react-query": "^5.91.3",
+    "@types/three": "^0.184.0",
     "axios": "^1.13.6",
     "driver.js": "^1.4.0",
+    "formdata": "^0.10.4",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.8.0",
     "qrcode": "^1.5.4",
@@ -34,6 +37,7 @@
     "socket.io-client": "^4.8.3",
     "sonner": "^2.0.7",
     "tesseract.js": "^7.0.0",
+    "three": "^0.184.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
