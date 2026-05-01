@@ -286,18 +286,18 @@ export default function WithdrawalTab({ stats }: WithdrawalTabProps) {
                     <label className="text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-2 block">Tên chủ tài khoản</label>
                     <input
                       type="text"
-                      value={accountName}
-                      onChange={e => setAccountName(e.target.value.toUpperCase())}
+                      value={kyc?.kycName || ''}
+                      disabled
                       placeholder="VD: NGUYEN VAN A"
-                      className="w-full px-4 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-sm font-mono text-[var(--color-text-primary)] outline-none focus:border-blue-500 transition-colors uppercase"
+                      className="w-full px-4 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-sm font-mono text-[var(--color-text-primary)] outline-none transition-colors uppercase opacity-70 cursor-not-allowed"
                     />
                   </div>
                 </div>
 
                 <div className="flex gap-3 pt-2">
                   <button
-                    onClick={() => addBankMutation.mutate({ bankCode: selectedBankCode, accountNumber, accountName })}
-                    disabled={!selectedBankCode || !accountNumber || !accountName || addBankMutation.isPending}
+                    onClick={() => addBankMutation.mutate({ bankCode: selectedBankCode, accountNumber, accountName: kyc?.kycName })}
+                    disabled={!selectedBankCode || !accountNumber || !kyc?.kycName || addBankMutation.isPending}
                     className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-500 transition-all disabled:opacity-50"
                   >
                     {addBankMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
@@ -354,7 +354,7 @@ export default function WithdrawalTab({ stats }: WithdrawalTabProps) {
                       disabled={setDefaultMutation.isPending}
                       className="px-3 py-1.5 rounded-lg text-[10px] font-black border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-blue-500 hover:border-blue-500/30 transition-all"
                     >
-                      Mặc định
+                      Đặt mặc định
                     </button>
                   )}
                   <button

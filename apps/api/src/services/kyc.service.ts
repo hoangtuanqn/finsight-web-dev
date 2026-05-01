@@ -30,16 +30,16 @@ export async function checkLiveness(videoBuffer: Buffer, frontImageBuffer: Buffe
   return response.data;
 }
 
-export async function checkBankOwner(bankCode: string, accountNumber: string, ownerName: string) {
-  const response = await axios.post('https://api.banklookup.net/owner-check', {
+export async function checkBankOwner(bankCode: string, accountNumber: string) {
+  const response = await axios.post('https://api.banklookup.net', {
     bank: bankCode,
-    ownerName: ownerName,
     account: accountNumber
   }, {
     headers: {
       'x-api-key': process.env.API_KEY_BANKLOOKUP_KEY,
       'x-api-secret': process.env.API_KEY_BANKLOOKUP_SECRET,
-    }
+    },
+    validateStatus: () => true
   });
 
   return response.data;
