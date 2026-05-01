@@ -210,9 +210,18 @@ export async function routerNode(
   const errors = [...state.errors];
   const query = state.input;
 
-  // 1. Max length guard
-  if (checkMaxLength(query)) {
+  // OCR messages are intentionally large — skip the length guard for them.
+  const isOcrMessage = query.startsWith('[Nội dung tài liệu đính kèm (OCR):');
+
+  // 1. Max length guard (skip for OCR)
+  if (!isOcrMessage && checkMaxLength(query)) {
     return { intent: AgentIntent.GENERAL_CHAT, worker: 'max_length', errors };
+  }
+
+  // OCR document → always debt extraction, skip keyword/LLM routing entirely
+  if (isOcrMessage) {
+    console.log('[Router] 📷 OCR message detected → pinned to DEBT_EXTRACTION');
+    return { intent: AgentIntent.DEBT_EXTRACTION, worker: 'debt_extraction', errors };
   }
 
   // 2. Keyword fast-path
