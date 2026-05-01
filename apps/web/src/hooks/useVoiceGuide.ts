@@ -2,17 +2,18 @@ import { useRef, useCallback, useEffect } from "react";
 import type { FaceChallenge } from "../pages/KycPage/components/FaceGuide3D";
 
 // ─── Audio file mapping ───────────────────────────────────────────────────────
-// Place these files in apps/web/public/voices/
+// Files live in apps/web/public/voices/
 const CHALLENGE_SOUNDS: Partial<Record<FaceChallenge, string>> = {
-  look_up: "/voices/on.mp3",
-  look_down: "/voices/below.mp3",
-  look_left: "/voices/left.mp3",
-  look_right: "/voices/right.mp3",
-  look_straight: "/voices/left.mp3", // neutral — can replace with a dedicated file
-  open_mouth: "/voices/below.mp3", // reuse or add open-mouth.mp3
+  look_up:       '/voices/on.mp3',
+  look_down:     '/voices/below.mp3',
+  look_left:     '/voices/left.mp3',
+  look_right:    '/voices/right.mp3',
+  look_straight: '/voices/straight.mp3',   // ← new
+  open_mouth:    '/voices/open-mouth.mp3', // ← new
 };
 
-const SOUND_HOLD = "/voices/keep-the-same.mp3"; // plays when user holds correct pose
+const SOUND_HOLD = '/voices/keep-the-same.mp3';
+const SOUND_DONE = '/voices/done.mp3'; // ← new: plays when all challenges complete
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 export function useVoiceGuide() {
@@ -75,8 +76,13 @@ export function useVoiceGuide() {
     play(SOUND_HOLD);
   }, [play]);
 
+  /** Play the completion sound when all challenges are done */
+  const playDone = useCallback(() => {
+    play(SOUND_DONE);
+  }, [play]);
+
   // Cleanup on unmount
   useEffect(() => () => stop(), [stop]);
 
-  return { play, stop, playChallenge, playHold };
+  return { play, stop, playChallenge, playHold, playDone };
 }
