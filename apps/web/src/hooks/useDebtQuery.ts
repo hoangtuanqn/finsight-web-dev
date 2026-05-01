@@ -223,6 +223,10 @@ export function useDebtGoalMutations() {
   const deleteGoalMutation = useMutation({
     mutationFn: debtGoalAPI.delete,
     onSuccess: () => {
+      queryClient.setQueryData(queryKeys.DEBTS.GOAL, (oldData: any) => {
+        if (!oldData) return oldData;
+        return { ...oldData, goal: null, onTrack: null };
+      });
       queryClient.invalidateQueries({ queryKey: queryKeys.DEBTS.GOAL });
       queryClient.invalidateQueries({ queryKey: queryKeys.DEBTS.REPAYMENT });
     }
@@ -230,7 +234,7 @@ export function useDebtGoalMutations() {
 
   return {
     upsertGoal: upsertMutation.mutate,
-    deleteGoal: deleteGoalMutation.mutate,
+    deleteGoal: deleteGoalMutation.mutateAsync,
     isUpserting: upsertMutation.isPending,
     isDeleting: deleteGoalMutation.isPending
   };
