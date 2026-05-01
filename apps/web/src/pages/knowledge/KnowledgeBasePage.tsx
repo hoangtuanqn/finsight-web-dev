@@ -1,57 +1,34 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  ArrowRight,
-  Bookmark,
-  BookMarked,
-  BookOpen,
-  BrainCircuit,
-  Calendar,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  Filter,
-  LayoutGrid,
-  Lightbulb,
-  List,
-  Loader2,
-  Search,
-  Share2,
-  User,
-  X,
-} from 'lucide-react';
+import { BookMarked, BookOpen, Filter, LayoutGrid, Lightbulb, List, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import knowledgeData from '../../data/knowledgeBase.json';
 import { useArticles } from '../../hooks/useArticleQuery';
 
+// Components
+import { ArticleDetail } from './components/ArticleDetail';
+import { ArticleFilters } from './components/ArticleFilters';
+import { ArticlesTab } from './components/ArticlesTab';
+import { TermsTab } from './components/TermsTab';
+
+// Types & Utils
+import type { Article, ArticleFilters as IArticleFilters } from './types';
+import { emptyArticleFilters } from './types';
+import { getArticleTime, normalizeText } from './utils';
+
 const ITEMS_PER_PAGE = 10;
-
-function normalizeText(value: string) {
-  return value.toLowerCase().trim();
-}
-
-function getArticleTime(article: any) {
-  return new Date(article.createdAt || article.updatedAt || article.date || 0).getTime();
-}
-
-// tính thời gian đọc bài viết: tốc độ 200 từ/phút
-function getReadingTime(content: string = '') {
-  const words = content.trim().split(/\s+/).length;
-  const minutes = Math.max(1, Math.ceil(words / 200));
-  return `${minutes} phút đọc`;
-}
 
 export default function KnowledgeBasePage() {
   const [activeTab, setActiveTab] = useState('terms');
-  const [selectedArticle, setSelectedArticle] = useState<any>(null);
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
 
-  const [articleFilters, setArticleFilters] = useState<ArticleFilters>(emptyArticleFilters);
-  const [tempArticleFilters, setTempArticleFilters] = useState<ArticleFilters>(emptyArticleFilters);
+  const [articleFilters, setArticleFilters] = useState<IArticleFilters>(emptyArticleFilters);
+  const [tempArticleFilters, setTempArticleFilters] = useState<IArticleFilters>(emptyArticleFilters);
   const [showArticleFilters, setShowArticleFilters] = useState(false);
   const [articleViewMode, setArticleViewMode] = useState(() => localStorage.getItem('finsight_article_view') || 'grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
-  const { data: articles, isLoading } = useArticles() as { data: any[] | undefined; isLoading: boolean };
+  const { data: articles, isLoading } = useArticles() as { data: Article[] | undefined; isLoading: boolean };
 
   const articleList = articles || [];
 
@@ -275,460 +252,33 @@ export default function KnowledgeBasePage() {
 
       <AnimatePresence mode="wait">
         {activeTab === 'terms' ? (
-          <motion.div
-            key="terms"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="space-y-8"
-          >
-            {currentTerms.length > 0 ? (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {currentTerms.map((item, index) => (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      key={item.id}
-                      className="group p-8 rounded-[32px] bg-[var(--color-bg-secondary)] border border-[var(--color-border)] hover:border-indigo-500/40 transition-all duration-500 flex flex-col relative overflow-hidden"
-                    >
-                      <div className="absolute -top-12 -right-12 w-48 h-48 bg-indigo-500/5 rounded-full blur-3xl group-hover:bg-indigo-500/15 transition-all duration-700" />
-
-                      <div className="flex items-center gap-4 mb-6">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-blue-500/10 text-indigo-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                          <BrainCircuit size={22} />
-                        </div>
-                        <h3 className="text-xl font-black text-[var(--color-text-primary)] tracking-tight group-hover:text-indigo-400 transition-colors">
-                          {item.term}
-                        </h3>
-                      </div>
-                      <p className="text-[var(--color-text-secondary)] text-sm leading-relaxed flex-1 opacity-80 group-hover:opacity-100 transition-opacity">
-                        {item.definition}
-                      </p>
-                    </motion.div>
-                  ))}
-                </div>
-
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 pt-4">
-                    <button
-                      onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                      disabled={currentPage === 1}
-                      className="p-2 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border)] disabled:opacity-30 hover:bg-indigo-500/10 transition-colors"
-                    >
-                      <ChevronLeft size={20} />
-                    </button>
-                    {[...Array(totalPages)].map((_, i) => (
-                      <button
-                        key={i}
-                        onClick={() => handlePageChange(i + 1)}
-                        className={`w-10 h-10 rounded-xl font-bold text-sm transition-all ${
-                          currentPage === i + 1
-                            ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30'
-                            : 'bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-indigo-500/10'
-                        }`}
-                      >
-                        {i + 1}
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-                      disabled={currentPage === totalPages}
-                      className="p-2 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border)] disabled:opacity-30 hover:bg-indigo-500/10 transition-colors"
-                    >
-                      <ChevronRight size={20} />
-                    </button>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="py-20 text-center">
-                <p className="text-[var(--color-text-muted)] font-medium italic">
-                  Không tìm thấy thuật ngữ nào phù hợp.
-                </p>
-              </div>
-            )}
-          </motion.div>
+          <TermsTab
+            currentTerms={currentTerms}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
         ) : (
-          <motion.div
-            key="stories"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="min-h-[400px]"
-          >
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-32 gap-5">
-                <div className="relative">
-                  <Loader2 size={48} className="animate-spin text-indigo-500" />
-                  <div className="absolute inset-0 blur-xl bg-indigo-500/20 animate-pulse" />
-                </div>
-                <p className="text-[var(--color-text-muted)] font-bold tracking-tight text-lg">Đang tải tri thức...</p>
-              </div>
-            ) : filteredArticles.length > 0 ? (
-              <div
-                className={articleViewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 gap-8' : 'flex flex-col gap-5'}
-              >
-                {filteredArticles.map((story, index) => (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.98 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: index * 0.1 }}
-                    key={story.id}
-                    onClick={() => setSelectedArticle(story)}
-                    className={`group cursor-pointer bg-[var(--color-bg-secondary)] border border-[var(--color-border)] overflow-hidden hover:border-indigo-500/30 hover:translate-y-[-4px] transition-all duration-500 ${
-                      articleViewMode === 'grid'
-                        ? 'rounded-[40px] flex flex-col'
-                        : 'rounded-[28px] flex flex-col md:flex-row md:items-stretch'
-                    }`}
-                    style={{ boxShadow: '0 20px 40px rgba(0,0,0,0.05)' }}
-                  >
-                    <div
-                      className={`${articleViewMode === 'grid' ? 'h-64' : 'h-52 md:h-64 md:w-72 lg:w-80'} overflow-hidden relative shrink-0`}
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10 opacity-60 group-hover:opacity-40 transition-opacity" />
-                      <img
-                        src={story.imageUrl}
-                        alt={story.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
-                      />
-                      <div className="absolute bottom-6 left-6 z-20 flex flex-wrap gap-2">
-                        <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 backdrop-blur-xl border border-white/10 text-white text-[10px] font-black uppercase tracking-wider">
-                          <Calendar size={12} className="text-indigo-400" /> {story.date}
-                        </span>
-                        <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/80 backdrop-blur-xl border border-indigo-400/20 text-white text-[10px] font-black uppercase tracking-wider">
-                          <User size={12} /> {story.author}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div
-                      className={`${articleViewMode === 'grid' ? 'p-8' : 'p-6 md:p-7'} flex flex-col flex-1 relative`}
-                    >
-                      <div className="flex justify-between items-start mb-4">
-                        <h3
-                          className={`${articleViewMode === 'grid' ? 'text-2xl' : 'text-xl md:text-2xl'} font-black text-[var(--color-text-primary)] leading-tight tracking-tighter group-hover:text-indigo-400 transition-colors flex-1 pr-4`}
-                        >
-                          {story.title}
-                        </h3>
-                        <div className="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-500 opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 shrink-0">
-                          <ArrowRight size={20} />
-                        </div>
-                      </div>
-
-                      {story.tags && story.tags.length > 0 && (
-                        <div className="mb-4 flex flex-wrap gap-2">
-                          {story.tags.map((tag: string) => (
-                            <span
-                              key={tag}
-                              className="rounded-lg bg-blue-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-blue-400"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      <p
-                        className={`text-[var(--color-text-secondary)] text-sm leading-relaxed ${articleViewMode === 'grid' ? 'line-clamp-3' : 'line-clamp-2'} mb-6 font-medium`}
-                      >
-                        {story.excerpt}
-                      </p>
-
-                      <div className="mt-auto flex items-center justify-between border-t border-[var(--color-border)] pt-5">
-                        <div className="flex items-center gap-2 text-[var(--color-text-muted)] text-[11px] font-bold">
-                          <Clock size={13} /> {getReadingTime(story.content)}
-                        </div>
-                        <span className="text-indigo-400 text-xs font-black uppercase tracking-widest flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                          Đọc ngay <ChevronRight size={14} />
-                        </span>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-32 text-center gap-6 bg-[var(--color-bg-secondary)] border-2 border-dashed border-[var(--color-border)] rounded-[40px]">
-                <div className="w-24 h-24 rounded-[32px] bg-indigo-500/5 flex items-center justify-center text-indigo-500/30">
-                  <BookOpen size={48} />
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-xl font-black text-[var(--color-text-primary)] tracking-tight">
-                    Chưa có bài viết nào
-                  </h3>
-                  <p className="text-[var(--color-text-muted)] text-sm max-w-xs mx-auto">
-                    Khám phá góc nhìn chuyên sâu về quản lý tài chính thông qua các tình huống thực tế.
-                  </p>
-                </div>
-              </div>
-            )}
-          </motion.div>
+          <ArticlesTab
+            isLoading={isLoading}
+            articles={filteredArticles}
+            viewMode={articleViewMode}
+            onArticleClick={setSelectedArticle}
+          />
         )}
       </AnimatePresence>
 
-      {/* Article Filter Drawer */}
-      <AnimatePresence>
-        {showArticleFilters && (
-          <div className="fixed inset-0 z-[105]">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowArticleFilters(false)}
-              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            />
-            <motion.aside
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-              className="absolute right-0 top-0 flex h-full w-full max-w-lg flex-col border-l border-[var(--color-border)] bg-[var(--color-bg-primary)] shadow-2xl"
-            >
-              <div className="flex items-start justify-between border-b border-[var(--color-border)] p-6">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/15 text-blue-400">
-                    <Filter size={22} />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-black text-[var(--color-text-primary)]">Bộ lọc bài viết</h3>
-                    <p className="text-[11px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
-                      Tối ưu danh sách
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowArticleFilters(false)}
-                  className="rounded-full p-2 text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-primary)]"
-                >
-                  <X size={22} />
-                </button>
-              </div>
+      <ArticleFilters
+        show={showArticleFilters}
+        onClose={() => setShowArticleFilters(false)}
+        tempFilters={tempArticleFilters}
+        setTempFilters={setTempArticleFilters}
+        onApply={handleApplyArticleFilters}
+        onReset={handleResetArticleFilters}
+        authorOptions={authorOptions}
+      />
 
-              <div className="flex-1 space-y-7 overflow-y-auto p-6">
-                <div className="space-y-3">
-                  <label className="text-[11px] font-black uppercase tracking-widest text-blue-400">Tìm kiếm</label>
-                  <div className="relative">
-                    <Search
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
-                      size={16}
-                    />
-                    <input
-                      value={tempArticleFilters.search}
-                      onChange={(event) =>
-                        setTempArticleFilters((current) => ({ ...current, search: event.target.value }))
-                      }
-                      placeholder="Tiêu đề, mô tả, nội dung..."
-                      className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="text-[11px] font-black uppercase tracking-widest text-blue-400">Tác giả</label>
-                  <select
-                    value={tempArticleFilters.author}
-                    onChange={(event) =>
-                      setTempArticleFilters((current) => ({ ...current, author: event.target.value }))
-                    }
-                    className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-4 py-3 text-sm font-bold outline-none transition-all focus:border-blue-500"
-                  >
-                    <option value="">Tất cả tác giả</option>
-                    {authorOptions.map((author) => (
-                      <option key={author} value={author}>
-                        {author}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="text-[11px] font-black uppercase tracking-widest text-blue-400">
-                    Thuật ngữ (Tag)
-                  </label>
-                  <select
-                    value={tempArticleFilters.tag}
-                    onChange={(event) => setTempArticleFilters((current) => ({ ...current, tag: event.target.value }))}
-                    className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-4 py-3 text-sm font-bold outline-none transition-all focus:border-blue-500"
-                  >
-                    <option value="">Tất cả thuật ngữ</option>
-                    {(knowledgeData as any).terms.map((term: any) => (
-                      <option key={term.id} value={term.term}>
-                        {term.term}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="text-[11px] font-black uppercase tracking-widest text-blue-400">Thời gian</label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { id: '', label: 'Mọi thời gian' },
-                      { id: '30d', label: '30 ngày' },
-                      { id: '90d', label: '90 ngày' },
-                      { id: '365d', label: '1 năm' },
-                    ].map((option) => (
-                      <button
-                        key={option.id || 'all'}
-                        type="button"
-                        onClick={() => setTempArticleFilters((current) => ({ ...current, dateRange: option.id }))}
-                        className={`rounded-2xl border px-4 py-3 text-sm font-black transition-all ${
-                          tempArticleFilters.dateRange === option.id
-                            ? 'border-blue-500 bg-blue-600 text-white'
-                            : 'border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="text-[11px] font-black uppercase tracking-widest text-blue-400">Sắp xếp theo</label>
-                  <div className="grid grid-cols-1 gap-3">
-                    {[
-                      { id: 'newest', label: 'Mới nhất trước' },
-                      { id: 'oldest', label: 'Cũ nhất trước' },
-                      { id: 'title', label: 'Tên bài viết A-Z' },
-                    ].map((option) => (
-                      <button
-                        key={option.id}
-                        type="button"
-                        onClick={() => setTempArticleFilters((current) => ({ ...current, sortBy: option.id }))}
-                        className={`rounded-2xl border px-4 py-3 text-left text-sm font-black transition-all ${
-                          tempArticleFilters.sortBy === option.id
-                            ? 'border-blue-500 bg-blue-600 text-white'
-                            : 'border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 border-t border-[var(--color-border)] p-6">
-                <button
-                  onClick={handleResetArticleFilters}
-                  className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-5 py-4 text-sm font-black uppercase tracking-widest text-[var(--color-text-muted)] transition-all hover:text-[var(--color-text-primary)]"
-                >
-                  Xóa hết
-                </button>
-                <button
-                  onClick={handleApplyArticleFilters}
-                  className="rounded-2xl bg-blue-600 px-5 py-4 text-sm font-black uppercase tracking-widest text-white transition-all hover:bg-blue-500"
-                >
-                  Áp dụng
-                </button>
-              </div>
-            </motion.aside>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Article Detail Modal */}
-      <AnimatePresence>
-        {selectedArticle && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedArticle(null)}
-              className="absolute inset-0 bg-black/80 backdrop-blur-md"
-            />
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-4xl max-h-[90vh] bg-[var(--color-bg-primary)] rounded-[48px] border border-white/10 overflow-hidden shadow-2xl flex flex-col"
-            >
-              <button
-                onClick={() => setSelectedArticle(null)}
-                className="absolute top-6 right-6 z-30 w-12 h-12 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 text-white flex items-center justify-center hover:bg-white hover:text-black transition-all"
-              >
-                <X size={20} />
-              </button>
-
-              <div className="overflow-y-auto custom-scrollbar">
-                <div className="relative h-80 md:h-96">
-                  <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-bg-primary)] via-transparent to-transparent z-10" />
-                  <img
-                    src={selectedArticle.imageUrl}
-                    alt={selectedArticle.title}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute bottom-10 left-10 right-10 z-20">
-                    <div className="flex flex-wrap gap-4 mb-4">
-                      <span className="px-4 py-2 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/10 text-white text-[11px] font-black uppercase tracking-wider flex items-center gap-2">
-                        <Calendar size={14} className="text-indigo-400" /> {selectedArticle.date}
-                      </span>
-                      <span className="px-4 py-2 rounded-2xl bg-indigo-600/80 backdrop-blur-xl border border-indigo-400/20 text-white text-[11px] font-black uppercase tracking-wider flex items-center gap-2">
-                        <User size={14} /> {selectedArticle.author}
-                      </span>
-                      <span className="px-4 py-2 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/10 text-white text-[11px] font-black uppercase tracking-wider flex items-center gap-2">
-                        <Clock size={14} className="text-indigo-400" /> {getReadingTime(selectedArticle.content)}
-                      </span>
-                      {selectedArticle.tags &&
-                        selectedArticle.tags.length > 0 &&
-                        selectedArticle.tags.map((tag: string) => (
-                          <span
-                            key={tag}
-                            className="px-4 py-2 rounded-2xl bg-blue-500/20 backdrop-blur-xl border border-blue-400/30 text-blue-300 text-[11px] font-black uppercase tracking-wider"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                    </div>
-                    <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter leading-none pr-12">
-                      {selectedArticle.title}
-                    </h2>
-                  </div>
-                </div>
-
-                <div className="p-10 md:p-16 space-y-10">
-                  <div className="p-8 rounded-[32px] bg-indigo-500/5 border border-indigo-500/20 border-l-4 border-l-indigo-500 relative overflow-hidden">
-                    <div className="absolute -top-4 -right-4 text-indigo-500/10">
-                      <Bookmark size={80} />
-                    </div>
-                    <p className="text-xl font-bold text-[var(--color-text-primary)] italic relative z-10 leading-relaxed">
-                      "{selectedArticle.excerpt}"
-                    </p>
-                  </div>
-
-                  <div className="prose prose-invert max-w-none">
-                    <div className="text-[var(--color-text-secondary)] text-lg leading-[1.8] font-medium whitespace-pre-line space-y-6">
-                      {selectedArticle.content}
-                    </div>
-                  </div>
-
-                  <div className="pt-10 border-t border-[var(--color-border)] flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div className="flex flex-wrap items-center justify-center gap-3">
-                      <button className="flex items-center gap-2 text-[var(--color-text-muted)] hover:text-indigo-400 font-bold text-sm transition-colors">
-                        <Share2 size={18} /> Chia sẻ bài viết
-                      </button>
-                      <button className="flex items-center gap-2 text-[var(--color-text-muted)] hover:text-indigo-400 font-bold text-sm transition-colors">
-                        <Bookmark size={18} /> Lưu bài viết
-                      </button>
-                    </div>
-                    <button
-                      onClick={() => setSelectedArticle(null)}
-                      className="px-8 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-500 text-white font-black text-sm tracking-widest uppercase hover:scale-105 active:scale-95 transition-all shadow-xl shadow-indigo-500/20"
-                    >
-                      Đóng bài viết
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <ArticleDetail article={selectedArticle} onClose={() => setSelectedArticle(null)} />
     </div>
   );
 }
