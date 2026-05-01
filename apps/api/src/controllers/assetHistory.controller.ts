@@ -15,6 +15,22 @@ function shortUserId(userId: string | undefined): string {
 const ASSET_HISTORY_MONTH_OPTIONS = new Set([6, 12, 18]);
 const ASSET_HISTORY_DAY_OPTIONS = new Set([7, 14, 30]);
 
+function makeGiavangTvSource(slug: string, name: string) {
+  return {
+    asset: 'gold',
+    source: slug,
+    sourceType: 'direct',
+    provider: 'giavangTv',
+    rangeType: 'days',
+    rangeOptions: [7, 14, 30],
+    defaultRange: 30,
+    chartSlug: slug,
+    name,
+    metric: { key: 'price', unit: 'VND/chỉ', changeUnit: 'percent', decimals: 0 },
+    dataSource: 'giavang.tv daily sell price',
+  };
+}
+
 const ASSET_HISTORY_SOURCES: Record<string, any> = {
   gold: {
     world: {
@@ -28,19 +44,26 @@ const ASSET_HISTORY_SOURCES: Record<string, any> = {
       metric: { key: 'price', unit: 'USD/oz', changeUnit: 'percent', decimals: 1 },
       dataSource: 'Yahoo Finance monthly close',
     },
-    sjc: {
-      asset: 'gold',
-      source: 'sjc',
-      sourceType: 'direct',
-      provider: 'vangToday',
-      rangeType: 'days',
-      rangeOptions: [7, 14, 30],
-      defaultRange: 30,
-      goldType: 'VNGSJC',
-      name: 'Vàng miếng SJC',
-      metric: { key: 'price', unit: 'VND/chỉ', changeUnit: 'percent', decimals: 0 },
-      dataSource: 'vang.today daily sell price',
-    },
+    sjc:          makeGiavangTvSource('sjc',           'Vàng SJC'),
+    sjc_bar:      makeGiavangTvSource('sjc',           'Vàng miếng SJC'),
+    sjc_ring:     makeGiavangTvSource('sjc',           'Nhẫn SJC 999.9'),
+    doji:         makeGiavangTvSource('doji',          'Vàng DOJI'),
+    doji_bar:     makeGiavangTvSource('doji',          'Vàng miếng DOJI'),
+    doji_ring:    makeGiavangTvSource('doji',          'Nhẫn DOJI 999.9'),
+    pnj:          makeGiavangTvSource('pnj',           'Vàng PNJ'),
+    pnj_bar:      makeGiavangTvSource('pnj',           'Vàng miếng PNJ'),
+    pnj_ring:     makeGiavangTvSource('pnj',           'Nhẫn PNJ 999.9'),
+    btmc:         makeGiavangTvSource('baotinminhchau','Vàng Bảo Tín Minh Châu'),
+    btmc_bar:     makeGiavangTvSource('baotinminhchau','Vàng miếng Bảo Tín Minh Châu'),
+    btmc_ring:    makeGiavangTvSource('baotinminhchau','Nhẫn Bảo Tín Minh Châu 999.9'),
+    phuquy:       makeGiavangTvSource('phuquy',        'Vàng Phú Quý'),
+    phuquy_bar:   makeGiavangTvSource('phuquy',        'Vàng miếng Phú Quý'),
+    phuquy_ring:  makeGiavangTvSource('phuquy',        'Nhẫn Phú Quý 999.9'),
+    ngoctham:     makeGiavangTvSource('ngoctham',      'Vàng Ngọc Thẩm'),
+    ngoctham_bar: makeGiavangTvSource('ngoctham',      'Vàng miếng Ngọc Thẩm'),
+    ngoctham_ring:makeGiavangTvSource('ngoctham',      'Nhẫn Ngọc Thẩm 999.9'),
+    kimnganphuc:      makeGiavangTvSource('kimnganphuc','Vàng Kim Ngân Phúc'),
+    kimnganphuc_ring: makeGiavangTvSource('kimnganphuc','Nhẫn Kim Ngân Phúc 999.9'),
     ring: {
       asset: 'gold',
       source: 'ring',
@@ -211,10 +234,16 @@ function buildMonthlyHistoryRows(rawHistory: any, months: number, metric: any) {
 
 function buildDailyHistoryRows(rawHistory: any, days: number, metric: any) {
   const decimals = Number.isInteger(metric?.decimals) ? metric.decimals : 2;
+
+  // giavang.tv timestamps are midnight Vietnam time (UTC+7).
+  // Reading with getUTC* would shift the date back by 7h → wrong day label.
+  // Add 7h offset so the local date matches Vietnam date before extracting parts.
+  const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
+
   const rows = rawHistory.timestamps.map((timestamp: number, index: number) => {
     const value = roundHistoryValue(rawHistory.closes[index], decimals);
     const previousClose = index > 0 ? rawHistory.closes[index - 1] : null;
-    const date = new Date(timestamp * 1000);
+    const date = new Date(timestamp * 1000 + VN_OFFSET_MS);
     const year = date.getUTCFullYear();
     const monthNumber = date.getUTCMonth() + 1;
     const dayNumber = date.getUTCDate();
@@ -289,6 +318,35 @@ function normalizeMarketTimestamp(value: any): number | null {
     if (Number.isFinite(parsed)) return Math.floor(parsed / 1000);
   }
   return null;
+}
+
+async function fetchGiavangTvHistory(source: any, days: number) {
+  try {
+    const res = await fetch(`https://giavang.tv/api/chart/${encodeURIComponent(source.chartSlug)}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' },
+      signal: (AbortSignal as any).timeout ? (AbortSignal as any).timeout(8000) : undefined,
+    });
+    if (!res.ok) return null;
+    const json: any = await res.json();
+    const sellData: [number, number][] = json?.sell ?? [];
+    if (sellData.length < 2) return null;
+
+    // DEBUG: log first 3 raw entries to inspect timestamp format
+    console.log('[giavangTv] raw sell sample:', sellData.slice(0, 3));
+
+    // sort theo timestamp tăng dần, lấy `days` ngày gần nhất
+    // giavang.tv trả timestamp dạng milliseconds (13 chữ số) → chuẩn hoá về seconds
+    const sorted = [...sellData].sort((a, b) => a[0] - b[0]).slice(-days);
+    const normalized = sorted.map(([ts, v]) => {
+      const tsSeconds = ts > 1_000_000_000_000 ? Math.floor(ts / 1000) : ts;
+      console.log('[giavangTv] ts:', ts, '→ sec:', tsSeconds, '→ date:', new Date(tsSeconds * 1000).toISOString());
+      return [tsSeconds, v] as [number, number];
+    });
+    return {
+      timestamps: normalized.map(([ts]) => ts),
+      closes:     normalized.map(([, v]) => Math.round(v * 100000)),
+    };
+  } catch { return null; }
 }
 
 async function fetchVangTodayHistory(source: any, days: number) {
@@ -382,7 +440,9 @@ export async function getAssetHistory(req: AuthenticatedRequest, res: Response) 
       dynamicUpdatedAt = vnBondHistory.updatedAt;
       dynamicDataSource = vnBondHistory.dataSource || source.dataSource;
     } else {
-      const rawHistory: any = source.provider === 'vangToday'
+      const rawHistory: any = source.provider === 'giavangTv'
+        ? await fetchGiavangTvHistory(source, rangeValue)
+        : source.provider === 'vangToday'
         ? await fetchVangTodayHistory(source, rangeValue)
         : await fetchAssetHistory(source.ticker);
 
