@@ -23,15 +23,15 @@ interface ChallengeConfig {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const CHALLENGES: ChallengeConfig[] = [
-  { key: 'look_straight', label: 'Nhìn thẳng vào camera', icon: '👁️', timerMs: 5000 },
-  { key: 'look_left',     label: 'Quay đầu sang trái',    icon: '←',   timerMs: 5000 },
-  { key: 'look_right',    label: 'Quay đầu sang phải',    icon: '→',   timerMs: 5000 },
-  { key: 'look_up',       label: 'Ngước đầu lên',         icon: '↑',   timerMs: 5000 },
-  { key: 'look_down',     label: 'Cúi đầu xuống',         icon: '↓',   timerMs: 5000 },
-  { key: 'open_mouth',    label: 'Há miệng',              icon: '😮',  timerMs: 5000 },
+  { key: 'look_straight', label: 'Nhìn thẳng vào camera', icon: '👁️', timerMs: 2000 },
+  { key: 'look_left',     label: 'Quay đầu sang trái',    icon: '←',   timerMs: 2000 },
+  { key: 'look_right',    label: 'Quay đầu sang phải',    icon: '→',   timerMs: 2000 },
+  { key: 'look_up',       label: 'Ngước đầu lên',         icon: '↑',   timerMs: 2000 },
+  { key: 'look_down',     label: 'Cúi đầu xuống',         icon: '↓',   timerMs: 2000 },
+  { key: 'open_mouth',    label: 'Há miệng',              icon: '😮',  timerMs: 2000 },
 ];
 
-const HOLD_REQUIRED      = 150;  // ~5.0s at 30fps
+const HOLD_REQUIRED      = 60;   // ~2.0s at 30fps
 const TURN_THRESHOLD     = 0.07; // nose deviation for left/right
 const PITCH_THRESHOLD    = 0.045; // nose deviation for up/down
 const MOUTH_THRESHOLD    = 0.025; // upper/lower lip distance
@@ -426,9 +426,23 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
 
   // ── Retry / Reset ──────────────────────────────────────────────────────────
   const handleRetry = useCallback(() => {
+    // Stop any running loops
     cancelAnimationFrame(rafRef.current);
     if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
     voice.stop();
+
+    // Stop active MediaRecorder if somehow still running
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+
+    // Reset ALL state + refs so webcam re-mounts clean
+    holdFrames.current    = 0;
+    wasCorrectRef.current = false;
+    allDoneRef.current    = false;
+    isRecordingRef.current = false; // ← KEY FIX: without this, webcam overlay may not restore
+
+    setIsRecording(false);
     setRecordedVideoUrl(null);
     setVideoFile(null);
     setCurrentIdx(0);
@@ -436,9 +450,6 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
     setProgress(0);
     setAllDone(false);
     setCurrentGesture('idle');
-    holdFrames.current    = 0;
-    wasCorrectRef.current = false;
-    allDoneRef.current    = false;
   }, [voice]);
 
   // ── On mount: check camera → load FaceMesh in background ──────────────────
