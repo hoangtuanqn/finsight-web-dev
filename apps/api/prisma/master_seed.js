@@ -18,7 +18,7 @@ function monthsFromNow(n) {
   return d;
 }
 
-async function main() {
+export async function seedMaster(prisma) {
   console.log('🌱 Seeding master database...');
 
   // ── Clean existing data ──────────────────────────────────
@@ -40,8 +40,8 @@ async function main() {
       email: 'phamhoangtuanqn@gmail.com',
       password: await bcrypt.hash('Master@123', 12),
       fullName: 'Hoàng Minh Tuấn',
-      monthlyIncome: 25000000,   // 25 triệu / tháng
-      extraBudget: 5000000,      // trả thêm 5 triệu / tháng
+      monthlyIncome: 25000000, // 25 triệu / tháng
+      extraBudget: 5000000, // trả thêm 5 triệu / tháng
       level: 'PROMAX',
       strategyQuota: 50,
     },
@@ -381,9 +381,7 @@ async function main() {
     const diffMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
 
     // Nếu là PAID thì có thể đã trả xong từ lâu, nếu ACTIVE thì trả đến tháng hiện tại
-    const paymentsToCreate = debtInfo.status === 'PAID'
-      ? (debtInfo.termMonths || 12)
-      : Math.min(diffMonths, 12); // Tối đa 12 tháng lịch sử cho ACTIVE
+    const paymentsToCreate = debtInfo.status === 'PAID' ? debtInfo.termMonths || 12 : Math.min(diffMonths, 12); // Tối đa 12 tháng lịch sử cho ACTIVE
 
     if (paymentsToCreate > 0) {
       const payments = [];
@@ -488,9 +486,9 @@ async function main() {
   await prisma.debtSnapshot.createMany({
     data: Array.from({ length: 12 }, (_, i) => ({
       userId: user.id,
-      totalDebt: 250000000 - (i * 10000000),
-      totalEAR: 35 - (i * 0.5),
-      debtToIncome: 45 - (i * 2),
+      totalDebt: 250000000 - i * 10000000,
+      totalEAR: 35 - i * 0.5,
+      debtToIncome: 45 - i * 2,
       createdAt: monthsAgo(12 - i),
     })),
   });
@@ -502,12 +500,3 @@ async function main() {
   console.log('🔑 Mật khẩu: Master@123');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 }
-
-main()
-  .catch((e) => {
-    console.error('❌ Seed error:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });

@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-async function main() {
+export async function seedEnterprise(prisma) {
   console.log('🌱 Bắt đầu tạo dữ liệu Seed Enterprise (PHIÊN BẢN CHUYÊN GIA TÀI CHÍNH)...');
 
   // 0. Xóa dữ liệu cũ theo thứ tự ràng buộc
@@ -652,12 +652,3 @@ async function main() {
   console.log('✅ BẢN SEED TÀI CHÍNH HOÀN HẢO ĐÃ ĐƯỢC TẠO!');
   console.log('🚀 Tài khoản demo: tin.tran@alphamfg.vn / admin123');
 }
-
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
