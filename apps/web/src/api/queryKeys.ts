@@ -9,6 +9,19 @@ export const queryKeys = {
     DTI: ["debts", "dti"],
     REPAYMENT: ["debts", "repayment"],
     GOAL: ["debts", "goal"],
+    REPAYMENT_PLANS: ["debts", "repayment-plans"],
+    REPAYMENT_PLAN_DETAIL: (id: string | number) => [
+      "debts",
+      "repayment-plans",
+      id,
+    ],
+    REPAYMENT_PLAN_SIMULATION: (debtIds: string[], extraBudget: number) => [
+      "debts",
+      "repayment-plans",
+      "simulation",
+      debtIds,
+      extraBudget,
+    ],
   },
   MARKET: {
     SENTIMENT: ["market", "sentiment"],
