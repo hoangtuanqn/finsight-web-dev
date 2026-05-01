@@ -62,6 +62,80 @@ function SkeletonBlock({
   );
 }
 
+function ConfirmDialog({
+  open,
+  title,
+  message,
+  actionLabel,
+  actionType = "primary",
+  loading = false,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean;
+  title: string;
+  message: string;
+  actionLabel: string;
+  actionType?: "primary" | "danger";
+  loading?: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={loading ? undefined : onCancel}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            className="relative w-full max-w-sm rounded-3xl p-6 border shadow-2xl"
+            style={{
+              background: "var(--color-bg-card)",
+              borderColor: "var(--color-border)",
+            }}
+          >
+            <h3 className="text-xl font-black text-[var(--color-text-primary)] mb-2">
+              {title}
+            </h3>
+            <p className="text-sm text-[var(--color-text-secondary)] mb-6 leading-relaxed">
+              {message}
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={loading}
+                className="px-4 py-2.5 rounded-xl font-bold text-sm text-[var(--color-text-muted)] hover:bg-white/5 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={onConfirm}
+                disabled={loading}
+                className={`px-4 py-2.5 rounded-xl font-bold text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${actionType === "danger"
+                  ? "bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                  : "bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20"
+                  }`}
+              >
+                {loading ? "Đang xử lý..." : actionLabel}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 function GoalForm({
   existing,
   onSaved,
@@ -298,6 +372,7 @@ function MilestoneCard({
 
 export default function DebtGoalPage() {
   const [editing, setEditing] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const { data, isLoading: loading } = useDebtGoal() as {
     data: any;
     isLoading: boolean;
@@ -305,13 +380,15 @@ export default function DebtGoalPage() {
   const { deleteGoal, isDeleting: deleting } = useDebtGoalMutations() as any;
 
   const handleDelete = async () => {
-    if (
-      !window.confirm("Xóa mục tiêu trả nợ? Bạn có thể đặt lại bất cứ lúc nào.")
-    )
-      return;
-    deleteGoal(null, {
-      onSuccess: () => toast.success("Đã xóa mục tiêu."),
-    });
+    if (deleting) return;
+    try {
+      await deleteGoal();
+      setDeleteConfirmOpen(false);
+      setEditing(false);
+      toast.success("Đã xóa mục tiêu.");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || "Không thể xóa mục tiêu. Vui lòng thử lại.");
+    }
   };
 
   if (loading) {
@@ -380,10 +457,10 @@ export default function DebtGoalPage() {
               borderColor: "rgba(139,92,246,0.2)",
             }}
           >
-            <div className="absolute top-0 left-5 right-5 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent" />
-            <div className="absolute -top-8 -right-8 w-28 h-28 rounded-full blur-3xl opacity-10 bg-violet-500" />
+            <div className="pointer-events-none absolute top-0 left-5 right-5 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent" />
+            <div className="pointer-events-none absolute -top-8 -right-8 w-28 h-28 rounded-full blur-3xl opacity-10 bg-violet-500" />
 
-            <div className="flex items-start justify-between gap-3">
+            <div className="relative z-10 flex items-start justify-between gap-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-violet-500/15 flex items-center justify-center text-violet-400">
                   <Calendar size={18} />
@@ -399,22 +476,24 @@ export default function DebtGoalPage() {
               </div>
               <div className="flex gap-2 shrink-0">
                 <button
+                  type="button"
                   onClick={() => setEditing(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] text-[11px] font-black transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] active:scale-95 text-[11px] font-black transition-all cursor-pointer"
                 >
                   <Edit3 size={12} /> Sửa
                 </button>
                 <button
-                  onClick={handleDelete}
+                  type="button"
+                  onClick={() => setDeleteConfirmOpen(true)}
                   disabled={deleting}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 text-[11px] font-black transition-all cursor-pointer disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 active:scale-95 text-[11px] font-black transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Trash2 size={12} /> Xóa
+                  <Trash2 size={12} /> {deleting ? "Đang xóa..." : "Xóa"}
                 </button>
               </div>
             </div>
 
-            <div className="mt-4 flex items-center gap-2">
+            <div className="relative z-10 mt-4 flex items-center gap-2">
               <span className="text-[11px] text-[var(--color-text-muted)] font-bold">
                 Chiến lược:
               </span>
@@ -662,10 +741,21 @@ export default function DebtGoalPage() {
             to="/debts/add"
             className="inline-flex items-center gap-1.5 text-[12px] font-black text-violet-400 hover:text-violet-300 transition-colors"
           >
-            <Plus size={13} /> Thêm khoản nợ đầu tiên <ChevronRight size={13} />
-          </Link>
-        </div>
+          <Plus size={13} /> Thêm khoản nợ đầu tiên <ChevronRight size={13} />
+        </Link>
+      </div>
       )}
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        title="Xóa mục tiêu trả nợ"
+        message="Bạn có chắc chắn muốn xóa mục tiêu trả nợ này? Bạn có thể đặt lại bất cứ lúc nào."
+        actionLabel="Xóa"
+        actionType="danger"
+        loading={deleting}
+        onCancel={() => setDeleteConfirmOpen(false)}
+        onConfirm={handleDelete}
+      />
     </motion.div>
   );
 }
