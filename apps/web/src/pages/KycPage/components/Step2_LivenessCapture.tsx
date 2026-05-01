@@ -1,7 +1,8 @@
-import { useState, useRef, useCallback, useEffect, lazy, Suspense } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import Webcam from 'react-webcam';
-import { Video, RotateCcw, AlertTriangle, Camera, CheckCircle2, Wifi } from 'lucide-react';
+import { Video, RotateCcw, AlertTriangle, Camera, CheckCircle2 } from 'lucide-react';
 import { useCameraPermission } from '../../../hooks/useCameraPermission';
+import { useVoiceGuide } from '../../../hooks/useVoiceGuide';
 import type { FaceChallenge } from './FaceGuide3D';
 
 // FaceGuide3D removed as requested by user
@@ -22,15 +23,15 @@ interface ChallengeConfig {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const CHALLENGES: ChallengeConfig[] = [
-  { key: 'look_straight', label: 'Nhìn thẳng vào camera', icon: '👁️', timerMs: 3000 },
-  { key: 'look_left',     label: 'Quay đầu sang trái',    icon: '←',   timerMs: 3000 },
-  { key: 'look_right',    label: 'Quay đầu sang phải',    icon: '→',   timerMs: 3000 },
-  { key: 'look_up',       label: 'Ngước đầu lên',         icon: '↑',   timerMs: 3000 },
-  { key: 'look_down',     label: 'Cúi đầu xuống',         icon: '↓',   timerMs: 3000 },
-  { key: 'open_mouth',    label: 'Há miệng',              icon: '😮',  timerMs: 3000 },
+  { key: 'look_straight', label: 'Nhìn thẳng vào camera', icon: '👁️', timerMs: 5000 },
+  { key: 'look_left',     label: 'Quay đầu sang trái',    icon: '←',   timerMs: 5000 },
+  { key: 'look_right',    label: 'Quay đầu sang phải',    icon: '→',   timerMs: 5000 },
+  { key: 'look_up',       label: 'Ngước đầu lên',         icon: '↑',   timerMs: 5000 },
+  { key: 'look_down',     label: 'Cúi đầu xuống',         icon: '↓',   timerMs: 5000 },
+  { key: 'open_mouth',    label: 'Há miệng',              icon: '😮',  timerMs: 5000 },
 ];
 
-const HOLD_REQUIRED      = 90;   // ~3.0s at 30fps
+const HOLD_REQUIRED      = 150;  // ~5.0s at 30fps
 const TURN_THRESHOLD     = 0.07; // nose deviation for left/right
 const PITCH_THRESHOLD    = 0.045; // nose deviation for up/down
 const MOUTH_THRESHOLD    = 0.025; // upper/lower lip distance
@@ -149,6 +150,9 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
   const currentIdxRef    = useRef(0);
   const allDoneRef       = useRef(!!initialVideo);
   const useFallbackRef   = useRef(false); // true = timer mode, no FaceMesh
+  const wasCorrectRef    = useRef(false);  // tracks correct→incorrect transitions for voice
+
+  const voice = useVoiceGuide();
 
   const [isRecording,      setIsRecording]     = useState(false);
   const [currentIdx,       setCurrentIdx]      = useState(0);
@@ -203,15 +207,19 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
   // ── Advance to next challenge (shared by both modes) ─────────────────────
   const advanceChallenge = useCallback(() => {
     holdFrames.current = 0;
+    wasCorrectRef.current = false;
     setProgress(0);
     const next = currentIdxRef.current + 1;
     setCompletedCount(next);
     if (next >= CHALLENGES.length) {
+      voice.stop();
       finishRecording();
     } else {
       setCurrentIdx(next);
+      // Play the direction cue for the new challenge
+      voice.playChallenge(CHALLENGES[next].key);
     }
-  }, [finishRecording]);
+  }, [finishRecording, voice]);
 
   // ── TIMER FALLBACK: guiding only, no auto-advance for verification ──────────
   const runTimerChallenge = useCallback((idx: number) => {
@@ -219,21 +227,32 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
     const challenge = CHALLENGES[idx];
     if (!challenge) return;
 
+    // Play direction cue for this challenge
+    voice.playChallenge(challenge.key);
+
     let elapsed = 0;
-    const step  = 50; 
+    const step  = 50;
     const total = challenge.timerMs;
+    // Play hold cue at ~50% to remind user to hold still
+    let didPlayHold = false;
 
     const tick = () => {
       if (allDoneRef.current || !isRecordingRef.current) return;
-      
+
       elapsed += step;
-      setProgress(Math.min((elapsed / total) * 100, 100));
+      const pct = Math.min((elapsed / total) * 100, 100);
+      setProgress(pct);
+
+      // Play "keep-the-same" at 50% mark once per challenge
+      if (!didPlayHold && pct >= 50) {
+        didPlayHold = true;
+        voice.playHold();
+      }
 
       if (elapsed >= total) {
         const next = idx + 1;
-        // In fallback mode, we still advance the guide so they record all gestures,
-        // but the backend will have to be the final judge.
         if (next >= CHALLENGES.length) {
+          voice.stop();
           finishRecording();
         } else {
           setCurrentIdx(next);
@@ -244,7 +263,7 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
       }
     };
     timerRef.current = setTimeout(tick, step);
-  }, [finishRecording]);
+  }, [finishRecording, voice]);
 
   // ── FACEMESH MODE: handle landmark result ──────────────────────────────────
   const handleFrameLandmarks = useCallback((landmarks: any[]) => {
@@ -254,10 +273,22 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
     const target = CHALLENGES[idx]?.key;
     if (!target) return;
 
-    const gesture = detectGesture(landmarks);
+    const gesture    = detectGesture(landmarks);
+    const isNowRight = gesture === target;
     setCurrentGesture(gesture);
 
-    if (gesture !== target) {
+    // ── Voice logic ──────────────────────────────────────────────────────────
+    if (isNowRight && !wasCorrectRef.current) {
+      // Just entered correct pose → play hold cue
+      voice.playHold();
+    } else if (!isNowRight && wasCorrectRef.current) {
+      // Was correct, now broke pose → replay direction cue
+      voice.playChallenge(target);
+    }
+    wasCorrectRef.current = isNowRight;
+    // ────────────────────────────────────────────────────────────────────────
+
+    if (!isNowRight) {
       holdFrames.current = Math.max(holdFrames.current - 2, 0);
       setProgress((holdFrames.current / HOLD_REQUIRED) * 100);
       return;
@@ -269,7 +300,7 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
     if (holdFrames.current >= HOLD_REQUIRED) {
       advanceChallenge();
     }
-  }, [advanceChallenge]);
+  }, [advanceChallenge, voice]);
 
   // ── RAF detection loop (FaceMesh mode) ────────────────────────────────────
   const runDetectionLoop = useCallback(() => {
@@ -352,6 +383,7 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
     // Reset all state
     recordedChunks.current = [];
     holdFrames.current     = 0;
+    wasCorrectRef.current  = false;
     allDoneRef.current     = false;
     setCurrentIdx(0);
     setCompletedCount(0);
@@ -361,6 +393,7 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
     setRecordedVideoUrl(null);
     setVideoFile(null);
     if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+    voice.stop();
 
     // Setup MediaRecorder
     const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
@@ -379,6 +412,9 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
     setIsRecording(true);
     isRecordingRef.current = true; // Sync ref IMMEDIATELY to avoid loop exit
 
+    // Play first challenge cue
+    voice.playChallenge(CHALLENGES[0].key);
+
     // Start the appropriate detection mode
     if (useFallbackRef.current || !faceMeshRef.current) {
       console.log('[Step2] Starting in TIMER mode');
@@ -387,12 +423,13 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
       console.log('[Step2] Starting in AI mode');
       runDetectionLoop();
     }
-  }, [runTimerChallenge, runDetectionLoop]);
+  }, [runTimerChallenge, runDetectionLoop, voice]);
 
   // ── Retry / Reset ──────────────────────────────────────────────────────────
   const handleRetry = useCallback(() => {
     cancelAnimationFrame(rafRef.current);
     if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+    voice.stop();
     setRecordedVideoUrl(null);
     setVideoFile(null);
     setCurrentIdx(0);
@@ -400,9 +437,10 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
     setProgress(0);
     setAllDone(false);
     setCurrentGesture('idle');
-    holdFrames.current  = 0;
-    allDoneRef.current  = false;
-  }, []);
+    holdFrames.current    = 0;
+    wasCorrectRef.current = false;
+    allDoneRef.current    = false;
+  }, [voice]);
 
   // ── On mount: check camera → load FaceMesh in background ──────────────────
   useEffect(() => {
