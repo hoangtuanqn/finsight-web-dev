@@ -7,7 +7,8 @@ export type FaceChallenge =
   | 'look_left'
   | 'look_right'
   | 'look_up'
-  | 'look_down';
+  | 'look_down'
+  | 'open_mouth';
 
 interface FaceGuide3DProps {
   challenge: FaceChallenge;
@@ -22,6 +23,7 @@ const TARGET_ROTATIONS: Record<FaceChallenge, { x: number; y: number }> = {
   look_right:    { x: 0,     y: -0.65 },
   look_up:       { x: -0.45, y: 0 },
   look_down:     { x: 0.45,  y: 0 },
+  open_mouth:    { x: 0,     y: 0 },
 };
 
 const CHALLENGE_COLORS: Record<FaceChallenge, number> = {
@@ -31,6 +33,7 @@ const CHALLENGE_COLORS: Record<FaceChallenge, number> = {
   look_right:    0x3b82f6,
   look_up:       0x3b82f6,
   look_down:     0x3b82f6,
+  open_mouth:    0x3b82f6,
 };
 
 function FaceGuide3D({ challenge, size = 120 }: FaceGuide3DProps) {
@@ -122,6 +125,15 @@ function FaceGuide3D({ challenge, size = 120 }: FaceGuide3DProps) {
     nose.position.set(0, -0.05, 0.86);
     headGroup.add(nose);
 
+    // Mouth
+    const mouthGeo = new THREE.PlaneGeometry(0.18, 0.04);
+    const mouthMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+    const mouth = new THREE.Mesh(mouthGeo, mouthMat);
+    mouth.name = 'mouth';
+    mouth.position.set(0, -0.32, 0.82);
+    mouth.rotation.x = -0.15; // match head curve slightly
+    headGroup.add(mouth);
+
     // Direction arrow (shows which way to turn)
     const arrowDir = new THREE.ArrowHelper(
       new THREE.Vector3(1, 0, 0),
@@ -157,11 +169,18 @@ function FaceGuide3D({ challenge, size = 120 }: FaceGuide3DProps) {
       const color = CHALLENGE_COLORS[challengeRef.current];
       (headMesh.material as THREE.MeshStandardMaterial).color.setHex(color);
 
+      // Animate mouth
+      const mouthMesh = ref.headGroup.getObjectByName('mouth');
+      if (mouthMesh) {
+        const targetScaleY = challengeRef.current === 'open_mouth' ? 4.5 : 1.0;
+        mouthMesh.scale.y += (targetScaleY - mouthMesh.scale.y) * 0.15;
+      }
+
       // Arrow visibility
       const arrow = ref.headGroup.getObjectByName('arrow') as THREE.ArrowHelper;
       if (arrow) {
         const ch = challengeRef.current;
-        arrow.visible = ch !== 'idle' && ch !== 'look_straight';
+        arrow.visible = ch !== 'idle' && ch !== 'look_straight' && ch !== 'open_mouth';
         if (arrow.visible) {
           let dir = new THREE.Vector3(0, 0, 0);
           if (ch === 'look_left')  dir.set(-1, 0, 0);
