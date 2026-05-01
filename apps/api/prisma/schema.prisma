@@ -54,6 +54,7 @@ model User {
   referralClicks      ReferralClick[]
   activities          UserActivity[]
   trustedDevices      TrustedDevice[]
+  repaymentPlans      RepaymentPlan[]
   commissionLogs      CommissionLog[]  @relation("CommissionRecipient")
   bankAccounts        BankAccount[]
   withdrawalRequests  WithdrawalRequest[]
@@ -105,6 +106,7 @@ model Debt {
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   payments Payment[]
+  repaymentPlanItems RepaymentPlanItem[]
 
   @@map("debts")
 }
@@ -198,6 +200,39 @@ model DebtGoal {
 
   @@map("debt_goals")
 }
+
+model RepaymentPlan {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  strategy    String   @default("CUSTOM")
+  extraBudget Float    @default(0)
+  isActive    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items RepaymentPlanItem[]
+
+  @@map("repayment_plans")
+}
+
+model RepaymentPlanItem {
+  id        String   @id @default(cuid())
+  planId    String
+  debtId    String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  plan RepaymentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  debt Debt          @relation(fields: [debtId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, debtId])
+  @@map("repayment_plan_items")
+}
+
+// ── Subscription & Payment ──────────────────────────────────
 
 model Transaction {
   id           String    @id @default(cuid())
