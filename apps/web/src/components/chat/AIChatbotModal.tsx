@@ -296,7 +296,7 @@ export default function AIChatbotModal() {
               <div className="h-16 px-6 flex items-center justify-between border-b border-white/5 bg-slate-900/50 backdrop-blur-xl flex-none">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-600 shadow-lg shadow-blue-600/20">
-                    <Bot className="w-6 h-6 text-white" />
+                    <Bot className="w-5 h-5 text-white" />
                   </div>
                   <div className="flex flex-col">
                     <h3 className="font-bold text-[15px] text-white leading-none">FinSight AI Advisor</h3>
@@ -672,7 +672,7 @@ export default function AIChatbotModal() {
                   animate={{ rotate: 0, opacity: 1, scale: 1 }}
                   exit={{ rotate: 90, opacity: 0, scale: 0.6 }}
                 >
-                  <X className="w-8 h-8" />
+                  <X className="w-7 h-7" />
                 </motion.div>
               ) : (
                 <motion.div
@@ -682,7 +682,7 @@ export default function AIChatbotModal() {
                   exit={{ rotate: -90, opacity: 0, scale: 0.6 }}
                   className="flex items-center justify-center"
                 >
-                  <MessageSquare className="w-8 h-8" />
+                  <MessageSquare className="w-7 h-7" />
                 </motion.div>
               )}
             </AnimatePresence>
