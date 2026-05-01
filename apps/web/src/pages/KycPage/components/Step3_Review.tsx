@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Shield, Send } from 'lucide-react';
+cimport { useState, useEffect } from 'react';
+import { Shield, Send, Loader2, Cpu, CheckCircle2, AlertCircle, Lock } from 'lucide-react';
 import { useKycSubmit } from '../../../hooks/useKycQuery';
 
 interface Step3Props {
@@ -13,6 +13,25 @@ interface Step3Props {
 export default function Step3_Review({ frontImage, backImage, videoFile, onBack, onComplete }: Step3Props) {
   const submitKyc = useKycSubmit();
   const [errorField, setErrorField] = useState<string | null>(null);
+  const [verifyingStep, setVerifyingStep] = useState(0);
+
+  const verifyingSteps = [
+    { label: 'Đang mã hóa dữ liệu bảo mật...', icon: <Lock size={18} /> },
+    { label: 'Đang phân tích hình ảnh CCCD...', icon: <Cpu size={18} /> },
+    { label: 'Đang xác thực video Liveness...', icon: <Shield size={18} /> },
+    { label: 'Đang so khớp khuôn mặt AI...', icon: <CheckCircle2 size={18} /> },
+  ];
+
+  useEffect(() => {
+    let interval: any;
+    if (submitKyc.isPending) {
+      setVerifyingStep(0);
+      interval = setInterval(() => {
+        setVerifyingStep((prev) => (prev + 1) % verifyingSteps.length);
+      }, 2500);
+    }
+    return () => clearInterval(interval);
+  }, [submitKyc.isPending]);
 
   const handleSubmit = () => {
     setErrorField(null);
@@ -131,6 +150,64 @@ export default function Step3_Review({ frontImage, backImage, videoFile, onBack,
         </button>
       </div>
 
+      {/* Verification Loading Overlay */}
+      {submitKyc.isPending && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          {/* Animated Backdrop */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-2xl animate-fade-in" />
+          
+          {/* Neon Glow background elements */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-blue-500/20 rounded-full blur-[120px] animate-pulse" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-emerald-500/10 rounded-full blur-[80px] animate-pulse delay-700" />
+
+          {/* Content Card */}
+          <div className="relative w-full max-w-md bg-black/40 border border-white/10 rounded-3xl p-8 shadow-2xl text-center overflow-hidden">
+            {/* Animated Scanner Circle */}
+            <div className="relative w-24 h-24 mx-auto mb-8">
+              <div className="absolute inset-0 border-4 border-blue-500/20 rounded-full" />
+              <div className="absolute inset-0 border-4 border-t-blue-500 rounded-full animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center text-blue-400 animate-pulse">
+                <Shield size={40} />
+              </div>
+            </div>
+
+            <h2 className="text-2xl font-black text-white mb-2 tracking-tight">Đang xác thực danh tính</h2>
+            
+            <div className="h-8 mb-8 overflow-hidden relative">
+              <div 
+                className="transition-all duration-700 ease-in-out transform flex flex-col items-center"
+                style={{ transform: `translateY(-${verifyingStep * 32}px)` }}
+              >
+                {verifyingSteps.map((step, i) => (
+                  <div key={i} className="h-8 flex items-center gap-2 text-blue-400 font-semibold justify-center">
+                    {step.icon}
+                    <span>{step.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Warning Box */}
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex flex-col items-center gap-2">
+              <div className="flex items-center gap-2 text-amber-500 font-bold text-sm">
+                <AlertCircle size={16} />
+                LƯU Ý QUAN TRỌNG
+              </div>
+              <p className="text-xs text-amber-500/80 leading-relaxed">
+                Hệ thống AI đang thực hiện kiểm tra an ninh cao cấp. 
+                <br/>
+                <span className="font-bold text-amber-500 uppercase">Vui lòng không đóng trình duyệt</span> hoặc thoát trang trong lúc này để tránh lỗi giao dịch.
+              </p>
+            </div>
+
+            {/* Bottom Security Badge */}
+            <div className="mt-8 flex items-center justify-center gap-2 text-white/40 text-xs">
+              <Lock size={12} />
+              <span>Bảo mật bởi Finsight Secure AI Engine</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
