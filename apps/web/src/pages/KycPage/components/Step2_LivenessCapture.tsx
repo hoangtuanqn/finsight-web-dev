@@ -212,11 +212,10 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
     const next = currentIdxRef.current + 1;
     setCompletedCount(next);
     if (next >= CHALLENGES.length) {
-      voice.stop();
+      voice.playDone(); // ← plays done.mp3 when all challenges complete
       finishRecording();
     } else {
       setCurrentIdx(next);
-      // Play the direction cue for the new challenge
       voice.playChallenge(CHALLENGES[next].key);
     }
   }, [finishRecording, voice]);
@@ -252,7 +251,7 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
       if (elapsed >= total) {
         const next = idx + 1;
         if (next >= CHALLENGES.length) {
-          voice.stop();
+          voice.playDone(); // ← plays done.mp3
           finishRecording();
         } else {
           setCurrentIdx(next);
