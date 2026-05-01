@@ -156,7 +156,7 @@ export async function deleteSession(req: AuthenticatedRequest, res: Response) {
 
 const openaiClient = new OpenAI({
   apiKey: process.env.LLM_API_KEY,
-  baseURL: 'https://mkp-api.fptcloud.com',
+  baseURL: 'https://mkp-api.fptcloud.com/v1',
 });
 
 export async function extractOcr(req: AuthenticatedRequest, res: Response) {
@@ -212,16 +212,37 @@ export async function transcribeVoice(req: AuthenticatedRequest, res: Response) 
     const ext = mimeType.includes('mp4') ? 'm4a' : mimeType.includes('ogg') ? 'ogg' : 'webm';
     console.log(`[Voice STT] Processing ${buffer.length} bytes (${mimeType}) via FPT Cloud Whisper...`);
 
-    // Pass as Blob — matches FPT's own documentation example (no toFile wrapper overhead)
-    const audioBlob = new Blob([buffer], { type: mimeType });
-    const audioFile = await toFile(audioBlob, `recording.${ext}`, { type: mimeType });
+    // Pass buffer directly to toFile to avoid type mismatch with Blob
+    const audioFile = await toFile(buffer, `recording.${ext}`, { type: mimeType });
 
-    const transcription = await openaiClient.audio.transcriptions.create({
-      file: audioFile,
-      model: 'FPT.AI-whisper-large-v3-turbo',
-      language: 'vi',
-      response_format: 'json',
-    });
+    let transcription;
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    while (attempts < maxAttempts) {
+      try {
+        transcription = await openaiClient.audio.transcriptions.create({
+          file: audioFile,
+          model: 'FPT.AI-whisper-large-v3-turbo',
+          language: 'vi',
+          response_format: 'json',
+        });
+        break;
+      } catch (err: any) {
+        attempts++;
+        const status = err.status || err.response?.status;
+        // Chỉ retry nếu là lỗi 503 hoặc các lỗi server tạm thời khác
+        if (attempts >= maxAttempts || (status !== 503 && status !== 502 && status !== 504)) {
+          throw err;
+        }
+        console.warn(`[Voice STT] Attempt ${attempts} failed with status ${status}, retrying in 1.5s...`);
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
+    }
+
+    if (!transcription) {
+      throw new Error('Không nhận được kết quả từ dịch vụ STT');
+    }
 
     const text = transcription.text?.trim() ?? '';
 

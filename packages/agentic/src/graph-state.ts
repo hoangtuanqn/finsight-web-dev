@@ -13,7 +13,6 @@ export const AgentIntent = {
   MARKET_SPECIFIC: 'MARKET_SPECIFIC',
   KNOWLEDGE: 'KNOWLEDGE',
   GENERAL_CHAT: 'GENERAL_CHAT',
-  OFF_TOPIC: 'OFF_TOPIC',
 } as const;
 
 export type AgentIntent = (typeof AgentIntent)[keyof typeof AgentIntent];
