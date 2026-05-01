@@ -5,6 +5,17 @@ import { AuthenticatedRequest } from '../types';
 import { banks } from '../data/banks';
 import { checkBankOwner } from '../services/kyc.service';
 
+function normalizeName(name: string): string {
+  if (!name) return '';
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/[^a-z0-9 ]/g, '')
+    .trim();
+}
+
 const MIN_WITHDRAWAL_AMOUNT = 50_000;
 
 export async function getBanks(req: AuthenticatedRequest, res: Response) {
@@ -183,9 +194,25 @@ export async function addBankAccount(req: AuthenticatedRequest, res: Response) {
 
     // Call BankLookup API
     try {
-      const bankLookupRes = await checkBankOwner(bankCode, accountNumber, user.kycName);
+      const bankLookupRes = await checkBankOwner(bankCode, accountNumber);
+      console.log('\n--- [BankLookup] API Response ---');
+      console.dir(bankLookupRes, { depth: null });
+      
       if (bankLookupRes.code !== 200 || !bankLookupRes.success) {
-        return error(res, `Tên chủ tài khoản không khớp với danh tính đã xác minh (${user.kycName}). Lỗi: ${bankLookupRes.msg}`, 422);
+        if (bankLookupRes.code === 402 || String(bankLookupRes.msg || bankLookupRes.message).includes('Out of Credit')) {
+          return error(res, 'Dịch vụ xác thực ngân hàng đang tạm gián đoạn để bảo trì. Vui lòng liên hệ hỗ trợ hoặc thử lại sau.', 503);
+        }
+        return error(res, `Xác thực tài khoản thất bại (Code: ${bankLookupRes.code})`, 422);
+      }
+
+      const returnedOwnerName = bankLookupRes.data?.ownerName;
+      if (!returnedOwnerName) {
+        return error(res, 'Không tìm thấy thông tin chủ tài khoản ngân hàng này.', 422);
+      }
+
+      // So sánh tên sau khi loại bỏ dấu và đưa về chữ thường
+      if (normalizeName(returnedOwnerName) !== normalizeName(user.kycName)) {
+        return error(res, `Chủ tài khoản hiện tại là ${returnedOwnerName}. Yêu cầu dùng đúng STK có tên đã xác minh từ trước (${user.kycName}).`, 422);
       }
     } catch (apiErr: any) {
       console.error('[Affiliate] checkBankOwner error:', apiErr?.response?.data || apiErr.message);
