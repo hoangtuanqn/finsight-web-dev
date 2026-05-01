@@ -330,6 +330,25 @@ function breachDot(simulation: any, color: string) {
   };
 }
 
+function TermBreachCard({ method, breach }: { method: string; breach: any }) {
+  if (!breach) return null;
+
+  return (
+    <div className="rounded-2xl border border-red-400/25 bg-red-500/8 p-4 text-[13px] text-red-100/90 leading-relaxed">
+      <div className="flex items-start gap-2.5">
+        <AlertTriangle size={16} className="text-red-300 shrink-0 mt-0.5" />
+        <p>
+          Khoản nợ{" "}
+          <span className="font-black text-red-100">{breach.name}</span>{" "}
+          bị quá hạn vào tháng thứ {breach.month} khi trả nợ theo phương pháp{" "}
+          {method}. Còn {formatVND(breach.remainingBalance)} sau kỳ hạn{" "}
+          {breach.deadlineMonth} tháng. Hãy tăng ngân sách trả thêm mỗi tháng.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function RepaymentPlanPage() {
   const navigate = useNavigate();
   const { user } = useAuth() as any;
@@ -479,6 +498,7 @@ export default function RepaymentPlanPage() {
     avalanche?.termBreach && { method: "Avalanche", ...avalanche.termBreach },
     snowball?.termBreach && { method: "Snowball", ...snowball.termBreach },
   ].filter(Boolean);
+  const hasTermBreach = termBreachAlerts.length > 0;
 
   return (
     <>
@@ -701,27 +721,23 @@ export default function RepaymentPlanPage() {
                 Chiến lược trả nợ
               </h2>
             </div>
-            {termBreachAlerts.length > 0 && (
-              <div className="mb-4 flex items-start gap-3 px-5 py-4 rounded-2xl border border-red-500/25 bg-red-500/8 relative overflow-hidden">
-                <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl bg-gradient-to-b from-red-500 to-rose-400" />
+            {repaymentWarnings.length > 0 && (
+              <div className="mb-4 flex items-start gap-3 px-5 py-4 rounded-2xl border border-amber-500/20 bg-amber-500/6 relative overflow-hidden">
+                <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl bg-gradient-to-b from-amber-500 to-orange-400" />
                 <AlertTriangle
                   size={16}
-                  className="text-red-300 shrink-0 mt-0.5 ml-1"
+                  className="text-amber-400 shrink-0 mt-0.5 ml-1"
                 />
                 <div className="space-y-1">
-                  <p className="text-[13px] text-red-200 font-black">
-                    Cảnh báo quá hạn hợp đồng
+                  <p className="text-[13px] text-amber-200 font-black">
+                    Cảnh báo mô phỏng
                   </p>
-                  {termBreachAlerts.map((breach: any) => (
+                  {repaymentWarnings.map((warning: any) => (
                     <p
-                      key={`${breach.method}-${breach.debtId}-${breach.month}`}
-                      className="text-[12px] text-red-100/85 leading-relaxed"
+                      key={warning.type}
+                      className="text-[12px] text-amber-100/80 leading-relaxed"
                     >
-                      Khoản nợ{" "}
-                      <span className="font-black text-red-100">{breach.name}</span>{" "}
-                      bị quá hạn khi chạy {breach.method} vào tháng T{breach.month}.
-                      Còn {formatVND(breach.remainingBalance)} sau kỳ hạn{" "}
-                      {breach.deadlineMonth} tháng. Hãy tăng ngân sách trả thêm mỗi tháng.
+                      {warning.message}
                     </p>
                   ))}
                 </div>
@@ -760,74 +776,83 @@ export default function RepaymentPlanPage() {
                 <p className="text-[12px] text-[var(--color-text-muted)] mb-5">
                   Ưu tiên trả nợ lãi suất CAO nhất trước
                 </p>
-                <div className="grid grid-cols-2 gap-4 mb-5">
-                  <div>
-                    <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider font-bold mb-1">
-                      Thời gian
-                    </p>
-                    <p className="text-2xl font-black text-[var(--color-text-primary)]">
-                      {avalanche.months}{" "}
-                      <span className="text-sm text-[var(--color-text-muted)] font-medium">
-                        tháng
-                      </span>
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider font-bold mb-1">
-                      Tổng lãi
-                    </p>
-                    <p className="text-xl font-black text-red-400">
-                      {formatVND(avalanche.totalInterest)}
-                    </p>
-                  </div>
-                </div>
-                {allDebts.filter((d) => d.balance > 0).length > 0 && (
+                {avalanche.termBreach ? (
+                  <TermBreachCard
+                    method="Avalanche"
+                    breach={avalanche.termBreach}
+                  />
+                ) : (
                   <>
-                    <div className="h-px bg-blue-500/10 mb-4" />
-                    <p className="text-[10px] font-black text-blue-400/70 uppercase tracking-wider mb-3">
-                      Thứ tự trả theo phương pháp này
-                    </p>
-                    <div className="space-y-2">
-                      {[...allDebts.filter((d) => d.balance > 0)]
-                        .sort((a, b) => b.apr - a.apr)
-                        .map((d, i) => (
-                          <div key={d.id} className="flex items-center gap-2.5">
-                            <div
-                              className={`shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${
-                                i === 0
-                                  ? "bg-blue-500/20 text-blue-400"
-                                  : "bg-white/5 text-[var(--color-text-muted)]"
-                              }`}
-                            >
-                              {i + 1}
-                            </div>
-                            <Link
-                              to={`/debts/${d.id}`}
-                              className={`flex-1 text-[12px] font-bold truncate ${
-                                i === 0
-                                  ? "text-[var(--color-text-primary)]"
-                                  : "text-[var(--color-text-muted)]"
-                              } hover:text-blue-300 transition-colors`}
-                            >
-                              {d.name}
-                            </Link>
-                            <span
-                              className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-black ${
-                                i === 0
-                                  ? "bg-blue-500/15 text-blue-300"
-                                  : "bg-white/5 text-[var(--color-text-muted)]"
-                              }`}
-                            >
-                              {d.apr}% APR
-                            </span>
-                            {i === 0 && (
-                              <span className="shrink-0 text-[10px] font-black text-blue-400">
-                                ← trước
-                              </span>
-                            )}
-                          </div>
-                        ))}
+                    <div className="grid grid-cols-2 gap-4 mb-5">
+                      <div>
+                        <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider font-bold mb-1">
+                          Thời gian
+                        </p>
+                        <p className="text-2xl font-black text-[var(--color-text-primary)]">
+                          {avalanche.months}{" "}
+                          <span className="text-sm text-[var(--color-text-muted)] font-medium">
+                            tháng
+                          </span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider font-bold mb-1">
+                          Tổng lãi
+                        </p>
+                        <p className="text-xl font-black text-red-400">
+                          {formatVND(avalanche.totalInterest)}
+                        </p>
+                      </div>
                     </div>
+                    {allDebts.filter((d) => d.balance > 0).length > 0 && (
+                      <>
+                        <div className="h-px bg-blue-500/10 mb-4" />
+                        <p className="text-[10px] font-black text-blue-400/70 uppercase tracking-wider mb-3">
+                          Thứ tự trả theo phương pháp này
+                        </p>
+                        <div className="space-y-2">
+                          {[...allDebts.filter((d) => d.balance > 0)]
+                            .sort((a, b) => b.apr - a.apr)
+                            .map((d, i) => (
+                              <div key={d.id} className="flex items-center gap-2.5">
+                                <div
+                                  className={`shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${
+                                    i === 0
+                                      ? "bg-blue-500/20 text-blue-400"
+                                      : "bg-white/5 text-[var(--color-text-muted)]"
+                                  }`}
+                                >
+                                  {i + 1}
+                                </div>
+                                <Link
+                                  to={`/debts/${d.id}`}
+                                  className={`flex-1 text-[12px] font-bold truncate ${
+                                    i === 0
+                                      ? "text-[var(--color-text-primary)]"
+                                      : "text-[var(--color-text-muted)]"
+                                  } hover:text-blue-300 transition-colors`}
+                                >
+                                  {d.name}
+                                </Link>
+                                <span
+                                  className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-black ${
+                                    i === 0
+                                      ? "bg-blue-500/15 text-blue-300"
+                                      : "bg-white/5 text-[var(--color-text-muted)]"
+                                  }`}
+                                >
+                                  {d.apr}% APR
+                                </span>
+                                {i === 0 && (
+                                  <span className="shrink-0 text-[10px] font-black text-blue-400">
+                                    ← trước
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
               </motion.div>
@@ -865,80 +890,89 @@ export default function RepaymentPlanPage() {
                 <p className="text-[12px] text-[var(--color-text-muted)] mb-5">
                   Ưu tiên trả nợ DƯ NỢ nhỏ nhất trước
                 </p>
-                <div className="grid grid-cols-2 gap-4 mb-5">
-                  <div>
-                    <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider font-bold mb-1">
-                      Thời gian
-                    </p>
-                    <p className="text-2xl font-black text-[var(--color-text-primary)]">
-                      {snowball.months}{" "}
-                      <span className="text-sm text-[var(--color-text-muted)] font-medium">
-                        tháng
-                      </span>
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider font-bold mb-1">
-                      Tổng lãi
-                    </p>
-                    <p className="text-xl font-black text-red-400">
-                      {formatVND(snowball.totalInterest)}
-                    </p>
-                  </div>
-                </div>
-                {allDebts.filter((d) => d.balance > 0).length > 0 && (
+                {snowball.termBreach ? (
+                  <TermBreachCard
+                    method="Snowball"
+                    breach={snowball.termBreach}
+                  />
+                ) : (
                   <>
-                    <div className="h-px bg-emerald-500/10 mb-4" />
-                    <p className="text-[10px] font-black text-emerald-400/70 uppercase tracking-wider mb-3">
-                      Thứ tự trả theo phương pháp này
-                    </p>
-                    <div className="space-y-2">
-                      {[...allDebts.filter((d) => d.balance > 0)]
-                        .sort((a, b) => a.balance - b.balance)
-                        .map((d, i) => (
-                          <div key={d.id} className="flex items-center gap-2.5">
-                            <div
-                              className={`shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${
-                                i === 0
-                                  ? "bg-emerald-500/20 text-emerald-400"
-                                  : "bg-white/5 text-[var(--color-text-muted)]"
-                              }`}
-                            >
-                              {i + 1}
-                            </div>
-                            <Link
-                              to={`/debts/${d.id}`}
-                              className={`flex-1 text-[12px] font-bold truncate ${
-                                i === 0
-                                  ? "text-[var(--color-text-primary)]"
-                                  : "text-[var(--color-text-muted)]"
-                              } hover:text-emerald-300 transition-colors`}
-                            >
-                              {d.name}
-                            </Link>
-                            <span
-                              className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-black ${
-                                i === 0
-                                  ? "bg-emerald-500/15 text-emerald-300"
-                                  : "bg-white/5 text-[var(--color-text-muted)]"
-                              }`}
-                            >
-                              {formatVND(d.balance)}
-                            </span>
-                            {i === 0 && (
-                              <span className="shrink-0 text-[10px] font-black text-emerald-400">
-                                ← trước
-                              </span>
-                            )}
-                          </div>
-                        ))}
+                    <div className="grid grid-cols-2 gap-4 mb-5">
+                      <div>
+                        <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider font-bold mb-1">
+                          Thời gian
+                        </p>
+                        <p className="text-2xl font-black text-[var(--color-text-primary)]">
+                          {snowball.months}{" "}
+                          <span className="text-sm text-[var(--color-text-muted)] font-medium">
+                            tháng
+                          </span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider font-bold mb-1">
+                          Tổng lãi
+                        </p>
+                        <p className="text-xl font-black text-red-400">
+                          {formatVND(snowball.totalInterest)}
+                        </p>
+                      </div>
                     </div>
+                    {allDebts.filter((d) => d.balance > 0).length > 0 && (
+                      <>
+                        <div className="h-px bg-emerald-500/10 mb-4" />
+                        <p className="text-[10px] font-black text-emerald-400/70 uppercase tracking-wider mb-3">
+                          Thứ tự trả theo phương pháp này
+                        </p>
+                        <div className="space-y-2">
+                          {[...allDebts.filter((d) => d.balance > 0)]
+                            .sort((a, b) => a.balance - b.balance)
+                            .map((d, i) => (
+                              <div key={d.id} className="flex items-center gap-2.5">
+                                <div
+                                  className={`shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${
+                                    i === 0
+                                      ? "bg-emerald-500/20 text-emerald-400"
+                                      : "bg-white/5 text-[var(--color-text-muted)]"
+                                  }`}
+                                >
+                                  {i + 1}
+                                </div>
+                                <Link
+                                  to={`/debts/${d.id}`}
+                                  className={`flex-1 text-[12px] font-bold truncate ${
+                                    i === 0
+                                      ? "text-[var(--color-text-primary)]"
+                                      : "text-[var(--color-text-muted)]"
+                                  } hover:text-emerald-300 transition-colors`}
+                                >
+                                  {d.name}
+                                </Link>
+                                <span
+                                  className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-black ${
+                                    i === 0
+                                      ? "bg-emerald-500/15 text-emerald-300"
+                                      : "bg-white/5 text-[var(--color-text-muted)]"
+                                  }`}
+                                >
+                                  {formatVND(d.balance)}
+                                </span>
+                                {i === 0 && (
+                                  <span className="shrink-0 text-[10px] font-black text-emerald-400">
+                                    ← trước
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
               </motion.div>
             </div>
 
-            {comparison?.savedInterest > 0 && (
+            {comparison?.savedInterest > 0 && !hasTermBreach && (
               <div className="flex items-center gap-3 px-5 py-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/6 relative overflow-hidden">
                 <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl bg-gradient-to-b from-emerald-500 to-teal-400" />
                 <Lightbulb
@@ -954,29 +988,6 @@ export default function RepaymentPlanPage() {
                   {comparison.savedMonths > 0 &&
                     ` và trả xong sớm hơn ${comparison.savedMonths} tháng`}
                 </p>
-              </div>
-            )}
-
-            {repaymentWarnings.length > 0 && (
-              <div className="flex items-start gap-3 px-5 py-4 rounded-2xl border border-amber-500/20 bg-amber-500/6 relative overflow-hidden">
-                <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl bg-gradient-to-b from-amber-500 to-orange-400" />
-                <AlertTriangle
-                  size={16}
-                  className="text-amber-400 shrink-0 mt-0.5 ml-1"
-                />
-                <div className="space-y-1">
-                  <p className="text-[13px] text-amber-200 font-black">
-                    Cảnh báo mô phỏng
-                  </p>
-                  {repaymentWarnings.map((warning: any) => (
-                    <p
-                      key={warning.type}
-                      className="text-[12px] text-amber-100/80 leading-relaxed"
-                    >
-                      {warning.message}
-                    </p>
-                  ))}
-                </div>
               </div>
             )}
 
