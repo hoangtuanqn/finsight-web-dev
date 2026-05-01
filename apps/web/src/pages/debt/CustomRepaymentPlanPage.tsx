@@ -7,15 +7,12 @@ import {
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { motion, Reorder, AnimatePresence } from "framer-motion";
 import {
-  ArrowDown,
   ArrowLeft,
-  ArrowUp,
   AlertTriangle,
   Check,
   ChevronRight,
   ClipboardList,
   DollarSign,
-  GripVertical,
   LineChart as LineChartIcon,
   Plus,
   Play,
@@ -47,33 +44,15 @@ import {
 import { PageSkeleton } from "../../components/common/LoadingSpinner";
 import FormattedInput from "../../components/common/FormattedInput";
 import { formatVND } from "../../utils/calculations";
-
-const TOOLTIP_STYLE = {
-  background: "#0f172a",
-  border: "1px solid rgba(255,255,255,0.08)",
-  borderRadius: "12px",
-  fontSize: "12px",
-  boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
-  padding: "10px 14px",
-};
-
-function breachDot(simulation: any, color: string) {
-  return (props: any) => {
-    const breachMonth = simulation?.termBreach?.month;
-    if (!breachMonth || props?.payload?.month !== `T${breachMonth}`) return null;
-
-    return (
-      <circle
-        cx={props.cx}
-        cy={props.cy}
-        r={5}
-        fill={color}
-        stroke="#fff"
-        strokeWidth={2}
-      />
-    );
-  };
-}
+import {
+  breachDot,
+  MethodPlanCard,
+  TOOLTIP_STYLE,
+} from "./components/repaymentShared";
+import {
+  AvailableDebtRow,
+  SelectedDebtItem,
+} from "./components/customPlanRows";
 
 function metricDelta(delta: number, unit: "money" | "month") {
   const abs = Math.abs(delta);
@@ -112,243 +91,6 @@ function buildTimeline(simulationData: any) {
       ...(snowball && { snowball: snowball.totalBalance }),
     };
   });
-}
-
-function AvailableDebtRow({ debt, onAdd }: { debt: any; onAdd: (id: string) => void }) {
-  const debtId = String(debt.id);
-  return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20, transition: { duration: 0.15 } }}
-      className="group rounded-2xl border p-3.5 transition-all hover:border-cyan-500/30"
-      style={{ background: "var(--color-bg-secondary)", borderColor: "var(--color-border)" }}
-    >
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-xl bg-white/5 text-[var(--color-text-muted)] flex items-center justify-center shrink-0">
-          <GripVertical size={15} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <Link to={`/debts/${debt.id}`} className="block text-sm font-black text-[var(--color-text-primary)] truncate hover:text-cyan-300 transition-colors">
-            {debt.name}
-          </Link>
-          <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5 truncate">
-            {debt.platform} · APR {debt.apr}% · Tối thiểu {formatVND(debt.minPayment)}
-          </p>
-        </div>
-        <div className="text-right shrink-0">
-          <p className="text-sm font-black text-[var(--color-text-primary)]">{formatVND(debt.balance)}</p>
-          <p className="text-[10px] text-[var(--color-text-muted)]">dư nợ</p>
-        </div>
-        <motion.button
-          type="button"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={() => onAdd(debtId)}
-          className="w-9 h-9 rounded-xl bg-cyan-500/12 hover:bg-cyan-500/20 border border-cyan-500/20 text-cyan-300 transition-colors shrink-0 cursor-pointer"
-          title="Thêm vào kế hoạch"
-        >
-          <Plus size={16} className="mx-auto" />
-        </motion.button>
-      </div>
-    </motion.div>
-  );
-}
-
-function SelectedDebtItem({ debt, index, onRemove, onMove }: {
-  debt: any; index: number;
-  onRemove: (id: string) => void;
-  onMove: (id: string, dir: -1 | 1) => void;
-}) {
-  const debtId = String(debt.id);
-
-  return (
-    <Reorder.Item
-      value={debtId}
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-      whileDrag={{
-        scale: 1.03,
-        boxShadow: "0 12px 40px rgba(14,165,233,0.25), 0 0 0 2px rgba(14,165,233,0.4)",
-        zIndex: 50,
-      }}
-      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-      className="rounded-2xl border p-3.5 cursor-grab active:cursor-grabbing"
-      style={{
-        background: "rgba(14,165,233,0.08)",
-        borderColor: "rgba(14,165,233,0.22)",
-      }}
-    >
-      <div className="flex items-center gap-3">
-        <motion.div
-          className="w-8 h-8 rounded-xl bg-cyan-500/15 text-cyan-300 flex items-center justify-center text-xs font-black shrink-0 select-none"
-          whileHover={{ scale: 1.1, background: "rgba(14,165,233,0.25)" }}
-          whileTap={{ scale: 0.95 }}
-        >
-          {index + 1}
-        </motion.div>
-        <div className="min-w-0 flex-1">
-          <Link to={`/debts/${debt.id}`} className="block text-sm font-black text-[var(--color-text-primary)] truncate hover:text-cyan-300 transition-colors">
-            {debt.name}
-          </Link>
-          <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5 truncate">
-            {debt.platform} · APR {debt.apr}% · Tối thiểu {formatVND(debt.minPayment)}
-          </p>
-        </div>
-        <div className="text-right shrink-0">
-          <p className="text-sm font-black text-[var(--color-text-primary)]">{formatVND(debt.balance)}</p>
-          <p className="text-[10px] text-[var(--color-text-muted)]">dư nợ</p>
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <motion.button type="button" whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.85 }}
-            onClick={() => onMove(debtId, -1)}
-            className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 text-[var(--color-text-muted)] hover:text-cyan-300 transition-colors cursor-pointer" title="Đưa lên">
-            <ArrowUp size={14} className="mx-auto" />
-          </motion.button>
-          <motion.button type="button" whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.85 }}
-            onClick={() => onMove(debtId, 1)}
-            className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 text-[var(--color-text-muted)] hover:text-cyan-300 transition-colors cursor-pointer" title="Đưa xuống">
-            <ArrowDown size={14} className="mx-auto" />
-          </motion.button>
-          <motion.button type="button" whileHover={{ scale: 1.15 }} whileTap={{ scale: 0.85 }}
-            onClick={() => onRemove(debtId)}
-            className="w-8 h-8 rounded-xl bg-red-500/10 hover:bg-red-500/18 text-red-300 transition-colors cursor-pointer" title="Bỏ khỏi kế hoạch">
-            <X size={14} className="mx-auto" />
-          </motion.button>
-        </div>
-      </div>
-    </Reorder.Item>
-  );
-}
-
-function MethodPlanCard({
-  type,
-  debts,
-  simulation,
-}: {
-  type: "AVALANCHE" | "SNOWBALL";
-  debts: any[];
-  simulation: any;
-}) {
-  if (!simulation) return null;
-
-  const isAvalanche = type === "AVALANCHE";
-  const tone = isAvalanche
-    ? {
-      name: "Avalanche",
-      badge: "Tiết kiệm lãi",
-      subtitle: "Ưu tiên trả nợ lãi suất CAO nhất trước",
-      text: "text-blue-400",
-      border: "rgba(59,130,246,0.25)",
-      bg: "rgba(59,130,246,0.06)",
-      iconBg: "bg-blue-500/15",
-      icon: <Zap size={18} />,
-    }
-    : {
-      name: "Snowball",
-      badge: "Động lực tâm lý",
-      subtitle: "Ưu tiên trả nợ DƯ NỢ nhỏ nhất trước",
-      text: "text-emerald-400",
-      border: "rgba(16,185,129,0.25)",
-      bg: "rgba(16,185,129,0.06)",
-      iconBg: "bg-emerald-500/15",
-      icon: <Sparkles size={18} />,
-    };
-
-  return (
-    <div
-      className="relative rounded-3xl p-5 md:p-6 border overflow-hidden"
-      style={{
-        background: "var(--color-bg-card)",
-        borderColor: tone.border,
-        boxShadow: `0 4px 20px ${tone.bg}`,
-      }}
-    >
-      <div className="flex items-center gap-2.5 mb-2">
-        <div
-          className={`w-10 h-10 rounded-2xl ${tone.iconBg} ${tone.text} flex items-center justify-center`}
-        >
-          {tone.icon}
-        </div>
-        <h3 className={`font-black ${tone.text} text-[17px]`}>
-          {tone.name}
-        </h3>
-        <span
-          className={`px-2 py-0.5 rounded-full ${tone.iconBg} ${tone.text} text-[10px] font-black`}
-        >
-          {tone.badge}
-        </span>
-      </div>
-      <p className="text-[12px] text-[var(--color-text-muted)] mb-5">
-        {tone.subtitle}
-      </p>
-
-      <div className="grid grid-cols-2 gap-4 mb-5">
-        <div>
-          <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider font-bold mb-1">
-            Thời gian
-          </p>
-          <p className="text-2xl font-black text-[var(--color-text-primary)]">
-            {simulation.months}{" "}
-            <span className="text-sm text-[var(--color-text-muted)] font-medium">
-              tháng
-            </span>
-          </p>
-        </div>
-        <div>
-          <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider font-bold mb-1">
-            Tổng lãi
-          </p>
-          <p className="text-xl font-black text-red-400">
-            {formatVND(simulation.totalInterest)}
-          </p>
-        </div>
-      </div>
-
-      <div className="h-px bg-white/8 mb-4" />
-      <p className={`text-[10px] font-black uppercase tracking-wider mb-3 ${tone.text}`}>
-        Thứ tự trả theo phương pháp này
-      </p>
-      <div className="space-y-2">
-        {debts.map((debt, index) => (
-          <div key={debt.id} className="flex items-center gap-2.5">
-            <div
-              className={`shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black ${index === 0
-                ? `${tone.iconBg} ${tone.text}`
-                : "bg-white/5 text-[var(--color-text-muted)]"
-                }`}
-            >
-              {index + 1}
-            </div>
-            <Link
-              to={`/debts/${debt.id}`}
-              className={`flex-1 text-[12px] font-bold truncate ${index === 0
-                ? "text-[var(--color-text-primary)]"
-                : "text-[var(--color-text-muted)]"
-                } hover:text-cyan-300 transition-colors`}
-            >
-              {debt.name}
-            </Link>
-            <span
-              className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-black ${index === 0
-                ? `${tone.iconBg} ${tone.text}`
-                : "bg-white/5 text-[var(--color-text-muted)]"
-                }`}
-            >
-              {isAvalanche ? `${debt.apr}% APR` : formatVND(debt.balance)}
-            </span>
-            {index === 0 && (
-              <span className={`shrink-0 text-[10px] font-black ${tone.text}`}>
-                ← trước
-              </span>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 }
 
 export default function CustomRepaymentPlanPage() {
