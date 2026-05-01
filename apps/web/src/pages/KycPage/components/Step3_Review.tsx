@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Shield, Send } from 'lucide-react';
 import { useKycSubmit } from '../../../hooks/useKycQuery';
 
@@ -11,8 +12,10 @@ interface Step3Props {
 
 export default function Step3_Review({ frontImage, backImage, videoFile, onBack, onComplete }: Step3Props) {
   const submitKyc = useKycSubmit();
+  const [errorField, setErrorField] = useState<string | null>(null);
 
   const handleSubmit = () => {
+    setErrorField(null);
     const formData = new FormData();
     formData.append('front', frontImage);
     formData.append('back', backImage);
@@ -21,6 +24,19 @@ export default function Step3_Review({ frontImage, backImage, videoFile, onBack,
     submitKyc.mutate(formData, {
       onSuccess: () => {
         onComplete();
+      },
+      onError: (error: any) => {
+        const field = error?.response?.data?.field;
+        if (field) {
+          setErrorField(field);
+          // Scroll to the element with a slight delay to allow React to render the error state
+          setTimeout(() => {
+            const el = document.getElementById(`kyc-${field}`);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }, 100);
+        }
       }
     });
   };
@@ -44,28 +60,41 @@ export default function Step3_Review({ frontImage, backImage, videoFile, onBack,
         </div>
       </div>
 
+      {submitKyc.isError && (
+        <div className="bg-red-500/10 p-4 rounded-xl border border-red-500/30 text-red-500 text-sm animate-fade-in flex items-start gap-3">
+          <Shield className="shrink-0 mt-0.5" size={18} />
+          <p className="font-semibold mt-0.5">{(submitKyc.error as any)?.response?.data?.error || 'Có lỗi xảy ra khi xác minh'}</p>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
         {/* Images */}
         <div className="space-y-4">
-          <div>
-            <h4 className="text-sm font-bold text-[var(--color-text-secondary)] mb-2">Mặt trước CCCD</h4>
-            <div className="aspect-[1.586/1] rounded-xl border border-[var(--color-border)] overflow-hidden">
+          <div id="kyc-front" className={`transition-all duration-300 ${errorField === 'front' ? 'animate-[shake_0.5s_ease-in-out]' : ''}`}>
+            <h4 className={`text-sm font-bold mb-2 ${errorField === 'front' ? 'text-red-500' : 'text-[var(--color-text-secondary)]'}`}>Mặt trước CCCD</h4>
+            <div className={`aspect-[1.586/1] rounded-xl border-2 overflow-hidden transition-all duration-300 ${
+              errorField === 'front' ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)]' : 'border-[var(--color-border)]'
+            }`}>
               <img src={frontUrl} alt="Front" className="w-full h-full object-cover" />
             </div>
           </div>
-          <div>
-            <h4 className="text-sm font-bold text-[var(--color-text-secondary)] mb-2">Mặt sau CCCD</h4>
-            <div className="aspect-[1.586/1] rounded-xl border border-[var(--color-border)] overflow-hidden">
+          <div id="kyc-back" className={`transition-all duration-300 ${errorField === 'back' ? 'animate-[shake_0.5s_ease-in-out]' : ''}`}>
+            <h4 className={`text-sm font-bold mb-2 ${errorField === 'back' ? 'text-red-500' : 'text-[var(--color-text-secondary)]'}`}>Mặt sau CCCD</h4>
+            <div className={`aspect-[1.586/1] rounded-xl border-2 overflow-hidden transition-all duration-300 ${
+              errorField === 'back' ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)]' : 'border-[var(--color-border)]'
+            }`}>
               <img src={backUrl} alt="Back" className="w-full h-full object-cover" />
             </div>
           </div>
         </div>
 
         {/* Video */}
-        <div>
-          <h4 className="text-sm font-bold text-[var(--color-text-secondary)] mb-2">Video xác thực</h4>
-          <div className="aspect-[3/4] max-w-sm mx-auto rounded-[2rem] border-4 border-[var(--color-border)] overflow-hidden bg-black shadow-xl">
+        <div id="kyc-video" className={`transition-all duration-300 ${errorField === 'video' ? 'animate-[shake_0.5s_ease-in-out]' : ''}`}>
+          <h4 className={`text-sm font-bold mb-2 ${errorField === 'video' ? 'text-red-500' : 'text-[var(--color-text-secondary)]'}`}>Video xác thực</h4>
+          <div className={`aspect-[3/4] max-w-sm mx-auto rounded-[2rem] border-4 overflow-hidden bg-black transition-all duration-300 ${
+            errorField === 'video' ? 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.4)]' : 'border-[var(--color-border)] shadow-xl'
+          }`}>
             <video 
               src={videoUrl} 
               controls 
