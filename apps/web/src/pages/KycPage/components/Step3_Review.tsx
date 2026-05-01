@@ -1,4 +1,4 @@
-cimport { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Shield, Send, Loader2, Cpu, CheckCircle2, AlertCircle, Lock } from 'lucide-react';
 import { useKycSubmit } from '../../../hooks/useKycQuery';
 
