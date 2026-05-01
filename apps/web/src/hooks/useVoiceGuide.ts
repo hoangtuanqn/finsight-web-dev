@@ -1,23 +1,23 @@
-import { useRef, useCallback, useEffect } from 'react';
-import type { FaceChallenge } from '../pages/KycPage/components/FaceGuide3D';
+import { useRef, useCallback, useEffect } from "react";
+import type { FaceChallenge } from "../pages/KycPage/components/FaceGuide3D";
 
 // ─── Audio file mapping ───────────────────────────────────────────────────────
-// Place these files in apps/web/public/sounds/
+// Place these files in apps/web/public/voices/
 const CHALLENGE_SOUNDS: Partial<Record<FaceChallenge, string>> = {
-  look_up:       '/sounds/on.mp3',
-  look_down:     '/sounds/below.mp3',
-  look_left:     '/sounds/left.mp3',
-  look_right:    '/sounds/right.mp3',
-  look_straight: '/sounds/left.mp3', // neutral — can replace with a dedicated file
-  open_mouth:    '/sounds/below.mp3', // reuse or add open-mouth.mp3
+  look_up: "/voices/on.mp3",
+  look_down: "/voices/below.mp3",
+  look_left: "/voices/left.mp3",
+  look_right: "/voices/right.mp3",
+  look_straight: "/voices/left.mp3", // neutral — can replace with a dedicated file
+  open_mouth: "/voices/below.mp3", // reuse or add open-mouth.mp3
 };
 
-const SOUND_HOLD = '/sounds/keep-the-same.mp3'; // plays when user holds correct pose
+const SOUND_HOLD = "/voices/keep-the-same.mp3"; // plays when user holds correct pose
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 export function useVoiceGuide() {
-  const audioRef    = useRef<HTMLAudioElement | null>(null);
-  const playingRef  = useRef<string | null>(null); // currently playing src
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playingRef = useRef<string | null>(null); // currently playing src
 
   /** Stop whatever is currently playing */
   const stop = useCallback(() => {
@@ -30,34 +30,45 @@ export function useVoiceGuide() {
   }, []);
 
   /** Play a sound by src path. Stops previous sound first. */
-  const play = useCallback((src: string) => {
-    // Avoid restarting the same sound if it's already playing
-    if (playingRef.current === src && audioRef.current && !audioRef.current.paused) return;
+  const play = useCallback(
+    (src: string) => {
+      // Avoid restarting the same sound if it's already playing
+      if (
+        playingRef.current === src &&
+        audioRef.current &&
+        !audioRef.current.paused
+      )
+        return;
 
-    stop();
+      stop();
 
-    const audio = new Audio(src);
-    audio.volume = 1;
-    audio.onended = () => {
-      if (playingRef.current === src) {
-        playingRef.current = null;
-        audioRef.current   = null;
-      }
-    };
-    audioRef.current   = audio;
-    playingRef.current = src;
+      const audio = new Audio(src);
+      audio.volume = 1;
+      audio.onended = () => {
+        if (playingRef.current === src) {
+          playingRef.current = null;
+          audioRef.current = null;
+        }
+      };
+      audioRef.current = audio;
+      playingRef.current = src;
 
-    // Browsers may block autoplay — catch silently
-    audio.play().catch(() => {
-      console.warn('[VoiceGuide] Autoplay blocked for:', src);
-    });
-  }, [stop]);
+      // Browsers may block autoplay — catch silently
+      audio.play().catch(() => {
+        console.warn("[VoiceGuide] Autoplay blocked for:", src);
+      });
+    },
+    [stop],
+  );
 
   /** Play the directional cue for a given challenge */
-  const playChallenge = useCallback((challenge: FaceChallenge) => {
-    const src = CHALLENGE_SOUNDS[challenge];
-    if (src) play(src);
-  }, [play]);
+  const playChallenge = useCallback(
+    (challenge: FaceChallenge) => {
+      const src = CHALLENGE_SOUNDS[challenge];
+      if (src) play(src);
+    },
+    [play],
+  );
 
   /** Play the "hold still" confirmation sound */
   const playHold = useCallback(() => {
