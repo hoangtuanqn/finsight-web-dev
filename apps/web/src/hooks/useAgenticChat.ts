@@ -41,8 +41,9 @@ export function useAgenticChat() {
       if (!text.trim() || isStreaming) return;
 
       if (isSilent) {
-        // Silent confirm/cancel — no backend call, no AI response needed.
+        // Silent confirm/cancel — no backend call, but we still append a local AI message.
         // The user action (save/cancel) was already handled by the UI component.
+        setMessages((prev) => [...prev, { id: `sys-${Date.now()}`, role: 'assistant', content: text }]);
         return;
       }
 
@@ -166,7 +167,10 @@ export function useAgenticChat() {
   }, []);
 
   const dismissAction = useCallback(() => setPendingAction(null), []);
-  const dismissUiSignal = useCallback(() => setPendingUiSignal(null), []);
+  const dismissUiSignal = useCallback(() => {
+    setPendingUiSignal(null);
+    setPendingAction(null); // Clear legacy payload to prevent duplicate modals
+  }, []);
 
   return {
     messages,
