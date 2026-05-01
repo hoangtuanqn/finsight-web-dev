@@ -23,12 +23,12 @@ interface ChallengeConfig {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const CHALLENGES: ChallengeConfig[] = [
-  { key: 'look_straight', label: 'Nhìn thẳng vào camera', icon: '👁️', timerMs: 2000 },
-  { key: 'look_left',     label: 'Quay đầu sang trái',    icon: '←',   timerMs: 2000 },
-  { key: 'look_right',    label: 'Quay đầu sang phải',    icon: '→',   timerMs: 2000 },
-  { key: 'look_up',       label: 'Ngước đầu lên',         icon: '↑',   timerMs: 2000 },
-  { key: 'look_down',     label: 'Cúi đầu xuống',         icon: '↓',   timerMs: 2000 },
-  { key: 'open_mouth',    label: 'Há miệng',              icon: '😮',  timerMs: 2000 },
+  { key: 'look_straight', label: 'Nhìn thẳng vào camera', icon: '👁️', timerMs: 5000 },
+  { key: 'look_left',     label: 'Quay đầu sang trái',    icon: '←',   timerMs: 1000 },
+  { key: 'look_right',    label: 'Quay đầu sang phải',    icon: '→',   timerMs: 1000 },
+  { key: 'look_up',       label: 'Ngước đầu lên',         icon: '↑',   timerMs: 1000 },
+  { key: 'look_down',     label: 'Cúi đầu xuống',         icon: '↓',   timerMs: 1000 },
+  { key: 'open_mouth',    label: 'Há miệng',              icon: '😮',  timerMs: 1000 },
 ];
 
 const HOLD_REQUIRED      = 60;   // ~2.0s at 30fps
@@ -48,7 +48,7 @@ function detectGesture(landmarks: any[]): FaceChallenge {
   const rightEye = landmarks[386];
   const upperLip = landmarks[13];
   const lowerLip = landmarks[14];
-  
+
   if (!nose || !leftEar || !rightEar || !leftEye || !rightEye || !upperLip || !lowerLip) return 'idle';
 
   // --- Mouth Open Detection ---
@@ -61,12 +61,12 @@ function detectGesture(landmarks: any[]): FaceChallenge {
   const eyeY   = (leftEye.y + rightEye.y) / 2;
   const mouthY = upperLip.y;
   const noseY  = nose.y;
-  
+
   // Ratio of nose-to-eye vs mouth-to-eye. Normally ~0.5.
   // When looking UP, nose moves towards eyes (ratio decreases).
   // When looking DOWN, nose moves towards mouth (ratio increases).
   const pitchRatio = (noseY - eyeY) / (mouthY - eyeY);
-  
+
   if (pitchRatio < 0.40) return 'look_up';
   if (pitchRatio > 0.65) return 'look_down';
 
@@ -77,7 +77,7 @@ function detectGesture(landmarks: any[]): FaceChallenge {
 
   if (yawRatio > 0.15)  return 'look_left';
   if (yawRatio < -0.15) return 'look_right';
-  
+
   return 'look_straight'; // If not turned enough and not pitched, it is straight
 }
 
@@ -192,14 +192,14 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
     if (allDoneRef.current) return;
     allDoneRef.current = true;
     setAllDone(true); // update state for UI
-    
+
     cancelAnimationFrame(rafRef.current);
     if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
-    
+
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
-    
+
     setIsRecording(false);
     isRecordingRef.current = false; // sync ref immediately
   }, []);
@@ -328,8 +328,8 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
     try {
       const mpFaceMesh = await import('@mediapipe/face_mesh');
       // Handle different export styles (ESM/CJS/UMD)
-      const FaceMeshConstructor = (mpFaceMesh as any).FaceMesh || 
-                                  (mpFaceMesh as any).default?.FaceMesh || 
+      const FaceMeshConstructor = (mpFaceMesh as any).FaceMesh ||
+                                  (mpFaceMesh as any).default?.FaceMesh ||
                                   (mpFaceMesh as any).default ||
                                   (window as any).FaceMesh;
 
@@ -566,7 +566,7 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
                       strokeWidth="2" strokeDasharray="8 5"
                       className="transition-colors duration-500"
                     />
-                    
+
                     {/* Live progress arc with Neon Glow */}
                     {isRecording && (
                       <ellipse cx="120" cy="160" rx="108" ry="148"
@@ -584,7 +584,7 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
                       />
                     )}
                   </svg>
-                  
+
                   {/* Tinted oval fill with pulsing aura on correct gesture */}
                   <div className={`absolute inset-0 transition-all duration-700 ${isCorrectGesture ? 'scale-105' : 'scale-100'}`} style={{
                     borderRadius: '50% / 47%',
