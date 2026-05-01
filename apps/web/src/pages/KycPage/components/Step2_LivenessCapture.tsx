@@ -4,11 +4,11 @@ import { Video, RotateCcw, AlertTriangle, Camera, CheckCircle2, Wifi } from 'luc
 import { useCameraPermission } from '../../../hooks/useCameraPermission';
 import type { FaceChallenge } from './FaceGuide3D';
 
-// Three.js is ~500KB — lazy load only when needed
-const FaceGuide3D = lazy(() => import('./FaceGuide3D'));
+// FaceGuide3D removed as requested by user
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Step2Props {
+  initialVideo?: File | null;
   onNext: (videoFile: File) => void;
   onBack: () => void;
 }
@@ -30,7 +30,7 @@ const CHALLENGES: ChallengeConfig[] = [
   { key: 'open_mouth',    label: 'Há miệng',              icon: '😮',  timerMs: 3000 },
 ];
 
-const HOLD_REQUIRED      = 65;   // ~2.1s at 30fps
+const HOLD_REQUIRED      = 90;   // ~3.0s at 30fps
 const TURN_THRESHOLD     = 0.07; // nose deviation for left/right
 const PITCH_THRESHOLD    = 0.045; // nose deviation for up/down
 const MOUTH_THRESHOLD    = 0.025; // upper/lower lip distance
@@ -54,7 +54,7 @@ function detectGesture(landmarks: any[]): FaceChallenge {
   // Normalize mouth distance relative to face height (eye to mouth) to be distance invariant
   const faceHeight = lowerLip.y - ((leftEye.y + rightEye.y) / 2);
   const mouthOpenDist = lowerLip.y - upperLip.y;
-  if (mouthOpenDist / faceHeight > 0.18) return 'open_mouth';
+  if (mouthOpenDist / faceHeight > 0.12) return 'open_mouth';
 
   // --- Pitch (Up/Down) Detection ---
   const eyeY   = (leftEye.y + rightEye.y) / 2;
@@ -66,16 +66,16 @@ function detectGesture(landmarks: any[]): FaceChallenge {
   // When looking DOWN, nose moves towards mouth (ratio increases).
   const pitchRatio = (noseY - eyeY) / (mouthY - eyeY);
   
-  if (pitchRatio < 0.35) return 'look_up';
-  if (pitchRatio > 0.70) return 'look_down';
+  if (pitchRatio < 0.40) return 'look_up';
+  if (pitchRatio > 0.65) return 'look_down';
 
   // --- Yaw (Left/Right) Detection ---
   const earMidX   = (leftEar.x + rightEar.x) / 2;
   const faceWidth = rightEar.x - leftEar.x; // Unmirrored: rightEar > leftEar
   const yawRatio  = (nose.x - earMidX) / faceWidth;
 
-  if (yawRatio > 0.20)  return 'look_left';
-  if (yawRatio < -0.20) return 'look_right';
+  if (yawRatio > 0.15)  return 'look_left';
+  if (yawRatio < -0.15) return 'look_right';
   
   return 'look_straight'; // If not turned enough and not pitched, it is straight
 }
@@ -111,27 +111,31 @@ function ChallengeDots({
   completedCount: number;
 }) {
   return (
-    <div className="flex items-center gap-2 justify-center mt-3">
-      {challenges.map((c, i) => (
-        <div key={c.key} className="flex items-center gap-1">
-          <div className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
-            i < completedCount  ? 'bg-emerald-500 scale-110'  :
-            i === currentIdx    ? 'bg-blue-500 animate-pulse scale-125' :
-                                  'bg-[var(--color-border)]'
-          }`} />
-          {i < challenges.length - 1 && (
-            <div className={`w-6 h-0.5 transition-colors duration-500 ${
-              i < completedCount ? 'bg-emerald-500' : 'bg-[var(--color-border)]'
+    <div className="flex items-center gap-2 justify-center mt-4">
+      {challenges.map((c, i) => {
+        const isCompleted = i < completedCount;
+        const isActive = i === currentIdx;
+        return (
+          <div key={c.key} className="flex items-center gap-1">
+            <div className={`w-2.5 h-2.5 rounded-full transition-all duration-500 ${
+              isCompleted ? 'bg-emerald-500 scale-110 shadow-[0_0_8px_rgba(34,197,94,0.8)]' :
+              isActive    ? 'bg-blue-500 animate-pulse scale-125 shadow-[0_0_12px_rgba(59,130,246,0.9)]' :
+                            'bg-[var(--color-border)] opacity-50'
             }`} />
-          )}
-        </div>
-      ))}
+            {i < challenges.length - 1 && (
+              <div className={`w-5 h-0.5 rounded-full transition-colors duration-500 ${
+                isCompleted ? 'bg-emerald-500/80 shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'bg-[var(--color-border)] opacity-30'
+              }`} />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function Step2_LivenessCapture({ onNext, onBack }: Step2Props) {
+export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: Step2Props) {
   const webcamRef        = useRef<Webcam>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunks   = useRef<Blob[]>([]);
@@ -143,17 +147,28 @@ export default function Step2_LivenessCapture({ onNext, onBack }: Step2Props) {
   // Mutable refs to avoid stale closures in RAF/timer loops
   const isRecordingRef   = useRef(false);
   const currentIdxRef    = useRef(0);
-  const allDoneRef       = useRef(false);
+  const allDoneRef       = useRef(!!initialVideo);
   const useFallbackRef   = useRef(false); // true = timer mode, no FaceMesh
 
   const [isRecording,      setIsRecording]     = useState(false);
   const [currentIdx,       setCurrentIdx]      = useState(0);
-  const [completedCount,   setCompletedCount]  = useState(0);
+  const [completedCount,   setCompletedCount]  = useState(() => initialVideo ? CHALLENGES.length : 0);
   const [progress,         setProgress]        = useState(0);
   const [currentGesture,   setCurrentGesture]  = useState<FaceChallenge>('idle');
-  const [recordedVideoUrl, setRecordedVideoUrl] = useState<string | null>(null);
-  const [videoFile,        setVideoFile]        = useState<File | null>(null);
-  const [allDone,          setAllDone]          = useState(false);
+  const [recordedVideoUrl, setRecordedVideoUrl] = useState<string | null>(() => initialVideo ? URL.createObjectURL(initialVideo) : null);
+  const [videoFile,        setVideoFile]        = useState<File | null>(() => initialVideo || null);
+  const [allDone,          setAllDone]          = useState(() => !!initialVideo);
+
+  // Use an effect to sync initialVideo if the component is kept mounted
+  useEffect(() => {
+    if (initialVideo && !videoFile) {
+      setVideoFile(initialVideo);
+      setRecordedVideoUrl(URL.createObjectURL(initialVideo));
+      setAllDone(true);
+      setCompletedCount(CHALLENGES.length);
+      allDoneRef.current = true;
+    }
+  }, [initialVideo, videoFile]);
 
   // FaceMesh loading states
   const [faceReady,       setFaceReady]       = useState(false);
@@ -475,7 +490,24 @@ export default function Step2_LivenessCapture({ onNext, onBack }: Step2Props) {
 
                 {/* Face oval + progress arc */}
                 <div className="relative w-[240px] h-[320px] flex items-center justify-center">
+                  {/* Subtle scanning sweep effect when recording but not holding */}
+                  {isRecording && !isCorrectGesture && (
+                    <div className="absolute inset-0 rounded-[50%/47%] overflow-hidden opacity-30">
+                      <div className="w-full h-[10px] bg-gradient-to-b from-transparent via-blue-400 to-transparent animate-[scan_2s_ease-in-out_infinite]" />
+                    </div>
+                  )}
+
                   <svg className="absolute inset-0 w-full h-full" viewBox="0 0 240 320">
+                    <defs>
+                      <filter id="neonGlow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                        <feMerge>
+                          <feMergeNode in="coloredBlur"/>
+                          <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                      </filter>
+                    </defs>
+
                     {/* Dashed base oval */}
                     <ellipse cx="120" cy="160" rx="108" ry="148"
                       fill="none"
@@ -484,70 +516,116 @@ export default function Step2_LivenessCapture({ onNext, onBack }: Step2Props) {
                         isCorrectGesture  ? '#22c55e50' : '#ef444440'
                       }
                       strokeWidth="2" strokeDasharray="8 5"
+                      className="transition-colors duration-500"
                     />
-                    {/* Live progress arc */}
+                    
+                    {/* Live progress arc with Neon Glow */}
                     {isRecording && (
                       <ellipse cx="120" cy="160" rx="108" ry="148"
                         fill="none"
                         stroke={useFallback ? '#3b82f6' : isCorrectGesture ? '#22c55e' : '#ef4444'}
-                        strokeWidth="4"
+                        strokeWidth={isCorrectGesture ? "8" : "4"}
                         strokeLinecap="round"
                         strokeDasharray={`${(progress / 100) * 816} 816`}
+                        filter="url(#neonGlow)"
                         style={{
-                          transition: 'stroke-dasharray 0.1s ease, stroke 0.3s ease',
+                          transition: 'stroke-dasharray 0.1s linear, stroke 0.3s ease, stroke-width 0.3s ease',
                           transform: 'rotate(-90deg)',
                           transformOrigin: '120px 160px',
                         }}
                       />
                     )}
                   </svg>
-                  {/* Tinted oval fill */}
-                  <div className="absolute inset-0 transition-colors duration-300" style={{
+                  
+                  {/* Tinted oval fill with pulsing aura on correct gesture */}
+                  <div className={`absolute inset-0 transition-all duration-700 ${isCorrectGesture ? 'scale-105' : 'scale-100'}`} style={{
                     borderRadius: '50% / 47%',
                     background:
-                      !isRecording      ? 'rgba(59,130,246,0.07)'  :
-                      useFallback       ? 'rgba(59,130,246,0.07)'  :
-                      isCorrectGesture  ? 'rgba(34,197,94,0.08)'   : 'rgba(239,68,68,0.06)',
+                      !isRecording      ? 'rgba(59,130,246,0.05)'  :
+                      useFallback       ? 'rgba(59,130,246,0.05)'  :
+                      isCorrectGesture  ? 'rgba(34,197,94,0.15)'   : 'rgba(239,68,68,0.05)',
+                    boxShadow: isCorrectGesture ? '0 0 30px rgba(34,197,94,0.4) inset' : 'none'
                   }} />
-                </div>
 
-                {/* 3D Head Guide — top-right corner */}
-                <div className="absolute top-3 right-3 bg-black/55 backdrop-blur-md rounded-2xl p-1.5 border border-white/10 pointer-events-none">
-                  <Suspense fallback={<div className="w-[68px] h-[68px] rounded-full bg-white/10 animate-pulse" />}>
-                    <FaceGuide3D
-                      challenge={isRecording ? (currentChallenge?.key ?? 'idle') : 'idle'}
-                      size={68}
-                    />
-                  </Suspense>
-                  <p className="text-[9px] text-white/60 text-center mt-0.5 font-medium">Làm theo robot</p>
+                  {/* Big Animated Direction Indicator on Screen */}
+                  {isRecording && !isCorrectGesture && !useFallback && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      {currentChallenge?.key === 'look_left' && (
+                        <div className="absolute left-[-20px] text-white/90 animate-slide-left scale-[2] drop-shadow-[0_0_15px_rgba(255,255,255,0.7)]">
+                          <svg width="80" height="40" viewBox="0 0 80 40" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M70 20 L20 20" strokeDasharray="8 6" />
+                            <path d="M30 10 L16 20 L30 30" />
+                          </svg>
+                        </div>
+                      )}
+                      {currentChallenge?.key === 'look_right' && (
+                        <div className="absolute right-[-20px] text-white/90 animate-slide-right scale-[2] drop-shadow-[0_0_15px_rgba(255,255,255,0.7)]">
+                          <svg width="80" height="40" viewBox="0 0 80 40" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M10 20 L60 20" strokeDasharray="8 6" />
+                            <path d="M50 10 L64 20 L50 30" />
+                          </svg>
+                        </div>
+                      )}
+                      {currentChallenge?.key === 'look_up' && (
+                        <div className="absolute top-[10px] text-white/90 animate-slide-up scale-[2] drop-shadow-[0_0_15px_rgba(255,255,255,0.7)]">
+                          <svg width="40" height="80" viewBox="0 0 40 80" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20 70 L20 20" strokeDasharray="8 6" />
+                            <path d="M10 30 L20 16 L30 30" />
+                          </svg>
+                        </div>
+                      )}
+                      {currentChallenge?.key === 'look_down' && (
+                        <div className="absolute bottom-[20px] text-white/90 animate-slide-down scale-[2] drop-shadow-[0_0_15px_rgba(255,255,255,0.7)]">
+                          <svg width="40" height="80" viewBox="0 0 40 80" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20 10 L20 60" strokeDasharray="8 6" />
+                            <path d="M10 50 L20 64 L30 50" />
+                          </svg>
+                        </div>
+                      )}
+                      {currentChallenge?.key === 'open_mouth' && (
+                        <div className="absolute top-[60%] text-white/90 animate-[pulse_1.5s_ease-in-out_infinite] scale-150 drop-shadow-[0_0_15px_rgba(255,255,255,0.7)]">
+                          <div className="w-10 h-12 border-4 border-white rounded-full flex items-center justify-center">
+                            <div className="w-4 h-6 bg-white rounded-full animate-[ping_1.5s_infinite]"></div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Bottom controls */}
-                <div className="absolute bottom-12 left-0 right-0 flex flex-col items-center gap-2 px-4 pointer-events-auto">
+                <div className="absolute bottom-10 left-0 right-0 flex flex-col items-center gap-2 px-4 pointer-events-auto">
                   {isRecording ? (
                     <>
-                      <div className={`px-5 py-2.5 rounded-full font-bold text-sm text-center backdrop-blur-md transition-all duration-300 ${
+                      <div className={`px-6 py-3 rounded-full font-bold text-sm text-center backdrop-blur-xl transition-all duration-500 transform ${
                         isCorrectGesture || useFallback
-                          ? 'bg-emerald-500/80 text-white'
-                          : 'bg-black/70 text-white animate-pulse'
+                          ? 'bg-emerald-500/90 text-white shadow-[0_0_20px_rgba(34,197,94,0.4)] scale-105'
+                          : 'bg-black/80 text-white animate-pulse border border-white/10'
                       }`}>
-                        {currentChallenge?.icon} {currentChallenge?.label}
+                        <span className="flex items-center gap-2">
+                          <span className="text-lg">{currentChallenge?.icon}</span>
+                          {currentChallenge?.label}
+                        </span>
                       </div>
-                      {!useFallback && isCorrectGesture && (
-                        <span className="text-emerald-400 text-xs font-semibold animate-pulse">
-                          Giữ nguyên... {Math.round(progress)}%
-                        </span>
-                      )}
-                      {!useFallback && !isCorrectGesture && currentGesture !== 'idle' && (
-                        <span className="text-red-400 text-xs font-semibold">
-                          Chưa đúng — hãy thử lại
-                        </span>
-                      )}
-                      {useFallback && (
-                        <span className="text-blue-300 text-xs font-semibold">
-                          {Math.round(progress)}%
-                        </span>
-                      )}
+                      <div className="w-full flex flex-col items-center justify-center mt-2 gap-2">
+                        <div className="h-4 flex items-center justify-center">
+                          {!useFallback && isCorrectGesture && (
+                            <span className="text-emerald-400 text-sm font-bold animate-pulse tracking-wider uppercase">
+                              GIỮ NGUYÊN... {Math.round(progress)}%
+                            </span>
+                          )}
+                          {!useFallback && !isCorrectGesture && currentGesture !== 'idle' && (
+                            <span className="text-red-400 text-sm font-semibold uppercase tracking-wider">
+                              CHƯA ĐÚNG TƯ THẾ
+                            </span>
+                          )}
+                          {useFallback && (
+                            <span className="text-blue-300 text-sm font-semibold uppercase tracking-wider">
+                              ĐANG GHI HÌNH... {Math.round(progress)}%
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </>
                   ) : (
                     <button
