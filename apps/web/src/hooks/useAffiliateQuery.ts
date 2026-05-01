@@ -5,14 +5,10 @@ export const useAffiliateQuery = () => {
   return useQuery({
     queryKey: ['affiliate-stats-v2'],
     queryFn: async () => {
-      console.log('[AffiliateQuery] Fetching stats...');
-      
       const { data } = await referralAPI.getStats();
-      
-      console.log('[AffiliateQuery] Received data:', data);
       return data.data;
     },
     retry: 1,
-    staleTime: 0
+    staleTime: 30_000,
   });
 };

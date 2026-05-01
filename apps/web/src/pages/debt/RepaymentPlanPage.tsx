@@ -312,6 +312,24 @@ const TOOLTIP_STYLE = {
   padding: "10px 14px",
 };
 
+function breachDot(simulation: any, color: string) {
+  return (props: any) => {
+    const breachMonth = simulation?.termBreach?.month;
+    if (!breachMonth || props?.payload?.month !== `T${breachMonth}`) return null;
+
+    return (
+      <circle
+        cx={props.cx}
+        cy={props.cy}
+        r={5}
+        fill={color}
+        stroke="#fff"
+        strokeWidth={2}
+      />
+    );
+  };
+}
+
 export default function RepaymentPlanPage() {
   const navigate = useNavigate();
   const { user } = useAuth() as any;
@@ -442,8 +460,8 @@ export default function RepaymentPlanPage() {
   const repaymentWarnings = Array.from(
     new Map(
       [
-        ...(avalanche?.warnings || []),
-        ...(snowball?.warnings || []),
+        ...(avalanche?.warnings || []).filter((warning: any) => warning.type !== "TERM_BREACH"),
+        ...(snowball?.warnings || []).filter((warning: any) => warning.type !== "TERM_BREACH"),
         ...(avalanche?.isScheduleTruncated || snowball?.isScheduleTruncated
           ? [
               {
@@ -457,6 +475,10 @@ export default function RepaymentPlanPage() {
       ].map((warning: any) => [warning.type, warning]),
     ).values(),
   );
+  const termBreachAlerts = [
+    avalanche?.termBreach && { method: "Avalanche", ...avalanche.termBreach },
+    snowball?.termBreach && { method: "Snowball", ...snowball.termBreach },
+  ].filter(Boolean);
 
   return (
     <>
@@ -679,6 +701,32 @@ export default function RepaymentPlanPage() {
                 Chiến lược trả nợ
               </h2>
             </div>
+            {termBreachAlerts.length > 0 && (
+              <div className="mb-4 flex items-start gap-3 px-5 py-4 rounded-2xl border border-red-500/25 bg-red-500/8 relative overflow-hidden">
+                <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl bg-gradient-to-b from-red-500 to-rose-400" />
+                <AlertTriangle
+                  size={16}
+                  className="text-red-300 shrink-0 mt-0.5 ml-1"
+                />
+                <div className="space-y-1">
+                  <p className="text-[13px] text-red-200 font-black">
+                    Cảnh báo quá hạn hợp đồng
+                  </p>
+                  {termBreachAlerts.map((breach: any) => (
+                    <p
+                      key={`${breach.method}-${breach.debtId}-${breach.month}`}
+                      className="text-[12px] text-red-100/85 leading-relaxed"
+                    >
+                      Khoản nợ{" "}
+                      <span className="font-black text-red-100">{breach.name}</span>{" "}
+                      bị quá hạn khi chạy {breach.method} vào tháng T{breach.month}.
+                      Còn {formatVND(breach.remainingBalance)} sau kỳ hạn{" "}
+                      {breach.deadlineMonth} tháng. Hãy tăng ngân sách trả thêm mỗi tháng.
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
@@ -991,7 +1039,7 @@ export default function RepaymentPlanPage() {
                         name="Avalanche"
                         stroke="url(#avLine)"
                         strokeWidth={2.5}
-                        dot={false}
+                        dot={breachDot(avalanche, "#3b82f6")}
                       />
                       <Line
                         type="monotone"
@@ -999,7 +1047,7 @@ export default function RepaymentPlanPage() {
                         name="Snowball"
                         stroke="url(#snLine)"
                         strokeWidth={2.5}
-                        dot={false}
+                        dot={breachDot(snowball, "#10b981")}
                       />
                     </LineChart>
                   </ResponsiveContainer>

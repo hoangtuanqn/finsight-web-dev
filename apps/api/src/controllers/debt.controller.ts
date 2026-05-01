@@ -436,7 +436,7 @@ export async function getRepaymentPlan(
       user?.extraBudget,
     );
     const monthlyIncome = user?.monthlyIncome || 0;
-    const simulationOptions = { monthlyIncome };
+    const simulationOptions = { monthlyIncome, stopOnTermBreach: true };
     const avalanche = simulateRepaymentWithExtraBudget(debts, extraBudget, "AVALANCHE", simulationOptions);
     const snowball = simulateRepaymentWithExtraBudget(debts, extraBudget, "SNOWBALL", simulationOptions);
 
@@ -451,18 +451,23 @@ export async function getRepaymentPlan(
         "Hai phương pháp cho kết quả tương đương. Chọn Snowball nếu bạn muốn động lực tâm lý từ việc xoá nợ nhỏ trước.";
     }
 
-    const formatSimulation = (simulation: typeof avalanche) => ({
-      months: simulation.months,
-      initialBalance: simulation.initialBalance,
-      minimumBudget: simulation.minimumBudget,
-      extraBudgetUsed: simulation.extraBudgetUsed,
-      totalMonthlyBudget: simulation.totalMonthlyBudget,
-      totalInterest: simulation.totalInterest,
-      isCompleted: simulation.isCompleted,
-      warnings: simulation.warnings,
-      isScheduleTruncated: simulation.schedule.length > MAX_REPAYMENT_SCHEDULE_POINTS,
-      schedule: simulation.schedule.slice(0, MAX_REPAYMENT_SCHEDULE_POINTS),
-    });
+    const formatSimulation = (simulation: typeof avalanche | null) => {
+      if (!simulation) return null;
+
+      return {
+        months: simulation.months,
+        initialBalance: simulation.initialBalance,
+        minimumBudget: simulation.minimumBudget,
+        extraBudgetUsed: simulation.extraBudgetUsed,
+        totalMonthlyBudget: simulation.totalMonthlyBudget,
+        totalInterest: simulation.totalInterest,
+        isCompleted: simulation.isCompleted,
+        termBreach: simulation.termBreach,
+        warnings: simulation.warnings,
+        isScheduleTruncated: simulation.schedule.length > MAX_REPAYMENT_SCHEDULE_POINTS,
+        schedule: simulation.schedule.slice(0, MAX_REPAYMENT_SCHEDULE_POINTS),
+      };
+    };
 
     return success(res, {
       monthlyIncome,

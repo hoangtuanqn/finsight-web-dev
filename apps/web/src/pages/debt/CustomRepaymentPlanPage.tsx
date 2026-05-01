@@ -10,6 +10,7 @@ import {
   ArrowDown,
   ArrowLeft,
   ArrowUp,
+  AlertTriangle,
   Check,
   ChevronRight,
   ClipboardList,
@@ -55,6 +56,24 @@ const TOOLTIP_STYLE = {
   boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
   padding: "10px 14px",
 };
+
+function breachDot(simulation: any, color: string) {
+  return (props: any) => {
+    const breachMonth = simulation?.termBreach?.month;
+    if (!breachMonth || props?.payload?.month !== `T${breachMonth}`) return null;
+
+    return (
+      <circle
+        cx={props.cx}
+        cy={props.cy}
+        r={5}
+        fill={color}
+        stroke="#fff"
+        strokeWidth={2}
+      />
+    );
+  };
+}
 
 function metricDelta(delta: number, unit: "money" | "month") {
   const abs = Math.abs(delta);
@@ -446,6 +465,24 @@ export default function CustomRepaymentPlanPage() {
     };
 
   const chartData = useMemo(() => buildTimeline(simulationData), [simulationData]);
+  const termBreachAlerts = useMemo(
+    () =>
+      [
+        simulationData?.custom?.termBreach && {
+          method: "Kế hoạch của bạn",
+          ...simulationData.custom.termBreach,
+        },
+        simulationData?.avalanche?.termBreach && {
+          method: "Avalanche",
+          ...simulationData.avalanche.termBreach,
+        },
+        simulationData?.snowball?.termBreach && {
+          method: "Snowball",
+          ...simulationData.snowball.termBreach,
+        },
+      ].filter(Boolean),
+    [simulationData],
+  );
 
   const addDebt = useCallback((debtId: string) => {
     setSelectedIds((current) =>
@@ -910,7 +947,7 @@ export default function CustomRepaymentPlanPage() {
                       name="Kế hoạch của bạn"
                       stroke="#f87171"
                       strokeWidth={3}
-                      dot={false}
+                      dot={breachDot(simulationData?.custom, "#f87171")}
                     />
                     <Line
                       type="monotone"
@@ -918,7 +955,7 @@ export default function CustomRepaymentPlanPage() {
                       name="Avalanche"
                       stroke="#3b82f6"
                       strokeWidth={2.5}
-                      dot={false}
+                      dot={breachDot(simulationData?.avalanche, "#3b82f6")}
                     />
                     <Line
                       type="monotone"
@@ -926,7 +963,7 @@ export default function CustomRepaymentPlanPage() {
                       name="Snowball"
                       stroke="#10b981"
                       strokeWidth={2.5}
-                      dot={false}
+                      dot={breachDot(simulationData?.snowball, "#10b981")}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -1037,6 +1074,30 @@ export default function CustomRepaymentPlanPage() {
               Chiến lược trả nợ
             </h2>
           </div>
+          {termBreachAlerts.length > 0 && (
+            <div className="mb-5 rounded-3xl border border-red-400/25 bg-red-500/8 p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle size={18} className="text-red-300 shrink-0 mt-0.5" />
+                <div className="space-y-1.5">
+                  <p className="text-sm font-black text-red-200">
+                    Cảnh báo quá hạn hợp đồng
+                  </p>
+                  {termBreachAlerts.map((breach: any) => (
+                    <p
+                      key={`${breach.method}-${breach.debtId}-${breach.month}`}
+                      className="text-[12px] text-red-100/85 leading-relaxed"
+                    >
+                      Khoản nợ{" "}
+                      <span className="font-black text-red-100">{breach.name}</span>{" "}
+                      bị quá hạn khi chạy {breach.method} vào tháng T{breach.month}.
+                      Còn {formatVND(breach.remainingBalance)} sau kỳ hạn{" "}
+                      {breach.deadlineMonth} tháng. Hãy tăng ngân sách trả thêm mỗi tháng.
+                    </p>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
             <MethodPlanCard
               type="AVALANCHE"

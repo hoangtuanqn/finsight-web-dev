@@ -1,2 +1,14 @@
 [2026-04-29T02:33:35.775Z] [AuthMiddleware] Verification failed: jwt malformed
 [2026-04-29T02:33:36.797Z] [AuthMiddleware] Verification failed: jwt malformed
+[2026-04-30T23:19:07.157Z] [KYC] submitKyc error: [object Object]
+[2026-04-30T23:19:18.555Z] [KYC] submitKyc error: [object Object]
+[2026-04-30T23:34:04.622Z] [Affiliate] checkBankOwner error: [object Object]
+[2026-04-30T23:34:17.309Z] [Affiliate] checkBankOwner error: [object Object]
+[2026-05-01T03:35:57.079Z] [KYC] submitKyc error: [object Object]
+[2026-05-01T04:15:20.691Z] [Payment] SePay API error: timeout of 15000ms exceeded
+[2026-05-01T04:35:24.417Z] [Payment] SePay API error: read ECONNRESET
+[2026-05-01T04:35:50.380Z] [Payment] SePay API error: read ECONNRESET
+[2026-05-01T04:36:01.716Z] [Payment] SePay API error: timeout of 15000ms exceeded
+[2026-05-01T04:36:11.061Z] [Payment] SePay API error: read ECONNRESET
+[2026-05-01T04:36:21.733Z] [Payment] SePay API error: timeout of 15000ms exceeded
+[2026-05-01T04:36:31.737Z] [Payment] SePay API error: timeout of 15000ms exceeded

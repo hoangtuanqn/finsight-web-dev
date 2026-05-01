@@ -74,6 +74,8 @@ function formatPlan(plan: any) {
 }
 
 function formatSimulation(simulation: any) {
+  if (!simulation) return null;
+
   return {
     months: simulation.months,
     initialBalance: simulation.initialBalance,
@@ -82,6 +84,7 @@ function formatSimulation(simulation: any) {
     totalMonthlyBudget: simulation.totalMonthlyBudget,
     totalInterest: simulation.totalInterest,
     isCompleted: simulation.isCompleted,
+    termBreach: simulation.termBreach,
     warnings: simulation.warnings,
     isScheduleTruncated: simulation.schedule.length > MAX_CHART_MONTHS,
     schedule: simulation.schedule.slice(0, MAX_CHART_MONTHS),
@@ -275,7 +278,7 @@ export async function simulateRepaymentPlan(req: AuthenticatedRequest, res: Resp
       select: { monthlyIncome: true, extraBudget: true },
     });
     const extraBudget = resolveRepaymentExtraBudget(req.body?.extraBudget, user?.extraBudget);
-    const options = { monthlyIncome: user?.monthlyIncome || 0 };
+    const options = { monthlyIncome: user?.monthlyIncome || 0, stopOnTermBreach: true };
 
     const custom = simulateCustomRepaymentWithExtraBudget(debts, extraBudget, debtIds, options);
     const avalanche = simulateRepaymentWithExtraBudget(debts, extraBudget, 'AVALANCHE', options);
