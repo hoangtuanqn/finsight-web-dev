@@ -232,8 +232,6 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
     let elapsed = 0;
     const step  = 50;
     const total = challenge.timerMs;
-    // Play hold cue at ~50% to remind user to hold still
-    let didPlayHold = false;
 
     const tick = () => {
       if (allDoneRef.current || !isRecordingRef.current) return;
@@ -241,12 +239,6 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
       elapsed += step;
       const pct = Math.min((elapsed / total) * 100, 100);
       setProgress(pct);
-
-      // Play "keep-the-same" at 50% mark once per challenge
-      if (!didPlayHold && pct >= 50) {
-        didPlayHold = true;
-        voice.playHold();
-      }
 
       if (elapsed >= total) {
         const next = idx + 1;
@@ -278,8 +270,7 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
 
     // ── Voice logic ──────────────────────────────────────────────────────────
     if (isNowRight && !wasCorrectRef.current) {
-      // Just entered correct pose → play hold cue
-      voice.playHold();
+      // Just entered correct pose — no sound
     } else if (!isNowRight && wasCorrectRef.current) {
       // Was correct, now broke pose → replay direction cue
       voice.playChallenge(target);
