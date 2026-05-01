@@ -23,12 +23,17 @@ interface ChallengeConfig {
 // ─── Constants ────────────────────────────────────────────────────────────────
 const CHALLENGES: ChallengeConfig[] = [
   { key: 'look_straight', label: 'Nhìn thẳng vào camera', icon: '👁️', timerMs: 3000 },
-  { key: 'look_left',     label: 'Quay đầu sang trái',    icon: '←',   timerMs: 2500 },
-  { key: 'look_right',    label: 'Quay đầu sang phải',    icon: '→',   timerMs: 2500 },
+  { key: 'look_left',     label: 'Quay đầu sang trái',    icon: '←',   timerMs: 3000 },
+  { key: 'look_right',    label: 'Quay đầu sang phải',    icon: '→',   timerMs: 3000 },
+  { key: 'look_up',       label: 'Ngước đầu lên',         icon: '↑',   timerMs: 3000 },
+  { key: 'look_down',     label: 'Cúi đầu xuống',         icon: '↓',   timerMs: 3000 },
+  { key: 'open_mouth',    label: 'Há miệng',              icon: '😮',  timerMs: 3000 },
 ];
 
-const HOLD_REQUIRED      = 20;   // frames for gesture enforcement
+const HOLD_REQUIRED      = 65;   // ~2.1s at 30fps
 const TURN_THRESHOLD     = 0.07; // nose deviation for left/right
+const PITCH_THRESHOLD    = 0.045; // nose deviation for up/down
+const MOUTH_THRESHOLD    = 0.025; // upper/lower lip distance
 const STRAIGHT_THRESHOLD = 0.04;
 const FACEMESH_TIMEOUT   = 8000; // ms — give up CDN load after this
 
@@ -38,15 +43,41 @@ function detectGesture(landmarks: any[]): FaceChallenge {
   const nose     = landmarks[1];
   const leftEar  = landmarks[234];
   const rightEar = landmarks[454];
-  if (!nose || !leftEar || !rightEar) return 'idle';
+  const leftEye  = landmarks[159];
+  const rightEye = landmarks[386];
+  const upperLip = landmarks[13];
+  const lowerLip = landmarks[14];
+  
+  if (!nose || !leftEar || !rightEar || !leftEye || !rightEye || !upperLip || !lowerLip) return 'idle';
 
-  const midX      = (leftEar.x + rightEar.x) / 2;
-  const deviation = nose.x - midX;
+  // --- Mouth Open Detection ---
+  // Normalize mouth distance relative to face height (eye to mouth) to be distance invariant
+  const faceHeight = lowerLip.y - ((leftEye.y + rightEye.y) / 2);
+  const mouthOpenDist = lowerLip.y - upperLip.y;
+  if (mouthOpenDist / faceHeight > 0.18) return 'open_mouth';
 
-  if (deviation > TURN_THRESHOLD)     return 'look_right';
-  if (deviation < -TURN_THRESHOLD)    return 'look_left';
-  if (Math.abs(deviation) < STRAIGHT_THRESHOLD) return 'look_straight';
-  return 'idle';
+  // --- Pitch (Up/Down) Detection ---
+  const eyeY   = (leftEye.y + rightEye.y) / 2;
+  const mouthY = upperLip.y;
+  const noseY  = nose.y;
+  
+  // Ratio of nose-to-eye vs mouth-to-eye. Normally ~0.5.
+  // When looking UP, nose moves towards eyes (ratio decreases).
+  // When looking DOWN, nose moves towards mouth (ratio increases).
+  const pitchRatio = (noseY - eyeY) / (mouthY - eyeY);
+  
+  if (pitchRatio < 0.35) return 'look_up';
+  if (pitchRatio > 0.70) return 'look_down';
+
+  // --- Yaw (Left/Right) Detection ---
+  const earMidX   = (leftEar.x + rightEar.x) / 2;
+  const faceWidth = rightEar.x - leftEar.x; // Unmirrored: rightEar > leftEar
+  const yawRatio  = (nose.x - earMidX) / faceWidth;
+
+  if (yawRatio > 0.20)  return 'look_left';
+  if (yawRatio < -0.20) return 'look_right';
+  
+  return 'look_straight'; // If not turned enough and not pitched, it is straight
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -141,13 +172,17 @@ export default function Step2_LivenessCapture({ onNext, onBack }: Step2Props) {
   const finishRecording = useCallback(() => {
     if (allDoneRef.current) return;
     allDoneRef.current = true;
+    setAllDone(true); // update state for UI
+    
     cancelAnimationFrame(rafRef.current);
     if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+    
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
     }
+    
     setIsRecording(false);
-    setAllDone(true);
+    isRecordingRef.current = false; // sync ref immediately
   }, []);
 
   // ── Advance to next challenge (shared by both modes) ─────────────────────
@@ -163,23 +198,26 @@ export default function Step2_LivenessCapture({ onNext, onBack }: Step2Props) {
     }
   }, [finishRecording]);
 
-  // ── TIMER FALLBACK: runs a countdown per challenge ─────────────────────────
+  // ── TIMER FALLBACK: guiding only, no auto-advance for verification ──────────
   const runTimerChallenge = useCallback((idx: number) => {
     if (allDoneRef.current || !isRecordingRef.current) return;
     const challenge = CHALLENGES[idx];
     if (!challenge) return;
 
     let elapsed = 0;
-    const step  = 50; // ms per tick
+    const step  = 50; 
     const total = challenge.timerMs;
 
     const tick = () => {
       if (allDoneRef.current || !isRecordingRef.current) return;
+      
       elapsed += step;
       setProgress(Math.min((elapsed / total) * 100, 100));
+
       if (elapsed >= total) {
         const next = idx + 1;
-        setCompletedCount(next);
+        // In fallback mode, we still advance the guide so they record all gestures,
+        // but the backend will have to be the final judge.
         if (next >= CHALLENGES.length) {
           finishRecording();
         } else {
@@ -243,8 +281,18 @@ export default function Step2_LivenessCapture({ onNext, onBack }: Step2Props) {
     }, FACEMESH_TIMEOUT);
 
     try {
-      const { FaceMesh } = await import('@mediapipe/face_mesh');
-      const fm = new FaceMesh({
+      const mpFaceMesh = await import('@mediapipe/face_mesh');
+      // Handle different export styles (ESM/CJS/UMD)
+      const FaceMeshConstructor = (mpFaceMesh as any).FaceMesh || 
+                                  (mpFaceMesh as any).default?.FaceMesh || 
+                                  (mpFaceMesh as any).default ||
+                                  (window as any).FaceMesh;
+
+      if (typeof FaceMeshConstructor !== 'function') {
+        throw new Error('Could not find FaceMesh constructor in module or window');
+      }
+
+      const fm = new FaceMeshConstructor({
         locateFile: (file: string) =>
           `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4/${file}`,
       });
@@ -314,11 +362,14 @@ export default function Step2_LivenessCapture({ onNext, onBack }: Step2Props) {
     };
     mediaRecorderRef.current.start(100); // collect chunks every 100ms
     setIsRecording(true);
+    isRecordingRef.current = true; // Sync ref IMMEDIATELY to avoid loop exit
 
     // Start the appropriate detection mode
     if (useFallbackRef.current || !faceMeshRef.current) {
+      console.log('[Step2] Starting in TIMER mode');
       runTimerChallenge(0);
     } else {
+      console.log('[Step2] Starting in AI mode');
       runDetectionLoop();
     }
   }, [runTimerChallenge, runDetectionLoop]);
@@ -372,11 +423,13 @@ export default function Step2_LivenessCapture({ onNext, onBack }: Step2Props) {
           <li>Không đeo kính râm, khẩu trang hoặc mũ.</li>
           <li>Làm theo đúng hướng dẫn — robot 3D sẽ minh hoạ cho bạn.</li>
         </ul>
-        {/* Fallback mode notice */}
         {useFallback && (
-          <div className="mt-3 flex items-center gap-2 text-xs text-amber-500 bg-amber-500/10 px-3 py-2 rounded-xl">
-            <Wifi size={14} />
-            Chế độ hướng dẫn cơ bản (AI nhận diện không khả dụng — hãy làm theo hướng dẫn thật chính xác).
+          <div className="mt-3 flex items-center gap-2 text-xs text-red-500 bg-red-500/10 px-3 py-2 rounded-xl border border-red-500/20">
+            <AlertTriangle size={14} />
+            <div className="flex-1">
+              <p className="font-bold">Chế độ ghi hình thủ công</p>
+              <p>AI nhận diện không khả dụng. Video của bạn sẽ được chuyển qua bộ phận kiểm duyệt thủ công (thời gian xử lý lâu hơn).</p>
+            </div>
           </div>
         )}
       </div>
@@ -405,7 +458,7 @@ export default function Step2_LivenessCapture({ onNext, onBack }: Step2Props) {
             {/* Webcam or recorded preview */}
             {recordedVideoUrl ? (
               <video src={recordedVideoUrl} controls autoPlay loop
-                className="w-full h-full object-cover scale-x-[-1]" />
+                className="w-full h-full object-cover" />
             ) : (
               <Webcam
                 audio={false}
