@@ -12,7 +12,6 @@ import { toast } from "sonner";
 import { investmentAPI, marketAPI } from "../api/index";
 import { useAuth } from "../context/AuthContext";
 import { PageSkeleton } from "../components/common/LoadingSpinner";
-import { formatVND } from "../utils/calculations";
 import {
   normalizeAllocationAnalysis,
   normalizeStrategy,
