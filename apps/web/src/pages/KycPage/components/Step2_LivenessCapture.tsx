@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import Webcam from 'react-webcam';
-import { Video, RotateCcw, AlertTriangle, Camera, CheckCircle2 } from 'lucide-react';
+import { Video, RotateCcw, AlertTriangle, Camera, CheckCircle2, Download } from 'lucide-react';
 import { useCameraPermission } from '../../../hooks/useCameraPermission';
 import { useVoiceGuide } from '../../../hooks/useVoiceGuide';
 import type { FaceChallenge } from './FaceGuide3D';
@@ -23,7 +23,7 @@ interface ChallengeConfig {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const CHALLENGES: ChallengeConfig[] = [
-  { key: 'look_straight', label: 'Nhìn thẳng vào camera', icon: '👁️', timerMs: 5000 },
+  { key: 'look_straight', label: 'Nhìn thẳng vào camera', icon: '👁️', timerMs: 4000 },
   { key: 'look_left',     label: 'Quay đầu sang trái',    icon: '←',   timerMs: 1000 },
   { key: 'look_right',    label: 'Quay đầu sang phải',    icon: '→',   timerMs: 1000 },
   { key: 'look_up',       label: 'Ngước đầu lên',         icon: '↑',   timerMs: 1000 },
@@ -31,7 +31,7 @@ const CHALLENGES: ChallengeConfig[] = [
   { key: 'open_mouth',    label: 'Há miệng',              icon: '😮',  timerMs: 1000 },
 ];
 
-const HOLD_REQUIRED      = 60;   // ~2.0s at 30fps
+// ~30fps assumption for camera
 const TURN_THRESHOLD     = 0.07; // nose deviation for left/right
 const PITCH_THRESHOLD    = 0.045; // nose deviation for up/down
 const MOUTH_THRESHOLD    = 0.025; // upper/lower lip distance
@@ -261,8 +261,11 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
     if (allDoneRef.current || !isRecordingRef.current) return;
 
     const idx    = currentIdxRef.current;
-    const target = CHALLENGES[idx]?.key;
+    const challenge = CHALLENGES[idx];
+    const target = challenge?.key;
     if (!target) return;
+
+    const holdRequired = Math.round((challenge.timerMs / 1000) * 30);
 
     const gesture    = detectGesture(landmarks);
     const isNowRight = gesture === target;
@@ -280,14 +283,14 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
 
     if (!isNowRight) {
       holdFrames.current = Math.max(holdFrames.current - 2, 0);
-      setProgress((holdFrames.current / HOLD_REQUIRED) * 100);
+      setProgress((holdFrames.current / holdRequired) * 100);
       return;
     }
 
     holdFrames.current++;
-    setProgress((holdFrames.current / HOLD_REQUIRED) * 100);
+    setProgress((holdFrames.current / holdRequired) * 100);
 
-    if (holdFrames.current >= HOLD_REQUIRED) {
+    if (holdFrames.current >= holdRequired) {
       advanceChallenge();
     }
   }, [advanceChallenge, voice]);
@@ -385,11 +388,14 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
     if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
     voice.stop();
 
-    // Setup MediaRecorder
     const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
       ? 'video/webm;codecs=vp9'
       : 'video/webm';
-    mediaRecorderRef.current = new MediaRecorder(stream, { mimeType });
+    // High clarity bitrate
+    mediaRecorderRef.current = new MediaRecorder(stream, { 
+      mimeType, 
+      videoBitsPerSecond: 4000000 
+    });
     mediaRecorderRef.current.ondataavailable = ({ data }: BlobEvent) => {
       if (data.size > 0) recordedChunks.current.push(data);
     };
@@ -507,19 +513,35 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
       {/* Camera view */}
       {camState === 'granted' && (
         <>
-          <div className="relative w-full max-w-sm mx-auto aspect-[3/4] bg-black rounded-[2rem] overflow-hidden shadow-2xl">
+          <div className="relative w-full max-w-2xl mx-auto aspect-video bg-black rounded-[1.5rem] overflow-hidden shadow-2xl">
 
             {/* Webcam or recorded preview */}
             {recordedVideoUrl ? (
-              <video src={recordedVideoUrl} controls autoPlay loop
-                className="w-full h-full object-cover" />
+              <div className="relative w-full h-full">
+                <video src={recordedVideoUrl} controls autoPlay loop
+                  className="w-full h-full object-cover" />
+                <a 
+                  href={recordedVideoUrl} 
+                  download="ekyc-liveness-test.webm"
+                  className="absolute top-4 right-4 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur-md transition-all flex items-center gap-2 text-xs font-bold border border-white/20 pointer-events-auto"
+                  title="Tải video về máy để kiểm tra"
+                >
+                  <Download size={18} />
+                  Download
+                </a>
+              </div>
             ) : (
               <Webcam
                 audio={false}
                 ref={webcamRef}
                 mirrored={true}
-                videoConstraints={{ facingMode: 'user', width: 640, height: 480 }}
-                className="w-full h-full object-cover"
+                videoConstraints={{ 
+                  facingMode: 'user', 
+                  width: { ideal: 1280 }, 
+                  height: { ideal: 720 },
+                  aspectRatio: 1.777777778
+                }}
+                className="w-full h-full object-cover" 
               />
             )}
 
@@ -527,7 +549,7 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
             {!recordedVideoUrl && (
               <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
 
-                {/* Face oval + progress arc */}
+                {/* Face oval + progress arc - Centered in 16:9 landscape frame */}
                 <div className="relative w-[240px] h-[320px] flex items-center justify-center">
                   {/* Subtle scanning sweep effect when recording but not holding */}
                   {isRecording && !isCorrectGesture && (
@@ -546,7 +568,7 @@ export default function Step2_LivenessCapture({ initialVideo, onNext, onBack }: 
                         </feMerge>
                       </filter>
                     </defs>
-
+                    
                     {/* Dashed base oval */}
                     <ellipse cx="120" cy="160" rx="108" ry="148"
                       fill="none"
