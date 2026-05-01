@@ -35,13 +35,14 @@ function useAssetData(asset, riskLevel) {
 
   const payload = q.data;
   return {
-    items:     payload?.coins || payload?.stocks || payload?.goldItems || payload?.savingsItems || payload?.bondItems || [],
-    intro:     payload?.intro || '',
-    updatedAt: payload?.updatedAt || '',
-    metrics:   payload?.metrics ?? null,
+    items:      payload?.coins || payload?.stocks || payload?.goldItems || payload?.savingsItems || payload?.bondItems || [],
+    intro:      payload?.intro || '',
+    disclaimer: payload?.disclaimer || '',
+    updatedAt:  payload?.updatedAt || '',
+    metrics:    payload?.metrics ?? null,
     worldPrice: payload?.worldPrice ?? null,
-    loading:   q.isLoading,
-    error:     q.isError,
+    loading:    q.isLoading,
+    error:      q.isError,
   };
 }
 
@@ -450,9 +451,11 @@ export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
                   </div>
                 );
               })() : (
-                <p className="text-sm font-medium text-slate-200 leading-relaxed">
-                  {activeData.intro || suggestion.intro}
-                </p>
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-slate-200 leading-relaxed">
+                    {activeData.intro || suggestion.intro}
+                  </p>
+                </div>
               )}
             </div>
 
@@ -488,18 +491,20 @@ export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
               )}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              {suggestion.tips.map((tip, i) => (
-                <div key={i} className="p-5 rounded-2xl bg-white/[0.01] border border-white/5 flex gap-4 group hover:border-white/10 hover:bg-white/[0.02] transition-all duration-300">
-                  <div className="shrink-0 w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-xs font-bold text-slate-400 group-hover:text-white group-hover:bg-blue-500/20 transition-all duration-300 shadow-sm">
-                    {i + 1}
+            {suggestion.tips.length > 0 && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                {suggestion.tips.map((tip: string, i: number) => (
+                  <div key={i} className="p-5 rounded-2xl bg-white/[0.01] border border-white/5 flex gap-4 group hover:border-white/10 hover:bg-white/[0.02] transition-all duration-300">
+                    <div className="shrink-0 w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-xs font-bold text-slate-400 group-hover:text-white group-hover:bg-blue-500/20 transition-all duration-300 shadow-sm">
+                      {i + 1}
+                    </div>
+                    <p className="text-sm font-medium text-slate-400 group-hover:text-slate-200 transition-colors leading-relaxed">
+                      {tip}
+                    </p>
                   </div>
-                  <p className="text-sm font-medium text-slate-400 group-hover:text-slate-200 transition-colors leading-relaxed">
-                    {tip}
-                  </p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
 
             <div className="mt-8 flex flex-col md:flex-row md:items-center justify-between gap-4 pt-6 border-t border-white/5">
               <div className="flex flex-wrap items-center gap-4">
@@ -774,12 +779,22 @@ function AssetCard({ item, color, type, rank, onOpenModal }) {
             Premium +{cost.premiumPct}%
           </span>
         )}
-        {!cost && item.rate != null && (
+        {!cost && item.note && (
           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/5 text-slate-400">
-            {item.tag}
+            {item.note}
           </span>
         )}
       </div>
+      {!cost && item.reason?.length > 0 && (
+        <ul className="mt-3 space-y-1 border-t border-white/5 pt-3">
+          {item.reason.map((r: string, i: number) => (
+            <li key={i} className="flex items-start gap-1.5 text-[11px] text-slate-300 leading-relaxed">
+              <span className="shrink-0 mt-0.5 text-emerald-400">✓</span>
+              {r}
+            </li>
+          ))}
+        </ul>
+      )}
     </motion.div>
   );
 }

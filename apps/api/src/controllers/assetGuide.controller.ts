@@ -3,7 +3,6 @@ import { success, error } from '../utils/apiResponse';
 import { getCryptoPricesData, getCryptoCache, scoreCoin, buildCoinCard, STABLECOIN_IDS, BLACKLIST_IDS } from '../services/assetGuide/crypto.service';
 import { getGoldPricesData, getGoldCache } from '../services/assetGuide/gold.service';
 import { getStockPricesData, getStockCacheForFallback, STOCK_UNIVERSE, scoreStock, buildStockCard } from '../services/assetGuide/stocks.service';
-import { getStocksUsPricesData, getUsStockCacheForFallback, US_STOCK_UNIVERSE, scoreUsStock, buildUsStockCard } from '../services/assetGuide/stocks_us.service';
 import { getBondsRatesData } from '../services/assetGuide/bonds.service';
 import { getSavingsRatesData } from '../services/assetGuide/savings.service';
 
@@ -72,29 +71,6 @@ export async function getStockPrices(req: Request, res: Response) {
   }
 }
 
-// ─── Stocks US ───────────────────────────────────────────────────
-
-export async function getStocksUsPrices(req: Request, res: Response) {
-  try {
-    const riskLevel = (req.query.riskLevel as string) || 'MEDIUM';
-    const data = await getStocksUsPricesData(riskLevel);
-    return success(res, data);
-  } catch (err: any) {
-    console.error('getStocksUsPrices error:', err.message);
-    const cache = getUsStockCacheForFallback();
-    if (cache.data) {
-      const rl = (req.query.riskLevel as string) || 'MEDIUM';
-      const scored = US_STOCK_UNIVERSE
-        .filter((m) => cache.data![m.ticker])
-        .map((m) => ({ meta: m, quote: cache.data![m.ticker], score: scoreUsStock(cache.data![m.ticker], m, rl) }))
-        .sort((a, b) => b.score - a.score);
-      const top5 = scored.slice(0, 5).map((s, i) => buildUsStockCard(s.quote, s.meta, i));
-      return success(res, { stocks: top5, intro: '', riskLevel: rl, cached: true, stale: true });
-    }
-    return error(res, 'Không thể lấy dữ liệu chứng khoán Mỹ lúc này');
-  }
-}
-
 // ─── Crypto ──────────────────────────────────────────────────────
 
 export async function getCryptoPrices(req: Request, res: Response) {
@@ -115,9 +91,9 @@ export async function getCryptoPrices(req: Request, res: Response) {
       const top5 = filtered
         .map((c: any) => ({ coin: c, score: scoreCoin(c, rl) }))
         .sort((a: any, b: any) => b.score - a.score)
-        .slice(0, 5)
+        .slice(0, 8)
         .map((s: any, i: number) => buildCoinCard(s.coin, i));
-      return success(res, { coins: top5, riskLevel: rl, cached: true, stale: true });
+      return success(res, { coins: top5, intro: 'Đang hiển thị dữ liệu cache do CoinGecko tạm thời giới hạn truy cập.', disclaimer: 'Xếp hạng dựa trên dữ liệu thị trường (MCap, thanh khoản, MC/FDV). Chưa tính đến team, use case hay tokenomics chi tiết — cần DYOR trước khi đầu tư.', riskLevel: rl, cached: true, stale: true });
     }
     return error(res, 'Không thể lấy giá crypto lúc này');
   }

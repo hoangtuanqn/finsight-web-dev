@@ -3,6 +3,9 @@ import { motion } from "framer-motion";
 import { X, Sparkles, Zap } from "lucide-react";
 import AssetFilterPanel from "./AssetFilterPanel";
 
+const VALID_ASSETS = ["savings", "gold", "stocks", "bonds", "crypto"];
+const TOTAL_ASSETS = VALID_ASSETS.length;
+
 interface GenerateStrategyPopupProps {
   quota: number;
   generating: boolean;
@@ -20,19 +23,19 @@ export default function GenerateStrategyPopup({
 }: GenerateStrategyPopupProps) {
   const [excludedAssets, setExcludedAssets] = useState<string[]>(() => {
     try {
-      return JSON.parse(localStorage.getItem("finsight_excluded_assets") || "[]");
+      const saved = JSON.parse(localStorage.getItem("finsight_excluded_assets") || "[]");
+      return saved.filter((a: string) => VALID_ASSETS.includes(a));
     } catch {
       return [];
     }
   });
 
   const handleGenerate = () => {
-    // Persist selection before generating
     localStorage.setItem("finsight_excluded_assets", JSON.stringify(excludedAssets));
     onGenerate(excludedAssets);
   };
 
-  const selectedCount = 6 - excludedAssets.length; // 6 total assets
+  const selectedCount = TOTAL_ASSETS - excludedAssets.length;
 
   return (
     <div
