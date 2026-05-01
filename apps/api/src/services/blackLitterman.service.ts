@@ -25,6 +25,10 @@ export function computePosteriorReturns(
 
   const N = ASSET_ORDER.length;
   const K = views.length;
+  const covSize = (covMatrix.toArray() as any[]).length;
+  if (covSize !== N) {
+    console.error(`[BlackLitterman] DIMENSION MISMATCH: ASSET_ORDER.length=${N} but covMatrix is ${covSize}x${covSize}. ASSET_ORDER=${JSON.stringify(ASSET_ORDER)}, covMatrix rows=${covSize}`);
+  }
 
   // 1. Convert to mathjs matrices
   const Pi = math.matrix(priorMeans.map(val => [val])); // N x 1 column vector
