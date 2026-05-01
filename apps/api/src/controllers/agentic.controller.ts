@@ -13,8 +13,10 @@ export async function chatWithAgent(req: AuthenticatedRequest, res: Response) {
     return error(res, 'Message is required', 400);
   }
 
-  if (message.length > 2000) {
-    return error(res, 'Message too long (max 2000 characters)', 400);
+  // OCR requests carry a larger payload — allow up to 20 000 chars for the combined message.
+  const maxMessageLen = ocrText ? 20_000 : 2_000;
+  if (message.length > maxMessageLen) {
+    return error(res, `Message too long (max ${maxMessageLen} characters)`, 400);
   }
 
   // Flush SSE headers — after this point all errors must go through SSE event: error.
@@ -36,7 +38,7 @@ export async function chatWithAgent(req: AuthenticatedRequest, res: Response) {
 
     if (ocrText) {
       finalMessage = `[Nội dung tài liệu đính kèm (OCR):\n${ocrText}]\n\nYêu cầu của tôi: ${message.trim()}`;
-      console.log(`[OCR] Browser extracted ${ocrText.length} chars, injected into prompt.`);
+      console.log(`[OCR] finalMessage length: ${finalMessage.length} chars`);
     }
 
     const result = await runAgenticChat(
@@ -167,7 +169,7 @@ export async function extractOcr(req: AuthenticatedRequest, res: Response) {
 
   try {
     const response = await openaiClient.chat.completions.create({
-      model: 'gemma-4-26B-A4B-it',
+      model: 'gemma-4-31B-it',
       messages: [
         {
           role: 'user',
