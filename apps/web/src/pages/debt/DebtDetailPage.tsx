@@ -73,7 +73,17 @@ export default function DebtDetailPage() {
   );
 
   const { debt, earBreakdown, paymentHistory } = data;
-  const paidPercent = ((debt.originalAmount - debt.balance) / debt.originalAmount * 100).toFixed(0);
+  const isCreditCard = debt.debtType === 'CREDIT_CARD';
+  
+  // Calculate paid percent safely
+  const paidPercent = debt.originalAmount > 0 
+    ? ((debt.originalAmount - debt.balance) / debt.originalAmount * 100).toFixed(0)
+    : "0";
+  
+  // Utilization for Credit Card
+  const utilizationPercent = debt.originalAmount > 0
+    ? ((debt.balance / debt.originalAmount) * 100).toFixed(0)
+    : "100";
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-8 space-y-6">
@@ -198,7 +208,12 @@ export default function DebtDetailPage() {
               { label: 'Dư nợ', value: formatVND(debt.balance), color: '#ef4444', gradient: 'from-red-500 to-rose-400' },
               { label: 'APR', value: formatPercent(debt.apr), color: '#3b82f6', gradient: 'from-blue-500 to-cyan-400' },
               { label: 'EAR thực tế', value: formatPercent(debt.ear), color: '#ef4444', gradient: 'from-red-500 to-rose-400' },
-              { label: 'Còn lại', value: `${debt.remainingTerms} kỳ`, color: '#94a3b8', gradient: 'from-slate-400 to-slate-500' },
+              { 
+                label: 'Còn lại', 
+                value: isCreditCard ? 'Vô hạn' : `${debt.remainingTerms} kỳ`, 
+                color: '#94a3b8', 
+                gradient: 'from-slate-400 to-slate-500' 
+              },
             ].map((item, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
                 className="relative rounded-2xl p-4 border overflow-hidden text-center"
@@ -210,19 +225,37 @@ export default function DebtDetailPage() {
             ))}
           </div>
 
-          <div className="rounded-3xl border p-5 relative overflow-hidden" style={{ background: 'var(--color-bg-card)', borderColor: 'rgba(59,130,246,0.15)' }}>
-            <div className="absolute top-0 left-5 right-5 h-px bg-gradient-to-r from-transparent via-blue-500/30 to-transparent" />
+          <div className="rounded-3xl border p-5 relative overflow-hidden" style={{ background: 'var(--color-bg-card)', borderColor: isCreditCard ? 'rgba(239,68,68,0.15)' : 'rgba(59,130,246,0.15)' }}>
+            <div className="absolute top-0 left-5 right-5 h-px" style={{ background: isCreditCard ? 'linear-gradient(90deg,transparent,rgba(239,68,68,0.3),transparent)' : 'linear-gradient(90deg,transparent,rgba(59,130,246,0.3),transparent)' }} />
             <div className="flex justify-between items-center mb-3">
-              <span className="text-[13px] font-black text-[var(--color-text-primary)]">Tiến trình trả nợ</span>
-              <span className="text-[13px] font-black text-blue-400">{paidPercent}%</span>
+              <span className="text-[13px] font-black text-[var(--color-text-primary)]">
+                {isCreditCard ? 'Tỷ lệ sử dụng hạn mức' : 'Tiến trình trả nợ'}
+              </span>
+              <span className={`text-[13px] font-black ${isCreditCard ? 'text-rose-400' : 'text-blue-400'}`}>
+                {isCreditCard ? utilizationPercent : paidPercent}%
+              </span>
             </div>
             <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--color-bg-secondary)' }}>
-              <motion.div initial={{ width: 0 }} animate={{ width: `${Math.max(2, paidPercent)}%` }} transition={{ duration: 1, ease: 'easeOut' }}
-                className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400" style={{ boxShadow: '0 0 8px rgba(59,130,246,0.5)' }} />
+              <motion.div 
+                initial={{ width: 0 }} 
+                animate={{ width: `${Math.min(100, Math.max(2, isCreditCard ? Number(utilizationPercent) : Number(paidPercent)))}%` }} 
+                transition={{ duration: 1, ease: 'easeOut' }}
+                className={`h-full rounded-full bg-gradient-to-r ${isCreditCard ? 'from-rose-500 to-orange-400' : 'from-blue-500 to-cyan-400'}`} 
+                style={{ boxShadow: isCreditCard ? '0 0 8px rgba(244,63,94,0.4)' : '0 0 8px rgba(59,130,246,0.4)' }} 
+              />
             </div>
             <div className="flex justify-between text-[11px] text-[var(--color-text-muted)] mt-2">
-              <span>Đã trả: {formatVND(debt.originalAmount - debt.balance)}</span>
-              <span>Gốc: {formatVND(debt.originalAmount)}</span>
+              {isCreditCard ? (
+                <>
+                  <span>Đã dùng: {formatVND(debt.balance)}</span>
+                  <span>Hạn mức: {formatVND(debt.originalAmount)}</span>
+                </>
+              ) : (
+                <>
+                  <span>Đã trả: {formatVND(Math.max(0, debt.originalAmount - debt.balance))}</span>
+                  <span>Gốc: {formatVND(debt.originalAmount)}</span>
+                </>
+              )}
             </div>
           </div>
 
@@ -304,8 +337,16 @@ export default function DebtDetailPage() {
 
             <div className="space-y-2.5">
               {[
-                { label: 'Gốc ban đầu', value: formatVND(debt.originalAmount), vColor: 'var(--color-text-primary)' },
-                { label: 'Đã trả', value: formatVND(debt.originalAmount - debt.balance), vColor: '#34d399' },
+                { 
+                  label: isCreditCard ? 'Hạn mức thẻ' : 'Gốc ban đầu', 
+                  value: formatVND(debt.originalAmount), 
+                  vColor: 'var(--color-text-primary)' 
+                },
+                { 
+                  label: isCreditCard ? 'Hạn mức đã dùng' : 'Đã trả', 
+                  value: isCreditCard ? formatVND(debt.balance) : formatVND(Math.max(0, debt.originalAmount - debt.balance)), 
+                  vColor: isCreditCard ? '#f43f5e' : '#34d399' 
+                },
                 { label: 'Ngày đáo hạn', value: `Ngày ${debt.dueDay} hàng tháng`, vColor: 'var(--color-text-primary)' },
               ].map(r => (
                 <div key={r.label} className="flex justify-between text-[12px]">
