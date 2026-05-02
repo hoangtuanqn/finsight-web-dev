@@ -21,7 +21,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
-import { authAPI } from '../api';
+import { authAPI, enterpriseAuthAPI } from '../api';
 import { ToggleMode } from '../components/layout/components/ToggleMode';
 import { useAuth } from '../context/AuthContext';
 import { useDarkMode } from '../hooks/useDarkMode';
