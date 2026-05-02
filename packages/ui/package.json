@@ -21,8 +21,11 @@
     "typescript": "5.9.2"
   },
   "dependencies": {
+    "@react-oauth/google": "^0.13.5",
+    "@tanstack/react-query": "^5.100.8",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.14.0",
+    "qrcode.react": "^4.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   }
