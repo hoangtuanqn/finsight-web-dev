@@ -1,10 +1,6 @@
-import React from "react";
-import { ASSET_LABELS } from "./InvestmentConstants";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
-import {
-  BASE_ALLOCATIONS,
-  SENTIMENT_BANDS,
-} from "../../constants/investmentConstants";
+import { Minus, TrendingDown, TrendingUp } from 'lucide-react';
+import { BASE_ALLOCATIONS, SENTIMENT_BANDS } from '../../constants/investmentConstants';
+import { ASSET_LABELS } from './InvestmentConstants';
 
 /**
  * Calculates DeltaChip component for showing percentage changes
@@ -24,9 +20,7 @@ export function DeltaChip({ current, previous }) {
   return (
     <span
       className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold border ${
-        up
-          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-          : "bg-red-500/10 text-red-400 border-red-500/20"
+        up ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'
       }`}
     >
       {up ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
@@ -39,134 +33,122 @@ export function DeltaChip({ current, previous }) {
  * Explains the reasoning behind an asset allocation.
  * Dùng BASE_ALLOCATIONS từ constants (single source of truth, không duplicate).
  */
-export function explainAsset(
-  asset,
-  pct,
-  profile,
-  sentimentValue,
-  analytics = {},
-) {
+export function explainAsset(asset, pct, profile, sentimentValue, analytics = {}) {
   const reasons = [];
-  const riskLabel =
-    { LOW: "Thấp", MEDIUM: "Trung bình", HIGH: "Cao" }[profile?.riskLevel] ||
-    "Trung bình";
+  const riskLabel = { LOW: 'Thấp', MEDIUM: 'Trung bình', HIGH: 'Cao' }[profile?.riskLevel] || 'Trung bình';
   const { optimization, allocationMetrics } = analytics;
   const hasMvoMetrics = Boolean(optimization && allocationMetrics);
   const qualityLabel =
     {
-      full: "Historical 5y",
-      partial: "Partial fallback",
-      fallback: "Fallback",
-    }[optimization?.marketDataQuality] || "Fallback";
+      full: 'Historical 5y',
+      partial: 'Partial fallback',
+      fallback: 'Fallback',
+    }[optimization?.marketDataQuality] || 'Fallback';
   const asPercent = (value) => {
     const number = Number(value);
-    return Number.isFinite(number) ? `${(number * 100).toFixed(1)}%` : "-";
+    return Number.isFinite(number) ? `${(number * 100).toFixed(1)}%` : '-';
   };
   const asRatio = (value) => {
     const number = Number(value);
-    return Number.isFinite(number) ? number.toFixed(2) : "-";
+    return Number.isFinite(number) ? number.toFixed(2) : '-';
   };
 
   // Dùng SENTIMENT_BANDS để lấy label + labelVi (fix bug NEUTRAL band)
-  const band =
-    SENTIMENT_BANDS.find((b) => sentimentValue <= b.max) ?? SENTIMENT_BANDS[2];
+  const band = SENTIMENT_BANDS.find((b) => sentimentValue <= b.max) ?? SENTIMENT_BANDS[2];
   const sentimentZone = band.labelVi;
 
   // Dùng BASE_ALLOCATIONS từ constants thay vì object duplicate
-  const baseVal =
-    BASE_ALLOCATIONS[profile?.riskLevel || "MEDIUM"]?.[asset] ?? 0;
+  const baseVal = BASE_ALLOCATIONS[profile?.riskLevel || 'MEDIUM']?.[asset] ?? 0;
   if (hasMvoMetrics) {
     reasons.push({
-      layer: "Tối ưu MVO",
-      icon: "Activity",
+      layer: 'Tối ưu MVO',
+      icon: 'Activity',
       text: `Markowitz MVO chọn ${pct}% ${ASSET_LABELS[asset]} trong danh mục kỳ vọng ${asPercent(allocationMetrics.expectedReturn)}, rủi ro ${asPercent(allocationMetrics.portfolioRisk)}, Sharpe ${asRatio(allocationMetrics.sharpeRatio)}.`,
     });
     reasons.push({
-      layer: "Dữ liệu",
-      icon: "Landmark",
-      text: `Nguồn tham số ${qualityLabel}; solver ${optimization.converged ? "đã hội tụ" : "cần rà soát"}${optimization.iterations ? ` sau ${optimization.iterations} vòng` : ""}.`,
+      layer: 'Dữ liệu',
+      icon: 'Landmark',
+      text: `Nguồn tham số ${qualityLabel}; solver ${optimization.converged ? 'đã hội tụ' : 'cần rà soát'}${optimization.iterations ? ` sau ${optimization.iterations} vòng` : ''}.`,
     });
     reasons.push({
-      layer: "Hồ sơ",
-      icon: "Target",
+      layer: 'Hồ sơ',
+      icon: 'Target',
       text: `Khẩu vị rủi ro ${riskLabel} và tâm lý "${sentimentZone}" được dùng để điều chỉnh ràng buộc phân bổ.`,
     });
   } else {
     // [LEGACY FALLBACK] Strategy history cũ không lưu MVO metrics, nên giữ giải thích heuristic hiện có.
     reasons.push({
-      layer: "Cơ sở",
-      icon: "Activity",
+      layer: 'Cơ sở',
+      icon: 'Activity',
       text: `Rủi ro ${riskLabel} × Tâm lý "${sentimentZone}" → nền: ${baseVal}%`,
     });
   }
 
   const sr = profile?.savingsRate || 6;
-  if (asset === "savings" && sr > 6.5) {
+  if (asset === 'savings' && sr > 6.5) {
     reasons.push({
-      layer: "Lãi suất",
-      icon: "Landmark",
+      layer: 'Lãi suất',
+      icon: 'Landmark',
       text: `Lãi suất ${sr}% > 6% → tăng tỷ trọng Tiết kiệm`,
     });
-  } else if (asset === "stocks" && sr < 5.5) {
+  } else if (asset === 'stocks' && sr < 5.5) {
     reasons.push({
-      layer: "Lãi suất",
-      icon: "Landmark",
+      layer: 'Lãi suất',
+      icon: 'Landmark',
       text: `Lãi suất ${sr}% < 6% → ưu tiên Chứng khoán`,
     });
   }
 
-  const h = profile?.horizon || "MEDIUM";
+  const h = profile?.horizon || 'MEDIUM';
   const horizonEffects = {
     savings: {
-      SHORT: "tăng (bảo toàn vốn)",
-      LONG: "giảm (nhường chỗ tăng trưởng)",
+      SHORT: 'tăng (bảo toàn vốn)',
+      LONG: 'giảm (nhường chỗ tăng trưởng)',
     },
     stocks: {
-      SHORT: "giảm (tránh biến động)",
-      LONG: "tăng (tăng trưởng dài hạn)",
+      SHORT: 'giảm (tránh biến động)',
+      LONG: 'tăng (tăng trưởng dài hạn)',
     },
     crypto: {
-      SHORT: "giảm mạnh (rủi ro cao)",
-      LONG: "tăng (tiềm năng dài hạn)",
+      SHORT: 'giảm mạnh (rủi ro cao)',
+      LONG: 'tăng (tiềm năng dài hạn)',
     },
     gold: {
-      SHORT: "giữ nguyên (phòng thủ)",
-      LONG: "giảm nhẹ (ưu tiên tài sản sinh lời)",
+      SHORT: 'giữ nguyên (phòng thủ)',
+      LONG: 'giảm nhẹ (ưu tiên tài sản sinh lời)',
     },
-    bonds: { SHORT: "tăng (ổn định)", LONG: "giảm (lợi nhuận thấp)" },
+    bonds: { SHORT: 'tăng (ổn định)', LONG: 'giảm (lợi nhuận thấp)' },
   };
   const hEffect = horizonEffects[asset]?.[h];
   if (hEffect) {
-    const hLabel = { SHORT: "Ngắn hạn", MEDIUM: "Trung hạn", LONG: "Dài hạn" }[
-      h
-    ];
+    const hLabel = { SHORT: 'Ngắn hạn', MEDIUM: 'Trung hạn', LONG: 'Dài hạn' }[h];
     reasons.push({
-      layer: "Kỳ hạn",
-      icon: "Clock",
+      layer: 'Kỳ hạn',
+      icon: 'Clock',
       text: `Kỳ hạn ${hLabel} → ${hEffect}`,
     });
   }
 
   const g = profile?.goal;
-  if (g === "STABILITY" && asset === "bonds") {
+  if (g === 'STABILITY' && asset === 'bonds') {
     reasons.push({
-      layer: "Mục tiêu",
-      icon: "Target",
-      text: "Mục tiêu Ổn định → tăng Trái phiếu",
+      layer: 'Mục tiêu',
+      icon: 'Target',
+      text: 'Mục tiêu Ổn định → tăng Trái phiếu',
     });
   }
-  if (g === "STABILITY" && (asset === "crypto" || asset === "stocks")) {
+  if (g === 'STABILITY' && (asset === 'crypto' || asset === 'stocks')) {
     reasons.push({
-      layer: "Mục tiêu",
-      icon: "Target",
+      layer: 'Mục tiêu',
+      icon: 'Target',
       text: `Mục tiêu Ổn định → giảm ${ASSET_LABELS[asset]}`,
     });
   }
-  if (g === "SPECULATION" && asset === "crypto") {
+  if (g === 'SPECULATION' && asset === 'crypto') {
     reasons.push({
-      layer: "Mục tiêu",
-      icon: "Target",
-      text: "Mục tiêu Tăng trưởng → tối ưu Crypto",
+      layer: 'Mục tiêu',
+      icon: 'Target',
+      text: 'Mục tiêu Tăng trưởng → tối ưu Crypto',
     });
   }
 
@@ -178,8 +160,5 @@ export function explainAsset(
  */
 export const calcFV = (capital, monthlyAdd, rate, years) => {
   if (rate === 0) return capital + (monthlyAdd || 0) * 12 * years;
-  return (
-    capital * Math.pow(1 + rate, years) +
-    (monthlyAdd || 0) * 12 * ((Math.pow(1 + rate, years) - 1) / rate)
-  );
+  return capital * Math.pow(1 + rate, years) + (monthlyAdd || 0) * 12 * ((Math.pow(1 + rate, years) - 1) / rate);
 };

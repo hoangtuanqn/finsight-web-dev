@@ -1,9 +1,9 @@
 import { Response } from 'express';
-import prisma from '../lib/prisma';
-import { success, error } from '../utils/apiResponse';
-import { AuthenticatedRequest } from '../types';
 import { banks } from '../data/banks';
+import prisma from '../lib/prisma';
 import { checkBankOwner } from '../services/kyc.service';
+import { AuthenticatedRequest } from '../types';
+import { error, success } from '../utils/apiResponse';
 
 function normalizeName(name: string): string {
   if (!name) return '';
@@ -197,10 +197,17 @@ export async function addBankAccount(req: AuthenticatedRequest, res: Response) {
       const bankLookupRes = await checkBankOwner(bankCode, accountNumber);
       console.log('\n--- [BankLookup] API Response ---');
       console.dir(bankLookupRes, { depth: null });
-      
+
       if (bankLookupRes.code !== 200 || !bankLookupRes.success) {
-        if (bankLookupRes.code === 402 || String(bankLookupRes.msg || bankLookupRes.message).includes('Out of Credit')) {
-          return error(res, 'Dịch vụ xác thực ngân hàng đang tạm gián đoạn để bảo trì. Vui lòng liên hệ hỗ trợ hoặc thử lại sau.', 503);
+        if (
+          bankLookupRes.code === 402 ||
+          String(bankLookupRes.msg || bankLookupRes.message).includes('Out of Credit')
+        ) {
+          return error(
+            res,
+            'Dịch vụ xác thực ngân hàng đang tạm gián đoạn để bảo trì. Vui lòng liên hệ hỗ trợ hoặc thử lại sau.',
+            503,
+          );
         }
         return error(res, `Xác thực tài khoản thất bại (Code: ${bankLookupRes.code})`, 422);
       }
@@ -212,7 +219,11 @@ export async function addBankAccount(req: AuthenticatedRequest, res: Response) {
 
       // So sánh tên sau khi loại bỏ dấu và đưa về chữ thường
       if (normalizeName(returnedOwnerName) !== normalizeName(user.kycName)) {
-        return error(res, `Chủ tài khoản hiện tại là ${returnedOwnerName}. Yêu cầu dùng đúng STK có tên đã xác minh từ trước (${user.kycName}).`, 422);
+        return error(
+          res,
+          `Chủ tài khoản hiện tại là ${returnedOwnerName}. Yêu cầu dùng đúng STK có tên đã xác minh từ trước (${user.kycName}).`,
+          422,
+        );
       }
     } catch (apiErr: any) {
       console.error('[Affiliate] checkBankOwner error:', apiErr?.response?.data || apiErr.message);
@@ -317,11 +328,7 @@ export async function requestWithdrawal(req: AuthenticatedRequest, res: Response
     const availableBalance = (user?.commissionBalance || 0) - pendingAmount;
 
     if (withdrawAmount > availableBalance) {
-      return error(
-        res,
-        `Số dư khả dụng không đủ`,
-        400,
-      );
+      return error(res, `Số dư khả dụng không đủ`, 400);
     }
 
     const withdrawal = await (prisma as any).withdrawalRequest.create({

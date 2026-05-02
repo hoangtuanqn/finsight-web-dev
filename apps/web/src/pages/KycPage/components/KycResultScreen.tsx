@@ -1,4 +1,4 @@
-import { ShieldCheck, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface ResultProps {
@@ -11,7 +11,6 @@ export default function KycResultScreen({ kycName, kycIdNumber }: ResultProps) {
 
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center animate-in fade-in zoom-in duration-500">
-      
       <div className="relative mb-8">
         <div className="absolute inset-0 bg-emerald-500 blur-3xl opacity-20 rounded-full" />
         <div className="w-24 h-24 bg-gradient-to-tr from-emerald-500 to-emerald-400 rounded-full flex items-center justify-center text-white shadow-xl shadow-emerald-500/30 relative z-10 border-4 border-white">
@@ -19,11 +18,10 @@ export default function KycResultScreen({ kycName, kycIdNumber }: ResultProps) {
         </div>
       </div>
 
-      <h2 className="text-2xl font-bold text-[var(--color-text-primary)] mb-2">
-        Xác minh thành công
-      </h2>
+      <h2 className="text-2xl font-bold text-[var(--color-text-primary)] mb-2">Xác minh thành công</h2>
       <p className="text-[var(--color-text-secondary)] mb-8 max-w-md">
-        Tuyệt vời! Danh tính của bạn đã được xác minh. Tài khoản của bạn hiện đã được bảo vệ tối đa và có thể sử dụng tất cả tính năng trên hệ thống.
+        Tuyệt vời! Danh tính của bạn đã được xác minh. Tài khoản của bạn hiện đã được bảo vệ tối đa và có thể sử dụng
+        tất cả tính năng trên hệ thống.
       </p>
 
       <div className="w-full max-w-md bg-[var(--color-bg-secondary)] rounded-2xl p-6 border border-[var(--color-border)] text-left mb-8">
@@ -48,7 +46,6 @@ export default function KycResultScreen({ kycName, kycIdNumber }: ResultProps) {
       >
         <ArrowLeft size={18} /> Quay lại trang cá nhân
       </button>
-
     </div>
   );
 }

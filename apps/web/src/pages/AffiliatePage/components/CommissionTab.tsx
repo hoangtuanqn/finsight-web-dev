@@ -1,7 +1,7 @@
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { TrendingUp, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RefreshCw, TrendingUp } from 'lucide-react';
+import { useState } from 'react';
 import { referralAPI } from '../../../api';
 
 function formatVND(amount: number) {
@@ -21,7 +21,9 @@ function StatusBadge({ status }: { status: string }) {
   };
   const c = config[status] || config['EARNED'];
   return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${c.className}`}>
+    <span
+      className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${c.className}`}
+    >
       {c.label}
     </span>
   );
@@ -78,7 +80,10 @@ export default function CommissionTab({ stats }: CommissionTabProps) {
               borderColor: `${card.color}25`,
             }}
           >
-            <div className="absolute top-0 left-6 right-6 h-px" style={{ background: `linear-gradient(90deg,transparent,${card.color}60,transparent)` }} />
+            <div
+              className="absolute top-0 left-6 right-6 h-px"
+              style={{ background: `linear-gradient(90deg,transparent,${card.color}60,transparent)` }}
+            />
             <p className="text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-2">
               {card.label}
             </p>
@@ -120,13 +125,27 @@ export default function CommissionTab({ stats }: CommissionTabProps) {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-[var(--color-bg-secondary)]/50 border-b border-[var(--color-border)]">
-                    <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest">Người trả</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest">Gói</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest text-right">Giao dịch gốc</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest text-right">Tỉ lệ</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest text-right">Hoa hồng</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest text-center">Trạng thái</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest text-right">Ngày</th>
+                    <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest">
+                      Người trả
+                    </th>
+                    <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest">
+                      Gói
+                    </th>
+                    <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest text-right">
+                      Giao dịch gốc
+                    </th>
+                    <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest text-right">
+                      Tỉ lệ
+                    </th>
+                    <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest text-right">
+                      Hoa hồng
+                    </th>
+                    <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest text-center">
+                      Trạng thái
+                    </th>
+                    <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest text-right">
+                      Ngày
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--color-border)]">
@@ -139,11 +158,11 @@ export default function CommissionTab({ stats }: CommissionTabProps) {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase ${
-                          log.plan === 'PROMAX'
-                            ? 'bg-amber-500/10 text-amber-500'
-                            : 'bg-blue-500/10 text-blue-500'
-                        }`}>
+                        <span
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase ${
+                            log.plan === 'PROMAX' ? 'bg-amber-500/10 text-amber-500' : 'bg-blue-500/10 text-blue-500'
+                          }`}
+                        >
                           {log.plan}
                         </span>
                       </td>
@@ -171,7 +190,7 @@ export default function CommissionTab({ stats }: CommissionTabProps) {
             {totalPages > 1 && (
               <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-[var(--color-border)]">
                 <button
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
                   className="p-2 rounded-lg hover:bg-[var(--color-bg-secondary)] disabled:opacity-30 transition-all"
                 >
@@ -181,7 +200,7 @@ export default function CommissionTab({ stats }: CommissionTabProps) {
                   {page} / {totalPages}
                 </span>
                 <button
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
                   className="p-2 rounded-lg hover:bg-[var(--color-bg-secondary)] disabled:opacity-30 transition-all"
                 >

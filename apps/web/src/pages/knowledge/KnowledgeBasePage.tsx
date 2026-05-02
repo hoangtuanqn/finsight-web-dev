@@ -1,13 +1,26 @@
-import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  BookOpen, Lightbulb, Bookmark, ArrowRight, BookMarked, BrainCircuit, 
-  User, Calendar, Loader2, Sparkles, X, ChevronRight, Share2, Clock,
-  ChevronLeft, Search
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  ArrowRight,
+  Bookmark,
+  BookMarked,
+  BookOpen,
+  BrainCircuit,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Lightbulb,
+  Loader2,
+  Search,
+  Share2,
+  Sparkles,
+  User,
+  X,
 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import knowledgeData from '../../data/knowledgeBase.json';
 import { useArticles, useSeedArticles } from '../../hooks/useArticleQuery';
-import { toast } from 'sonner';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -16,22 +29,23 @@ export default function KnowledgeBasePage() {
   const [selectedArticle, setSelectedArticle] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  
-  const { data: articles, isLoading } = useArticles() as { data: any[] | undefined, isLoading: boolean };
+
+  const { data: articles, isLoading } = useArticles() as { data: any[] | undefined; isLoading: boolean };
   const { mutate: seed, isPending: isSeeding } = useSeedArticles();
 
   const handleSeed = () => {
     seed(null, {
       onSuccess: () => toast.success('Đã nạp dữ liệu bài viết mẫu!'),
-      onError: () => toast.error('Lỗi khi nạp dữ liệu.')
+      onError: () => toast.error('Lỗi khi nạp dữ liệu.'),
     });
   };
 
   // Terms Pagination & Filter Logic
   const filteredTerms = useMemo(() => {
-    return (knowledgeData as any).terms.filter((term: any) => 
-      term.term.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      term.definition.toLowerCase().includes(searchTerm.toLowerCase())
+    return (knowledgeData as any).terms.filter(
+      (term: any) =>
+        term.term.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        term.definition.toLowerCase().includes(searchTerm.toLowerCase()),
     );
   }, [searchTerm]);
 
@@ -49,19 +63,26 @@ export default function KnowledgeBasePage() {
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-20">
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="pt-2 flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="pt-2 flex flex-col md:flex-row md:items-end justify-between gap-4"
+      >
         <div className="space-y-1">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/20 bg-indigo-500/8 text-indigo-400 text-[10px] font-black uppercase tracking-widest mb-2">
             <BookOpen size={11} /> Kho tàng kiến thức
           </div>
           <h1 className="text-4xl font-black tracking-tighter text-[var(--color-text-primary)] leading-none">
-            Kiến thức <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-blue-400">Tài chính</span>
+            Kiến thức{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-blue-400">
+              Tài chính
+            </span>
           </h1>
           <p className="text-[var(--color-text-secondary)] text-sm max-w-2xl">
             Tối ưu hóa chiến lược quản lý nợ thông qua các khái niệm cốt lõi và câu chuyện thực tiễn.
           </p>
         </div>
-        
+
         {activeTab === 'stories' && (!articles || articles.length === 0) && !isLoading && (
           <button
             onClick={handleSeed}
@@ -79,13 +100,18 @@ export default function KnowledgeBasePage() {
         <div className="flex p-1.5 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[20px] w-fit">
           {[
             { id: 'terms', label: 'Thuật ngữ', icon: BookMarked },
-            { id: 'stories', label: 'Bài viết thực tế', icon: Lightbulb }
-          ].map(tab => (
+            { id: 'stories', label: 'Bài viết thực tế', icon: Lightbulb },
+          ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => { setActiveTab(tab.id); setCurrentPage(1); }}
+              onClick={() => {
+                setActiveTab(tab.id);
+                setCurrentPage(1);
+              }}
               className={`relative px-8 py-3 rounded-[15px] text-[13px] font-bold transition-all ${
-                activeTab === tab.id ? 'text-white' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+                activeTab === tab.id
+                  ? 'text-white'
+                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
               }`}
             >
               {activeTab === tab.id && (
@@ -93,7 +119,7 @@ export default function KnowledgeBasePage() {
                   layoutId="kb-tab-active"
                   className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-blue-500 rounded-[15px]"
                   style={{ boxShadow: '0 8px 20px rgba(79,70,229,0.3)' }}
-                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
               )}
               <span className="relative z-10 flex items-center gap-2.5">
@@ -110,11 +136,14 @@ export default function KnowledgeBasePage() {
             </span>
             <div className="relative w-full md:w-80">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" size={16} />
-              <input 
+              <input
                 type="text"
                 placeholder="Tìm kiếm thuật ngữ..."
                 value={searchTerm}
-                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="w-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl py-3 pl-11 pr-4 text-sm focus:border-indigo-500/50 outline-none transition-all"
               />
             </div>
@@ -143,7 +172,7 @@ export default function KnowledgeBasePage() {
                       className="group p-8 rounded-[32px] bg-[var(--color-bg-secondary)] border border-[var(--color-border)] hover:border-indigo-500/40 transition-all duration-500 flex flex-col relative overflow-hidden"
                     >
                       <div className="absolute -top-12 -right-12 w-48 h-48 bg-indigo-500/5 rounded-full blur-3xl group-hover:bg-indigo-500/15 transition-all duration-700" />
-                      
+
                       <div className="flex items-center gap-4 mb-6">
                         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-blue-500/10 text-indigo-500 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                           <BrainCircuit size={22} />
@@ -194,7 +223,9 @@ export default function KnowledgeBasePage() {
               </>
             ) : (
               <div className="py-20 text-center">
-                <p className="text-[var(--color-text-muted)] font-medium italic">Không tìm thấy thuật ngữ nào phù hợp.</p>
+                <p className="text-[var(--color-text-muted)] font-medium italic">
+                  Không tìm thấy thuật ngữ nào phù hợp.
+                </p>
               </div>
             )}
           </motion.div>
@@ -228,8 +259,8 @@ export default function KnowledgeBasePage() {
                   >
                     <div className="h-64 overflow-hidden relative">
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10 opacity-60 group-hover:opacity-40 transition-opacity" />
-                      <img 
-                        src={story.imageUrl} 
+                      <img
+                        src={story.imageUrl}
                         alt={story.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
                       />
@@ -242,7 +273,7 @@ export default function KnowledgeBasePage() {
                         </span>
                       </div>
                     </div>
-                    
+
                     <div className="p-8 flex flex-col flex-1 relative">
                       <div className="flex justify-between items-start mb-4">
                         <h3 className="text-2xl font-black text-[var(--color-text-primary)] leading-tight tracking-tighter group-hover:text-indigo-400 transition-colors flex-1 pr-4">
@@ -252,11 +283,11 @@ export default function KnowledgeBasePage() {
                           <ArrowRight size={20} />
                         </div>
                       </div>
-                      
+
                       <p className="text-[var(--color-text-secondary)] text-sm leading-relaxed line-clamp-3 mb-6 font-medium">
                         {story.excerpt}
                       </p>
-                      
+
                       <div className="mt-auto flex items-center justify-between border-t border-[var(--color-border)] pt-5">
                         <div className="flex items-center gap-2 text-[var(--color-text-muted)] text-[11px] font-bold">
                           <Clock size={13} /> 5 phút đọc
@@ -275,7 +306,9 @@ export default function KnowledgeBasePage() {
                   <BookOpen size={48} />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-xl font-black text-[var(--color-text-primary)] tracking-tight">Chưa có bài viết nào</h3>
+                  <h3 className="text-xl font-black text-[var(--color-text-primary)] tracking-tight">
+                    Chưa có bài viết nào
+                  </h3>
                   <p className="text-[var(--color-text-muted)] text-sm max-w-xs mx-auto">
                     Khám phá góc nhìn chuyên sâu về quản lý tài chính thông qua các tình huống thực tế.
                   </p>
@@ -297,14 +330,14 @@ export default function KnowledgeBasePage() {
               onClick={() => setSelectedArticle(null)}
               className="absolute inset-0 bg-black/80 backdrop-blur-md"
             />
-            
+
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative w-full max-w-4xl max-h-[90vh] bg-[var(--color-bg-primary)] rounded-[48px] border border-white/10 overflow-hidden shadow-2xl flex flex-col"
             >
-              <button 
+              <button
                 onClick={() => setSelectedArticle(null)}
                 className="absolute top-6 right-6 z-30 w-12 h-12 rounded-full bg-black/40 backdrop-blur-xl border border-white/10 text-white flex items-center justify-center hover:bg-white hover:text-black transition-all"
               >
@@ -314,8 +347,8 @@ export default function KnowledgeBasePage() {
               <div className="overflow-y-auto custom-scrollbar">
                 <div className="relative h-80 md:h-96">
                   <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-bg-primary)] via-transparent to-transparent z-10" />
-                  <img 
-                    src={selectedArticle.imageUrl} 
+                  <img
+                    src={selectedArticle.imageUrl}
                     alt={selectedArticle.title}
                     className="w-full h-full object-cover"
                   />
@@ -359,7 +392,7 @@ export default function KnowledgeBasePage() {
                         <Bookmark size={18} /> Lưu bài viết
                       </button>
                     </div>
-                    <button 
+                    <button
                       onClick={() => setSelectedArticle(null)}
                       className="px-8 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-500 text-white font-black text-sm tracking-widest uppercase hover:scale-105 active:scale-95 transition-all shadow-xl shadow-indigo-500/20"
                     >

@@ -45,36 +45,36 @@ export const BASE_ALLOCATIONS = {
 export const SENTIMENT_BANDS = [
   {
     max: 20,
-    label: "EXTREME_FEAR",
-    labelVi: "Sợ hãi cực độ",
+    label: 'EXTREME_FEAR',
+    labelVi: 'Sợ hãi cực độ',
     // Thoát rủi ro: +10% savings, giảm stocks và crypto
     overlay: { savings: +10, stocks: -5, crypto: -5 },
   },
   {
     max: 40,
-    label: "FEAR",
-    labelVi: "Sợ hãi",
+    label: 'FEAR',
+    labelVi: 'Sợ hãi',
     // Phòng thủ nhẹ: +5% savings, giảm nhẹ cổ phiếu và crypto
     overlay: { savings: +5, stocks: -3, crypto: -2 },
   },
   {
     max: 59,
-    label: "NEUTRAL",
-    labelVi: "Trung lập",
+    label: 'NEUTRAL',
+    labelVi: 'Trung lập',
     // Không điều chỉnh - giữ BASE allocation
     overlay: {},
   },
   {
     max: 74,
-    label: "GREED",
-    labelVi: "Tham lam",
+    label: 'GREED',
+    labelVi: 'Tham lam',
     // Risk-on nhẹ: tăng stocks, giảm savings
     overlay: { savings: -3, stocks: +3 },
   },
   {
     max: 100,
-    label: "EXTREME_GREED",
-    labelVi: "Tham lam cực độ",
+    label: 'EXTREME_GREED',
+    labelVi: 'Tham lam cực độ',
     // Risk-on: tăng stocks và crypto, giảm savings
     // Lưu ý: contrarian view - EXTREME_GREED là tín hiệu cảnh báo,
     // nhưng giữ moderate để không confuse retail investor
@@ -115,33 +115,33 @@ export const CAPITAL_OVERLAYS = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const ASSET_CLASSES = {
   savings: {
-    label: "Tiết kiệm",
+    label: 'Tiết kiệm',
     expectedReturn: 0.05, // 5.0%/năm - lãi suất tiết kiệm 12T TB NH lớn VN 2024 (nguồn: NHNN)
     stdDev: 0.002, // gần như risk-free
   },
   gold: {
-    label: "Vàng",
+    label: 'Vàng',
     expectedReturn: 0.065, // 6.5%/năm - CAGR vàng SJC 10 năm, loại trừ distortion 2023-2024
     stdDev: 0.18, // biến động cao hơn bonds nhưng thấp hơn stocks
   },
   bonds: {
-    label: "Trái phiếu",
+    label: 'Trái phiếu',
     expectedReturn: 0.042, // 4.2%/năm - yield TPCP 10 năm đấu thầu VBMA/HNX 2025
     stdDev: 0.04,
   },
   stocks: {
-    label: "Cổ phiếu",
+    label: 'Cổ phiếu',
     expectedReturn: 0.1, // 10.0%/năm - VN-Index CAGR 2014-2024, bao gồm giai đoạn COVID
     stdDev: 0.22, // biến động đáng kể, phù hợp dài hạn
   },
   crypto: {
-    label: "Tiền mã hóa",
+    label: 'Tiền mã hóa',
     expectedReturn: null, // Không dùng point estimate - biến động quá lớn, misleading
     bearCase: -0.6, // -60% (đã xảy ra: BTC 2022)
     baseCase: 0.2, // +20% (kịch bản trung bình)
     bullCase: 1.5, // +150% (đã xảy ra nhiều lần)
     stdDev: 0.8,
-    note: "Crypto không có lợi nhuận kỳ vọng ổn định - hiển thị 3 kịch bản thay vì số trung bình",
+    note: 'Crypto không có lợi nhuận kỳ vọng ổn định - hiển thị 3 kịch bản thay vì số trung bình',
   },
 };
 
@@ -167,12 +167,11 @@ export const RISK_CONFIG = {
 // ─────────────────────────────────────────────────────────────────────────────
 export const RECOMMENDATION_TEXTS = {
   EXTREME_FEAR:
-    "Thị trường đang sợ hãi cực độ. Đây thường là cơ hội tốt để mua vào từng phần, nhưng hãy ưu tiên bảo toàn vốn và giữ thanh khoản cao.",
-  FEAR: "Thị trường đang e ngại. Phân bổ thận trọng, giữ nhiều tiết kiệm và vàng để an toàn. Có thể mua thêm cổ phiếu cơ bản tốt.",
-  NEUTRAL:
-    "Thị trường cân bằng. Phân bổ theo hồ sơ rủi ro của bạn là hợp lý. Duy trì kỷ luật tái cân bằng định kỳ.",
+    'Thị trường đang sợ hãi cực độ. Đây thường là cơ hội tốt để mua vào từng phần, nhưng hãy ưu tiên bảo toàn vốn và giữ thanh khoản cao.',
+  FEAR: 'Thị trường đang e ngại. Phân bổ thận trọng, giữ nhiều tiết kiệm và vàng để an toàn. Có thể mua thêm cổ phiếu cơ bản tốt.',
+  NEUTRAL: 'Thị trường cân bằng. Phân bổ theo hồ sơ rủi ro của bạn là hợp lý. Duy trì kỷ luật tái cân bằng định kỳ.',
   GREED:
-    "Thị trường đang hưng phấn. Thận trọng với crypto và cổ phiếu đầu cơ. Cân nhắc chốt lời một phần nếu danh mục đã tăng mạnh.",
+    'Thị trường đang hưng phấn. Thận trọng với crypto và cổ phiếu đầu cơ. Cân nhắc chốt lời một phần nếu danh mục đã tăng mạnh.',
   EXTREME_GREED:
-    "CẢNH BÁO: Thị trường đang tham lam cực độ - thường là dấu hiệu đỉnh ngắn hạn. Cân nhắc giảm tỷ trọng tài sản rủi ro, tăng tiền mặt/tiết kiệm.",
+    'CẢNH BÁO: Thị trường đang tham lam cực độ - thường là dấu hiệu đỉnh ngắn hạn. Cân nhắc giảm tỷ trọng tài sản rủi ro, tăng tiền mặt/tiết kiệm.',
 };

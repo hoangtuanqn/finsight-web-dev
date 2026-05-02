@@ -1,5 +1,4 @@
-import { ASSET_ORDER } from '../constants/assetTickers.js';
-import { fetchFearGreedIndex, fetchNews } from './market.service.js';
+import { fetchNews } from './market.service.js';
 
 export interface MarketView {
   id: string;
@@ -19,7 +18,7 @@ export async function generateMarketViews(sentimentValue: number, newsApiKey?: s
       id: 'sentiment_extreme_greed',
       assets: ['crypto', 'stocks_us'],
       weights: [1, 0], // Crypto absolute view (not relative)
-      expectedReturn: 0.15, // Expect crypto to grow 15% 
+      expectedReturn: 0.15, // Expect crypto to grow 15%
       confidence: 0.6,
       description: 'Thị trường hưng phấn tột độ, dòng tiền rủi ro cao đổ mạnh vào Crypto.',
     });
@@ -53,7 +52,7 @@ export async function generateMarketViews(sentimentValue: number, newsApiKey?: s
       id: 'sentiment_extreme_fear_cash',
       assets: ['savings', 'crypto'],
       weights: [1, -1],
-      expectedReturn: 0.10,
+      expectedReturn: 0.1,
       confidence: 0.85,
       description: 'Tâm lý sợ hãi bao trùm, ưu tiên nắm giữ Tiền mặt/Tiết kiệm thay vì Crypto.',
     });

@@ -23,9 +23,9 @@ const prisma = new PrismaClient().$extends({
         }
         delete args.includeDeleted;
         return query(args);
-      }
-    }
-  }
+      },
+    },
+  },
 });
 
 export default prisma;

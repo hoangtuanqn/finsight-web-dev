@@ -9,7 +9,8 @@
     "check-types": "turbo run check-types"
   },
   "devDependencies": {
-    "prettier": "^3.7.4",
+    "prettier": "^3.8.3",
+    "prettier-plugin-organize-imports": "^4.3.0",
     "turbo": "^2.9.7",
     "typescript": "5.9.2"
   },

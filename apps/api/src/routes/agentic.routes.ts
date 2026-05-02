@@ -1,7 +1,5 @@
 import { Router } from 'express';
-import {
-  chatWithAgent, getSessions, getSessionMessages, deleteSession,
-} from '../controllers/agentic.controller';
+import { chatWithAgent, deleteSession, getSessionMessages, getSessions } from '../controllers/agentic.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { agenticRateLimit } from '../middleware/rateLimit.middleware';
 

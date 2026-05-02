@@ -5,14 +5,20 @@ import { SENTIMENT_BANDS } from '../constants/investmentConstants';
  * APY = (1 + APR/n)^n - 1
  */
 export function calcAPY(apr: number, n: number = 12): number {
-  return (Math.pow(1 + (apr / 100) / n, n) - 1) * 100;
+  return (Math.pow(1 + apr / 100 / n, n) - 1) * 100;
 }
 
 /**
  * CALCULATION 2: EAR (Effective Annual Rate)
  * EAR = APY + total annual fees as % of principal
  */
-export function calcEAR(apr: number, feeProcessing: number, feeInsurance: number, feeManagement: number, termMonths: number): number {
+export function calcEAR(
+  apr: number,
+  feeProcessing: number,
+  feeInsurance: number,
+  feeManagement: number,
+  termMonths: number,
+): number {
   const apy = calcAPY(apr);
   const annualizedProcessingFee = termMonths > 0 ? (feeProcessing / termMonths) * 12 : 0;
   const totalAnnualFees = Math.min(annualizedProcessingFee + feeInsurance + feeManagement, 300);
@@ -24,9 +30,9 @@ export function calcEAR(apr: number, feeProcessing: number, feeInsurance: number
  * P * r * (1+r)^n / ((1+r)^n - 1)
  */
 export function calcReducingMonthlyPayment(principal: number, apr: number, termMonths: number): number {
-  const r = (apr / 100) / 12;
+  const r = apr / 100 / 12;
   if (r === 0) return principal / termMonths;
-  return principal * r * Math.pow(1 + r, termMonths) / (Math.pow(1 + r, termMonths) - 1);
+  return (principal * r * Math.pow(1 + r, termMonths)) / (Math.pow(1 + r, termMonths) - 1);
 }
 
 /**
@@ -109,7 +115,8 @@ function getDebtDeadlineMonth(debt: DebtItem): number | undefined {
 export function resolveRepaymentExtraBudget(queryValue: unknown, savedValue: unknown): number {
   const getFirstValue = (value: unknown) => (Array.isArray(value) ? value[0] : value);
   const firstQueryValue = getFirstValue(queryValue);
-  const hasQueryValue = firstQueryValue !== undefined && firstQueryValue !== null && String(firstQueryValue).trim() !== '';
+  const hasQueryValue =
+    firstQueryValue !== undefined && firstQueryValue !== null && String(firstQueryValue).trim() !== '';
   const rawValue = hasQueryValue ? firstQueryValue : getFirstValue(savedValue);
   const parsedValue = Number(rawValue);
 
@@ -126,7 +133,7 @@ export function simulateRepayment(
   method: 'AVALANCHE' | 'SNOWBALL' | 'CUSTOM' = 'AVALANCHE',
   options: RepaymentSimulationOptions = {},
 ) {
-  let ds = debts.map(d => ({
+  let ds = debts.map((d) => ({
     id: d.id,
     name: d.name,
     balance: d.balance,
@@ -140,13 +147,13 @@ export function simulateRepayment(
   const normalizedMonthlyBudget = Math.max(0, Number.isFinite(monthlyBudget) ? monthlyBudget : 0);
   const initialBalance = ds.reduce((sum, d) => sum + d.balance, 0);
   const minimumBudget = ds.reduce((sum, d) => sum + d.minPayment, 0);
-  const monthlyIncome = Math.max(0, Number.isFinite(options.monthlyIncome) ? options.monthlyIncome ?? 0 : 0);
-  const maxMonths = Math.max(1, Number.isFinite(options.maxMonths) ? options.maxMonths ?? 360 : 360);
+  const monthlyIncome = Math.max(0, Number.isFinite(options.monthlyIncome) ? (options.monthlyIncome ?? 0) : 0);
+  const maxMonths = Math.max(1, Number.isFinite(options.maxMonths) ? (options.maxMonths ?? 360) : 360);
   const stopOnTermBreach = options.stopOnTermBreach === true;
   const warnings: RepaymentWarning[] = [];
   let termBreach: TermBreach | null = null;
-  const negativeAmortizationDebts = ds.filter(d => {
-    const firstMonthInterest = d.balance * (d.apr / 100) / 12;
+  const negativeAmortizationDebts = ds.filter((d) => {
+    const firstMonthInterest = (d.balance * (d.apr / 100)) / 12;
     return d.balance > 0.01 && d.minPayment <= firstMonthInterest;
   });
 
@@ -155,14 +162,12 @@ export function simulateRepayment(
       type: 'NEGATIVE_AMORTIZATION',
       severity: 'DANGER',
       message: 'Có khoản nợ có tiền trả tối thiểu không đủ bù lãi tháng đầu, dư nợ có thể tăng nếu không trả thêm.',
-      debtIds: negativeAmortizationDebts.map(d => d.id),
+      debtIds: negativeAmortizationDebts.map((d) => d.id),
     });
   }
   const calculateDti = () => {
     if (monthlyIncome <= 0) return undefined;
-    const activeMinimum = ds
-      .filter(d => d.balance > 0.01)
-      .reduce((sum, d) => sum + d.minPayment, 0);
+    const activeMinimum = ds.filter((d) => d.balance > 0.01).reduce((sum, d) => sum + d.minPayment, 0);
     return parseFloat(((activeMinimum / monthlyIncome) * 100).toFixed(1));
   };
   const schedule: PaymentScheduleItem[] = [];
@@ -178,7 +183,7 @@ export function simulateRepayment(
     payments: [],
   });
 
-  while (ds.some(d => d.balance > 0.01) && months < maxMonths) {
+  while (ds.some((d) => d.balance > 0.01) && months < maxMonths) {
     months++;
     let remaining = normalizedMonthlyBudget;
     const monthPayments: PaymentScheduleItem['payments'] = [];
@@ -188,9 +193,9 @@ export function simulateRepayment(
     const debtInterest = new Map<string | number, number>();
 
     // Step 1: Accrue interest
-    ds.forEach(d => {
+    ds.forEach((d) => {
       if (d.balance > 0) {
-        const interest = d.balance * (d.apr / 100) / 12;
+        const interest = (d.balance * (d.apr / 100)) / 12;
         totalInterest += interest;
         monthInterest += interest;
         debtInterest.set(d.id, interest);
@@ -199,7 +204,7 @@ export function simulateRepayment(
     });
 
     // Step 2: Pay minimums
-    ds.forEach(d => {
+    ds.forEach((d) => {
       if (d.balance > 0) {
         const pay = Math.min(d.minPayment, d.balance);
         d.balance -= pay;
@@ -221,7 +226,7 @@ export function simulateRepayment(
 
     // Step 3: Apply extra to priority targets until the monthly budget is exhausted.
     while (remaining > 0.01) {
-      const activeDebts = ds.filter(d => d.balance > 0.01);
+      const activeDebts = ds.filter((d) => d.balance > 0.01);
       if (activeDebts.length === 0) break;
 
       let target = null;
@@ -233,9 +238,7 @@ export function simulateRepayment(
       } else {
         const customOrder = options.customOrder || [];
         target =
-          customOrder
-            .map(id => activeDebts.find(d => String(d.id) === String(id)))
-            .find(Boolean) || activeDebts[0];
+          customOrder.map((id) => activeDebts.find((d) => String(d.id) === String(id))).find(Boolean) || activeDebts[0];
       }
 
       if (target) {
@@ -245,7 +248,7 @@ export function simulateRepayment(
         remaining -= pay;
         monthExtraPaid += pay;
         target.balance = Math.max(0, target.balance);
-        const existing = monthPayments.find(p => p.debtId === target.id);
+        const existing = monthPayments.find((p) => p.debtId === target.id);
         if (existing) {
           existing.paid += pay;
           existing.extraPaid += pay;
@@ -277,11 +280,7 @@ export function simulateRepayment(
       payments: monthPayments,
     });
 
-    const breachedDebt = ds.find(d =>
-      d.deadlineMonth !== undefined &&
-      months >= d.deadlineMonth &&
-      d.balance > 0.01,
-    );
+    const breachedDebt = ds.find((d) => d.deadlineMonth !== undefined && months >= d.deadlineMonth && d.balance > 0.01);
 
     if (breachedDebt) {
       termBreach = {
@@ -301,7 +300,7 @@ export function simulateRepayment(
     }
   }
 
-  const hasActiveDebt = ds.some(d => d.balance > 0.01);
+  const hasActiveDebt = ds.some((d) => d.balance > 0.01);
   const isCompleted = !hasActiveDebt;
 
   if (!isCompleted && !termBreach && months >= maxMonths) {
@@ -322,7 +321,7 @@ export function simulateRepayment(
     schedule,
     isCompleted,
     termBreach,
-    warnings: warnings.filter(w => !(w.type === 'TERM_BREACH' && (!w.debtIds || w.debtIds.length === 0))),
+    warnings: warnings.filter((w) => !(w.type === 'TERM_BREACH' && (!w.debtIds || w.debtIds.length === 0))),
   };
 }
 
@@ -335,12 +334,7 @@ export function simulateRepaymentWithExtraBudget(
   const minimumBudget = debts.reduce((sum, debt) => sum + debt.minPayment, 0);
   const normalizedExtraBudget = Math.max(0, Number.isFinite(extraBudget) ? extraBudget : 0);
 
-  return simulateRepayment(
-    debts,
-    minimumBudget + normalizedExtraBudget,
-    method,
-    options,
-  );
+  return simulateRepayment(debts, minimumBudget + normalizedExtraBudget, method, options);
 }
 
 export function simulateCustomRepaymentWithExtraBudget(
@@ -349,21 +343,19 @@ export function simulateCustomRepaymentWithExtraBudget(
   debtIds: Array<string | number>,
   options: RepaymentSimulationOptions = {},
 ) {
-  const selectedDebtIds = new Set(debtIds.map(id => String(id)));
+  const selectedDebtIds = new Set(debtIds.map((id) => String(id)));
   const orderedDebts = debtIds
-    .map(id => debts.find(debt => String(debt.id) === String(id)))
+    .map((id) => debts.find((debt) => String(debt.id) === String(id)))
     .filter(Boolean) as DebtItem[];
-  const remainingDebts = debts.filter(debt => !selectedDebtIds.has(String(debt.id)));
+  const remainingDebts = debts.filter((debt) => !selectedDebtIds.has(String(debt.id)));
   const planDebts = [...orderedDebts, ...remainingDebts];
   const minimumBudget = planDebts.reduce((sum, debt) => sum + debt.minPayment, 0);
   const normalizedExtraBudget = Math.max(0, Number.isFinite(extraBudget) ? extraBudget : 0);
 
-  return simulateRepayment(
-    planDebts,
-    minimumBudget + normalizedExtraBudget,
-    'CUSTOM',
-    { ...options, customOrder: debtIds },
-  );
+  return simulateRepayment(planDebts, minimumBudget + normalizedExtraBudget, 'CUSTOM', {
+    ...options,
+    customOrder: debtIds,
+  });
 }
 
 /**
@@ -390,10 +382,8 @@ export function detectDominoRisk(debts: Array<DebtItem & { dueDay: number }>, mo
   const currentDay = today.getDate();
 
   // Check 1: Multiple debts due within same week
-  const dueSoon = debts.filter(d => {
-    const daysUntilDue = d.dueDay >= currentDay
-      ? d.dueDay - currentDay
-      : 30 - currentDay + d.dueDay;
+  const dueSoon = debts.filter((d) => {
+    const daysUntilDue = d.dueDay >= currentDay ? d.dueDay - currentDay : 30 - currentDay + d.dueDay;
     return daysUntilDue <= 7 && d.balance > 0;
   });
 
@@ -402,7 +392,7 @@ export function detectDominoRisk(debts: Array<DebtItem & { dueDay: number }>, mo
       type: 'MULTIPLE_DUE',
       severity: 'WARNING',
       message: `${dueSoon.length} khoản nợ đáo hạn trong tuần này — nguy cơ thiếu tiền`,
-      debts: dueSoon.map(d => d.id),
+      debts: dueSoon.map((d) => d.id),
     });
   }
 
@@ -430,11 +420,11 @@ export function detectDominoRisk(debts: Array<DebtItem & { dueDay: number }>, mo
 export function getSentimentLabel(value: any): string {
   const number = Number(value);
   const sentimentValue = Number.isFinite(number) ? number : 50;
-  return SENTIMENT_BANDS.find(band => sentimentValue <= band.max)?.label ?? 'NEUTRAL';
+  return SENTIMENT_BANDS.find((band) => sentimentValue <= band.max)?.label ?? 'NEUTRAL';
 }
 
 export function getSentimentVietnamese(label: string): string {
-  return SENTIMENT_BANDS.find(band => band.label === label)?.labelVi ?? label;
+  return SENTIMENT_BANDS.find((band) => band.label === label)?.labelVi ?? label;
 }
 
 /**

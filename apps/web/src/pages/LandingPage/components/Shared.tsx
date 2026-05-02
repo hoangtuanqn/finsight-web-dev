@@ -1,5 +1,5 @@
-import { useRef, useState, useEffect } from 'react';
-import { motion, useInView, animate, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { animate, motion, useInView, useMotionValue } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
 
 export function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
@@ -12,7 +12,15 @@ export function useIsMobile() {
   return isMobile;
 }
 
-export function AnimatedCounter({ target, suffix = '', duration = 2 }: { target: number, suffix?: string, duration?: number }) {
+export function AnimatedCounter({
+  target,
+  suffix = '',
+  duration = 2,
+}: {
+  target: number;
+  suffix?: string;
+  duration?: number;
+}) {
   const [display, setDisplay] = useState('0');
   const ref = useRef<HTMLSpanElement>(null);
   const isInView = useInView(ref, { once: true, amount: 0.5 });
@@ -28,15 +36,31 @@ export function AnimatedCounter({ target, suffix = '', duration = 2 }: { target:
     const ctrl = (animate as any)(val.v, target, {
       duration,
       ease: 'easeOut',
-      onUpdate: (v: number) => setDisplay(typeof target === 'number' && target % 1 === 0 ? Math.round(v).toString() : v.toFixed(1)),
+      onUpdate: (v: number) =>
+        setDisplay(typeof target === 'number' && target % 1 === 0 ? Math.round(v).toString() : v.toFixed(1)),
     });
     return () => ctrl.stop();
   }, [isInView, target, duration, isMobile]);
 
-  return <span ref={ref}>{display}{suffix}</span>;
+  return (
+    <span ref={ref}>
+      {display}
+      {suffix}
+    </span>
+  );
 }
 
-export function Section({ children, className = '', id, delay = 0 }: { children: React.ReactNode, className?: string, id?: string, delay?: number }) {
+export function Section({
+  children,
+  className = '',
+  id,
+  delay = 0,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  id?: string;
+  delay?: number;
+}) {
   const ref = useRef<HTMLElement>(null);
   const isInView = useInView(ref, { once: true, amount: 0.15 });
   const isMobile = useIsMobile() as boolean;
@@ -44,7 +68,11 @@ export function Section({ children, className = '', id, delay = 0 }: { children:
   const baseClass = `py-24 px-6 max-w-7xl mx-auto w-full relative z-10 ${className}`;
 
   if (isMobile) {
-    return <section id={id} className={baseClass}>{children}</section>;
+    return (
+      <section id={id} className={baseClass}>
+        {children}
+      </section>
+    );
   }
 
   return (
@@ -61,7 +89,7 @@ export function Section({ children, className = '', id, delay = 0 }: { children:
   );
 }
 
-export function StaggerGroup({ children, className = '' }: { children: React.ReactNode, className?: string }) {
+export function StaggerGroup({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, amount: 0.15 });
   const isMobile = useIsMobile() as boolean;
@@ -88,13 +116,27 @@ export const fadeUp = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } },
 };
 
-export const GradientText = ({ children, className = '', from = 'from-blue-500', to = 'to-cyan-400' }: { children: React.ReactNode, className?: string, from?: string, to?: string }) => (
-  <span className={`bg-clip-text text-transparent bg-gradient-to-r ${from} ${to} ${className}`}>
-    {children}
-  </span>
-);
+export const GradientText = ({
+  children,
+  className = '',
+  from = 'from-blue-500',
+  to = 'to-cyan-400',
+}: {
+  children: React.ReactNode;
+  className?: string;
+  from?: string;
+  to?: string;
+}) => <span className={`bg-clip-text text-transparent bg-gradient-to-r ${from} ${to} ${className}`}>{children}</span>;
 
-export const GlowCard = ({ children, className = '', glowColor = 'rgba(59, 130, 246, 0.5)' }: { children: React.ReactNode, className?: string, glowColor?: string }) => {
+export const GlowCard = ({
+  children,
+  className = '',
+  glowColor = 'rgba(59, 130, 246, 0.5)',
+}: {
+  children: React.ReactNode;
+  className?: string;
+  glowColor?: string;
+}) => {
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
 
@@ -120,7 +162,7 @@ export const GlowCard = ({ children, className = '', glowColor = 'rgba(59, 130, 
   );
 };
 
-export const Spotlight = ({ className = "fill-white/[0.02]" }) => {
+export const Spotlight = ({ className = 'fill-white/[0.02]' }) => {
   return (
     <svg
       className={`animate-spotlight pointer-events-none absolute z-[1]  h-[169%] w-[138%] lg:w-[84%] opacity-0 ${className}`}
@@ -150,16 +192,8 @@ export const Spotlight = ({ className = "fill-white/[0.02]" }) => {
           colorInterpolationFilters="sRGB"
         >
           <feFlood floodOpacity="0" result="BackgroundImageFix"></feFlood>
-          <feBlend
-            mode="normal"
-            in="SourceGraphic"
-            in2="BackgroundImageFix"
-            result="shape"
-          ></feBlend>
-          <feGaussianBlur
-            stdDeviation="151"
-            result="effect1_foregroundBlur_1065_8"
-          ></feGaussianBlur>
+          <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"></feBlend>
+          <feGaussianBlur stdDeviation="151" result="effect1_foregroundBlur_1065_8"></feGaussianBlur>
         </filter>
       </defs>
     </svg>

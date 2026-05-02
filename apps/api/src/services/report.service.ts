@@ -1,20 +1,19 @@
-import PDFDocument from 'pdfkit';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const ExcelJS = require('exceljs');
-import prisma from '../lib/prisma.js';
-import path from 'path';
 import axios from 'axios';
+import dayjs from 'dayjs';
+import { createRequire } from 'module';
+import path from 'path';
+import PDFDocument from 'pdfkit';
 import { fileURLToPath } from 'url';
+import prisma from '../lib/prisma.js';
 import {
-  calcEAR,
   calcDebtToIncomeRatio,
+  calcEAR,
   detectDominoRisk,
   formatVND,
-  simulateRepayment,
-  simulateRepaymentWithExtraBudget
+  simulateRepaymentWithExtraBudget,
 } from '../utils/calculations.js';
-import dayjs from 'dayjs';
+const require = createRequire(import.meta.url);
+const ExcelJS = require('exceljs');
 
 const LOGO_URL = 'https://i.ibb.co/84xLmWTK/LOGO.png';
 const LOGO_PATH = path.resolve(process.cwd(), '..', 'LOGO.png');
@@ -26,7 +25,13 @@ const FONT_REGULAR = path.join(__dirname, '..', 'assets', 'fonts', 'Arial.ttf');
 const FONT_BOLD = path.join(__dirname, '..', 'assets', 'fonts', 'ArialBold.ttf');
 
 class ReportService {
-  async getReportData(userId: string, timeRange?: string, debtIds?: string | string[], startDateStr?: string, endDateStr?: string) {
+  async getReportData(
+    userId: string,
+    timeRange?: string,
+    debtIds?: string | string[],
+    startDateStr?: string,
+    endDateStr?: string,
+  ) {
     let start = dayjs(0).toDate();
     let end = new Date();
     let timeRangeStr = 'Toàn thời gian';
@@ -48,7 +53,7 @@ class ReportService {
 
     const debtsQuery: any = { status: 'ACTIVE' };
     if (debtIds) {
-      const ids = Array.isArray(debtIds) ? debtIds : (debtIds === 'all' ? [] : debtIds.split(','));
+      const ids = Array.isArray(debtIds) ? debtIds : debtIds === 'all' ? [] : debtIds.split(',');
       if (ids.length > 0) {
         debtsQuery.id = { in: ids };
       }
@@ -57,18 +62,18 @@ class ReportService {
     const user = await (prisma as any).user.findUnique({
       where: { id: userId },
       include: {
-        debts: { 
+        debts: {
           where: debtsQuery,
           include: {
             payments: {
-              where: { 
-                paidAt: { 
+              where: {
+                paidAt: {
                   gte: start,
-                  lte: end
-                } 
-              }
-            }
-          }
+                  lte: end,
+                },
+              },
+            },
+          },
         },
         investorProfile: true,
       },
@@ -79,16 +84,16 @@ class ReportService {
     const debts = user.debts;
     const totalBalance = debts.reduce((sum: number, d: any) => sum + d.balance, 0);
     const totalMinPayment = debts.reduce((sum: number, d: any) => sum + d.minPayment, 0);
-    
+
     // Estimate Movement Summary
     let totalPaidInPeriod = 0;
     let totalInterestEstimated = 0;
-    
+
     const detailedDebts = debts.map((d: any) => {
       const ear = calcEAR(d.apr, d.feeProcessing || 0, d.feeInsurance || 0, d.feeManagement || 0, d.termMonths || 12);
       const paid = d.payments.reduce((sum: number, p: any) => sum + p.amount, 0);
       totalPaidInPeriod += paid;
-      
+
       // Calculate months in period for interest estimation
       const mDiff = Math.max(1, dayjs(end).diff(dayjs(start), 'month'));
       const interest = d.balance * (ear / 100 / 12) * mDiff;
@@ -98,19 +103,16 @@ class ReportService {
         ...d,
         ear,
         periodPaid: paid,
-        periodInterest: interest
+        periodInterest: interest,
       };
     });
 
     const dtiRatio = calcDebtToIncomeRatio(totalMinPayment, user.monthlyIncome);
     const dominoAlerts = detectDominoRisk(debts, user.monthlyIncome);
 
-    const simulation = simulateRepaymentWithExtraBudget(
-      debts,
-      user.monthlyIncome * 0.1,
-      'AVALANCHE',
-      { monthlyIncome: user.monthlyIncome },
-    );
+    const simulation = simulateRepaymentWithExtraBudget(debts, user.monthlyIncome * 0.1, 'AVALANCHE', {
+      monthlyIncome: user.monthlyIncome,
+    });
 
     return {
       reportId: `RPT-${dayjs().format('YYYYMMDD')}-${Math.random().toString(36).substring(7).toUpperCase()}`,
@@ -127,21 +129,27 @@ class ReportService {
         dominoAlerts,
         totalPaidInPeriod,
         totalInterestEstimated,
-        timeRangeStr
+        timeRangeStr,
       },
       debts: detailedDebts,
       simulation: {
-        months: simulation.months || 0
-      }
+        months: simulation.months || 0,
+      },
     };
   }
 
-  async generateExcel(userId: string, timeRange?: string, debtIds?: string | string[], startDate?: string, endDate?: string) {
+  async generateExcel(
+    userId: string,
+    timeRange?: string,
+    debtIds?: string | string[],
+    startDate?: string,
+    endDate?: string,
+  ) {
     const data = await this.getReportData(userId, timeRange, debtIds, startDate, endDate);
     const workbook = new ExcelJS.Workbook();
-    
+
     const sheet = workbook.addWorksheet('Báo cáo phân tích tài chính');
-    
+
     sheet.mergeCells('A1:E1');
     const brandCell = sheet.getCell('A1');
     brandCell.value = 'FINSIGHT - BÁO CÁO PHÂN TÍCH TÀI CHÍNH';
@@ -151,7 +159,7 @@ class ReportService {
     sheet.getRow(1).height = 40;
 
     sheet.addRows([
-      [], 
+      [],
       ['THÔNG TIN CHUNG', '', '', '', ''],
       ['Mã báo cáo', data.reportId],
       ['Ngày lập', data.generatedAt],
@@ -162,15 +170,18 @@ class ReportService {
       ['Tổng dư nợ hiện tại', data.summary.totalBalance],
       ['Tổng trả tối thiểu', data.summary.totalMinPayment],
       ['Tỷ lệ DTI (%)', `${data.summary.dtiRatio.toFixed(2)}%`],
-      ['Trạng thái', data.summary.dtiRatio > 50 ? 'KHỦNG HOẢNG' : (data.summary.dtiRatio > 30 ? 'CẢNH BÁO' : 'AN TOÀN')],
+      ['Trạng thái', data.summary.dtiRatio > 50 ? 'KHỦNG HOẢNG' : data.summary.dtiRatio > 30 ? 'CẢNH BÁO' : 'AN TOÀN'],
       [],
       ['BIẾN ĐỘNG NỢ TRONG KỲ', '', '', '', ''],
       [`(Thời gian: ${data.summary.timeRangeStr})`, '', '', '', ''],
-      ['Số dư đầu kỳ (Ước tính)', Math.max(0, data.summary.totalBalance + data.summary.totalPaidInPeriod - data.summary.totalInterestEstimated)],
+      [
+        'Số dư đầu kỳ (Ước tính)',
+        Math.max(0, data.summary.totalBalance + data.summary.totalPaidInPeriod - data.summary.totalInterestEstimated),
+      ],
       ['Tổng tiền đã trả', -data.summary.totalPaidInPeriod],
       ['Lãi/Phí phát sinh', data.summary.totalInterestEstimated],
       ['Số dư cuối kỳ', data.summary.totalBalance],
-      [] 
+      [],
     ]);
 
     sheet.getColumn('A').width = 35;
@@ -184,7 +195,7 @@ class ReportService {
       const row = sheet.getRow(i);
       row.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
       row.getCell(2).alignment = { horizontal: 'right', vertical: 'middle' };
-      row.height = 22; 
+      row.height = 22;
     }
 
     // Formatting for Movement Summary
@@ -199,7 +210,7 @@ class ReportService {
     sheet.getRow(16).getCell(1).font = { italic: true, size: 9, color: { argb: 'FF64748B' } };
     sheet.mergeCells('A16:E16');
 
-    [8, 9, 10, 17, 18, 19, 20].forEach(rowIdx => {
+    [8, 9, 10, 17, 18, 19, 20].forEach((rowIdx) => {
       sheet.getRow(rowIdx).getCell(2).numFmt = '#,##0 "₫"';
     });
 
@@ -207,10 +218,10 @@ class ReportService {
       { row: 2, text: 'THÔNG TIN CHUNG' },
       { row: 7, text: 'CHỈ SỐ SỨC KHỎE TÀI CHÍNH' },
       { row: 15, text: 'BIẾN ĐỘNG NỢ TRONG KỲ' },
-      { row: 23, text: 'DANH SÁCH CHI TIẾT CÁC KHOẢN NỢ' }
+      { row: 23, text: 'DANH SÁCH CHI TIẾT CÁC KHOẢN NỢ' },
     ];
 
-    sectionHeaders.forEach(sh => {
+    sectionHeaders.forEach((sh) => {
       sheet.mergeCells(`A${sh.row}:E${sh.row}`);
       const cell = sheet.getCell(`A${sh.row}`);
       cell.value = sh.text;
@@ -222,39 +233,49 @@ class ReportService {
 
     const debtStartRow = 23;
     const tableHeaderRow = debtStartRow + 1;
-    sheet.getRow(tableHeaderRow).values = ['Tên khoản nợ', 'Nền tảng', 'Lãi suất EAR (%)', 'Dư nợ hiện tại', 'Trả tối thiểu'];
+    sheet.getRow(tableHeaderRow).values = [
+      'Tên khoản nợ',
+      'Nền tảng',
+      'Lãi suất EAR (%)',
+      'Dư nợ hiện tại',
+      'Trả tối thiểu',
+    ];
     const headerRow = sheet.getRow(tableHeaderRow);
     headerRow.height = 30;
-    headerRow.eachCell(cell => {
+    headerRow.eachCell((cell) => {
       cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E40AF' } };
       cell.alignment = { horizontal: 'center', vertical: 'middle' };
-      cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+      cell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' },
+      };
     });
 
     data.debts.forEach((d: any, idx: number) => {
       const rowIdx = tableHeaderRow + 1 + idx;
-      sheet.getRow(rowIdx).values = [
-        d.name,
-        d.platform,
-        `${d.ear.toFixed(2)}%`,
-        d.balance,
-        d.minPayment
-      ];
-      
+      sheet.getRow(rowIdx).values = [d.name, d.platform, `${d.ear.toFixed(2)}%`, d.balance, d.minPayment];
+
       const row = sheet.getRow(rowIdx);
-      row.height = 25; 
+      row.height = 25;
       row.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
       row.getCell(2).alignment = { horizontal: 'center', vertical: 'middle' };
       row.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' };
       row.getCell(4).alignment = { horizontal: 'right', vertical: 'middle' };
       row.getCell(5).alignment = { horizontal: 'right', vertical: 'middle' };
-      
+
       row.getCell(4).numFmt = '#,##0 "₫"';
       row.getCell(5).numFmt = '#,##0 "₫"';
 
-      row.eachCell(cell => {
-        cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+      row.eachCell((cell) => {
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' },
+        };
       });
     });
 
@@ -264,20 +285,29 @@ class ReportService {
     sheet.mergeCells(`A${forecastHeaderRow}:E${forecastHeaderRow}`);
     sheet.getCell(`A${forecastHeaderRow}`).font = { bold: true, size: 12 };
     sheet.getCell(`A${forecastHeaderRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
-    
-    const infoRow = sheet.addRow([`Nếu duy trì kế hoạch thanh toán hiện tại, bạn sẽ hoàn tất toàn bộ nợ trong ${data.simulation.months} tháng.`]);
+
+    const infoRow = sheet.addRow([
+      `Nếu duy trì kế hoạch thanh toán hiện tại, bạn sẽ hoàn tất toàn bộ nợ trong ${data.simulation.months} tháng.`,
+    ]);
     sheet.mergeCells(`A${infoRow.number}:E${infoRow.number}`);
     sheet.getCell(`A${infoRow.number}`).font = { italic: true, color: { argb: 'FF1E40AF' } };
 
     return workbook;
   }
 
-  async generatePDF(userId: string, res: any, timeRange?: string, debtIds?: string | string[], startDate?: string, endDate?: string) {
+  async generatePDF(
+    userId: string,
+    res: any,
+    timeRange?: string,
+    debtIds?: string | string[],
+    startDate?: string,
+    endDate?: string,
+  ) {
     const data = await this.getReportData(userId, timeRange, debtIds, startDate, endDate);
     const doc = new PDFDocument({
       margin: 50,
       size: 'A4',
-      bufferPages: true
+      bufferPages: true,
     });
 
     doc.registerFont('Main', FONT_REGULAR);
@@ -297,25 +327,46 @@ class ReportService {
         doc.image(LOGO_PATH, 50, headerY, { height: 55 });
       } catch (localErr: any) {
         console.error('Local Logo Error:', localErr.message);
-        doc.fontSize(18).font('MainBold').fillColor('#1e40af').text('FINSIGHT', 50, headerY + 15);
+        doc
+          .fontSize(18)
+          .font('MainBold')
+          .fillColor('#1e40af')
+          .text('FINSIGHT', 50, headerY + 15);
       }
     }
 
     const infoX = 220;
-    doc.fillColor('#1e40af').font('MainBold').fontSize(13).text('CÔNG TY TNHH FINSIGHT', infoX, headerY, { align: 'right', width: 325 });
+    doc
+      .fillColor('#1e40af')
+      .font('MainBold')
+      .fontSize(13)
+      .text('CÔNG TY TNHH FINSIGHT', infoX, headerY, { align: 'right', width: 325 });
     doc.fillColor('#475569').font('Main').fontSize(9);
-    doc.text('Dự án trực thuộc: Đại học FPT (FPTU) & FPT Aptech', infoX, headerY + 18, { align: 'right', width: 325, lineGap: 2 });
+    doc.text('Dự án trực thuộc: Đại học FPT (FPTU) & FPT Aptech', infoX, headerY + 18, {
+      align: 'right',
+      width: 325,
+      lineGap: 2,
+    });
     doc.text('Dự án: Cuộc thi Webdev Adventure 2026', infoX, headerY + 32, { align: 'right', width: 325 });
     doc.text('Email: support@finsight.vn', infoX, headerY + 46, { align: 'right', width: 325 });
 
     doc.moveTo(50, 110).lineTo(545, 110).strokeColor('#cbd5e1').lineWidth(0.8).stroke();
 
     let currentY = 135;
-    doc.fillColor('#0f172a').font('MainBold').fontSize(22).text('BÁO CÁO PHÂN TÍCH TÀI CHÍNH', 50, currentY, { align: 'center', width: 495 });
+    doc
+      .fillColor('#0f172a')
+      .font('MainBold')
+      .fontSize(22)
+      .text('BÁO CÁO PHÂN TÍCH TÀI CHÍNH', 50, currentY, { align: 'center', width: 495 });
 
     currentY += 35;
     doc.fillColor('#64748b').font('Main').fontSize(10);
-    doc.text(`Mã số: ${data.reportId}  |  Ngày lập: ${data.generatedAt}  |  Kỳ báo cáo: ${data.summary.timeRangeStr}`, 50, currentY, { align: 'center', width: 495, lineGap: 5 });
+    doc.text(
+      `Mã số: ${data.reportId}  |  Ngày lập: ${data.generatedAt}  |  Kỳ báo cáo: ${data.summary.timeRangeStr}`,
+      50,
+      currentY,
+      { align: 'center', width: 495, lineGap: 5 },
+    );
 
     doc.fontSize(11).fillColor('#334155');
     const labelStr = 'Khách hàng: ';
@@ -324,7 +375,7 @@ class ReportService {
     const centerStartX = 50 + (495 - totalW) / 2;
 
     doc.font('Main').text(labelStr, centerStartX, doc.y);
-    doc.font('MainBold').text(nameStr, centerStartX + doc.widthOfString(labelStr), doc.y - 12); 
+    doc.font('MainBold').text(nameStr, centerStartX + doc.widthOfString(labelStr), doc.y - 12);
 
     currentY = doc.y + 25;
     doc.moveTo(50, currentY).lineTo(545, currentY).strokeColor('#cbd5e1').lineWidth(0.8).stroke();
@@ -341,29 +392,45 @@ class ReportService {
 
     const boxY = currentY + 20;
     doc.fillColor('#64748b').fontSize(8.5).font('Main').text('TỔNG DƯ NỢ', 80, boxY);
-    doc.fillColor('#0f172a').fontSize(15).font('MainBold').text(formatVND(data.summary.totalBalance), 80, boxY + 18);
+    doc
+      .fillColor('#0f172a')
+      .fontSize(15)
+      .font('MainBold')
+      .text(formatVND(data.summary.totalBalance), 80, boxY + 18);
 
     doc.fillColor('#64748b').fontSize(8.5).font('Main').text('TỶ LỆ DTI', 230, boxY);
-    doc.fillColor('#0f172a').fontSize(15).font('MainBold').text(`${dti.toFixed(1)}%`, 230, boxY + 18);
+    doc
+      .fillColor('#0f172a')
+      .fontSize(15)
+      .font('MainBold')
+      .text(`${dti.toFixed(1)}%`, 230, boxY + 18);
 
     doc.fillColor('#64748b').fontSize(8.5).font('Main').text('TRẠNG THÁI DTI', 380, boxY);
-    doc.fillColor(healthColor).fontSize(15).font('MainBold').text(healthStatus, 380, boxY + 18);
+    doc
+      .fillColor(healthColor)
+      .fontSize(15)
+      .font('MainBold')
+      .text(healthStatus, 380, boxY + 18);
 
-    doc.y = currentY + 80 + 30; 
+    doc.y = currentY + 80 + 30;
 
     // Bảng biến động nợ (Movement Summary)
-    doc.fillColor('#0f172a').font('MainBold').fontSize(15).text(`BẢNG SAO KÊ BIẾN ĐỘNG NỢ (${data.summary.timeRangeStr.toUpperCase()})`, 50, doc.y);
+    doc
+      .fillColor('#0f172a')
+      .font('MainBold')
+      .fontSize(15)
+      .text(`BẢNG SAO KÊ BIẾN ĐỘNG NỢ (${data.summary.timeRangeStr.toUpperCase()})`, 50, doc.y);
     doc.moveDown(1);
-    
+
     const moveY = doc.y;
     doc.rect(50, moveY, 495, 75).fill('#f8fafc').strokeColor('#cbd5e1').lineWidth(0.5).stroke();
-    
+
     // Calculate opening balance roughly: closing + paid - interest
     const closingBalance = data.summary.totalBalance;
     const openingBalance = closingBalance + data.summary.totalPaidInPeriod - data.summary.totalInterestEstimated;
 
     const colWidth = 495 / 4;
-    
+
     doc.fillColor('#64748b').fontSize(8.5).font('Main');
     doc.text('SỐ DƯ ĐẦU KỲ (Ước tính)', 50 + 10, moveY + 15, { width: colWidth - 20, align: 'center' });
     doc.text('TỔNG ĐÃ TRẢ', 50 + colWidth + 10, moveY + 15, { width: colWidth - 20, align: 'center' });
@@ -371,18 +438,42 @@ class ReportService {
     doc.text('SỐ DƯ CUỐI KỲ', 50 + colWidth * 3 + 10, moveY + 15, { width: colWidth - 20, align: 'center' });
 
     doc.fillColor('#0f172a').fontSize(13).font('MainBold');
-    doc.text(formatVND(openingBalance > 0 ? openingBalance : closingBalance), 50 + 10, moveY + 35, { width: colWidth - 20, align: 'center' });
-    doc.fillColor('#10b981').text(`- ${formatVND(data.summary.totalPaidInPeriod)}`, 50 + colWidth + 10, moveY + 35, { width: colWidth - 20, align: 'center' });
-    doc.fillColor('#ef4444').text(`+ ${formatVND(data.summary.totalInterestEstimated)}`, 50 + colWidth * 2 + 10, moveY + 35, { width: colWidth - 20, align: 'center' });
-    doc.fillColor('#0f172a').text(formatVND(closingBalance), 50 + colWidth * 3 + 10, moveY + 35, { width: colWidth - 20, align: 'center' });
+    doc.text(formatVND(openingBalance > 0 ? openingBalance : closingBalance), 50 + 10, moveY + 35, {
+      width: colWidth - 20,
+      align: 'center',
+    });
+    doc
+      .fillColor('#10b981')
+      .text(`- ${formatVND(data.summary.totalPaidInPeriod)}`, 50 + colWidth + 10, moveY + 35, {
+        width: colWidth - 20,
+        align: 'center',
+      });
+    doc
+      .fillColor('#ef4444')
+      .text(`+ ${formatVND(data.summary.totalInterestEstimated)}`, 50 + colWidth * 2 + 10, moveY + 35, {
+        width: colWidth - 20,
+        align: 'center',
+      });
+    doc
+      .fillColor('#0f172a')
+      .text(formatVND(closingBalance), 50 + colWidth * 3 + 10, moveY + 35, { width: colWidth - 20, align: 'center' });
 
     doc.y = moveY + 75 + 35;
 
     if (doc.y > 750) doc.addPage();
     doc.fillColor('#0f172a').font('MainBold').fontSize(15).text('2. PHÂN TÍCH CHI TIẾT', 50, doc.y);
-    doc.y += 20; 
+    doc.y += 20;
 
-    doc.fillColor('#334155').fontSize(10.5).font('Main').text(`Dựa trên dữ liệu tài chính của bạn, hệ thống ghi nhận bạn đang có `, 50, doc.y, { continued: true, align: 'justify', width: 495, lineGap: 6 });
+    doc
+      .fillColor('#334155')
+      .fontSize(10.5)
+      .font('Main')
+      .text(`Dựa trên dữ liệu tài chính của bạn, hệ thống ghi nhận bạn đang có `, 50, doc.y, {
+        continued: true,
+        align: 'justify',
+        width: 495,
+        lineGap: 6,
+      });
     doc.font('MainBold').text(`${data.debts.length} khoản nợ `, { continued: true });
     doc.font('Main').text(`đang hoạt động. Với mức thu nhập hàng tháng là `, { continued: true });
     doc.font('MainBold').text(`${formatVND(data.user.monthlyIncome)}`, { continued: true });
@@ -393,22 +484,37 @@ class ReportService {
     doc.font('Main').text(`.`);
 
     doc.moveDown(0.8);
-    doc.fillColor('#475569').fontSize(10.5).font('Main').text(`Theo tiêu chuẩn quản lý tài chính bền vững, tỷ lệ DTI lý tưởng nên được duy trì dưới mức 30%. Khi DTI vượt quá ngưỡng này, khả năng thanh khoản của bạn bị đe dọa, đồng thời hạn chế các cơ hội đầu tư và tích lũy trong tương lai.`, { align: 'justify', width: 495, lineGap: 6 });
+    doc
+      .fillColor('#475569')
+      .fontSize(10.5)
+      .font('Main')
+      .text(
+        `Theo tiêu chuẩn quản lý tài chính bền vững, tỷ lệ DTI lý tưởng nên được duy trì dưới mức 30%. Khi DTI vượt quá ngưỡng này, khả năng thanh khoản của bạn bị đe dọa, đồng thời hạn chế các cơ hội đầu tư và tích lũy trong tương lai.`,
+        { align: 'justify', width: 495, lineGap: 6 },
+      );
 
     doc.moveDown(1.2);
 
     if (data.summary.dominoAlerts.length > 0) {
-      if (doc.y > 680) doc.addPage(); 
+      if (doc.y > 680) doc.addPage();
       const alertY = doc.y;
-      const alertBoxHeight = 40 + (data.summary.dominoAlerts.length * 22);
+      const alertBoxHeight = 40 + data.summary.dominoAlerts.length * 22;
       doc.rect(50, alertY, 495, alertBoxHeight).fill('#fff1f2').strokeColor('#fecaca').lineWidth(0.5).stroke();
-      doc.fillColor('#991b1b').font('MainBold').fontSize(11).text('! CẢNH BÁO RỦI RO:', 75, alertY + 15);
+      doc
+        .fillColor('#991b1b')
+        .font('MainBold')
+        .fontSize(11)
+        .text('! CẢNH BÁO RỦI RO:', 75, alertY + 15);
       data.summary.dominoAlerts.forEach((a: any, idx: number) => {
-        doc.fillColor('#b91c1c').font('Main').fontSize(10).text(`• ${a.message}`, 85, alertY + 38 + (idx * 20), { width: 440, lineGap: 4 });
+        doc
+          .fillColor('#b91c1c')
+          .font('Main')
+          .fontSize(10)
+          .text(`• ${a.message}`, 85, alertY + 38 + idx * 20, { width: 440, lineGap: 4 });
       });
-      doc.y = alertY + alertBoxHeight + 45; 
+      doc.y = alertY + alertBoxHeight + 45;
     } else {
-      doc.y += 45; 
+      doc.y += 45;
     }
 
     const drawTableHeader = (y: number) => {
@@ -421,7 +527,7 @@ class ReportService {
       return y + 28;
     };
 
-    if (doc.y > 680) doc.addPage(); 
+    if (doc.y > 680) doc.addPage();
     doc.fillColor('#0f172a').font('MainBold').fontSize(15).text('3. DANH SÁCH CÁC KHOẢN NỢ', 50, doc.y);
     doc.moveDown(1);
 
@@ -454,47 +560,88 @@ class ReportService {
     doc.fillColor('#0f172a').font('MainBold').fontSize(15).text('4. KIẾN NGHỊ CHIẾN LƯỢC TỪ FINSIGHT', 50, doc.y);
     doc.moveDown(1.2);
 
-    doc.fillColor('#1e40af').font('MainBold').fontSize(11).text('4.1 Chiến lược ưu tiên: Phương pháp Avalanche (Lãi suất cao nhất)', 50, doc.y);
-    doc.fillColor('#334155').font('Main').fontSize(10).text(
-      `Dựa trên cơ cấu nợ của bạn, FinSight đề xuất tập trung thanh toán các khoản có lãi suất EAR cao nhất trước. Phương pháp này giúp bạn giảm tối đa tổng tiền lãi phải trả cho ngân hàng, từ đó rút ngắn thời gian nợ nần hiệu quả nhất về mặt toán học.`,
-      50, doc.y + 18, { width: 495, lineGap: 4, align: 'justify' }
-    );
+    doc
+      .fillColor('#1e40af')
+      .font('MainBold')
+      .fontSize(11)
+      .text('4.1 Chiến lược ưu tiên: Phương pháp Avalanche (Lãi suất cao nhất)', 50, doc.y);
+    doc
+      .fillColor('#334155')
+      .font('Main')
+      .fontSize(10)
+      .text(
+        `Dựa trên cơ cấu nợ của bạn, FinSight đề xuất tập trung thanh toán các khoản có lãi suất EAR cao nhất trước. Phương pháp này giúp bạn giảm tối đa tổng tiền lãi phải trả cho ngân hàng, từ đó rút ngắn thời gian nợ nần hiệu quả nhất về mặt toán học.`,
+        50,
+        doc.y + 18,
+        { width: 495, lineGap: 4, align: 'justify' },
+      );
 
     doc.moveDown(1.2);
 
     doc.fillColor('#1e40af').font('MainBold').fontSize(11).text('4.2 Quy tắc phân bổ ngân sách 50/30/20', 50, doc.y);
-    doc.fillColor('#334155').font('Main').fontSize(10).text(
-      `Để kiểm soát tài chính bền vững, hãy thử áp dụng mô hình chia thu nhập: 50% cho nhu cầu thiết yếu, 30% cho sở thích cá nhân và 20% cho việc trả nợ và tích lũy. Với thu nhập hiện tại (${formatVND(data.user.monthlyIncome)}), bạn nên dành ít nhất ${formatVND(data.user.monthlyIncome * 0.2)} mỗi tháng cho mục tiêu tài chính.`,
-      50, doc.y + 18, { width: 495, lineGap: 4, align: 'justify' }
-    );
+    doc
+      .fillColor('#334155')
+      .font('Main')
+      .fontSize(10)
+      .text(
+        `Để kiểm soát tài chính bền vững, hãy thử áp dụng mô hình chia thu nhập: 50% cho nhu cầu thiết yếu, 30% cho sở thích cá nhân và 20% cho việc trả nợ và tích lũy. Với thu nhập hiện tại (${formatVND(data.user.monthlyIncome)}), bạn nên dành ít nhất ${formatVND(data.user.monthlyIncome * 0.2)} mỗi tháng cho mục tiêu tài chính.`,
+        50,
+        doc.y + 18,
+        { width: 495, lineGap: 4, align: 'justify' },
+      );
 
     doc.moveDown(1.2);
 
-    doc.fillColor('#1e40af').font('MainBold').fontSize(11).text('4.3 Xây dựng quỹ dự phòng (Emergency Fund)', 50, doc.y);
-    doc.fillColor('#334155').font('Main').fontSize(10).text(
-      `Trước khi dồn toàn bộ nguồn lực để trả nợ nhanh, hãy đảm bảo bạn có một khoản dự phòng ít nhất 1-2 tháng chi phí cơ bản. Điều này giúp bạn tránh phải vay mượn thêm (tín dụng đen, vay nhanh) khi có sự cố bất ngờ xảy ra trong quá trình trả nợ.`,
-      50, doc.y + 18, { width: 495, lineGap: 4, align: 'justify' }
-    );
+    doc
+      .fillColor('#1e40af')
+      .font('MainBold')
+      .fontSize(11)
+      .text('4.3 Xây dựng quỹ dự phòng (Emergency Fund)', 50, doc.y);
+    doc
+      .fillColor('#334155')
+      .font('Main')
+      .fontSize(10)
+      .text(
+        `Trước khi dồn toàn bộ nguồn lực để trả nợ nhanh, hãy đảm bảo bạn có một khoản dự phòng ít nhất 1-2 tháng chi phí cơ bản. Điều này giúp bạn tránh phải vay mượn thêm (tín dụng đen, vay nhanh) khi có sự cố bất ngờ xảy ra trong quá trình trả nợ.`,
+        50,
+        doc.y + 18,
+        { width: 495, lineGap: 4, align: 'justify' },
+      );
 
     doc.moveDown(1.5);
 
     const summaryY = doc.y;
     doc.rect(50, summaryY, 495, 75).fill('#f0f9ff').strokeColor('#bae6fd').lineWidth(0.5).stroke();
-    doc.fillColor('#0369a1').font('MainBold').fontSize(11).text('DỰ BÁO KẾT QUẢ:', 70, summaryY + 15);
-    doc.fillColor('#0c4a6e').font('Main').fontSize(11).text(
-      `Nếu kiên trì bổ sung thêm 10% thu nhập (${formatVND(data.user.monthlyIncome * 0.1)}) vào kế hoạch trả nợ hàng tháng, bạn sẽ hoàn tất toàn bộ nghĩa vụ tài chính trong vòng `,
-      70, summaryY + 35, { width: 450, continued: true }
-    );
+    doc
+      .fillColor('#0369a1')
+      .font('MainBold')
+      .fontSize(11)
+      .text('DỰ BÁO KẾT QUẢ:', 70, summaryY + 15);
+    doc
+      .fillColor('#0c4a6e')
+      .font('Main')
+      .fontSize(11)
+      .text(
+        `Nếu kiên trì bổ sung thêm 10% thu nhập (${formatVND(data.user.monthlyIncome * 0.1)}) vào kế hoạch trả nợ hàng tháng, bạn sẽ hoàn tất toàn bộ nghĩa vụ tài chính trong vòng `,
+        70,
+        summaryY + 35,
+        { width: 450, continued: true },
+      );
     doc.font('MainBold').text(`${data.simulation.months} tháng`, { continued: true });
     doc.font('Main').text(`. Đừng bỏ cuộc, mỗi bước nhỏ đều đưa bạn đến gần hơn với tự do tài chính!`);
 
     const pages = doc.bufferedPageRange();
     for (let i = 0; i < pages.count; i++) {
       doc.switchToPage(i);
-      doc.fillColor('#94a3b8').fontSize(8).text(
-        `Trang ${i + 1} / ${pages.count}  |  FinSight - Giải pháp quản lý tài chính thông minh  |  © 2026`,
-        50, 795, { align: 'center', width: 495 }
-      );
+      doc
+        .fillColor('#94a3b8')
+        .fontSize(8)
+        .text(
+          `Trang ${i + 1} / ${pages.count}  |  FinSight - Giải pháp quản lý tài chính thông minh  |  © 2026`,
+          50,
+          795,
+          { align: 'center', width: 495 },
+        );
     }
 
     doc.end();

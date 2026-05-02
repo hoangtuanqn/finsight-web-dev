@@ -1,17 +1,17 @@
-import { Response } from "express";
-import prisma from "../lib/prisma";
-import { success, error } from "../utils/apiResponse";
-import { invalidateCache } from "../middleware/cache.middleware";
-import emailService from "../services/email.service";
+import { Response } from 'express';
+import prisma from '../lib/prisma';
+import { invalidateCache } from '../middleware/cache.middleware';
+import emailService from '../services/email.service';
+import { AuthenticatedRequest } from '../types';
+import { error, success } from '../utils/apiResponse';
 import {
   calcAPY,
-  calcEAR,
-  simulateRepaymentWithExtraBudget,
-  resolveRepaymentExtraBudget,
   calcDebtToIncomeRatio,
+  calcEAR,
   detectDominoRisk,
-} from "../utils/calculations";
-import { AuthenticatedRequest } from "../types";
+  resolveRepaymentExtraBudget,
+  simulateRepaymentWithExtraBudget,
+} from '../utils/calculations';
 
 const MAX_REPAYMENT_SCHEDULE_POINTS = 361;
 
@@ -19,12 +19,12 @@ export async function getAllDebts(req: AuthenticatedRequest, res: Response) {
   try {
     const { platform, amountRange, dueInDays, status } = req.query;
 
-    const filterStatus = (status as string) || "ACTIVE"; // 'ACTIVE' | 'PAID' | 'TRASH'
+    const filterStatus = (status as string) || 'ACTIVE'; // 'ACTIVE' | 'PAID' | 'TRASH'
 
     let whereClause: any = { userId: req.userId };
     let includeDeleted = false;
 
-    if (filterStatus === "TRASH") {
+    if (filterStatus === 'TRASH') {
       whereClause.deletedAt = { not: null };
       includeDeleted = true;
     } else {
@@ -36,11 +36,9 @@ export async function getAllDebts(req: AuthenticatedRequest, res: Response) {
     }
 
     if (amountRange) {
-      if (amountRange === "<10000000") whereClause.balance = { lt: 10000000 };
-      else if (amountRange === "10000000-50000000")
-        whereClause.balance = { gte: 10000000, lte: 50000000 };
-      else if (amountRange === ">50000000")
-        whereClause.balance = { gt: 50000000 };
+      if (amountRange === '<10000000') whereClause.balance = { lt: 10000000 };
+      else if (amountRange === '10000000-50000000') whereClause.balance = { gte: 10000000, lte: 50000000 };
+      else if (amountRange === '>50000000') whereClause.balance = { gt: 50000000 };
     }
 
     const user = await (prisma as any).user.findUnique({
@@ -49,54 +47,28 @@ export async function getAllDebts(req: AuthenticatedRequest, res: Response) {
     let debts = await (prisma as any).debt.findMany({
       where: whereClause,
       includeDeleted,
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
     });
 
     const today = new Date();
     const currentDay = today.getDate();
-    const daysInMonth = new Date(
-      today.getFullYear(),
-      today.getMonth() + 1,
-      0,
-    ).getDate();
+    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
 
     let debtsWithCalc = debts.map((debt: any) => {
       const apy = calcAPY(debt.apr);
-      const ear = calcEAR(
-        debt.apr,
-        debt.feeProcessing,
-        debt.feeInsurance,
-        debt.feeManagement,
-        debt.termMonths,
-      );
-      const daysUntil =
-        debt.dueDay >= currentDay
-          ? debt.dueDay - currentDay
-          : daysInMonth - currentDay + debt.dueDay;
+      const ear = calcEAR(debt.apr, debt.feeProcessing, debt.feeInsurance, debt.feeManagement, debt.termMonths);
+      const daysUntil = debt.dueDay >= currentDay ? debt.dueDay - currentDay : daysInMonth - currentDay + debt.dueDay;
       return { ...debt, apy, ear, daysUntil };
     });
 
     if (dueInDays) {
-      debtsWithCalc = debtsWithCalc.filter(
-        (d: any) => d.daysUntil <= Number(dueInDays),
-      );
+      debtsWithCalc = debtsWithCalc.filter((d: any) => d.daysUntil <= Number(dueInDays));
     }
 
-    const totalBalance = debtsWithCalc.reduce(
-      (sum: number, d: any) => sum + d.balance,
-      0,
-    );
-    const totalMinPayment = debtsWithCalc.reduce(
-      (sum: number, d: any) => sum + d.minPayment,
-      0,
-    );
+    const totalBalance = debtsWithCalc.reduce((sum: number, d: any) => sum + d.balance, 0);
+    const totalMinPayment = debtsWithCalc.reduce((sum: number, d: any) => sum + d.minPayment, 0);
     const weightedEAR =
-      totalBalance > 0
-        ? debtsWithCalc.reduce(
-            (sum: number, d: any) => sum + (d.balance / totalBalance) * d.ear,
-            0,
-          )
-        : 0;
+      totalBalance > 0 ? debtsWithCalc.reduce((sum: number, d: any) => sum + (d.balance / totalBalance) * d.ear, 0) : 0;
 
     const dtiRatio = calcDebtToIncomeRatio(totalMinPayment, user.monthlyIncome);
     const dominoAlerts = detectDominoRisk(debtsWithCalc, user.monthlyIncome);
@@ -123,8 +95,8 @@ export async function getAllDebts(req: AuthenticatedRequest, res: Response) {
       },
     });
   } catch (err) {
-    console.error("getAllDebts error:", err);
-    return error(res, "Internal server error");
+    console.error('getAllDebts error:', err);
+    return error(res, 'Internal server error');
   }
 }
 
@@ -133,9 +105,7 @@ export async function createDebt(req: AuthenticatedRequest, res: Response) {
 
   const start = new Date(startDate);
   const now = new Date();
-  const monthsPassed =
-    (now.getFullYear() - start.getFullYear()) * 12 +
-    (now.getMonth() - start.getMonth());
+  const monthsPassed = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
   const remainingTerms = Math.max(0, termMonths - monthsPassed);
 
   try {
@@ -143,11 +113,11 @@ export async function createDebt(req: AuthenticatedRequest, res: Response) {
       data: {
         userId: req.userId,
         name: String(req.body.name).trim(),
-        platform: req.body.platform ?? "CUSTOM",
+        platform: req.body.platform ?? 'CUSTOM',
         originalAmount: +req.body.originalAmount,
         balance: +req.body.balance,
         apr: +req.body.apr,
-        rateType: req.body.rateType ?? "FLAT",
+        rateType: req.body.rateType ?? 'FLAT',
         feeProcessing: +req.body.feeProcessing || 0,
         feeInsurance: +req.body.feeInsurance || 0,
         feeManagement: +req.body.feeManagement || 0,
@@ -163,8 +133,8 @@ export async function createDebt(req: AuthenticatedRequest, res: Response) {
     await invalidateCache([`user:${req.userId}:*`]);
     return success(res, { debt }, 201);
   } catch (err) {
-    console.error("createDebt error:", err);
-    return error(res, "Internal server error");
+    console.error('createDebt error:', err);
+    return error(res, 'Internal server error');
   }
 }
 
@@ -173,23 +143,16 @@ export async function getDebtById(req: AuthenticatedRequest, res: Response) {
     const debt = await (prisma as any).debt.findFirst({
       where: { id: req.params.id, userId: req.userId },
       includeDeleted: true,
-      include: { payments: { orderBy: { paidAt: "desc" } } },
+      include: { payments: { orderBy: { paidAt: 'desc' } } },
     });
-    if (!debt) return error(res, "Debt not found", 404);
+    if (!debt) return error(res, 'Debt not found', 404);
 
     const apy = calcAPY(debt.apr);
-    const ear = calcEAR(
-      debt.apr,
-      debt.feeProcessing,
-      debt.feeInsurance,
-      debt.feeManagement,
-      debt.termMonths,
-    );
+    const ear = calcEAR(debt.apr, debt.feeProcessing, debt.feeInsurance, debt.feeManagement, debt.termMonths);
     const earBreakdown = {
       apr: debt.apr,
       compoundEffect: apy - debt.apr,
-      processingFee:
-        debt.termMonths > 0 ? (debt.feeProcessing / debt.termMonths) * 12 : 0,
+      processingFee: debt.termMonths > 0 ? (debt.feeProcessing / debt.termMonths) * 12 : 0,
       insuranceFee: debt.feeInsurance,
       managementFee: debt.feeManagement,
       totalEAR: ear,
@@ -198,7 +161,7 @@ export async function getDebtById(req: AuthenticatedRequest, res: Response) {
     const monthlyDataMap: Record<string, any> = {};
     debt.payments.forEach((p: any) => {
       const d = new Date(p.paidAt);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       if (!monthlyDataMap[key]) {
         monthlyDataMap[key] = { month: key, paidAmount: 0 };
       }
@@ -210,7 +173,7 @@ export async function getDebtById(req: AuthenticatedRequest, res: Response) {
       .map((key) => ({
         date: `${key}-01`,
         paidAmount: monthlyDataMap[key].paidAmount,
-        label: `Thanh toán tháng ${key.split("-")[1]}`,
+        label: `Thanh toán tháng ${key.split('-')[1]}`,
       }));
 
     return success(res, {
@@ -220,8 +183,8 @@ export async function getDebtById(req: AuthenticatedRequest, res: Response) {
       chartData,
     });
   } catch (err) {
-    console.error("getDebtById error:", err);
-    return error(res, "Internal server error");
+    console.error('getDebtById error:', err);
+    return error(res, 'Internal server error');
   }
 }
 
@@ -231,15 +194,15 @@ export async function updateDebt(req: AuthenticatedRequest, res: Response) {
       where: { id: req.params.id, userId: req.userId },
       data: req.body,
     });
-    if (debt.count === 0) return error(res, "Debt not found", 404);
+    if (debt.count === 0) return error(res, 'Debt not found', 404);
     const updated = await (prisma as any).debt.findUnique({
       where: { id: req.params.id },
     });
     await invalidateCache([`user:${req.userId}:*`]);
     return success(res, { debt: updated });
   } catch (err) {
-    console.error("updateDebt error:", err);
-    return error(res, "Internal server error");
+    console.error('updateDebt error:', err);
+    return error(res, 'Internal server error');
   }
 }
 
@@ -252,16 +215,15 @@ export async function deleteDebt(req: AuthenticatedRequest, res: Response) {
       includeDeleted: true,
     });
 
-    if (!debt) return error(res, "Debt not found", 404);
-    if (debt.deletedAt)
-      return error(res, "Khoản nợ này đã nằm trong thùng rác", 400);
+    if (!debt) return error(res, 'Debt not found', 404);
+    if (debt.deletedAt) return error(res, 'Khoản nợ này đã nằm trong thùng rác', 400);
 
     let scheduledPurgeAt = new Date();
     scheduledPurgeAt.setDate(scheduledPurgeAt.getDate() + 30);
 
     if (debt.balance > 0) {
       if (!reason || !isCommitted) {
-        return error(res, "Yêu cầu nhập lý do và cam kết rủi ro.", 400);
+        return error(res, 'Yêu cầu nhập lý do và cam kết rủi ro.', 400);
       }
 
       await (prisma as any).debt.update({
@@ -279,17 +241,17 @@ export async function deleteDebt(req: AuthenticatedRequest, res: Response) {
         data: {
           deletedAt: new Date(),
           scheduledPurgeAt,
-          deleteReason: "CLEAN_UP_SETTLED_DEBT",
+          deleteReason: 'CLEAN_UP_SETTLED_DEBT',
           deleteCommitment: false,
         },
       });
     }
 
     await invalidateCache([`user:${req.userId}:*`]);
-    return success(res, { message: "Khoản nợ đã được chuyển vào thùng rác." });
+    return success(res, { message: 'Khoản nợ đã được chuyển vào thùng rác.' });
   } catch (err) {
-    console.error("deleteDebt error:", err);
-    return error(res, "Internal server error");
+    console.error('deleteDebt error:', err);
+    return error(res, 'Internal server error');
   }
 }
 
@@ -300,9 +262,8 @@ export async function restoreDebt(req: AuthenticatedRequest, res: Response) {
       includeDeleted: true,
     });
 
-    if (!debt) return error(res, "Debt not found", 404);
-    if (!debt.deletedAt)
-      return error(res, "Khoản nợ này không nằm trong thùng rác", 400);
+    if (!debt) return error(res, 'Debt not found', 404);
+    if (!debt.deletedAt) return error(res, 'Khoản nợ này không nằm trong thùng rác', 400);
 
     await (prisma as any).debt.update({
       where: { id: debt.id },
@@ -315,10 +276,10 @@ export async function restoreDebt(req: AuthenticatedRequest, res: Response) {
     });
 
     await invalidateCache([`user:${req.userId}:*`]);
-    return success(res, { message: "Đã khôi phục khoản nợ thành công." });
+    return success(res, { message: 'Đã khôi phục khoản nợ thành công.' });
   } catch (err) {
-    console.error("restoreDebt error:", err);
-    return error(res, "Internal server error");
+    console.error('restoreDebt error:', err);
+    return error(res, 'Internal server error');
   }
 }
 
@@ -328,7 +289,7 @@ export async function logPayment(req: AuthenticatedRequest, res: Response) {
     const debt = await (prisma as any).debt.findFirst({
       where: { id: req.params.id, userId: req.userId },
     });
-    if (!debt) return error(res, "Debt not found", 404);
+    if (!debt) return error(res, 'Debt not found', 404);
 
     const payment = await (prisma as any).payment.create({
       data: { debtId: debt.id, amount, notes },
@@ -341,7 +302,7 @@ export async function logPayment(req: AuthenticatedRequest, res: Response) {
       data: {
         balance: newBalance,
         remainingTerms: newRemaining,
-        status: newBalance <= 0 ? "PAID" : debt.status,
+        status: newBalance <= 0 ? 'PAID' : debt.status,
       },
     });
 
@@ -356,14 +317,10 @@ export async function logPayment(req: AuthenticatedRequest, res: Response) {
         select: { email: true, fullName: true },
       });
 
-      const totalOriginal = allDebts.reduce(
-        (s: number, d: any) => s + d.originalAmount,
-        0,
-      );
+      const totalOriginal = allDebts.reduce((s: number, d: any) => s + d.originalAmount, 0);
       if (totalOriginal > 0 && user?.email) {
         const totalCurrentAfter = allDebts.reduce(
-          (s: number, d: any) =>
-            s + (d.id === debt.id ? updatedDebt.balance : d.balance),
+          (s: number, d: any) => s + (d.id === debt.id ? updatedDebt.balance : d.balance),
           0,
         );
         const totalCurrentBefore = totalCurrentAfter + amount;
@@ -377,49 +334,38 @@ export async function logPayment(req: AuthenticatedRequest, res: Response) {
             await (prisma as any).notification.create({
               data: {
                 userId: req.userId,
-                type: "MILESTONE",
+                type: 'MILESTONE',
                 title: `🎉 Đạt cột mốc ${pct}% tổng nợ!`,
-                message: `Bạn đã trả được ${pct}% tổng số nợ gốc (${new Intl.NumberFormat("vi-VN").format(Math.round(paidAfter))}đ / ${new Intl.NumberFormat("vi-VN").format(Math.round(totalOriginal))}đ). Tuyệt vời!`,
-                severity: "INFO",
+                message: `Bạn đã trả được ${pct}% tổng số nợ gốc (${new Intl.NumberFormat('vi-VN').format(Math.round(paidAfter))}đ / ${new Intl.NumberFormat('vi-VN').format(Math.round(totalOriginal))}đ). Tuyệt vời!`,
+                severity: 'INFO',
               },
             });
 
-            await emailService.sendMilestoneCongrats(
-              user.email,
-              user.fullName,
-              pct,
-              paidAfter,
-              totalOriginal,
-            );
+            await emailService.sendMilestoneCongrats(user.email, user.fullName, pct, paidAfter, totalOriginal);
 
-            console.log(
-              `[Milestone] User ${req.userId} đạt ${pct}% — email gửi tới ${user.email}`,
-            );
+            console.log(`[Milestone] User ${req.userId} đạt ${pct}% — email gửi tới ${user.email}`);
             break;
           }
         }
       }
     } catch (milestoneErr) {
-      console.error("Milestone check error:", milestoneErr);
+      console.error('Milestone check error:', milestoneErr);
     }
 
     return success(res, { payment, updatedDebt });
   } catch (err) {
-    console.error("logPayment error:", err);
-    return error(res, "Internal server error");
+    console.error('logPayment error:', err);
+    return error(res, 'Internal server error');
   }
 }
 
-export async function getRepaymentPlan(
-  req: AuthenticatedRequest,
-  res: Response,
-) {
+export async function getRepaymentPlan(req: AuthenticatedRequest, res: Response) {
   try {
     const user = await (prisma as any).user.findUnique({
       where: { id: req.userId },
     });
     const debts = await (prisma as any).debt.findMany({
-      where: { userId: req.userId, status: "ACTIVE" },
+      where: { userId: req.userId, status: 'ACTIVE' },
     });
 
     if (debts.length === 0) {
@@ -427,28 +373,25 @@ export async function getRepaymentPlan(
         avalanche: null,
         snowball: null,
         comparison: null,
-        recommendation: "Bạn không có khoản nợ nào.",
+        recommendation: 'Bạn không có khoản nợ nào.',
       });
     }
 
-    const extraBudget = resolveRepaymentExtraBudget(
-      req.query.extraBudget,
-      user?.extraBudget,
-    );
+    const extraBudget = resolveRepaymentExtraBudget(req.query.extraBudget, user?.extraBudget);
     const monthlyIncome = user?.monthlyIncome || 0;
     const simulationOptions = { monthlyIncome, stopOnTermBreach: true };
-    const avalanche = simulateRepaymentWithExtraBudget(debts, extraBudget, "AVALANCHE", simulationOptions);
-    const snowball = simulateRepaymentWithExtraBudget(debts, extraBudget, "SNOWBALL", simulationOptions);
+    const avalanche = simulateRepaymentWithExtraBudget(debts, extraBudget, 'AVALANCHE', simulationOptions);
+    const snowball = simulateRepaymentWithExtraBudget(debts, extraBudget, 'SNOWBALL', simulationOptions);
 
     const savedInterest = snowball.totalInterest - avalanche.totalInterest;
     const savedMonths = snowball.months - avalanche.months;
 
-    let recommendation = "";
+    let recommendation = '';
     if (savedInterest > 100000) {
-      recommendation = `Phương pháp Avalanche giúp bạn tiết kiệm ${savedInterest.toLocaleString("vi-VN")}đ tiền lãi. Khuyến nghị sử dụng Avalanche.`;
+      recommendation = `Phương pháp Avalanche giúp bạn tiết kiệm ${savedInterest.toLocaleString('vi-VN')}đ tiền lãi. Khuyến nghị sử dụng Avalanche.`;
     } else {
       recommendation =
-        "Hai phương pháp cho kết quả tương đương. Chọn Snowball nếu bạn muốn động lực tâm lý từ việc xoá nợ nhỏ trước.";
+        'Hai phương pháp cho kết quả tương đương. Chọn Snowball nếu bạn muốn động lực tâm lý từ việc xoá nợ nhỏ trước.';
     }
 
     const formatSimulation = (simulation: typeof avalanche | null) => {
@@ -480,8 +423,8 @@ export async function getRepaymentPlan(
       recommendation,
     });
   } catch (err) {
-    console.error("getRepaymentPlan error:", err);
-    return error(res, "Internal server error");
+    console.error('getRepaymentPlan error:', err);
+    return error(res, 'Internal server error');
   }
 }
 
@@ -491,24 +434,14 @@ export async function getDtiAnalysis(req: AuthenticatedRequest, res: Response) {
       where: { id: req.userId },
     });
     const debts = await (prisma as any).debt.findMany({
-      where: { userId: req.userId, status: "ACTIVE" },
+      where: { userId: req.userId, status: 'ACTIVE' },
     });
 
     const monthlyIncome = user.monthlyIncome || 0;
-    const totalMinPayment = debts.reduce(
-      (s: number, d: any) => s + d.minPayment,
-      0,
-    );
+    const totalMinPayment = debts.reduce((s: number, d: any) => s + d.minPayment, 0);
     const dtiRatio = calcDebtToIncomeRatio(totalMinPayment, monthlyIncome);
 
-    const zone =
-      dtiRatio > 50
-        ? "CRITICAL"
-        : dtiRatio > 35
-          ? "WARNING"
-          : dtiRatio > 20
-            ? "CAUTION"
-            : "SAFE";
+    const zone = dtiRatio > 50 ? 'CRITICAL' : dtiRatio > 35 ? 'WARNING' : dtiRatio > 20 ? 'CAUTION' : 'SAFE';
 
     const breakdown = debts
       .map((d: any) => ({
@@ -517,24 +450,15 @@ export async function getDtiAnalysis(req: AuthenticatedRequest, res: Response) {
         platform: d.platform,
         balance: d.balance,
         minPayment: d.minPayment,
-        dtiContribution: parseFloat(
-          monthlyIncome > 0
-            ? ((d.minPayment / monthlyIncome) * 100).toFixed(2)
-            : "0",
-        ),
+        dtiContribution: parseFloat(monthlyIncome > 0 ? ((d.minPayment / monthlyIncome) * 100).toFixed(2) : '0'),
       }))
       .sort((a: any, b: any) => b.dtiContribution - a.dtiContribution);
 
     const safeMaxPayment = monthlyIncome * 0.2;
     const whatIf = {
       targetDti: 20,
-      incomeNeededForSafe:
-        totalMinPayment > 0
-          ? parseFloat((totalMinPayment / 0.2).toFixed(0))
-          : 0,
-      paymentReductionNeeded: parseFloat(
-        Math.max(0, totalMinPayment - safeMaxPayment).toFixed(0),
-      ),
+      incomeNeededForSafe: totalMinPayment > 0 ? parseFloat((totalMinPayment / 0.2).toFixed(0)) : 0,
+      paymentReductionNeeded: parseFloat(Math.max(0, totalMinPayment - safeMaxPayment).toFixed(0)),
     };
 
     return success(res, {
@@ -549,26 +473,20 @@ export async function getDtiAnalysis(req: AuthenticatedRequest, res: Response) {
       whatIf,
     });
   } catch (err) {
-    console.error("getDtiAnalysis error:", err);
-    return error(res, "Internal server error");
+    console.error('getDtiAnalysis error:', err);
+    return error(res, 'Internal server error');
   }
 }
 
 export async function getEarAnalysis(req: AuthenticatedRequest, res: Response) {
   try {
     const debts = await (prisma as any).debt.findMany({
-      where: { userId: req.userId, status: "ACTIVE" },
+      where: { userId: req.userId, status: 'ACTIVE' },
     });
 
     const analysis = debts.map((d: any) => {
       const apy = calcAPY(d.apr);
-      const ear = calcEAR(
-        d.apr,
-        d.feeProcessing,
-        d.feeInsurance,
-        d.feeManagement,
-        d.termMonths,
-      );
+      const ear = calcEAR(d.apr, d.feeProcessing, d.feeInsurance, d.feeManagement, d.termMonths);
       return {
         id: d.id,
         name: d.name,
@@ -580,8 +498,7 @@ export async function getEarAnalysis(req: AuthenticatedRequest, res: Response) {
         earBreakdown: {
           apr: d.apr,
           compoundEffect: apy - d.apr,
-          processingFee:
-            d.termMonths > 0 ? (d.feeProcessing / d.termMonths) * 12 : 0,
+          processingFee: d.termMonths > 0 ? (d.feeProcessing / d.termMonths) * 12 : 0,
           insuranceFee: d.feeInsurance,
           managementFee: d.feeManagement,
           totalEAR: ear,
@@ -589,21 +506,10 @@ export async function getEarAnalysis(req: AuthenticatedRequest, res: Response) {
       };
     });
 
-    const totalBalance = debts.reduce(
-      (sum: number, d: any) => sum + d.balance,
-      0,
-    );
-    const averageAPR =
-      debts.length > 0
-        ? debts.reduce((sum: number, d: any) => sum + d.apr, 0) / debts.length
-        : 0;
+    const totalBalance = debts.reduce((sum: number, d: any) => sum + d.balance, 0);
+    const averageAPR = debts.length > 0 ? debts.reduce((sum: number, d: any) => sum + d.apr, 0) / debts.length : 0;
     const averageEAR =
-      totalBalance > 0
-        ? analysis.reduce(
-            (sum: number, d: any) => sum + (d.balance / totalBalance) * d.ear,
-            0,
-          )
-        : 0;
+      totalBalance > 0 ? analysis.reduce((sum: number, d: any) => sum + (d.balance / totalBalance) * d.ear, 0) : 0;
     const totalHiddenCost = averageEAR - averageAPR;
 
     return success(res, {
@@ -611,7 +517,7 @@ export async function getEarAnalysis(req: AuthenticatedRequest, res: Response) {
       summary: { averageAPR, averageEAR, totalHiddenCost },
     });
   } catch (err) {
-    console.error("getEarAnalysis error:", err);
-    return error(res, "Internal server error");
+    console.error('getEarAnalysis error:', err);
+    return error(res, 'Internal server error');
   }
 }

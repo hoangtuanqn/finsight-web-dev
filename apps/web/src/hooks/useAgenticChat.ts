@@ -1,21 +1,16 @@
-import { useState, useCallback, useRef } from "react";
-import {
-  streamChat,
-  getSessions,
-  getSessionMessages,
-  deleteSession,
-} from "../api/agentic";
+import { useCallback, useRef, useState } from 'react';
+import { deleteSession, getSessionMessages, getSessions, streamChat } from '../api/agentic';
 
 const WELCOME_MESSAGE = {
-  id: "welcome",
-  role: "assistant" as const,
+  id: 'welcome',
+  role: 'assistant' as const,
   content:
-    "Xin chào! Tôi là **FinSight AI Advisor** - trợ lý tài chính thông minh của bạn. Hãy hỏi tôi về:\n- 📊 Tình trạng nợ & DTI\n- 💡 Chiến lược trả nợ (Avalanche / Snowball)\n- 📈 Thị trường & đầu tư\n- 🏦 Khai báo khoản nợ mới\n- 📷 Upload ảnh hóa đơn/hợp đồng vay để thêm nợ tự động",
+    'Xin chào! Tôi là **FinSight AI Advisor** - trợ lý tài chính thông minh của bạn. Hãy hỏi tôi về:\n- 📊 Tình trạng nợ & DTI\n- 💡 Chiến lược trả nợ (Avalanche / Snowball)\n- 📈 Thị trường & đầu tư\n- 🏦 Khai báo khoản nợ mới\n- 📷 Upload ảnh hóa đơn/hợp đồng vay để thêm nợ tự động',
 };
 
 interface Message {
   id: string;
-  role: "user" | "assistant";
+  role: 'user' | 'assistant';
   content: string;
 }
 
@@ -29,25 +24,21 @@ export function useAgenticChat() {
   const abortRef = useRef(false);
 
   const sendMessage = useCallback(
-    async (
-      text: string,
-      ocrText: string | null = null,
-      overrideDisplay: string | null = null,
-    ) => {
+    async (text: string, ocrText: string | null = null, overrideDisplay: string | null = null) => {
       if (!text.trim() || isStreaming) return;
 
       const displayContent = overrideDisplay || text;
       const userMsg: Message = {
         id: `user-${Date.now()}`,
-        role: "user",
+        role: 'user',
         content: displayContent,
       };
       const aiMsgId = `ai-${Date.now()}`;
-      const aiMsg: Message = { id: aiMsgId, role: "assistant", content: "" };
+      const aiMsg: Message = { id: aiMsgId, role: 'assistant', content: '' };
 
       setMessages((prev) => [...prev, userMsg, aiMsg]);
       setIsStreaming(true);
-      setToolStatus("🤔 Đang suy nghĩ...");
+      setToolStatus('🤔 Đang suy nghĩ...');
       abortRef.current = false;
 
       await streamChat(
@@ -57,18 +48,14 @@ export function useAgenticChat() {
         (token: string) => {
           if (abortRef.current) return;
           setToolStatus(null);
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === aiMsgId ? { ...m, content: m.content + token } : m,
-            ),
-          );
+          setMessages((prev) => prev.map((m) => (m.id === aiMsgId ? { ...m, content: m.content + token } : m)));
         },
         // onDone
         (meta: any) => {
           setIsStreaming(false);
           setToolStatus(null);
           if (meta.sessionId) setSessionId(meta.sessionId);
-          if (meta.actionType === "form_population" && meta.triggerPayload) {
+          if (meta.actionType === 'form_population' && meta.triggerPayload) {
             setPendingAction(meta.triggerPayload);
           }
         },
@@ -81,7 +68,7 @@ export function useAgenticChat() {
               m.id === aiMsgId
                 ? {
                     ...m,
-                    content: `⚠️ ${err || "Đã xảy ra lỗi. Vui lòng thử lại."}`,
+                    content: `⚠️ ${err || 'Đã xảy ra lỗi. Vui lòng thử lại.'}`,
                   }
                 : m,
             ),
@@ -114,7 +101,7 @@ export function useAgenticChat() {
         setSessionId(id);
         const history = res.data.session.messages.map((m: any) => ({
           id: m.id,
-          role: m.role === "user" ? "user" : "assistant",
+          role: m.role === 'user' ? 'user' : 'assistant',
           content: m.content,
         }));
         setMessages([WELCOME_MESSAGE, ...history]);
