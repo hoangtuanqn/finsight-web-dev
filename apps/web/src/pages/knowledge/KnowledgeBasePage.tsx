@@ -19,7 +19,6 @@ import {
   Save,
   Search,
   Share2,
-  Sparkles,
   Trash2,
   User,
   X,
@@ -27,13 +26,7 @@ import {
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import knowledgeData from '../../data/knowledgeBase.json';
-import {
-  useArticles,
-  useCreateArticle,
-  useDeleteArticle,
-  useSeedArticles,
-  useUpdateArticle,
-} from '../../hooks/useArticleQuery';
+import { useArticles, useCreateArticle, useDeleteArticle, useUpdateArticle } from '../../hooks/useArticleQuery';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -98,7 +91,6 @@ export default function KnowledgeBasePage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const { data: articles, isLoading } = useArticles() as { data: any[] | undefined; isLoading: boolean };
-  const { mutate: seed, isPending: isSeeding } = useSeedArticles();
   const { mutate: createArticle, isPending: isCreatingArticle } = useCreateArticle();
   const { mutate: updateArticle, isPending: isUpdatingArticle } = useUpdateArticle();
   const { mutate: deleteArticle, isPending: isDeletingArticle } = useDeleteArticle();
@@ -115,13 +107,6 @@ export default function KnowledgeBasePage() {
   useEffect(() => {
     localStorage.setItem('finsight_article_view', articleViewMode);
   }, [articleViewMode]);
-
-  const handleSeed = () => {
-    seed(null, {
-      onSuccess: () => toast.success('Đã nạp dữ liệu bài viết mẫu!'),
-      onError: () => toast.error('Lỗi khi nạp dữ liệu.'),
-    });
-  };
 
   const openCreateArticle = () => {
     setEditingArticle(null);
@@ -293,17 +278,6 @@ export default function KnowledgeBasePage() {
             Tối ưu hóa chiến lược quản lý nợ thông qua các khái niệm cốt lõi và câu chuyện thực tiễn.
           </p>
         </div>
-
-        {activeTab === 'stories' && (!articles || articles.length === 0) && !isLoading && (
-          <button
-            onClick={handleSeed}
-            disabled={isSeeding}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-xl shadow-indigo-500/20 active:scale-95"
-          >
-            {isSeeding ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-            Nạp dữ liệu mẫu
-          </button>
-        )}
       </motion.div>
 
       {/* Controls: Tabs & Search */}
