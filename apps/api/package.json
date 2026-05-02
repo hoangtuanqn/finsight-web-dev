@@ -21,6 +21,8 @@
     "@langchain/langgraph": "^1.2.9",
     "@langchain/openai": "^1.4.4",
     "@prisma/client": "^6.19.2",
+    "@repo/auth": "*",
+    "@repo/financial-core": "*",
     "@repo/types": "*",
     "@types/multer": "^2.1.0",
     "axios": "^1.15.2",

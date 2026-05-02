@@ -11,10 +11,30 @@ export function useArticles() {
   });
 }
 
-export function useSeedArticles() {
+export function useCreateArticle() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: articleAPI.seedArticles,
+    mutationFn: articleAPI.createArticle,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['articles'] });
+    },
+  });
+}
+
+export function useUpdateArticle() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) => articleAPI.updateArticle(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['articles'] });
+    },
+  });
+}
+
+export function useDeleteArticle() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: articleAPI.deleteArticle,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['articles'] });
     },
