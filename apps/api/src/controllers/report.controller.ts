@@ -5,11 +5,17 @@ import { AuthenticatedRequest } from '../types';
 
 export async function exportReport(req: AuthenticatedRequest, res: Response) {
   try {
-    const { format } = req.query;
+    const { format, timeRange, debtId, startDate, endDate } = req.query;
     const userId = req.userId as string;
 
     if (format === 'excel') {
-      const workbook = await reportService.generateExcel(userId);
+      const workbook = await reportService.generateExcel(
+        userId, 
+        timeRange as string, 
+        debtId as string,
+        startDate as string,
+        endDate as string
+      );
       
       res.setHeader(
         'Content-Type',
@@ -32,7 +38,14 @@ export async function exportReport(req: AuthenticatedRequest, res: Response) {
         `attachment; filename=FinSight_Report_${new Date().getTime()}.pdf`
       );
       
-      await reportService.generatePDF(userId, res);
+      await reportService.generatePDF(
+        userId, 
+        res, 
+        timeRange as string, 
+        debtId as string,
+        startDate as string,
+        endDate as string
+      );
       return;
     }
 
