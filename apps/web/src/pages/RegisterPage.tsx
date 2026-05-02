@@ -5,12 +5,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../context/AuthContext';
-import { 
-  AlertTriangle, User, Mail, Lock, Eye, EyeOff, 
-  ArrowRight, Sparkles, ShieldCheck, Zap, ChevronRight, 
-  CheckCircle2, PartyPopper, Coins, Globe, Cpu
-} from 'lucide-react';
+import { toast } from 'sonner';
 import SocialLoginButtons from '../components/auth/SocialLoginButtons';
+import {
+  AlertTriangle, User, Mail, Lock, Eye, EyeOff,
+  Sparkles, CheckCircle2, UserPlus, LogIn
+} from 'lucide-react';
 import { ToggleMode } from '../components/layout/components/ToggleMode';
 import { useDarkMode } from '../hooks/useDarkMode';
 import { referralAPI } from '../api/index';
@@ -48,13 +48,13 @@ export default function RegisterPage() {
   useEffect(() => {
     if (refCode && !hasTracked.current) {
       hasTracked.current = true;
-      referralAPI.trackClick(refCode).catch(err => {
+      referralAPI.trackClick(refCode).catch((err: any) => {
         console.error('[Referral] Failed to track click:', err);
       });
     }
   }, [refCode]);
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm({
+  const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(registerSchema),
     defaultValues: { fullName: '', email: '', password: '', confirmPassword: '', referralCode: refCode }
   });
@@ -73,224 +73,202 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-50 overflow-hidden font-sans relative selection:bg-indigo-500/30">
+    <div className="min-h-screen bg-slate-100 dark:bg-[#0f172a] flex items-center justify-center p-4 sm:p-8 font-sans relative overflow-hidden">
       
-      {/* Immersive Moving Mesh Background */}
-      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[70%] rounded-full bg-indigo-600/20 blur-[160px] animate-[pulse_10s_infinite]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] rounded-full bg-rose-600/10 blur-[160px] animate-[pulse_15s_infinite_2s]" />
-        <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] rounded-full bg-blue-600/10 blur-[120px] animate-[pulse_12s_infinite_4s]" />
-        
-        {/* Animated Particles Grid */}
-        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" 
-             style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+      {/* Decorative Outer Icon */}
+      <div className="absolute top-16 left-16 opacity-[0.03] dark:opacity-[0.05] pointer-events-none">
+         <UserPlus size={120} className="text-slate-800 dark:text-slate-200" />
       </div>
 
-      {/* Floating Decorative Elements */}
-      <div className="fixed inset-0 z-10 pointer-events-none">
-         <motion.div animate={{ y: [0, -20, 0], x: [0, 10, 0] }} transition={{ duration: 6, repeat: Infinity }} className="absolute top-20 left-[15%] opacity-20"><Globe size={120} /></motion.div>
-         <motion.div animate={{ y: [0, 20, 0], x: [0, -10, 0] }} transition={{ duration: 8, repeat: Infinity }} className="absolute bottom-40 right-[10%] opacity-10"><Cpu size={160} /></motion.div>
+      {/* Floating Toggle */}
+      <div className="absolute top-6 right-6 z-50">
+        <ToggleMode dark={dark} setDark={setDark} />
       </div>
 
-      <div className="relative z-20 min-h-screen flex flex-col items-center justify-center p-4 md:p-8">
+      <div className="max-w-[1000px] w-full flex bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden relative">
         
-        {/* Navigation / Header */}
-        <div className="absolute top-8 left-0 right-0 px-8 flex justify-between items-center w-full max-w-7xl mx-auto">
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/10 group-hover:bg-white/20 transition-all">
-              <img src="https://i.ibb.co/84xLmWTK/LOGO.png" alt="Logo" className="h-6 w-auto" />
-            </div>
-            <span className="text-sm font-black uppercase tracking-[0.4em] opacity-80">FinSight</span>
-          </Link>
-          <ToggleMode dark={dark} setDark={setDark} />
-        </div>
+        {/* LEFT COLUMN - PROMO (Slides from Right to Left) */}
+        <motion.div 
+          initial={{ x: 500, zIndex: 30 }}
+          animate={{ x: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="hidden lg:flex w-[48%] bg-gradient-to-br from-emerald-400 to-emerald-600 relative flex-col items-center justify-center p-14 text-center z-30"
+        >
+          {/* Subtle Plus Pattern Background */}
+          <div
+            className="absolute inset-0 opacity-10"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='30' height='30' viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M14 14V6h2v8h8v2h-8v8h-2v-8H6v-2h8z' fill='%23ffffff' fill-opacity='1' fill-rule='evenodd'/%3E%3C/svg%3E")`,
+              backgroundSize: '40px 40px'
+            }}
+          />
 
-        {/* Main Centered Content */}
-        <div className="w-full max-w-5xl grid lg:grid-cols-12 gap-12 items-center">
-          
-          {/* Left Text: Floating Labels (Hidden on mobile) */}
-          <div className="hidden lg:flex lg:col-span-4 flex-col gap-8">
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }} 
-              animate={{ opacity: 1, x: 0 }} 
-              transition={{ delay: 0.3 }}
-              className="p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl"
-            >
-              <h3 className="text-xl font-black mb-2 flex items-center gap-2">
-                <ShieldCheck className="text-indigo-500" size={20} /> Bảo mật tối đa
-              </h3>
-              <p className="text-sm text-slate-400 font-medium leading-relaxed">Giao thức mã hóa lượng tử bảo vệ tài sản và định danh số của bạn 24/7.</p>
-            </motion.div>
-
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }} 
-              animate={{ opacity: 1, x: 0 }} 
-              transition={{ delay: 0.5 }}
-              className="p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl"
-            >
-              <h3 className="text-xl font-black mb-2 flex items-center gap-2">
-                <Zap className="text-rose-500" size={20} /> Phân tích Real-time
-              </h3>
-              <p className="text-sm text-slate-400 font-medium leading-relaxed">Mọi biến động nợ và tài sản được AI bóc tách trong mili giây.</p>
-            </motion.div>
-          </div>
-
-          {/* Center Card: The Portal */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            className="lg:col-span-8 w-full max-w-md mx-auto relative group"
+          {/* S-Curve SVG Overlaying Right Form Panel */}
+          <svg
+            className="absolute top-0 -right-[59px] w-[60px] h-full text-emerald-600 dark:text-emerald-700 fill-current z-10 pointer-events-none drop-shadow-[10px_0_15px_rgba(0,0,0,0.05)] hidden lg:block"
+            viewBox="0 0 60 1000"
+            preserveAspectRatio="none"
           >
-            {/* Card Aura */}
-            <div className="absolute -inset-1 bg-gradient-to-br from-indigo-500 via-purple-500 to-rose-500 rounded-[3rem] blur-2xl opacity-20 group-hover:opacity-40 transition-opacity duration-700" />
-            
-            <div className="relative bg-slate-900/40 backdrop-blur-[40px] rounded-[3rem] border border-white/10 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)] p-8 md:p-12 overflow-hidden">
-              
-              {/* Subtle light reflection on top */}
-              <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+            {/* Gentle curve that bows outward at the middle and inward at the bottom */}
+            <path d="M 0 0 C 60 300 0 700 0 1000 Z" />
+          </svg>
 
-              <div className="mb-10 text-center">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-widest mb-4">
-                  <Sparkles size={12} /> Đăng ký thành viên
-                </div>
-                <h2 className="text-3xl font-black mb-2 tracking-tighter">Đăng ký tài khoản</h2>
-                <p className="text-slate-400 text-sm font-medium">Bắt đầu quản lý tài chính thông minh</p>
-              </div>
-
-              {serverError && (
-                <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-4 mb-8 flex items-center gap-3 text-xs text-rose-500 font-bold">
-                  <AlertTriangle size={16} /> {serverError}
-                </div>
-              )}
-
-              {/* Enhanced Referral Badge */}
-              <AnimatePresence>
-                {refCode && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="mb-8 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-4 relative overflow-hidden group"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
-                      <Coins size={20} className="animate-bounce" />
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest block">Phần thưởng giới thiệu</span>
-                      <p className="text-sm font-black text-white">+5 lượt Strategy AI đã sẵn sàng</p>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <SocialLoginButtons setError={setServerError} />
-
-              <div className="flex items-center gap-4 my-8">
-                <div className="flex-1 border-t border-white opacity-20"></div>
-                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Hoặc</span>
-                <div className="flex-1 border-t border-white opacity-20"></div>
-              </div>
-
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Họ và Tên</label>
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                    <input
-                      {...register('fullName')}
-                      type="text"
-                      className={`w-full bg-white/5 border rounded-2xl px-12 py-3.5 text-white font-bold focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all text-sm ${errors.fullName ? 'border-rose-500' : 'border-white/10 focus:border-indigo-500'}`}
-                      placeholder="Nguyễn Văn A"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Email</label>
-                  <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                    <input
-                      {...register('email')}
-                      type="email"
-                      className={`w-full bg-white/5 border rounded-2xl px-12 py-3.5 text-white font-bold focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all text-sm ${errors.email ? 'border-rose-500' : 'border-white/10 focus:border-indigo-500'}`}
-                      placeholder="you@domain.com"
-                    />
-                  </div>
-                </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Mật khẩu</label>
-                    <div className="relative">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                      <input
-                        {...register('password')}
-                        type={showPassword ? 'text' : 'password'}
-                        className={`w-full bg-white/5 border rounded-2xl pl-12 pr-4 py-3.5 text-white font-bold focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all text-sm ${errors.password ? 'border-rose-500' : 'border-white/10 focus:border-indigo-500'}`}
-                        placeholder="••••"
-                      />
-                    </div>
-                  </div>
-                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Xác nhận mật khẩu</label>
-                    <div className="relative">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                      <input
-                       {...register('confirmPassword')}
-                        type={showPassword ? 'text' : 'password'}
-                        className={`w-full bg-white/5 border rounded-2xl pl-12 pr-4 py-3.5 text-white font-bold focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all text-sm ${errors.password ? 'border-rose-500' : 'border-white/10 focus:border-indigo-500'}`}
-                        placeholder="••••"
-                      />
-                    </div>
-                  </div>
-
-
-                {Object.keys(errors).length > 0 && (
-                  <p className="text-[10px] font-bold text-rose-500 bg-rose-500/5 p-2 rounded-lg border border-rose-500/10">
-                    * Vui lòng kiểm tra lại thông tin nhập liệu
-                  </p>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="group relative w-full flex items-center justify-center gap-2 px-8 py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-[0_20px_40px_-12px_rgba(79,70,229,0.4)] hover:shadow-[0_20px_60px_-12px_rgba(79,70,229,0.6)] transition-all active:scale-[0.98] disabled:opacity-70 mt-6 cursor-pointer overflow-hidden"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-rose-600 opacity-100 group-hover:scale-110 transition-transform duration-500" />
-                  {loading ? (
-                    <div className="relative w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <span className="relative flex items-center gap-2 uppercase tracking-widest text-[11px]">
-                      Đăng ký ngay <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                    </span>
-                  )}
-                </button>
-              </form>
-
-              <div className="mt-8 pt-8 border-t border-white/5 text-center">
-                <Link to="/login" className="text-[10px] font-black text-indigo-400 uppercase tracking-widest hover:text-indigo-300 transition-colors inline-flex items-center gap-2">
-                  Quay lại đăng nhập <ArrowRight size={14} />
-                </Link>
-              </div>
+          <div className="relative z-20 flex flex-col items-center">
+            <div className="w-20 h-20 bg-white/10 backdrop-blur-xl border border-white/20 rounded-[1.5rem] flex items-center justify-center mb-8 shadow-xl relative">
+              <User size={36} className="text-white" />
+              <div className="absolute bottom-[-4px] right-[-4px] bg-emerald-500 rounded-full border-2 border-emerald-400 p-0.5"><CheckCircle2 size={16} className="text-white"/></div>
             </div>
-          </motion.div>
 
-          {/* Right Text / Extra Info (Hidden on mobile) */}
-          <div className="hidden lg:flex lg:col-span-12 justify-center gap-20 mt-8 opacity-40">
-             <div className="flex flex-col items-center gap-2">
-                <span className="text-2xl font-black">2.4k+</span>
-                <span className="text-[10px] uppercase font-bold tracking-[0.2em]">Người dùng</span>
-             </div>
-             <div className="flex flex-col items-center gap-2">
-                <span className="text-2xl font-black">99.9%</span>
-                <span className="text-[10px] uppercase font-bold tracking-[0.2em]">Trạng thái</span>
-             </div>
-             <div className="flex flex-col items-center gap-2">
-                <span className="text-2xl font-black">256-bit</span>
-                <span className="text-[10px] uppercase font-bold tracking-[0.2em]">Bảo mật</span>
-             </div>
+            <h3 className="text-3xl font-black text-white mb-4">Đã có tài khoản?</h3>
+            <p className="text-emerald-50 text-[15px] mb-10 leading-relaxed px-4 font-medium opacity-90">
+              Đăng nhập để tiếp tục sử dụng<br/>hệ thống quản lý chuyên nghiệp
+            </p>
+
+            <Link to="/login" className="group px-10 py-3.5 rounded-2xl border border-white/40 bg-white/5 backdrop-blur-sm text-white font-bold hover:bg-white hover:text-emerald-600 transition-all flex items-center gap-2 shadow-lg">
+              <LogIn size={18} className="group-hover:-translate-x-1 transition-transform" /> Đăng nhập
+            </Link>
           </div>
+        </motion.div>
 
-        </div>
+        {/* RIGHT COLUMN - AUTH FORM (Slides from Left to Right) */}
+        <motion.div 
+          initial={{ x: -500, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="flex-1 p-8 sm:p-12 lg:p-14 relative z-20 flex flex-col items-center justify-center bg-white dark:bg-slate-900 overflow-hidden"
+        >
+          {/* Aesthetic Soft Blobs */}
+          <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-emerald-100/50 dark:bg-emerald-900/20 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-[-10%] left-[-10%] w-64 h-64 bg-teal-100/50 dark:bg-teal-900/20 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="w-full max-w-[360px] relative z-10 flex flex-col items-center">
+
+            {/* Top Icon */}
+            <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center mb-5 shadow-[0_8px_20px_-6px_rgba(16,185,129,0.5)]">
+              <UserPlus size={30} className="text-white" />
+            </div>
+
+            <h2 className="text-[28px] font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500 dark:from-emerald-400 dark:to-teal-400 mb-2">Tạo tài khoản</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-[13px] mb-8 font-medium">Đăng ký để bắt đầu sử dụng</p>
+
+            {serverError && (
+              <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="w-full bg-rose-50 dark:bg-rose-900/20 border border-rose-100 dark:border-rose-900/50 text-rose-500 text-xs font-bold p-3 rounded-xl mb-6 flex items-center gap-2">
+                <AlertTriangle size={16} /> {serverError}
+              </motion.div>
+            )}
+
+            <form onSubmit={handleSubmit(onSubmit)} className="w-full space-y-4">
+              
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-bold text-slate-800 dark:text-slate-200">Username</label>
+                <div className="relative group/input">
+                  <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-emerald-500 transition-colors duration-300" />
+                  <input
+                    {...register('fullName')}
+                    className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.fullName ? 'border-rose-500' : 'border-transparent'} focus:border-emerald-500/50 rounded-xl pl-10 pr-3 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#f8fafc] dark:[&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#1e293b] dark:[&:-webkit-autofill]:-webkit-text-fill-color-white`}
+                    placeholder="Nguyễn Văn A"
+                  />
+                </div>
+                {errors.fullName && <p className="text-[10px] text-rose-500 font-bold">{errors.fullName.message as string}</p>}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-bold text-slate-800 dark:text-slate-200">Email</label>
+                <div className="relative group/input">
+                  <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-emerald-500 transition-colors duration-300" />
+                  <input
+                    {...register('email')}
+                    className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.email ? 'border-rose-500' : 'border-transparent'} focus:border-emerald-500/50 rounded-xl pl-10 pr-3 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#f8fafc] dark:[&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#1e293b] dark:[&:-webkit-autofill]:-webkit-text-fill-color-white`}
+                    placeholder="email@example.com"
+                  />
+                </div>
+                {errors.email && <p className="text-[10px] text-rose-500 font-bold">{errors.email.message as string}</p>}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[12px] font-bold text-slate-800 dark:text-slate-200">Mật khẩu</label>
+                  <div className="relative group/input">
+                    <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-emerald-500 transition-colors duration-300" />
+                    <input
+                      {...register('password')}
+                      type={showPassword ? 'text' : 'password'}
+                      className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.password ? 'border-rose-500' : 'border-transparent'} focus:border-emerald-500/50 rounded-xl pl-10 pr-8 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#f8fafc] dark:[&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#1e293b] dark:[&:-webkit-autofill]:-webkit-text-fill-color-white`}
+                      placeholder="Tối thiểu 6 ký tự"
+                    />
+                  </div>
+                  {errors.password && <p className="text-[10px] text-rose-500 font-bold">{errors.password.message as string}</p>}
+                </div>
+                
+                <div className="space-y-1.5">
+                  <label className="text-[12px] font-bold text-slate-800 dark:text-slate-200">Xác nhận</label>
+                  <div className="relative group/input">
+                    <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-emerald-500 transition-colors duration-300" />
+                    <input
+                      {...register('confirmPassword')}
+                      type={showPassword ? 'text' : 'password'}
+                      className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.confirmPassword ? 'border-rose-500' : 'border-transparent'} focus:border-emerald-500/50 rounded-xl pl-10 pr-8 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#f8fafc] dark:[&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#1e293b] dark:[&:-webkit-autofill]:-webkit-text-fill-color-white`}
+                      placeholder="Nhập lại"
+                    />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                      {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                  {errors.confirmPassword && <p className="text-[10px] text-rose-500 font-bold">{errors.confirmPassword.message as string}</p>}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-bold text-slate-800 dark:text-slate-200">Mã giới thiệu (Tùy chọn)</label>
+                <div className="relative group/input">
+                  <Sparkles size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-emerald-500 transition-colors duration-300" />
+                  <input
+                    {...register('referralCode')}
+                    className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border border-transparent focus:border-emerald-500/50 rounded-xl pl-10 pr-3 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#f8fafc] dark:[&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#1e293b] dark:[&:-webkit-autofill]:-webkit-text-fill-color-white`}
+                    placeholder="Nhập mã (nếu có)"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 mt-2">
+                <input type="checkbox" id="tos" className="w-3.5 h-3.5 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500" required />
+                <label htmlFor="tos" className="text-[11px] text-slate-500 cursor-pointer">
+                  Tôi đồng ý với <Link to="#" className="text-emerald-500 hover:underline font-bold">Điều khoản & Chính sách</Link>
+                </label>
+              </div>
+
+              <motion.button
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-emerald-400 to-emerald-600 hover:from-emerald-500 hover:to-emerald-700 text-white rounded-xl py-3.5 flex items-center justify-center gap-2 font-bold transition-all shadow-[0_8px_20px_-6px_rgba(16,185,129,0.5)] hover:shadow-[0_12px_25px_-6px_rgba(16,185,129,0.6)] mt-2"
+              >
+                {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><UserPlus size={18} /> Đăng ký tài khoản</>}
+              </motion.button>
+            </form>
+
+            <div className="flex items-center gap-4 my-6 opacity-80 w-full">
+              <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
+              <span className="text-[11px] font-medium text-slate-400">hoặc</span>
+              <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
+            </div>
+
+            <div className="w-full [&>button]:w-full [&>button]:bg-white [&>button]:dark:bg-slate-800/80 [&>button]:border [&>button]:border-slate-200 [&>button]:dark:border-slate-700 [&>button]:rounded-xl [&>button]:py-3.5 [&>button]:shadow-sm [&>button:hover]:shadow-md [&>button]:transition-all">
+              <SocialLoginButtons 
+                setError={setServerError} 
+                onSuccess={() => {
+                  navigate('/home');
+                }}
+              />
+            </div>
+
+            <p className="mt-8 text-[13px] text-slate-500 font-medium lg:hidden">
+              Đã có tài khoản? <Link to="/login" className="font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 transition-colors">Đăng nhập</Link>
+            </p>
+
+          </div>
+        </motion.div>
       </div>
     </div>
   );
