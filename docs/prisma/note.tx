@@ -1,0 +1,4 @@
+Personal:
+    bunx prisma studio
+Enterprise:
+bunx prisma studio --schema=prisma/enterprise/schema.prisma --port=5556
