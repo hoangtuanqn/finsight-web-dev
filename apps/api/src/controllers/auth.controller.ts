@@ -91,3 +91,23 @@ export async function me(req: AuthenticatedRequest, res: Response) {
 export async function logout(req: Request, res: Response) {
   return success(res, { message: 'Logged out successfully' });
 }
+
+export async function verifyPassword(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { password } = req.body;
+    if (!password) return error(res, 'Vui lòng nhập mật khẩu', 400);
+
+    const user = await (prisma as any).user.findUnique({
+      where: { id: req.userId },
+    });
+    if (!user) return error(res, 'User not found', 404);
+
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) return error(res, 'Mật khẩu không chính xác', 401);
+
+    return success(res, { message: 'Xác thực thành công' });
+  } catch (err) {
+    console.error('Verify password error:', err);
+    return error(res, 'Internal server error');
+  }
+}
