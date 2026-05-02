@@ -19,10 +19,6 @@ export async function generateMarketViews(sentimentValue: number, newsApiKey?: s
       assets: ['crypto', 'stocks'],
       weights: [1, 0],
       expectedReturn: 0.15,
-      assets: ['crypto', 'stocks_us'],
-      weights: [1, 0], // Crypto absolute view (not relative)
-      expectedReturn: 0.15, // Expect crypto to grow 15%
->>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
       confidence: 0.6,
       description: 'Thị trường hưng phấn tột độ, dòng tiền rủi ro cao đổ mạnh vào Crypto.',
     });

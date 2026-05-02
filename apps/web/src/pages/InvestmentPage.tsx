@@ -16,21 +16,12 @@ import SmartAssetGuide from '../components/investment/SmartAssetGuide';
 import WealthProjection from '../components/investment/WealthProjection';
 
 import EconomicNewsFeed from '../components/investment/EconomicNewsFeed';
-
 import IncompleteProfile from '../components/investment/IncompleteProfile';
 import SentimentGauge from '../components/investment/SentimentGauge';
 import AssetFilterPanel from '../components/investment/AssetFilterPanel';
 import GenerateStrategyPopup from '../components/investment/GenerateStrategyPopup';
 import NoStrategyPopup from '../components/investment/NoStrategyPopup';
->>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
 import ApplyStrategyModal from '../components/investment/ApplyStrategyModal';
-import AssetFilterPanel from '../components/investment/AssetFilterPanel';
-import EconomicNewsFeed from '../components/investment/EconomicNewsFeed';
-import GenerateStrategyPopup from '../components/investment/GenerateStrategyPopup';
-import IncompleteProfile from '../components/investment/IncompleteProfile';
-import NoStrategyPopup from '../components/investment/NoStrategyPopup';
-import SentimentGauge from '../components/investment/SentimentGauge';
-import StrategyRecommendation from '../components/investment/StrategyRecommendation';
 
 import { ASSET_LABELS } from '../components/investment/InvestmentConstants';
 import { calcFV } from '../components/investment/InvestmentUtils';
@@ -77,17 +68,6 @@ function buildRenderData(allocation: any, profile: any) {
     { asset: 'Cổ phiếu VN', percentage: allocation.stocks,  amount: capital * allocation.stocks  / 100 },
     { asset: 'Trái phiếu',  percentage: allocation.bonds,   amount: capital * allocation.bonds   / 100 },
     { asset: 'Crypto',      percentage: allocation.crypto,  amount: capital * allocation.crypto  / 100 },
-    { asset: 'Tiết kiệm', percentage: allocation.savings, amount: (capital * allocation.savings) / 100 },
-    { asset: 'Vàng', percentage: allocation.gold, amount: (capital * allocation.gold) / 100 },
-    { asset: 'Cổ phiếu VN', percentage: allocation.stocks, amount: (capital * allocation.stocks) / 100 },
-    {
-      asset: 'Cổ phiếu Mỹ',
-      percentage: allocation.stocks_us || 0,
-      amount: (capital * (allocation.stocks_us || 0)) / 100,
-    },
-    { asset: 'Trái phiếu', percentage: allocation.bonds, amount: (capital * allocation.bonds) / 100 },
-    { asset: 'Crypto', percentage: allocation.crypto, amount: (capital * allocation.crypto) / 100 },
->>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
   ];
 
   const pieData = Object.entries(allocation)
@@ -436,10 +416,6 @@ export default function InvestmentPage() {
           const lockedExcluded = strategies.length > 0
             ? EXCLUDABLE.filter(a => !(activeAllocation[a] > 0))
             : excludedAssets; // fallback khi chưa có chiến lược
-          const EXCLUDABLE = ['gold', 'stocks', 'stocks_us', 'bonds', 'crypto'] as const;
-          const lockedExcluded =
-            strategies.length > 0 ? EXCLUDABLE.filter((a) => !(activeAllocation[a] > 0)) : excludedAssets; // fallback khi chưa có chiến lược
->>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
           return (
             <AssetFilterPanel
               excludedAssets={lockedExcluded}

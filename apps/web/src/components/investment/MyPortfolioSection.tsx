@@ -8,13 +8,6 @@ const FIELDS = [
   { key: "stocks",   label: "Cổ phiếu VN",  color: "#3b82f6" },
   { key: "bonds",    label: "Trái phiếu",   color: "#8b5cf6" },
   { key: "crypto",   label: "Crypto",       color: "#f97316" },
-  { key: 'savings', label: 'Tiết kiệm', color: '#10b981' },
-  { key: 'gold', label: 'Vàng', color: '#f59e0b' },
-  { key: 'stocks', label: 'Cổ phiếu VN', color: '#3b82f6' },
-  { key: 'stocks_us', label: 'Cổ phiếu Mỹ', color: '#ef4444' },
-  { key: 'bonds', label: 'Trái phiếu', color: '#8b5cf6' },
-  { key: 'crypto', label: 'Crypto', color: '#f97316' },
->>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
 ];
 
 interface MyPortfolioSectionProps {
@@ -36,13 +29,6 @@ export default function MyPortfolioSection({ portfolio, onUpdate }: MyPortfolioS
         stocks:    portfolio.stocks,
         bonds:     portfolio.bonds,
         crypto:    portfolio.crypto,
-        savings: portfolio.savings,
-        gold: portfolio.gold,
-        stocks: portfolio.stocks,
-        stocks_us: portfolio.stocks_us || 0,
-        bonds: portfolio.bonds,
-        crypto: portfolio.crypto,
->>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
       });
       setNotes(portfolio.notes || '');
     }

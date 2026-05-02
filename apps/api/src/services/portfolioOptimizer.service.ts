@@ -176,13 +176,6 @@ export async function getOptimalAllocation(
     return getMarketParams(savingsRate);
   })();
   console.log(`[Optimizer] marketParams.means.length=${marketParams.means.length} assetOrder=${JSON.stringify(marketParams.assetOrder)} covMatrix rows=${(marketParams.covMatrix.toArray?.() ?? marketParams.covMatrix).length}`);
-  const marketParams =
-    marketParamsOverride ||
-    (await (async () => {
-      const { getMarketParams } = await import('./historicalData.service.js');
-      return getMarketParams(savingsRate);
-    })());
->>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
   const priorMeans = adjustReturnsForSentiment(marketParams.means, sentimentValue);
   const { generateMarketViews } = await import('./marketViews.service.js');
   const marketViews = await generateMarketViews(sentimentValue, process.env.NEWS_API_KEY);
@@ -196,11 +189,6 @@ export async function getOptimalAllocation(
   const exclusionOverride = validExcluded.length > 0
     ? Object.fromEntries(validExcluded.map(a => [a, [0, 0] as [number, number]]))
     : null;
-  const EXCLUDABLE_ASSETS = ['gold', 'stocks', 'stocks_us', 'bonds', 'crypto'];
-  const validExcluded = excludedAssets.filter((a) => EXCLUDABLE_ASSETS.includes(a));
-  const exclusionOverride =
-    validExcluded.length > 0 ? Object.fromEntries(validExcluded.map((a) => [a, [0, 0] as [number, number]])) : null;
->>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
 
   const result = optimizePortfolio(
     marketParams,

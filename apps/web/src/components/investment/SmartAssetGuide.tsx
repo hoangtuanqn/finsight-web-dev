@@ -59,14 +59,6 @@ function useAssetData(asset, riskLevel) {
     worldPrice: payload?.worldPrice ?? null,
     loading:    q.isLoading,
     error:      q.isError,
-    items: payload?.coins || payload?.stocks || payload?.goldItems || payload?.savingsItems || payload?.bondItems || [],
-    intro: payload?.intro || '',
-    updatedAt: payload?.updatedAt || '',
-    metrics: payload?.metrics ?? null,
-    worldPrice: payload?.worldPrice ?? null,
-    loading: q.isLoading,
-    error: q.isError,
->>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
   };
 }
 
@@ -405,14 +397,12 @@ export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
                 <span className="text-xs font-bold uppercase tracking-widest text-slate-500">Tổng quan thị trường</span>
               </div>
 
-              {/* Gold: structured layout */}
               {active === 'gold' && activeData.metrics ? (
                 (() => {
                   const m = activeData.metrics;
                   const best = activeData.items[0];
                   return (
                     <div className="space-y-4">
-                      {/* Best pick highlight */}
                       {best && (
                         <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/5">
                           <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black bg-amber-500/20 border border-amber-500/30 text-amber-400 shrink-0">
@@ -452,7 +442,6 @@ export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
                         </div>
                       )}
 
-                      {/* Reference stats */}
                       {(() => {
                         const items = activeData.items;
                         const withCost = items.filter((it: any) => it.costAnalysis);
@@ -496,7 +485,7 @@ export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
                             value: `${lowestCost}%`,
                             color: lowestCost > 10 ? 'text-amber-400' : 'text-emerald-400',
                           },
-                          false, // removed: Thương hiệu theo dõi
+                          false,
                         ].filter(Boolean) as { label: string; value: string; color: string }[];
                         return (
                           <div className="flex flex-wrap gap-2">
@@ -513,7 +502,6 @@ export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
                         );
                       })()}
 
-                      {/* Scoring formula */}
                       <div className="rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden">
                         <div className="px-4 py-2.5 border-b border-white/5 flex items-center gap-2">
                           <Sparkles size={11} className="text-amber-400 shrink-0" />
@@ -548,21 +536,12 @@ export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })() : (
-                <div className="space-y-3">
-                  <p className="text-sm font-medium text-slate-200 leading-relaxed">
-                    {activeData.intro || suggestion.intro}
-                  </p>
-                </div>
                   );
                 })()
               ) : (
                 <p className="text-sm font-medium text-slate-200 leading-relaxed">
                   {activeData.intro || suggestion.intro}
                 </p>
->>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
               )}
             </div>
 
@@ -608,15 +587,6 @@ export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
                     <p className="text-sm font-medium text-slate-400 group-hover:text-slate-200 transition-colors leading-relaxed">
                       {tip}
                     </p>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              {suggestion.tips.map((tip, i) => (
-                <div
-                  key={i}
-                  className="p-5 rounded-2xl bg-white/[0.01] border border-white/5 flex gap-4 group hover:border-white/10 hover:bg-white/[0.02] transition-all duration-300"
-                >
-                  <div className="shrink-0 w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-xs font-bold text-slate-400 group-hover:text-white group-hover:bg-blue-500/20 transition-all duration-300 shadow-sm">
-                    {i + 1}
->>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
                   </div>
                 ))}
               </div>
