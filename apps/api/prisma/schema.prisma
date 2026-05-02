@@ -19,6 +19,7 @@ model User {
   fullName       String
   monthlyIncome  Float     @default(0)
   extraBudget    Float     @default(0)
+  healthScore    Int       @default(700)
   level            String    @default("BASIC")
   levelExpiresAt   DateTime?
   strategyQuota    Int       @default(10)
@@ -60,6 +61,7 @@ model User {
   withdrawalRequests  WithdrawalRequest[]
   kycRecord           KycRecord?
   faceDescriptors     FaceDescriptor[]
+  healthScoreHistory  HealthScoreHistory[]
 
   @@map("users")
 }
@@ -91,6 +93,7 @@ model Debt {
   feeInsurance     Float     @default(0)
   feeManagement    Float     @default(0)
   feePenaltyPerDay Float     @default(0)
+  accruedPenalty   Float     @default(0)
   minPayment       Float
   dueDay           Int
   termMonths       Int
@@ -562,4 +565,16 @@ model FaceDescriptor {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("face_descriptors")
+}
+
+model HealthScoreHistory {
+  id           String   @id @default(cuid())
+  userId       String
+  changeAmount Int
+  reason       String
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("health_score_history")
 }
