@@ -326,6 +326,7 @@ model AIStrategy {
   crypto         Float
   recommendation String   @db.Text
   marketViews    Json?
+  assetSnapshot  Json?    // snapshot tài sản tại thời điểm tạo chiến lược
   createdAt      DateTime @default(now())
 
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
