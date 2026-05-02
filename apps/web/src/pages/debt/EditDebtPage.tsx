@@ -41,6 +41,7 @@ const debtSchema = z
     feeManagement: preprocessNumber(
       z.number({ message: 'Vui lòng nhập phí quản lý.' }).min(0).max(5, 'Phí quản lý không nên vượt quá 5%').default(0),
     ),
+    feePenaltyPerDay: preprocessNumber(z.number({ message: 'Vui lòng nhập phí phạt.' }).min(0).default(0)),
     minPayment: preprocessNumber(
       z.number({ message: 'Vui lòng nhập khoản trả tối thiểu.' }).min(0, 'Số tiền trả tối thiểu không được âm.'),
     ),
@@ -203,6 +204,7 @@ export default function EditDebtPage() {
         feeProcessing: data.debt.feeProcessing,
         feeInsurance: data.debt.feeInsurance,
         feeManagement: data.debt.feeManagement,
+        feePenaltyPerDay: data.debt.feePenaltyPerDay || 0,
         minPayment: data.debt.minPayment,
         dueDay: data.debt.dueDay,
         termMonths: data.debt.termMonths,
@@ -220,6 +222,7 @@ export default function EditDebtPage() {
     setValue('feeProcessing', preset.feeProcessing);
     setValue('feeInsurance', preset.feeInsurance);
     setValue('feeManagement', preset.feeManagement);
+    setValue('feePenaltyPerDay', 0);
 
     if (preset.type === 'CREDIT_CARD') {
       setDebtType('CREDIT_CARD');
@@ -782,6 +785,98 @@ export default function EditDebtPage() {
                     )}
                   />
                 </div>
+              </div>
+
+              {/* Phạt trễ hạn */}
+              <div className="h-px bg-white/[0.06] my-6" />
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-400">
+                  <AlertTriangle size={14} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-200">Thiết lập Phạt trễ hạn (Kép)</h3>
+                  <p className="text-[11px] text-slate-500">Tự động tính thêm dư nợ và trừ Điểm Sức Khoẻ khi trễ hẹn</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="col-span-1 md:col-span-2">
+                  <label className="flex items-center gap-2 cursor-pointer w-fit">
+                    <input
+                      type="checkbox"
+                      checked={formValues.feePenaltyPerDay > 0}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setValue('feePenaltyPerDay', debtType === 'CREDIT_CARD' ? 100000 : 50000, {
+                            shouldValidate: true,
+                          });
+                        } else {
+                          setValue('feePenaltyPerDay', 0, { shouldValidate: true });
+                        }
+                      }}
+                      className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500/30 focus:ring-offset-slate-900"
+                    />
+                    <span className="text-sm text-slate-300 font-medium">Khoản nợ này có áp dụng phí phạt trễ hạn</span>
+                  </label>
+                </div>
+
+                {formValues.feePenaltyPerDay > 0 && (
+                  <div className="col-span-1 md:col-span-2 p-4 rounded-2xl bg-rose-500/5 border border-rose-500/10">
+                    {debtType === 'INSTALLMENT' ? (
+                      <div>
+                        <label className="input-label text-rose-300">Phí phạt cố định mỗi ngày (VND)</label>
+                        <Controller
+                          name="feePenaltyPerDay"
+                          control={control}
+                          render={({ field }) => (
+                            <FormattedInput
+                              kind="integer"
+                              value={field.value}
+                              onValueChange={(value) => field.onChange(toNumberValue(value))}
+                              className={inputCls(errors.feePenaltyPerDay)}
+                              placeholder="VD: 50000"
+                              suffix="đ/ngày"
+                            />
+                          )}
+                        />
+                        {errors.feePenaltyPerDay && (
+                          <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
+                            <AlertTriangle size={11} /> {errors.feePenaltyPerDay.message as string}
+                          </p>
+                        )}
+                        <p className="mt-1.5 text-[10px] text-rose-400/70 flex items-center gap-1 italic">
+                          <Info size={10} /> Phí sẽ được cộng dồn vào dư nợ mỗi ngày nếu quá hạn.
+                        </p>
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="input-label text-rose-300">Phí phạt trễ hạn 1 lần (VND)</label>
+                        <Controller
+                          name="feePenaltyPerDay"
+                          control={control}
+                          render={({ field }) => (
+                            <FormattedInput
+                              kind="integer"
+                              value={field.value}
+                              onValueChange={(value) => field.onChange(toNumberValue(value))}
+                              className={inputCls(errors.feePenaltyPerDay)}
+                              placeholder="VD: 250000"
+                              suffix="đ/lần"
+                            />
+                          )}
+                        />
+                        {errors.feePenaltyPerDay && (
+                          <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
+                            <AlertTriangle size={11} /> {errors.feePenaltyPerDay.message as string}
+                          </p>
+                        )}
+                        <p className="mt-1.5 text-[10px] text-rose-400/70 flex items-center gap-1 italic">
+                          <Info size={10} /> Phí sẽ được cộng 1 lần duy nhất vào ngày đầu tiên quá hạn.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-4 pt-6">
