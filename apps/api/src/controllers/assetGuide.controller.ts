@@ -1,10 +1,8 @@
 import { Request, Response } from 'express';
-<<<<<<< HEAD
 import { success, error } from '../utils/apiResponse';
 import { getCryptoPricesData, getCryptoCache, scoreCoin, buildCoinCard, STABLECOIN_IDS, BLACKLIST_IDS } from '../services/assetGuide/crypto.service';
 import { getGoldPricesData, getGoldCache } from '../services/assetGuide/gold.service';
 import { getStockPricesData, getStockCacheForFallback, STOCK_UNIVERSE, scoreStock, buildStockCard } from '../services/assetGuide/stocks.service';
-=======
 >>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
 import { getBondsRatesData } from '../services/assetGuide/bonds.service';
 import {
@@ -97,8 +95,6 @@ export async function getStockPrices(req: Request, res: Response) {
   }
 }
 
-<<<<<<< HEAD
-=======
 // ─── Stocks US ───────────────────────────────────────────────────
 
 export async function getStocksUsPrices(req: Request, res: Response) {

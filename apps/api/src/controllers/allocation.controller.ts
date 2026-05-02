@@ -5,10 +5,8 @@ import { fetchFearGreedIndex } from '../services/market.service';
 import { buildBackwardCompatibleProjection, generateProjectionTable } from '../services/monteCarloSimulation.service';
 import { getOptimalAllocation } from '../services/portfolioOptimizer.service';
 import { buildRiskMetrics } from '../services/riskMetrics.service';
-<<<<<<< HEAD
 import { fetchFearGreedIndex } from '../services/market.service';
 import { ASSET_CLASSES } from '../constants/investmentConstants';
-=======
 import { runStressTests } from '../services/stressTest.service';
 >>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
 import { AuthenticatedRequest } from '../types';
@@ -67,13 +65,11 @@ export async function getAllocationRecommendation(req: AuthenticatedRequest, res
     });
 
     const portfolioBreakdown = [
-<<<<<<< HEAD
       { asset: 'Tiết kiệm', percentage: allocation.savings, amount: profile.capital * allocation.savings / 100 },
       { asset: 'Vàng', percentage: allocation.gold, amount: profile.capital * allocation.gold / 100 },
       { asset: 'Cổ phiếu VN', percentage: allocation.stocks, amount: profile.capital * allocation.stocks / 100 },
       { asset: 'Trái phiếu', percentage: allocation.bonds, amount: profile.capital * allocation.bonds / 100 },
       { asset: 'Crypto', percentage: allocation.crypto, amount: profile.capital * allocation.crypto / 100 },
-=======
       { asset: 'Tiết kiệm', percentage: allocation.savings, amount: (profile.capital * allocation.savings) / 100 },
       { asset: 'Vàng', percentage: allocation.gold, amount: (profile.capital * allocation.gold) / 100 },
       { asset: 'Cổ phiếu VN', percentage: allocation.stocks, amount: (profile.capital * allocation.stocks) / 100 },

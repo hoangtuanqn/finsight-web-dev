@@ -15,7 +15,6 @@ import PortfolioHealthMetrics from '../components/investment/PortfolioHealthMetr
 import SmartAssetGuide from '../components/investment/SmartAssetGuide';
 import WealthProjection from '../components/investment/WealthProjection';
 
-<<<<<<< HEAD
 import EconomicNewsFeed from '../components/investment/EconomicNewsFeed';
 
 import IncompleteProfile from '../components/investment/IncompleteProfile';
@@ -23,7 +22,6 @@ import SentimentGauge from '../components/investment/SentimentGauge';
 import AssetFilterPanel from '../components/investment/AssetFilterPanel';
 import GenerateStrategyPopup from '../components/investment/GenerateStrategyPopup';
 import NoStrategyPopup from '../components/investment/NoStrategyPopup';
-=======
 >>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
 import ApplyStrategyModal from '../components/investment/ApplyStrategyModal';
 import AssetFilterPanel from '../components/investment/AssetFilterPanel';
@@ -74,13 +72,11 @@ function buildRenderData(allocation: any, profile: any) {
   const pessReturn = Math.max(-0.5, weightedReturn * 0.5 - inflationRate);
 
   const portfolioBreakdown = [
-<<<<<<< HEAD
     { asset: 'Tiết kiệm',   percentage: allocation.savings, amount: capital * allocation.savings / 100 },
     { asset: 'Vàng',        percentage: allocation.gold,    amount: capital * allocation.gold    / 100 },
     { asset: 'Cổ phiếu VN', percentage: allocation.stocks,  amount: capital * allocation.stocks  / 100 },
     { asset: 'Trái phiếu',  percentage: allocation.bonds,   amount: capital * allocation.bonds   / 100 },
     { asset: 'Crypto',      percentage: allocation.crypto,  amount: capital * allocation.crypto  / 100 },
-=======
     { asset: 'Tiết kiệm', percentage: allocation.savings, amount: (capital * allocation.savings) / 100 },
     { asset: 'Vàng', percentage: allocation.gold, amount: (capital * allocation.gold) / 100 },
     { asset: 'Cổ phiếu VN', percentage: allocation.stocks, amount: (capital * allocation.stocks) / 100 },
@@ -436,12 +432,10 @@ export default function InvestmentPage() {
 
         {/* ── Tài sản trong chiến lược hiện tại (read-only) ── */}
         {(() => {
-<<<<<<< HEAD
           const EXCLUDABLE = ['gold', 'stocks', 'bonds', 'crypto'] as const;
           const lockedExcluded = strategies.length > 0
             ? EXCLUDABLE.filter(a => !(activeAllocation[a] > 0))
             : excludedAssets; // fallback khi chưa có chiến lược
-=======
           const EXCLUDABLE = ['gold', 'stocks', 'stocks_us', 'bonds', 'crypto'] as const;
           const lockedExcluded =
             strategies.length > 0 ? EXCLUDABLE.filter((a) => !(activeAllocation[a] > 0)) : excludedAssets; // fallback khi chưa có chiến lược

@@ -16,11 +16,9 @@ export async function generateMarketViews(sentimentValue: number, newsApiKey?: s
   if (sentimentValue >= 75) {
     views.push({
       id: 'sentiment_extreme_greed',
-<<<<<<< HEAD
       assets: ['crypto', 'stocks'],
       weights: [1, 0],
       expectedReturn: 0.15,
-=======
       assets: ['crypto', 'stocks_us'],
       weights: [1, 0], // Crypto absolute view (not relative)
       expectedReturn: 0.15, // Expect crypto to grow 15%

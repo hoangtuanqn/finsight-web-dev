@@ -72,14 +72,12 @@ export async function generateStrategy(req: AuthenticatedRequest, res: Response)
         userId: req.userId,
         sentimentValue,
         sentimentLabel: result.sentimentLabel,
-<<<<<<< HEAD
         riskLevel:     user.investorProfile.riskLevel,
         savings:       result.savings,
         gold:          result.gold,
         stocks:        result.stocks,
         bonds:         result.bonds,
         crypto:        result.crypto,
-=======
         riskLevel: user.investorProfile.riskLevel,
         savings: result.savings,
         gold: result.gold,
@@ -144,9 +142,7 @@ export async function upsertPortfolio(req: AuthenticatedRequest, res: Response) 
       return error(res, `Tổng phân bổ phải bằng 100% (hiện tại: ${total.toFixed(1)}%)`, 400);
     }
 
-<<<<<<< HEAD
     if ([savings, gold, stocks, bonds, crypto].some(v => v < 0)) {
-=======
     if ([savings, gold, stocks, stocks_us, bonds, crypto].some((v) => v < 0)) {
 >>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
       return error(res, 'Phân bổ không được âm', 400);
@@ -193,13 +189,11 @@ export async function updatePortfolio(req: AuthenticatedRequest, res: Response) 
 
     const { savings, gold, stocks, bonds, crypto, notes } = req.body;
 
-<<<<<<< HEAD
     const newSavings  = savings   ?? existing.savings;
     const newGold     = gold      ?? existing.gold;
     const newStocks   = stocks    ?? existing.stocks;
     const newBonds    = bonds     ?? existing.bonds;
     const newCrypto   = crypto    ?? existing.crypto;
-=======
     const newSavings = savings ?? existing.savings;
     const newGold = gold ?? existing.gold;
     const newStocks = stocks ?? existing.stocks;
@@ -217,13 +211,11 @@ export async function updatePortfolio(req: AuthenticatedRequest, res: Response) 
       where: { userId: req.userId },
       data: {
         savings: newSavings,
-<<<<<<< HEAD
         gold:    newGold,
         stocks:  newStocks,
         bonds:   newBonds,
         crypto:  newCrypto,
         notes:   notes !== undefined ? notes : existing.notes,
-=======
         gold: newGold,
         stocks: newStocks,
         stocks_us: newStocksUs,
