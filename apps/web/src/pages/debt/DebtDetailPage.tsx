@@ -42,6 +42,7 @@ export default function DebtDetailPage() {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(paymentSchema),
@@ -415,6 +416,25 @@ export default function DebtDetailPage() {
               </div>
             ) : (
               <form onSubmit={handleSubmit(onPaymentSubmit)} className="space-y-4">
+                {/* Monthly payment hint */}
+                {debt.minPayment > 0 && (
+                  <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                    <div>
+                      <p className="text-[9px] font-bold text-emerald-400/60 uppercase tracking-wider mb-0.5">
+                        Khoản trả hàng tháng
+                      </p>
+                      <p className="text-[13px] font-black text-emerald-300">{formatVND(debt.minPayment)}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setValue('amount', debt.minPayment)}
+                      className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 border border-emerald-500/30 hover:border-emerald-400/50 px-2.5 py-1 rounded-full transition-all bg-emerald-500/5 hover:bg-emerald-500/10"
+                    >
+                      Điền nhanh
+                    </button>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-1.5">
                     Số tiền
@@ -435,9 +455,10 @@ export default function DebtDetailPage() {
                   <label className="block text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-1.5">
                     Ghi chú
                   </label>
-                  <input
+                  <textarea
                     placeholder="Tuỳ chọn"
-                    className="w-full px-4 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-[var(--color-text-primary)] text-sm outline-none focus:border-emerald-500/60 transition-colors"
+                    rows={3}
+                    className="w-full px-4 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-[var(--color-text-primary)] text-sm outline-none focus:border-emerald-500/60 transition-colors resize-none"
                     {...register('notes')}
                   />
                 </div>
