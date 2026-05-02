@@ -64,10 +64,20 @@ const debtSchema = z
     message: 'Số tiền trả tối thiểu không được lớn hơn dư nợ hiện tại.',
     path: ['minPayment'],
   })
-  .refine((data) => data.balance <= data.originalAmount || data.originalAmount === 0, {
-    message: 'Dư nợ hiện tại không được lớn hơn số tiền gốc/hạn mức ban đầu.',
-    path: ['balance'],
-  })
+  .refine(
+    (data) => {
+      // For Credit Card, balance must not exceed limit
+      // For Installment, balance can be originalAmount + setup fees
+      const setupFees = (data.feeProcessing || 0) + (data.feeInsurance || 0);
+      const maxAllowed = data.originalAmount === 0 ? 0 : Math.round(data.originalAmount * (1 + setupFees / 100));
+
+      return data.balance <= maxAllowed || data.originalAmount === 0;
+    },
+    {
+      message: 'Dư nợ hiện tại không được lớn hơn tổng tiền gốc kèm phí ban đầu.',
+      path: ['balance'],
+    },
+  )
   .refine((data) => data.balance === 0 || data.minPayment > 0, {
     message: 'Khoản trả tối thiểu phải lớn hơn 0 khi có dư nợ.',
     path: ['minPayment'],

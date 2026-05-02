@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronRight, Sparkles, Target, User, Zap } from 'lucide-react';
+import { AlertCircle, ChevronRight, Sparkles, Target, User, Zap } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -205,16 +205,6 @@ export default function InvestmentPage() {
 
         if (loadedStrategies.length === 0) {
           setShowNoStrategyPopup(true);
-        } else {
-          // getAllocation chạy nền — advisorLoading spinner hiện riêng trong các component
-          const savedExcluded = (() => {
-            try {
-              return JSON.parse(localStorage.getItem('finsight_excluded_assets') || '[]');
-            } catch {
-              return [];
-            }
-          })();
-          refreshAdvisorAnalysis(savedExcluded);
         }
       } catch (e) {
         console.error('InvestmentPage load error:', e);
@@ -285,6 +275,13 @@ export default function InvestmentPage() {
     }
   }, []);
 
+  // ── isStale phải nằm trước guards để không vi phạm Rules of Hooks ────
+  const isStale = useMemo(() => {
+    const s = strategies[activeStrategyIndex];
+    if (!s) return false;
+    return Date.now() - new Date(s.createdAt).getTime() > 4 * 60 * 60 * 1000;
+  }, [strategies, activeStrategyIndex]);
+
   // ── Guards ────────────────────────────────────────────────
   if (loading) return <PageSkeleton />;
   if (isProfileIncomplete) return <IncompleteProfile />;
@@ -294,7 +291,8 @@ export default function InvestmentPage() {
 
   const mockProfile = advisorProfile;
   const legacyViewModel = activeStrategy ? normalizeStrategy(activeStrategy, mockProfile) : null;
-  const viewModel = advisorAnalysis && activeStrategyIndex === 0 ? advisorAnalysis : legacyViewModel;
+  // Always use legacyViewModel (saved strategy) unless we just generated one (advisorAnalysis)
+  const viewModel = advisorAnalysis && activeStrategyIndex === 0 && !isStale ? advisorAnalysis : legacyViewModel;
   const sentimentValue = viewModel?.sentimentData?.value || activeStrategy?.sentimentValue || 50;
 
   const activeAllocation = viewModel?.allocation || {
@@ -427,11 +425,62 @@ export default function InvestmentPage() {
         {/* ── Market Pulse ── */}
         <MarketLivePulse prices={{ ...cryptoPrices, gold: goldPrice }} />
 
+        {/* ── Stale Data Warning ── */}
+        <AnimatePresence>
+          {isStale && activeStrategy && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-amber-500/10 border border-amber-500/20 rounded-3xl p-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-[0_8px_32px_-8px_rgba(245,158,11,0.1)]"
+            >
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-2xl bg-amber-500/20 text-amber-500">
+                  <AlertCircle size={24} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-amber-400">Dữ liệu chiến lược đã cũ</h4>
+                  <p className="text-xs text-amber-500/80 mt-1 leading-relaxed">
+                    Chiến lược này được tạo từ{' '}
+                    <span className="font-bold">
+                      {Math.floor((Date.now() - new Date(activeStrategy.createdAt).getTime()) / (60 * 60 * 1000))} giờ
+                    </span>{' '}
+                    trước. Tâm lý thị trường hiện tại có thể đã thay đổi. Hãy tạo chiến lược mới để nhận được phân bổ
+                    tối ưu nhất.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowGeneratePopup(true)}
+                className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-900 text-xs font-black uppercase tracking-wider rounded-full transition-all shadow-lg shadow-amber-500/20"
+              >
+                Cập nhật ngay
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* ── Nếu chưa có strategy, không render phần phân tích ── */}
         {strategies.length > 0 && activeStrategy && (
           <>
             {/* ── Hiển thị chiến lược AI đang xem ── */}
             <div className="space-y-8">
+              <div className="flex items-center justify-between px-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                    Phiên bản: {new Date(activeStrategy.createdAt).toLocaleDateString('vi-VN')} lúc{' '}
+                    {new Date(activeStrategy.createdAt).toLocaleTimeString('vi-VN', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                </div>
+                {viewModel?.source === 'allocation-api' && (
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 uppercase tracking-tighter">
+                    Đề xuất mới nhất
+                  </span>
+                )}
+              </div>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Sentiment */}
                 <div className="bg-slate-900/60 backdrop-blur-xl border border-white/5 rounded-3xl shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5)] p-8 flex flex-col items-center justify-center text-center relative overflow-hidden group">
@@ -484,7 +533,13 @@ export default function InvestmentPage() {
               )}
 
               <AllocationEngine pieData={pieData} portfolioBreakdown={portfolioBreakdown} history={[]} />
-              <SmartAssetGuide allocation={activeAllocation} riskLevel={mockProfile?.riskLevel || 'MEDIUM'} />
+
+              <SmartAssetGuide
+                allocation={activeAllocation}
+                riskLevel={mockProfile?.riskLevel || 'MEDIUM'}
+                isHistorical={activeStrategyIndex > 0 || isStale}
+                snapshot={activeStrategy?.assetSnapshot}
+              />
               <WealthProjection
                 projectionData={projectionData}
                 monteCarloData={viewModel?.monteCarloData}
