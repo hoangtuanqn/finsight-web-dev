@@ -1,9 +1,10 @@
 import { Button, Input } from '@repo/ui';
 import { motion } from 'framer-motion';
-import { Building2, Filter, Plus, Search } from 'lucide-react';
+import { Building2, Filter, History, Plus, Search, ShieldCheck } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { enterpriseAuthAPI } from '../api';
+import type { Party } from './parties/types';
 
 // Extracted Components
 import { PartiesTable } from './parties/components/PartiesTable';
@@ -11,39 +12,6 @@ import { PartyDetailDrawer } from './parties/components/PartyDetailDrawer';
 import { PartyFormModal } from './parties/components/PartyFormModal';
 import { StatsCards } from './parties/components/StatsCards';
 import { StatusReasonModal } from './parties/components/StatusReasonModal';
-
-interface Contact {
-  name: string;
-  position: string;
-  email: string;
-  phone: string;
-  isPrimary: boolean;
-}
-
-interface BankAccount {
-  bankName: string;
-  accountNumber: string;
-  accountHolder: string;
-  branch?: string;
-}
-
-interface Party {
-  id: string;
-  organizationId: string;
-  taxCode: string;
-  name: string;
-  shortName?: string;
-  internalCode: string;
-  typeTags: string[];
-  creditLimit: number;
-  status: string;
-  isRelatedParty: boolean;
-  contacts: Contact[];
-  bankAccounts: BankAccount[];
-  personInChargeId?: string;
-  personInCharge?: { id: string; fullName: string };
-  createdAt: string;
-}
 
 export default function PartiesPage() {
   const [parties, setParties] = useState<Party[]>([]);
