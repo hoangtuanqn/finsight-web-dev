@@ -12,6 +12,7 @@ interface FormattedInputProps {
   className?: string;
   placeholder?: string;
   maxValue?: number;
+  readOnly?: boolean;
 }
 
 export default function FormattedInput({
@@ -24,6 +25,7 @@ export default function FormattedInput({
   className = '',
   placeholder,
   maxValue = kind === 'integer' ? 100000000000 : undefined,
+  readOnly = false,
 }: FormattedInputProps) {
   const normalizeInputValue = (rawValue) =>
     kind === 'decimal' ? normalizeLocaleNumberInput(rawValue) : String(rawValue ?? '').replace(/\D/g, '');
@@ -35,7 +37,7 @@ export default function FormattedInput({
 
     if (kind === 'decimal') {
       const parsed = Number(normalized);
-      if (!Number.isFinite(parsed)) return normalized;
+      if (!isFinite(parsed)) return normalized;
       return String(Math.min(parsed, maxValue));
     }
 
@@ -89,7 +91,7 @@ export default function FormattedInput({
     return formattedValue.length;
   };
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value;
     const caret = e.target.selectionStart ?? rawValue.length;
 
@@ -119,14 +121,15 @@ export default function FormattedInput({
         ref={inputRef}
         type="text"
         inputMode={inputMode}
-        value={isComposing ? draftValue : draftValue}
+        value={draftValue}
         onChange={handleChange}
         onCompositionStart={() => {
           setIsComposing(true);
           setDraftValue(draftValue || displayValue);
         }}
-        onCompositionEnd={(e) => {
-          const nextValue = clampNormalizedValue(e.target.value);
+        onCompositionEnd={(e: React.CompositionEvent<HTMLInputElement>) => {
+          const target = e.target as HTMLInputElement;
+          const nextValue = clampNormalizedValue(target.value);
           const nextDisplayValue = toDisplayFromNormalized(nextValue);
           setIsComposing(false);
           desiredCaretRef.current = nextDisplayValue.length;
@@ -137,13 +140,14 @@ export default function FormattedInput({
           const nextValue = commitValue(normalizedValue);
           setDraftValue(toDisplayFromNormalized(nextValue));
         }}
-        onKeyDown={(e) => {
+        onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
           if (e.key === 'Enter') {
             e.currentTarget.blur();
           }
         }}
         className={`${className}${suffix ? ' pr-10' : ''}${Icon ? ' pl-11' : ''}`}
         placeholder={placeholder}
+        readOnly={readOnly}
       />
       {suffix && (
         <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] text-sm font-bold z-10">
