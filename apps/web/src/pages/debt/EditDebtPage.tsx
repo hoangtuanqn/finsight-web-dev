@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useDebt, useDebtMutations } from '../../hooks/useDebtQuery';
 import { calcEAR, calcAPY, formatPercent } from '../../utils/calculations';
-import { Pencil, AlertTriangle, BarChart2 } from 'lucide-react';
+import { Pencil, AlertTriangle, BarChart2, CreditCard, Calendar, Info } from 'lucide-react';
 import FormattedInput from '../../components/common/FormattedInput';
 
 const debtSchema = z.object({
@@ -20,19 +20,14 @@ const debtSchema = z.object({
   feeProcessing: z.number().min(0).default(0),
   feeInsurance: z.number().min(0).default(0),
   feeManagement: z.number().min(0).default(0),
-  minPayment: z.number().positive('Số tiền trả tối thiểu phải lớn hơn 0.'),
-  termMonths: z.number().int().positive('Kỳ hạn phải lớn hơn 0.'),
+  minPayment: z.number().min(0, 'Số tiền trả tối thiểu không được âm.'),
+  termMonths: z.number().int().min(0, 'Kỳ hạn không được âm.'),
   remainingTerms: z.number().int().min(0),
   dueDay: z.number().int().min(1).max(31, 'Ngày đáo hạn từ 1 đến 31.'),
-}).refine(data => data.balance <= data.originalAmount, {
-  message: 'Dư nợ không được lớn hơn số tiền gốc.',
-  path: ['balance']
+  startDate: z.string().optional(),
 }).refine(data => data.minPayment <= data.balance || data.balance === 0, {
   message: 'Số tiền trả tối thiểu không được lớn hơn dư nợ hiện tại.',
   path: ['minPayment']
-}).refine(data => data.remainingTerms <= data.termMonths, {
-  message: 'Kỳ còn lại không được lớn hơn kỳ hạn.',
-  path: ['remainingTerms']
 });
 
 const PLATFORM_PRESETS = {
@@ -49,6 +44,7 @@ export default function EditDebtPage() {
   const { id } = useParams<{ id: string }>();
   const { data, isLoading: fetching } = useDebt(id!) as { data: any, isLoading: boolean };
   const { updateDebt, isUpdating } = useDebtMutations() as any;
+  const [debtType, setDebtType] = useState<'INSTALLMENT' | 'CREDIT_CARD'>('INSTALLMENT');
 
   const { register, handleSubmit, control, watch, setValue, reset, formState: { errors } } = useForm({
     resolver: zodResolver(debtSchema),
@@ -59,6 +55,9 @@ export default function EditDebtPage() {
 
   useEffect(() => {
     if (data?.debt) {
+      const type = (data.debt.platform === 'CREDIT_CARD' || data.debt.termMonths === 0) ? 'CREDIT_CARD' : 'INSTALLMENT';
+      setDebtType(type);
+      
       reset({
         name: data.debt.name,
         platform: data.debt.platform,
@@ -73,6 +72,7 @@ export default function EditDebtPage() {
         dueDay: data.debt.dueDay,
         termMonths: data.debt.termMonths,
         remainingTerms: data.debt.remainingTerms,
+        startDate: data.debt.startDate ? new Date(data.debt.startDate).toISOString().split('T')[0] : '',
       });
     }
   }, [data, reset]);
@@ -85,25 +85,45 @@ export default function EditDebtPage() {
     setValue('feeProcessing', preset.feeProcessing);
     setValue('feeInsurance', preset.feeInsurance);
     setValue('feeManagement', preset.feeManagement);
+    
+    if (platform === 'CREDIT_CARD') {
+      setDebtType('CREDIT_CARD');
+      setValue('termMonths', 0);
+      setValue('remainingTerms', 0);
+    } else if (platform !== 'CUSTOM') {
+      setDebtType('INSTALLMENT');
+      if (formValues.termMonths === 0) setValue('termMonths', 12);
+    }
   };
 
-  const ear = calcEAR(formValues.apr || 0, formValues.feeProcessing || 0, formValues.feeInsurance || 0, formValues.feeManagement || 0, formValues.termMonths || 12);
+  const ear = calcEAR(
+    formValues.apr || 0, 
+    formValues.feeProcessing || 0, 
+    formValues.feeInsurance || 0, 
+    formValues.feeManagement || 0, 
+    debtType === 'INSTALLMENT' ? (formValues.termMonths || 12) : 12
+  );
   const apy = calcAPY(formValues.apr || 0);
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (formData: any) => {
     try {
+      const payload = {
+        ...formData,
+        dueDay: Math.round(formData.dueDay),
+        termMonths: debtType === 'CREDIT_CARD' ? 0 : Math.round(formData.termMonths),
+        remainingTerms: debtType === 'CREDIT_CARD' ? 0 : Math.round(formData.remainingTerms),
+        rateType: debtType === 'CREDIT_CARD' ? 'REDUCING' : formData.rateType,
+      };
+
       await updateDebt({
         id: id!,
-        data: {
-          ...data,
-          dueDay:         Math.round(data.dueDay),
-          termMonths:     Math.round(data.termMonths),
-          remainingTerms: Math.round(data.remainingTerms),
-        }
+        data: payload
       });
+      toast.success('Cập nhật khoản nợ thành công');
       navigate(`/debts/${id}`);
     } catch (err) {
       console.error(err);
+      toast.error('Có lỗi xảy ra khi cập nhật');
     }
   };
 
@@ -127,23 +147,59 @@ export default function EditDebtPage() {
         <span className="text-slate-300">Chỉnh sửa</span>
       </div>
 
-      <h1 className="text-[22px] font-bold text-white mb-6 flex items-center gap-2"><Pencil size={20} /> Chỉnh sửa khoản nợ</h1>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-[24px] font-bold text-white flex items-center gap-2">
+            <Pencil className="text-blue-400" size={24} /> Chỉnh sửa khoản nợ
+          </h1>
+          <p className="text-slate-500 text-sm mt-1">Cập nhật thông tin chi tiết về khoản nợ của bạn</p>
+        </div>
+        
+        <div className="flex bg-white/[0.03] p-1 rounded-xl border border-white/[0.06]">
+          <button
+            type="button"
+            onClick={() => {
+              setDebtType('INSTALLMENT');
+              if (formValues.termMonths === 0) setValue('termMonths', 12);
+            }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+              debtType === 'INSTALLMENT' ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Calendar size={16} /> Vay Trả Góp
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setDebtType('CREDIT_CARD');
+              setValue('termMonths', 0);
+              setValue('remainingTerms', 0);
+              setValue('rateType', 'REDUCING');
+            }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+              debtType === 'CREDIT_CARD' ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <CreditCard size={16} /> Thẻ Tín Dụng
+          </button>
+        </div>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
-          <div className="glass-card">
-            <div className="mb-6">
-              <label className="input-label">Nền tảng</label>
+          <div className="glass-card p-6 md:p-8">
+            <div className="mb-8">
+              <label className="input-label mb-3 block">Chọn nhanh mẫu nền tảng</label>
               <div className="flex flex-wrap gap-2">
                 {Object.entries(PLATFORM_PRESETS).map(([key, val]) => (
                   <button
                     key={key}
                     type="button"
-                    onClick={() => applyPreset(key)}
-                    className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all border ${
+                    onClick={() => applyPreset(key as any)}
+                    className={`px-4 py-2 rounded-xl text-[13px] font-medium transition-all border ${
                       formValues.platform === key
-                        ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'
-                        : 'bg-white/[0.03] text-slate-500 border-white/[0.06] hover:bg-white/[0.06] hover:text-slate-400'
+                        ? 'bg-blue-500/20 text-blue-400 border-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.1)]'
+                        : 'bg-white/[0.03] text-slate-500 border-white/[0.06] hover:bg-white/[0.08] hover:text-slate-300'
                     }`}
                   >
                     {val.name || 'Tự nhập'}
@@ -152,37 +208,37 @@ export default function EditDebtPage() {
               </div>
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="input-label">Tên khoản vay</label>
-                  <input {...register('name')} className={inputCls(errors.name)} placeholder="VD: Mua điện thoại" />
-                  {errors.name && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={11} /> {errors.name.message}</p>}
+                  <input {...register('name')} className={inputCls(errors.name)} placeholder="VD: Vay mua xe, Thẻ VPBank..." />
+                  {errors.name && <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={12} /> {errors.name.message}</p>}
                 </div>
                 <div>
-                  <label className="input-label">Số tiền gốc</label>
+                  <label className="input-label">{debtType === 'CREDIT_CARD' ? 'Hạn mức thẻ' : 'Số tiền vay gốc'}</label>
                   <Controller
                     name="originalAmount"
                     control={control}
                     render={({ field }) => (
-                      <FormattedInput kind="integer" value={field.value} onValueChange={(value) => field.onChange(toNumberValue(value))} className={inputCls(errors.originalAmount)} placeholder="0" suffix="đ" />
+                      <FormattedInput kind="integer" value={field.value} onValueChange={(v) => field.onChange(toNumberValue(v))} className={inputCls(errors.originalAmount)} placeholder="0" suffix="đ" />
                     )}
                   />
-                  {errors.originalAmount && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={11} /> {errors.originalAmount.message}</p>}
+                  {errors.originalAmount && <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={12} /> {errors.originalAmount.message}</p>}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="input-label">Dư nợ hiện tại</label>
                   <Controller
                     name="balance"
                     control={control}
                     render={({ field }) => (
-                      <FormattedInput kind="integer" value={field.value} onValueChange={(value) => field.onChange(toNumberValue(value))} className={inputCls(errors.balance)} placeholder="0" suffix="đ" />
+                      <FormattedInput kind="integer" value={field.value} onValueChange={(v) => field.onChange(toNumberValue(v))} className={inputCls(errors.balance)} placeholder="0" suffix="đ" />
                     )}
                   />
-                  {errors.balance && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={11} /> {errors.balance.message}</p>}
+                  {errors.balance && <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={12} /> {errors.balance.message}</p>}
                 </div>
                 <div>
                   <label className="input-label">Lãi suất APR (%/năm)</label>
@@ -190,45 +246,56 @@ export default function EditDebtPage() {
                     name="apr"
                     control={control}
                     render={({ field }) => (
-                      <FormattedInput kind="decimal" value={field.value} onValueChange={(value) => field.onChange(toNumberValue(value))} className={inputCls(errors.apr)} placeholder="0" suffix="%" />
+                      <FormattedInput kind="decimal" value={field.value} onValueChange={(v) => field.onChange(toNumberValue(v))} className={inputCls(errors.apr)} placeholder="0" suffix="%" />
                     )}
                   />
-                  {errors.apr && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={11} /> {errors.apr.message}</p>}
+                  {errors.apr && <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={12} /> {errors.apr.message}</p>}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="input-label">Hình thức tính lãi</label>
-                  <select {...register('rateType')} className="input-field">
-                    <option value="FLAT">Flat (lãi trên gốc ban đầu)</option>
-                    <option value="REDUCING">Reducing (dư nợ giảm dần)</option>
+                  <select 
+                    {...register('rateType')} 
+                    className="input-field appearance-none" 
+                    disabled={debtType === 'CREDIT_CARD'}
+                    value={debtType === 'CREDIT_CARD' ? 'REDUCING' : formValues.rateType}
+                  >
+                    <option value="FLAT">Flat (Lãi trên gốc ban đầu)</option>
+                    <option value="REDUCING">Reducing (Dư nợ giảm dần)</option>
                   </select>
+                  {debtType === 'CREDIT_CARD' && <p className="mt-1 text-[11px] text-slate-500 italic">* Thẻ tín dụng mặc định tính trên dư nợ giảm dần</p>}
                 </div>
                 <div>
-                  <label className="input-label">Trả tối thiểu/tháng</label>
+                  <label className="input-label">Số tiền trả tối thiểu</label>
                   <Controller
                     name="minPayment"
                     control={control}
                     render={({ field }) => (
-                      <FormattedInput kind="integer" value={field.value} onValueChange={(value) => field.onChange(toNumberValue(value))} className={inputCls(errors.minPayment)} placeholder="0" suffix="đ" />
+                      <FormattedInput kind="integer" value={field.value} onValueChange={(v) => field.onChange(toNumberValue(v))} className={inputCls(errors.minPayment)} placeholder="0" suffix="đ" />
                     )}
                   />
-                  {errors.minPayment && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={11} /> {errors.minPayment.message}</p>}
+                  {errors.minPayment && <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={12} /> {errors.minPayment.message}</p>}
                 </div>
               </div>
 
-              <div className="h-px bg-white/[0.06] my-2" />
-              <p className="text-[12px] text-slate-500 font-medium uppercase tracking-wide">Phí ẩn</p>
+              <div className="h-px bg-white/[0.06] my-4" />
+              
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[13px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-2">
+                  <Info size={14} className="text-blue-400" /> Cấu hình nâng cao & Phí ẩn
+                </p>
+              </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                  <label className="input-label">Phí xử lý (%)</label>
+                  <label className="input-label">Phí xử lý hồ sơ (%)</label>
                   <Controller
                     name="feeProcessing"
                     control={control}
                     render={({ field }) => (
-                      <FormattedInput kind="decimal" value={field.value} onValueChange={(value) => field.onChange(toNumberValue(value))} className={inputCls(errors.feeProcessing)} placeholder="0" suffix="%" />
+                      <FormattedInput kind="decimal" value={field.value} onValueChange={(v) => field.onChange(toNumberValue(v))} className="input-field" placeholder="0" suffix="%" />
                     )}
                   />
                 </div>
@@ -238,7 +305,7 @@ export default function EditDebtPage() {
                     name="feeInsurance"
                     control={control}
                     render={({ field }) => (
-                      <FormattedInput kind="decimal" value={field.value} onValueChange={(value) => field.onChange(toNumberValue(value))} className={inputCls(errors.feeInsurance)} placeholder="0" suffix="%" />
+                      <FormattedInput kind="decimal" value={field.value} onValueChange={(v) => field.onChange(toNumberValue(v))} className="input-field" placeholder="0" suffix="%" />
                     )}
                   />
                 </div>
@@ -248,69 +315,96 @@ export default function EditDebtPage() {
                     name="feeManagement"
                     control={control}
                     render={({ field }) => (
-                      <FormattedInput kind="decimal" value={field.value} onValueChange={(value) => field.onChange(toNumberValue(value))} className={inputCls(errors.feeManagement)} placeholder="0" suffix="%" />
+                      <FormattedInput kind="decimal" value={field.value} onValueChange={(v) => field.onChange(toNumberValue(v))} className="input-field" placeholder="0" suffix="%" />
                     )}
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {debtType === 'INSTALLMENT' ? (
+                  <>
+                    <div>
+                      <label className="input-label">Tổng kỳ hạn (tháng)</label>
+                      <input type="number" {...register('termMonths', { valueAsNumber: true })} className={inputCls(errors.termMonths)} />
+                    </div>
+                    <div>
+                      <label className="input-label">Số kỳ đã trả</label>
+                      <input 
+                        type="number" 
+                        value={(formValues.termMonths || 0) - (formValues.remainingTerms || 0)} 
+                        onChange={(e) => {
+                          const paid = Number(e.target.value);
+                          setValue('remainingTerms', Math.max(0, (formValues.termMonths || 0) - paid));
+                        }}
+                        className="input-field" 
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="md:col-span-2 flex items-center px-4 py-3 bg-white/[0.02] border border-white/[0.06] rounded-xl text-slate-500 text-sm italic">
+                    <Info size={16} className="mr-2 text-slate-600" /> Thẻ tín dụng không có kỳ hạn cố định.
+                  </div>
+                )}
                 <div>
-                  <label className="input-label">Kỳ hạn (tháng)</label>
-                  <input type="number" {...register('termMonths', { valueAsNumber: true })} className={inputCls(errors.termMonths)} />
-                  {errors.termMonths && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={11} /> {errors.termMonths.message}</p>}
-                </div>
-                <div>
-                  <label className="input-label">Kỳ còn lại</label>
-                  <input type="number" {...register('remainingTerms', { valueAsNumber: true })} className={inputCls(errors.remainingTerms)} />
-                  {errors.remainingTerms && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={11} /> {errors.remainingTerms.message}</p>}
-                </div>
-                <div>
-                  <label className="input-label">Ngày đáo hạn</label>
-                  <input type="number" {...register('dueDay', { valueAsNumber: true })} className={inputCls(errors.dueDay)} />
-                  {errors.dueDay && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={11} /> {errors.dueDay.message}</p>}
+                  <label className="input-label">{debtType === 'CREDIT_CARD' ? 'Ngày chốt sao kê' : 'Ngày thanh toán hàng tháng'}</label>
+                  <input type="number" {...register('dueDay', { valueAsNumber: true })} className={inputCls(errors.dueDay)} placeholder="VD: 15" />
+                  {errors.dueDay && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={12} /> {errors.dueDay.message}</p>}
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-2">
-                <button type="submit" disabled={isUpdating} className="btn-primary cursor-pointer">
+              <div className="flex gap-4 pt-6">
+                <button type="submit" disabled={isUpdating} className="btn-primary flex-1 py-4 text-base shadow-lg shadow-blue-500/10">
                   {isUpdating ? (
-                    <span className="flex items-center gap-2">
-                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Đang lưu...
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Đang cập nhật...
                     </span>
-                  ) : 'Cập nhật khoản nợ'}
+                  ) : 'Lưu thay đổi'}
                 </button>
-                <button type="button" onClick={() => navigate(`/debts/${id}`)} className="btn-secondary cursor-pointer">Hủy</button>
+                <button type="button" onClick={() => navigate(`/debts/${id}`)} className="btn-secondary px-8 py-4">Hủy</button>
               </div>
             </form>
           </div>
         </div>
 
-        <div>
-          <div className="glass-card sticky top-8">
-            <h3 className="text-[15px] font-semibold text-white mb-4 flex items-center gap-2">
-              <BarChart2 size={16} /> Xem trước chi phí mới
+        <div className="space-y-6">
+          <div className="glass-card p-6 sticky top-8 border-blue-500/10">
+            <h3 className="text-[17px] font-bold text-white mb-6 flex items-center gap-2">
+              <BarChart2 className="text-blue-400" size={18} /> Phân tích chi phí mới
             </h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-slate-500">APR (quảng cáo)</span>
-                <span className="font-semibold text-blue-400">{formatPercent(formValues.apr || 0)}</span>
+            
+            <div className="space-y-5">
+              <div className="p-4 bg-white/[0.03] rounded-2xl border border-white/[0.06]">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-slate-500">Lãi suất niêm yết</span>
+                  <span className="font-bold text-blue-400 text-lg">{formatPercent(formValues.apr || 0)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-slate-500">Lãi suất kép (APY)</span>
+                  <span className="font-semibold text-purple-400">{formatPercent(apy)}</span>
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-slate-500">APY (lãi kép)</span>
-                <span className="font-semibold text-purple-400">{formatPercent(apy)}</span>
+
+              <div className="p-5 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-2xl border border-blue-500/20">
+                <span className="text-xs text-slate-400 font-bold uppercase tracking-widest block mb-1">Lãi suất thực tế (EAR)</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-white">{formatPercent(ear)}</span>
+                  <span className="text-xs text-slate-500 font-medium italic">/năm</span>
+                </div>
               </div>
-              <div className="h-px bg-white/[0.06]" />
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-slate-400 font-semibold">EAR (thực tế)</span>
-                <span className="text-xl font-bold text-red-400">{formatPercent(ear)}</span>
-              </div>
+
               {ear > (formValues.apr || 0) && (
-                <div className="bg-red-500/8 border border-red-500/15 rounded-xl px-3 py-2.5">
-                  <p className="text-[12px] text-red-400 flex items-center gap-1">
-                    <AlertTriangle size={12} className="shrink-0" /> Chi phí ẩn: <span className="font-semibold">+{formatPercent(ear - (formValues.apr || 0))}</span> so với quảng cáo
-                  </p>
+                <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle size={18} className="text-red-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-red-200 font-bold mb-1">Cảnh báo chi phí ẩn</p>
+                      <p className="text-xs text-red-400/80 leading-relaxed">
+                        Các loại phí đi kèm khiến lãi suất thực tế cao hơn <span className="font-bold">+{formatPercent(ear - (formValues.apr || 0))}</span> so với lãi suất quảng cáo.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
