@@ -273,10 +273,12 @@ export default function AddDebtPage() {
       </div>
 
       <div>
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/20 bg-blue-500/8 text-blue-400 text-[10px] font-black uppercase tracking-widest mb-3">
-          <Plus size={11} /> Khoản nợ mới ({debtType === 'INSTALLMENT' ? 'Vay trả góp' : 'Thẻ tín dụng'})
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-black tracking-tighter text-[var(--color-text-primary)]">Thêm khoản nợ mới</h1>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/20 bg-blue-500/8 text-blue-400 text-[10px] font-black uppercase tracking-widest">
+            <Plus size={11} /> Khoản nợ mới ({debtType === 'INSTALLMENT' ? 'Vay trả góp' : 'Thẻ tín dụng'})
+          </div>
         </div>
-        <h1 className="text-3xl font-black tracking-tighter text-[var(--color-text-primary)]">Thêm khoản nợ mới</h1>
         <p className="text-[var(--color-text-secondary)] text-sm mt-1">
           Nhập đầy đủ thông tin để tính toán EAR chính xác
         </p>
