@@ -1,0 +1,24 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/@prisma/enterprise"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Party {
+  id             String   @id @default(uuid())
+  taxCode        String?  @unique
+  name           String
+  shortName      String?
+  internalCode   String   @unique
+  typeTags       String[] 
+  isRelatedParty Boolean  @default(false)
+  creditLimit    Float    @default(0)
+  status         String   @default("ACTIVE")
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
