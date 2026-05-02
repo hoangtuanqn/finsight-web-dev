@@ -59,6 +59,7 @@ model User {
   bankAccounts        BankAccount[]
   withdrawalRequests  WithdrawalRequest[]
   kycRecord           KycRecord?
+  faceDescriptors     FaceDescriptor[]
 
   @@map("users")
 }
@@ -549,4 +550,15 @@ model KycRecord {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("kyc_records")
+}
+
+model FaceDescriptor {
+  id          String                       @id @default(cuid())
+  userId      String
+  descriptor  Unsupported("vector(128)")
+  createdAt   DateTime                     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("face_descriptors")
 }

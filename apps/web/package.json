@@ -19,6 +19,7 @@
     "@types/three": "^0.184.0",
     "axios": "^1.13.6",
     "driver.js": "^1.4.0",
+    "face-api.js": "^0.22.2",
     "formdata": "^0.10.4",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.8.0",
