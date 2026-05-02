@@ -19,12 +19,28 @@ import TopDebts from './components/TopDebts';
 
 // ─── Derived metric helpers ───────────────────────────────────────
 
-function getHealthMetrics(dtiRatio: number) {
-  const score = Math.round(Math.max(0, 100 - dtiRatio * 2));
+function getHealthMetrics(realScore: number = 700) {
+  let color = '#10b981';
+  let label = 'Tốt';
+
+  if (realScore >= 740) {
+    color = '#059669'; // Xanh đậm
+    label = 'Rất Tốt';
+  } else if (realScore >= 670) {
+    color = '#10b981'; // Xanh nhạt
+    label = 'Tốt';
+  } else if (realScore >= 580) {
+    color = '#f59e0b'; // Vàng
+    label = 'Trung Bình';
+  } else {
+    color = '#ef4444'; // Đỏ
+    label = 'Cần Cải Thiện';
+  }
+
   return {
-    healthScore: score,
-    healthColor: score > 70 ? '#10b981' : score > 40 ? '#f59e0b' : '#ef4444',
-    healthLabel: score > 70 ? 'Tốt' : score > 40 ? 'Trung bình' : 'Cần cải thiện',
+    healthScore: realScore,
+    healthColor: color,
+    healthLabel: label,
   };
 }
 
@@ -99,7 +115,7 @@ export default function DashboardPage() {
   const sentiment = data?.sentiment || {};
   const dtiRatio = debtSummary.debtToIncomeRatio || 0;
 
-  const { healthScore, healthColor, healthLabel } = getHealthMetrics(dtiRatio);
+  const { healthScore, healthColor, healthLabel } = getHealthMetrics(user?.healthScore);
   const sentimentColor = getSentimentColor(sentiment.value);
   const { dtiColor, dtiZoneLabel, dtiLabel } = getDTIMetrics(dtiRatio);
   const earChartData = buildEARChartData(debts);

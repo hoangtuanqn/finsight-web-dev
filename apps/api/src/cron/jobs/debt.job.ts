@@ -73,6 +73,39 @@ export async function checkDueDebtsAndDominoRisk() {
     if (diffDays < 0) {
       const daysOverdue = Math.abs(diffDays);
       console.log(`[Cron] 🔴 Kịch bản 3 - Quá hạn: ${debt.name} (${daysOverdue} ngày)`);
+
+      // --- Phạt Kép (Dual Penalty) ---
+      // Phạt Tiền
+      if (debt.feePenaltyPerDay > 0) {
+        let shouldApplyPenalty = false;
+        if (debt.debtType === 'CREDIT_CARD') {
+          if (diffDays === -1) shouldApplyPenalty = true; // Chỉ phạt 1 lần vào ngày đầu tiên
+        } else {
+          shouldApplyPenalty = true; // Trả góp: phạt mỗi ngày
+        }
+
+        if (shouldApplyPenalty) {
+          await (prisma as any).debt.update({
+            where: { id: debt.id },
+            data: {
+              balance: { increment: debt.feePenaltyPerDay },
+              accruedPenalty: { increment: debt.feePenaltyPerDay },
+            },
+          });
+          console.log(`[Cron] 💸 Đã cộng phạt ${debt.feePenaltyPerDay} vào khoản nợ ${debt.name}`);
+        }
+      }
+
+      // Phạt Điểm (Health Score)
+      if (diffDays === -1) {
+        const { HealthScoreService } = await import('../../services/health-score.service');
+        await HealthScoreService.deductScore(debt.userId, 5, `Trễ hạn khoản nợ: ${debt.name}`);
+      } else if (diffDays === -7) {
+        const { HealthScoreService } = await import('../../services/health-score.service');
+        await HealthScoreService.deductScore(debt.userId, 10, `Quá hạn 7 ngày khoản nợ: ${debt.name}`);
+      }
+      // -------------------------------
+
       const created = await createNotificationIfNotExists(
         debt.userId,
         'OVERDUE',
@@ -114,8 +147,31 @@ export async function checkDueDebtsAndDominoRisk() {
         `Hệ thống phát hiện rủi ro vỡ nợ dây chuyền! ${reason} Cần khẩn cấp tái cơ cấu lại dòng tiền để tránh rớt vào thế bị động.`,
         'DANGER',
       );
-      if (created && user.email) {
-        await (emailService as any).sendDominoRiskAlert(user.email, user.username, reason);
+
+      if (created) {
+        // Phạt Điểm DTI (Chỉ phạt tối đa 1 lần/tháng cho lỗi DTI)
+        if (dtiRatio > 50) {
+          const currentMonth = new Date().getMonth();
+          const currentYear = new Date().getFullYear();
+          const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+
+          const existingHistory = await (prisma as any).healthScoreHistory.findFirst({
+            where: {
+              userId,
+              reason: { startsWith: 'Cảnh báo khủng hoảng DTI' },
+              createdAt: { gte: firstDayOfMonth },
+            },
+          });
+
+          if (!existingHistory) {
+            const { HealthScoreService } = await import('../../services/health-score.service');
+            await HealthScoreService.deductScore(userId, 10, `Cảnh báo khủng hoảng DTI: ${dtiRatio.toFixed(1)}%`);
+          }
+        }
+
+        if (user.email) {
+          await (emailService as any).sendDominoRiskAlert(user.email, user.username, reason);
+        }
       }
     }
 

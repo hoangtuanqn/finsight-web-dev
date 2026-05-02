@@ -347,6 +347,12 @@ export async function logPayment(req: AuthenticatedRequest, res: Response) {
       data: { debtId: debt.id, amount, notes },
     });
 
+    // Payment Priority Logic:
+    // 1. Pay off accruedPenalty first
+    // 2. The rest pays off the principal/interest (which are lumped in balance)
+    const penaltyPayment = Math.min(amount, debt.accruedPenalty || 0);
+    const newAccruedPenalty = Math.max(0, (debt.accruedPenalty || 0) - penaltyPayment);
+
     const newBalance = Math.max(0, debt.balance - amount);
 
     // Decrement remainingTerms by 1 if payment covers at least one full installment
@@ -361,6 +367,7 @@ export async function logPayment(req: AuthenticatedRequest, res: Response) {
       where: { id: debt.id },
       data: {
         balance: newBalance,
+        accruedPenalty: newAccruedPenalty,
         remainingTerms: newRemaining,
         status: newBalance <= 0 ? 'PAID' : debt.status,
       },
