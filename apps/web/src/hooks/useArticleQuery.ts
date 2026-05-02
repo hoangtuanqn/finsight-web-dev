@@ -11,16 +11,6 @@ export function useArticles() {
   });
 }
 
-export function useSeedArticles() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: articleAPI.seedArticles,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['articles'] });
-    },
-  });
-}
-
 export function useCreateArticle() {
   const queryClient = useQueryClient();
   return useMutation({
