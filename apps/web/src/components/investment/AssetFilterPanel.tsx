@@ -44,7 +44,6 @@ const ASSET_CONFIGS: AssetConfig[] = [
     description: 'VN-Index / VN30 ETF, cổ phiếu niêm yết Việt Nam.',
   },
   {
-<<<<<<< HEAD
     key: "bonds",
     label: "Trái phiếu",
     emoji: "📄",
@@ -52,7 +51,6 @@ const ASSET_CONFIGS: AssetConfig[] = [
     borderColor: "border-violet-500/40",
     bgColor: "bg-violet-500/10",
     description: "Trái phiếu Chính phủ VN, lãi suất cố định, rủi ro thấp.",
-=======
     key: 'stocks_us',
     label: 'Cổ phiếu Mỹ',
     emoji: '🇺🇸',

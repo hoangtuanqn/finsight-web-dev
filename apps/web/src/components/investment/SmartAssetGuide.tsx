@@ -51,7 +51,6 @@ function useAssetData(asset, riskLevel) {
 
   const payload = q.data;
   return {
-<<<<<<< HEAD
     items:      payload?.coins || payload?.stocks || payload?.goldItems || payload?.savingsItems || payload?.bondItems || [],
     intro:      payload?.intro || '',
     disclaimer: payload?.disclaimer || '',
@@ -60,7 +59,6 @@ function useAssetData(asset, riskLevel) {
     worldPrice: payload?.worldPrice ?? null,
     loading:    q.isLoading,
     error:      q.isError,
-=======
     items: payload?.coins || payload?.stocks || payload?.goldItems || payload?.savingsItems || payload?.bondItems || [],
     intro: payload?.intro || '',
     updatedAt: payload?.updatedAt || '',
@@ -550,7 +548,6 @@ export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
                         </div>
                       </div>
                     </div>
-<<<<<<< HEAD
                   </div>
                 );
               })() : (
@@ -559,7 +556,6 @@ export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
                     {activeData.intro || suggestion.intro}
                   </p>
                 </div>
-=======
                   );
                 })()
               ) : (
@@ -602,7 +598,6 @@ export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
               )}
             </div>
 
-<<<<<<< HEAD
             {suggestion.tips.length > 0 && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 {suggestion.tips.map((tip: string, i: number) => (
@@ -613,7 +608,6 @@ export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
                     <p className="text-sm font-medium text-slate-400 group-hover:text-slate-200 transition-colors leading-relaxed">
                       {tip}
                     </p>
-=======
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
               {suggestion.tips.map((tip, i) => (
                 <div

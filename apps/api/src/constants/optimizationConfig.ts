@@ -8,7 +8,6 @@ export const RISK_AVERSION: Record<string, number> = {
 
 export const WEIGHT_BOUNDS: Record<string, Record<string, [number, number]>> = {
   LOW: {
-<<<<<<< HEAD
     savings:   [40, 70],
     gold:      [10, 35],
     stocks:    [0,  20],
@@ -28,7 +27,6 @@ export const WEIGHT_BOUNDS: Record<string, Record<string, [number, number]>> = {
     stocks:    [20, 80],
     bonds:     [0,  15],
     crypto:    [0,  20],
-=======
     savings: [40, 70],
     gold: [10, 35],
     stocks: [0, 15],
@@ -56,13 +54,11 @@ export const WEIGHT_BOUNDS: Record<string, Record<string, [number, number]>> = {
 };
 
 export const SENTIMENT_ADJUSTMENTS: Record<string, Record<string, number>> = {
-<<<<<<< HEAD
   EXTREME_FEAR: { savings: 1.00, gold: 1.05, stocks: 0.85, bonds: 1.02, crypto: 0.80 },
   FEAR:         { savings: 1.00, gold: 1.02, stocks: 0.92, bonds: 1.01, crypto: 0.90 },
   NEUTRAL:      { savings: 1.00, gold: 1.00, stocks: 1.00, bonds: 1.00, crypto: 1.00 },
   GREED:        { savings: 1.00, gold: 0.98, stocks: 1.05, bonds: 0.99, crypto: 1.05 },
   EXTREME_GREED:{ savings: 1.00, gold: 0.95, stocks: 1.08, bonds: 0.98, crypto: 1.10 },
-=======
   EXTREME_FEAR: { savings: 1.0, gold: 1.05, stocks: 0.85, stocks_us: 0.85, bonds: 1.02, crypto: 0.8 },
   FEAR: { savings: 1.0, gold: 1.02, stocks: 0.92, stocks_us: 0.92, bonds: 1.01, crypto: 0.9 },
   NEUTRAL: { savings: 1.0, gold: 1.0, stocks: 1.0, stocks_us: 1.0, bonds: 1.0, crypto: 1.0 },

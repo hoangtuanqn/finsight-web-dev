@@ -3,13 +3,11 @@ import { AlertCircle, BookOpen, CheckCircle2, Save, Target } from 'lucide-react'
 import { useEffect, useState } from 'react';
 
 const FIELDS = [
-<<<<<<< HEAD
   { key: "savings",  label: "Tiết kiệm",   color: "#10b981" },
   { key: "gold",     label: "Vàng",         color: "#f59e0b" },
   { key: "stocks",   label: "Cổ phiếu VN",  color: "#3b82f6" },
   { key: "bonds",    label: "Trái phiếu",   color: "#8b5cf6" },
   { key: "crypto",   label: "Crypto",       color: "#f97316" },
-=======
   { key: 'savings', label: 'Tiết kiệm', color: '#10b981' },
   { key: 'gold', label: 'Vàng', color: '#f59e0b' },
   { key: 'stocks', label: 'Cổ phiếu VN', color: '#3b82f6' },
@@ -33,13 +31,11 @@ export default function MyPortfolioSection({ portfolio, onUpdate }: MyPortfolioS
   useEffect(() => {
     if (portfolio) {
       setValues({
-<<<<<<< HEAD
         savings:   portfolio.savings,
         gold:      portfolio.gold,
         stocks:    portfolio.stocks,
         bonds:     portfolio.bonds,
         crypto:    portfolio.crypto,
-=======
         savings: portfolio.savings,
         gold: portfolio.gold,
         stocks: portfolio.stocks,

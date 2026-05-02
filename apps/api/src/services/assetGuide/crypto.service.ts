@@ -86,12 +86,10 @@ function scoreCoin(coin: any, riskLevel: string = 'MEDIUM'): number {
   const change = Math.abs(coin.price_change_percentage_24h || 0);
   const fdv    = coin.fully_diluted_valuation || 0;
 
-<<<<<<< HEAD
   // MCap: dùng để lọc an toàn tối thiểu, không để xếp hạng
   // Cap tại 70 để coin rank 5-30 có thể cạnh tranh với BTC/ETH
   const mcapRaw   = Math.min(100, (Math.log10(Math.max(mcap, 1)) / Math.log10(3e12)) * 100);
   const mcapScore = Math.min(70, mcapRaw) - (mcap < 5e9 ? 30 : mcap < 20e9 ? 10 : 0);
-=======
   const mcapScore = Math.min(100, (Math.log10(Math.max(mcap, 1)) / Math.log10(3e12)) * 100);
   const mcapPenalty = mcap < 5e9 ? 30 : mcap < 20e9 ? 15 : 0;
   const mcapPenaltyApplied = mcapScore - mcapPenalty;
@@ -146,7 +144,6 @@ function buildCoinCard(coin: any, rank: number): CoinCard {
         ? `$${(mcap / 1e9).toFixed(0)}B`
         : `$${(mcap / 1e6).toFixed(0)}M`;
 
-<<<<<<< HEAD
   const fdv         = coin.fully_diluted_valuation || 0;
   const mcFdvRatio  = fdv > 0 ? mcap / fdv : 1;
   const fdvLabel    = mcFdvRatio >= 0.9 ? 'lưu hành gần max' : mcFdvRatio >= 0.5 ? `MC/FDV ${(mcFdvRatio * 100).toFixed(0)}%` : `MC/FDV ${(mcFdvRatio * 100).toFixed(0)}% ⚠️`;
@@ -168,7 +165,6 @@ function buildCoinCard(coin: any, rank: number): CoinCard {
 
   if (mcFdvRatio >= 0.9)           reason.push(`Hầu hết token đã lưu hành — ít rủi ro bị xả từ token mở khóa`);
   else if (mcFdvRatio < 0.5)       reason.push(`Còn ${((1 - mcFdvRatio) * 100).toFixed(0)}% token chưa unlock — cần theo dõi lịch mở khóa`);
-=======
   const liqLabel =
     volRatio > 0.15 ? 'thanh khoản rất cao' : volRatio > 0.07 ? 'thanh khoản tốt' : 'thanh khoản trung bình';
   const trendLabel =
@@ -235,12 +231,10 @@ export async function getCryptoPricesData(riskLevel: string): Promise<CryptoServ
   if (cryptoCache.data && now - cryptoCache.fetchedAt < CRYPTO_CACHE_TTL_MS) {
     rawCoins = cryptoCache.data;
   } else {
-<<<<<<< HEAD
     const url = 'https://api.coingecko.com/api/v3/coins/markets'
       + '?vs_currency=usd&order=market_cap_desc&per_page=30&page=1'
       + '&sparkline=false&price_change_percentage=24h'
       + '&include_fully_diluted_valuation=true';
-=======
     const url =
       'https://api.coingecko.com/api/v3/coins/markets' +
       '?vs_currency=usd&order=market_cap_desc&per_page=100&page=1' +
@@ -258,9 +252,7 @@ export async function getCryptoPricesData(riskLevel: string): Promise<CryptoServ
 
   const scored = filtered.map((c) => ({ coin: c, score: scoreCoin(c, riskLevel) })).sort((a, b) => b.score - a.score);
 
-<<<<<<< HEAD
   const top5 = scored.slice(0, 8).map((s, i) => buildCoinCard(s.coin, i));
-=======
   const top5 = scored.slice(0, 5).map((s, i) => buildCoinCard(s.coin, i));
 
   // Stablecoin luôn có trong list (ngoại trừ HIGH risk không cần)
@@ -308,13 +300,11 @@ export async function getCryptoPricesData(riskLevel: string): Promise<CryptoServ
   };
 
   return {
-<<<<<<< HEAD
     coins:      top5,
     intro:      introMap[riskLevel] || introMap.MEDIUM,
     disclaimer: `Xếp hạng dựa trên dữ liệu thị trường (MCap, thanh khoản, MC/FDV). Chưa tính đến team, use case hay tokenomics chi tiết — cần DYOR trước khi đầu tư.`,
     riskLevel,
     cached:     cryptoCache.fetchedAt !== now,
-=======
     coins: top5,
     intro: introMap[riskLevel] || introMap.MEDIUM,
     riskLevel,
