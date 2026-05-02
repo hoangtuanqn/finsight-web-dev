@@ -37,13 +37,14 @@ const CARDS = [
   },
 ];
 
-function AnimatedBar({ value, gradient }: { value: number; gradient: string }) {
+function AnimatedBar({ value, max = 100, gradient }: { value: number; max?: number; gradient: string }) {
+  const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
   return (
     <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mt-3">
       <motion.div
         className={`h-full rounded-full bg-gradient-to-r ${gradient}`}
         initial={{ width: 0 }}
-        animate={{ width: `${Math.min(value, 100)}%` }}
+        animate={{ width: `${percentage}%` }}
         transition={{ duration: 1.2, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
       />
     </div>
@@ -74,19 +75,22 @@ export default function KPICards({
       ...CARDS[0],
       glow: healthColor,
       value: `${healthScore}`,
-      unit: '/100',
+      unit: '/850',
       sub: healthLabel,
       barValue: healthScore,
+      barMax: 850,
     },
     {
       ...CARDS[1],
       value: formatVND(debtSummary.totalBalance || 0),
+      unit: undefined,
       sub: `${debts.length} khoản • tối thiểu ${formatVND(debtSummary.totalMinPayment || 0)}/tháng`,
       barValue: null,
     },
     {
       ...CARDS[2],
       value: formatPercent(debtSummary.averageEAR || 0),
+      unit: undefined,
       sub: 'Chi phí thực tế / năm',
       barValue: null,
     },
@@ -168,7 +172,7 @@ export default function KPICards({
 
               {/* Progress bar */}
               {card.barValue !== null && card.barValue !== undefined && (
-                <AnimatedBar value={card.barValue} gradient={card.gradient} />
+                <AnimatedBar value={card.barValue} max={(card as any).barMax} gradient={card.gradient} />
               )}
             </div>
           </div>
