@@ -81,6 +81,7 @@ export const enterpriseAuthAPI = {
   // PARTIES
   getParties: (params: any) => api.get('/v1/enterprise/parties', { params }),
   getParty: (id: string) => api.get(`/v1/enterprise/parties/${id}`),
+  getUsers: () => api.get('/v1/enterprise/parties/users'),
   createParty: (data: any) => api.post('/v1/enterprise/parties', data),
   updateParty: (id: string, data: any) => api.patch(`/v1/enterprise/parties/${id}`, data),
   togglePartyStatus: (id: string, data: any) => api.post(`/v1/enterprise/parties/${id}/status`, data),
