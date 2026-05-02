@@ -14,7 +14,6 @@ import {
   ShieldCheck,
   Snowflake,
   TrendingDown,
-  TrendingUp,
   X,
   Zap,
 } from 'lucide-react';
@@ -611,16 +610,6 @@ export default function RepaymentPlanner() {
                     className="w-full py-4 rounded-2xl bg-slate-800 text-white font-bold hover:bg-slate-700 transition-all flex items-center justify-center gap-2"
                   >
                     Tôi đã hiểu rủi ro
-                  </Button>
-                  <Button
-                    appName="web-enterprise"
-                    onClick={() => {
-                      setIsTrapModalOpen(false);
-                      setStrategy(RepaymentStrategy.AVALANCHE);
-                    }}
-                    className="w-full py-4 rounded-2xl bg-blue-600 text-white font-black hover:bg-blue-500 shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
-                  >
-                    <TrendingUp size={18} /> Chuyển sang Avalanche
                   </Button>
                 </div>
               </div>
