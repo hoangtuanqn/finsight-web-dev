@@ -98,5 +98,36 @@ export function formatVND(amount: number) {
 }
 
 export function formatPercent(value: number, decimals = 1) {
-  return `${formatNumber(value, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}%`;
+  return value.toFixed(decimals);
+}
+
+interface CalculateMonthlyPaymentOptions {
+  principal: number;
+  apr: number;
+  termMonths: number;
+  rateType: 'FLAT' | 'REDUCING';
+  feeManagement?: number;
+}
+
+export function calculateMonthlyPayment({
+  principal,
+  apr,
+  termMonths,
+  rateType,
+  feeManagement = 0,
+}: CalculateMonthlyPaymentOptions) {
+  if (!principal || !termMonths) return 0;
+  const r = apr / 100 / 12;
+  const m = feeManagement / 100 / 12;
+
+  if (rateType === 'FLAT') {
+    // Flat: (Gốc / Kỳ hạn) + (Gốc * Lãi tháng) + (Gốc * Phí quản lý tháng)
+    return Math.round(principal / termMonths + principal * r + principal * m);
+  } else {
+    // Reducing (EMI): P * (r+m) * (1 + r+m)^n / ((1 + r+m)^n - 1)
+    const rate = r + m;
+    if (rate === 0) return Math.round(principal / termMonths);
+    const emi = (principal * rate * Math.pow(1 + rate, termMonths)) / (Math.pow(1 + rate, termMonths) - 1);
+    return Math.round(emi);
+  }
 }
