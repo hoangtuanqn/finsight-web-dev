@@ -1,13 +1,13 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
-import { AlertTriangle, BarChart2, Check, Clock, Info, Lock, Plus, Unlock } from 'lucide-react';
+import { AlertTriangle, BarChart2, Clock, Info, Plus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 import FormattedInput from '../../components/common/FormattedInput';
 import { useDebtMutations } from '../../hooks/useDebtQuery';
-import { calcAPY, calcEAR, formatPercent } from '../../utils/calculations';
+import { calcAPY, calcEAR, calculateMonthlyPayment, formatPercent } from '../../utils/calculations';
 
 const preprocessNumber = (schema: z.ZodTypeAny) =>
   z.preprocess(
@@ -149,21 +149,6 @@ function calcRemainingTerms(startDate: string, termMonths: number) {
   return Math.max(0, termMonths - monthsPassed);
 }
 
-function calculateMonthlyPayment(principal: number, apr: number, terms: number, rateType: 'FLAT' | 'REDUCING') {
-  if (!principal || !terms) return 0;
-  const r = apr / 100 / 12;
-  if (r === 0) return Math.round(principal / terms);
-
-  if (rateType === 'FLAT') {
-    // Flat: (Gốc / Kỳ hạn) + (Gốc * Lãi tháng)
-    return Math.round(principal / terms + principal * r);
-  } else {
-    // Reducing (EMI): P * r * (1 + r)^n / ((1 + r)^n - 1)
-    const emi = (principal * r * Math.pow(1 + r, terms)) / (Math.pow(1 + r, terms) - 1);
-    return Math.round(emi);
-  }
-}
-
 export default function AddDebtPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -206,17 +191,33 @@ export default function AddDebtPage() {
   const formValues = watch();
   const [loanStatus, setLoanStatus] = useState<'NEW' | 'EXISTING'>('NEW');
   const [isAutoCalcBalance, setIsAutoCalcBalance] = useState(true);
-  const [isManualMinPayment, setIsManualMinPayment] = useState(false);
 
   const suggestedMinPayment = useMemo(() => {
     if (debtType === 'CREDIT_CARD') return 0;
-    return calculateMonthlyPayment(
-      formValues.originalAmount,
-      formValues.apr,
-      formValues.termMonths,
-      formValues.rateType,
-    );
-  }, [formValues.originalAmount, formValues.apr, formValues.termMonths, formValues.rateType, debtType]);
+    return calculateMonthlyPayment({
+      principal: formValues.originalAmount,
+      apr: formValues.apr,
+      termMonths: formValues.termMonths,
+      rateType: formValues.rateType as 'FLAT' | 'REDUCING',
+      feeManagement: formValues.feeManagement,
+    });
+  }, [
+    formValues.originalAmount,
+    formValues.apr,
+    formValues.termMonths,
+    formValues.rateType,
+    formValues.feeManagement,
+    debtType,
+  ]);
+
+  // Sync minPayment with suggested value for Installment
+  useEffect(() => {
+    if (debtType === 'INSTALLMENT' && suggestedMinPayment > 0) {
+      if (formValues.minPayment !== suggestedMinPayment) {
+        setValue('minPayment', suggestedMinPayment, { shouldValidate: true });
+      }
+    }
+  }, [debtType, suggestedMinPayment, formValues.minPayment, setValue]);
 
   const toNumberValue = (value: string | number) => (value === '' ? 0 : Number(value));
 
@@ -255,15 +256,6 @@ export default function AddDebtPage() {
     setValue,
     formValues.balance,
   ]);
-
-  // Auto-calculate Monthly Payment for NEW Installment
-  useEffect(() => {
-    if (debtType === 'INSTALLMENT' && loanStatus === 'NEW' && !isManualMinPayment && suggestedMinPayment > 0) {
-      if (formValues.minPayment !== suggestedMinPayment) {
-        setValue('minPayment', suggestedMinPayment, { shouldValidate: true });
-      }
-    }
-  }, [suggestedMinPayment, loanStatus, isManualMinPayment, debtType, setValue, formValues.minPayment]);
 
   const ear = calcEAR(
     formValues.apr,
@@ -517,20 +509,29 @@ export default function AddDebtPage() {
                       name="balance"
                       control={control}
                       render={({ field }) => (
-                        <div className="relative">
+                        <div className="relative group">
                           <FormattedInput
                             kind="integer"
                             value={field.value}
-                            onValueChange={(value) => {
-                              field.onChange(toNumberValue(value));
+                            onValueChange={(v) => {
+                              field.onChange(toNumberValue(v));
                               setIsAutoCalcBalance(false);
                             }}
-                            className={inputCls(errors.balance)}
+                            className={`${inputCls(errors.balance)} ${
+                              loanStatus === 'NEW'
+                                ? 'bg-blue-500/5 border-blue-500/20 text-blue-200 cursor-not-allowed'
+                                : ''
+                            }`}
                             placeholder="0"
                             suffix="đ"
+                            readOnly={loanStatus === 'NEW'}
                           />
-                          {debtType === 'INSTALLMENT' &&
-                            !isAutoCalcBalance &&
+                          {loanStatus === 'NEW' && (
+                            <p className="mt-1.5 text-[10px] text-blue-400/70 flex items-center gap-1 italic">
+                              <Info size={10} /> Tự tính: Gốc + các loại phí thiết lập
+                            </p>
+                          )}
+                          {loanStatus === 'EXISTING' &&
                             formValues.originalAmount > 0 &&
                             formValues.balance < formValues.originalAmount && (
                               <p className="mt-1 text-[10px] text-amber-400 flex items-center gap-1">
@@ -596,26 +597,12 @@ export default function AddDebtPage() {
                   <div>
                     <div className="flex justify-between items-end mb-1.5">
                       <label className="input-label mb-0">Khoản trả hàng tháng</label>
-                      {debtType === 'INSTALLMENT' && loanStatus === 'NEW' && (
-                        <button
-                          type="button"
-                          onClick={() => setIsManualMinPayment(!isManualMinPayment)}
-                          className={`flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all ${
-                            !isManualMinPayment
-                              ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                              : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                          }`}
-                        >
-                          {!isManualMinPayment ? (
-                            <>
-                              <Lock size={10} /> Tự động tính
-                            </>
-                          ) : (
-                            <>
-                              <Unlock size={10} /> Tự nhập
-                            </>
-                          )}
-                        </button>
+                      {debtType === 'INSTALLMENT' && (
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                          <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+                            Hệ thống tự tính
+                          </span>
+                        </div>
                       )}
                     </div>
                     <Controller
@@ -628,21 +615,20 @@ export default function AddDebtPage() {
                             value={field.value}
                             onValueChange={(value) => field.onChange(toNumberValue(value))}
                             className={`${inputCls(errors.minPayment)} ${
-                              debtType === 'INSTALLMENT' && loanStatus === 'NEW' && !isManualMinPayment
+                              debtType === 'INSTALLMENT'
                                 ? 'bg-blue-500/5 border-blue-500/20 text-blue-200 cursor-not-allowed'
                                 : ''
                             }`}
                             placeholder="0"
                             suffix="đ"
-                            readOnly={debtType === 'INSTALLMENT' && loanStatus === 'NEW' && !isManualMinPayment}
+                            readOnly={debtType === 'INSTALLMENT'}
                           />
-                          {!isManualMinPayment && debtType === 'INSTALLMENT' && loanStatus === 'NEW' && (
-                            <div className="absolute right-12 top-1/2 -translate-y-1/2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-                              <span className="text-[10px] font-medium text-blue-400/50 italic">
-                                Nhấp icon khóa để sửa
-                              </span>
-                            </div>
-                          )}
+                          <p className="mt-1.5 text-[10px] text-gray-500 flex items-center gap-1 italic">
+                            <Info size={10} />{' '}
+                            {debtType === 'INSTALLMENT'
+                              ? 'Khoản trả cố định hàng tháng (gốc + lãi + phí).'
+                              : 'Số tiền bạn dự định trả cho thẻ mỗi tháng.'}
+                          </p>
                         </div>
                       )}
                     />
@@ -650,36 +636,6 @@ export default function AddDebtPage() {
                       <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
                         <AlertTriangle size={11} /> {errors.minPayment.message as string}
                       </p>
-                    )}
-
-                    {debtType === 'INSTALLMENT' && isManualMinPayment && suggestedMinPayment > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setValue('minPayment', suggestedMinPayment, { shouldValidate: true });
-                          setIsManualMinPayment(false);
-                        }}
-                        className="mt-2 w-full flex items-center justify-between px-3 py-2 rounded-lg bg-blue-500/5 border border-blue-500/10 hover:bg-blue-500/10 transition-colors group cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center">
-                            <Check size={12} className="text-blue-400" />
-                          </div>
-                          <div className="text-left">
-                            <p className="text-[10px] text-blue-400/70 font-medium leading-none mb-1">
-                              Gợi ý hàng tháng
-                            </p>
-                            <p className="text-[12px] text-blue-400 font-bold leading-none">
-                              {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
-                                suggestedMinPayment,
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                        <span className="text-[10px] font-black text-blue-400/50 group-hover:text-blue-400 transition-colors">
-                          ÁP DỤNG
-                        </span>
-                      </button>
                     )}
                   </div>
 
