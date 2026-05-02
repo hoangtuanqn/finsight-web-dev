@@ -1,7 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { debtAPI, debtGoalAPI, repaymentPlanAPI } from '../api';
 import { queryKeys } from '../api/queryKeys';
-import { toast } from 'sonner';
 
 export function useDebts(filters?: any) {
   return useQuery({
@@ -9,7 +9,7 @@ export function useDebts(filters?: any) {
     queryFn: async () => {
       const res = await debtAPI.getAll(filters);
       return res.data.data;
-    }
+    },
   });
 }
 
@@ -20,7 +20,7 @@ export function useDebt(id: string | number | undefined) {
       const res = await debtAPI.getById(id as any);
       return res.data.data;
     },
-    enabled: !!id
+    enabled: !!id,
   });
 }
 
@@ -36,7 +36,7 @@ export function useDebtMutations() {
     onSuccess: () => {
       invalidate();
       toast.success('Đã thêm khoản nợ mới');
-    }
+    },
   });
 
   const updateMutation = useMutation({
@@ -45,7 +45,7 @@ export function useDebtMutations() {
       invalidate();
       queryClient.invalidateQueries({ queryKey: queryKeys.DEBTS.DETAIL(variables.id) });
       toast.success('Đã cập nhật khoản nợ');
-    }
+    },
   });
 
   const deleteMutation = useMutation({
@@ -53,7 +53,7 @@ export function useDebtMutations() {
     onSuccess: () => {
       invalidate();
       toast.success('Đã chuyển khoản nợ vào thùng rác');
-    }
+    },
   });
 
   const restoreMutation = useMutation({
@@ -61,7 +61,7 @@ export function useDebtMutations() {
     onSuccess: () => {
       invalidate();
       toast.success('Đã khôi phục khoản nợ');
-    }
+    },
   });
 
   const logPaymentMutation = useMutation({
@@ -70,7 +70,7 @@ export function useDebtMutations() {
       invalidate();
       queryClient.invalidateQueries({ queryKey: queryKeys.DEBTS.DETAIL(variables.id) });
       toast.success('Đã ghi nhận thanh toán');
-    }
+    },
   });
 
   return {
@@ -83,7 +83,7 @@ export function useDebtMutations() {
     isUpdating: updateMutation.isPending,
     isDeleting: deleteMutation.isPending,
     isRestoring: restoreMutation.isPending,
-    isLogging: logPaymentMutation.isPending
+    isLogging: logPaymentMutation.isPending,
   };
 }
 
@@ -94,7 +94,7 @@ export function useRepaymentPlan(extraBudget: number | undefined) {
       const res = await debtAPI.getRepaymentPlan({ extraBudget });
       return res.data.data;
     },
-    enabled: extraBudget !== undefined
+    enabled: extraBudget !== undefined,
   });
 }
 
@@ -104,7 +104,7 @@ export function useRepaymentPlans() {
     queryFn: async () => {
       const res = await repaymentPlanAPI.getAll();
       return res.data.data;
-    }
+    },
   });
 }
 
@@ -115,21 +115,18 @@ export function useRepaymentPlanDetail(id: string | number | undefined) {
       const res = await repaymentPlanAPI.getById(id as any);
       return res.data.data;
     },
-    enabled: !!id
+    enabled: !!id,
   });
 }
 
-export function useRepaymentPlanSimulation(
-  debtIds: string[],
-  extraBudget: number | undefined,
-) {
+export function useRepaymentPlanSimulation(debtIds: string[], extraBudget: number | undefined) {
   return useQuery({
     queryKey: queryKeys.DEBTS.REPAYMENT_PLAN_SIMULATION(debtIds, extraBudget || 0),
     queryFn: async () => {
       const res = await repaymentPlanAPI.simulate({ debtIds, extraBudget });
       return res.data.data;
     },
-    enabled: debtIds.length > 0 && extraBudget !== undefined
+    enabled: debtIds.length > 0 && extraBudget !== undefined,
   });
 }
 
@@ -146,19 +143,18 @@ export function useRepaymentPlanMutations() {
     onSuccess: () => {
       invalidatePlans();
       toast.success('Đã tạo bản kế hoạch trả nợ');
-    }
+    },
   });
 
   const updatePlanMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string | number; data: any }) =>
-      repaymentPlanAPI.update(id, data),
+    mutationFn: ({ id, data }: { id: string | number; data: any }) => repaymentPlanAPI.update(id, data),
     onSuccess: (_res, variables) => {
       invalidatePlans();
       queryClient.invalidateQueries({
         queryKey: queryKeys.DEBTS.REPAYMENT_PLAN_DETAIL(variables.id),
       });
       toast.success('Đã lưu bản kế hoạch trả nợ');
-    }
+    },
   });
 
   const deletePlanMutation = useMutation({
@@ -166,7 +162,7 @@ export function useRepaymentPlanMutations() {
     onSuccess: () => {
       invalidatePlans();
       toast.success('Đã xóa bản kế hoạch trả nợ');
-    }
+    },
   });
 
   return {
@@ -185,7 +181,7 @@ export function useEarAnalysis() {
     queryFn: async () => {
       const res = await debtAPI.getEarAnalysis();
       return res.data.data;
-    }
+    },
   });
 }
 
@@ -195,7 +191,7 @@ export function useDtiAnalysis() {
     queryFn: async () => {
       const res = await debtAPI.getDtiAnalysis();
       return res.data.data;
-    }
+    },
   });
 }
 
@@ -205,7 +201,7 @@ export function useDebtGoal() {
     queryFn: async () => {
       const res = await debtGoalAPI.get();
       return res.data.data;
-    }
+    },
   });
 }
 
@@ -217,7 +213,7 @@ export function useDebtGoalMutations() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.DEBTS.GOAL });
       queryClient.invalidateQueries({ queryKey: queryKeys.DEBTS.REPAYMENT });
-    }
+    },
   });
 
   const deleteGoalMutation = useMutation({
@@ -229,13 +225,13 @@ export function useDebtGoalMutations() {
       });
       queryClient.invalidateQueries({ queryKey: queryKeys.DEBTS.GOAL });
       queryClient.invalidateQueries({ queryKey: queryKeys.DEBTS.REPAYMENT });
-    }
+    },
   });
 
   return {
     upsertGoal: upsertMutation.mutate,
     deleteGoal: deleteGoalMutation.mutateAsync,
     isUpserting: upsertMutation.isPending,
-    isDeleting: deleteGoalMutation.isPending
+    isDeleting: deleteGoalMutation.isPending,
   };
 }

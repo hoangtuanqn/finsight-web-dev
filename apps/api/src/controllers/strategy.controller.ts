@@ -1,10 +1,10 @@
 import { Response } from 'express';
 import prisma from '../lib/prisma.js';
-import { success, error } from '../utils/apiResponse.js';
-import { getOptimalAllocation } from '../services/portfolioOptimizer.service.js';
-import { fetchFearGreedIndex } from '../services/market.service.js';
 import { invalidateCache } from '../middleware/cache.middleware.js';
+import { fetchFearGreedIndex } from '../services/market.service.js';
+import { getOptimalAllocation } from '../services/portfolioOptimizer.service.js';
 import { AuthenticatedRequest } from '../types/index.js';
+import { error, success } from '../utils/apiResponse.js';
 async function warmHistoricalDataCache(profile: any, userId: string) {
   try {
     // Pre-run optimizer in background to warm Redis hist:* keys from Yahoo Finance.
@@ -55,7 +55,7 @@ export async function generateStrategy(req: AuthenticatedRequest, res: Response)
     }
 
     console.info(
-      `[InvestmentAdvisor] strategy-generate:start user=${shortUserId(req.userId)} risk=${user.investorProfile.riskLevel} quotaBefore=${user.strategyQuota}`
+      `[InvestmentAdvisor] strategy-generate:start user=${shortUserId(req.userId)} risk=${user.investorProfile.riskLevel} quotaBefore=${user.strategyQuota}`,
     );
 
     const sentiment = await fetchFearGreedIndex();
@@ -63,23 +63,33 @@ export async function generateStrategy(req: AuthenticatedRequest, res: Response)
 
     const EXCLUDABLE_ASSETS = ['gold', 'stocks', 'bonds', 'crypto'];
     const rawExcluded: string[] = Array.isArray(req.body.excludedAssets) ? req.body.excludedAssets : [];
-    const excludedAssets = rawExcluded.filter(a => EXCLUDABLE_ASSETS.includes(a));
+    const excludedAssets = rawExcluded.filter((a) => EXCLUDABLE_ASSETS.includes(a));
 
     const result = await getOptimalAllocation(user.investorProfile, sentimentValue, null, excludedAssets);
 
     const strategy = await (prisma as any).aIStrategy.create({
       data: {
-        userId:        req.userId,
+        userId: req.userId,
         sentimentValue,
         sentimentLabel: result.sentimentLabel,
+<<<<<<< HEAD
         riskLevel:     user.investorProfile.riskLevel,
         savings:       result.savings,
         gold:          result.gold,
         stocks:        result.stocks,
         bonds:         result.bonds,
         crypto:        result.crypto,
+=======
+        riskLevel: user.investorProfile.riskLevel,
+        savings: result.savings,
+        gold: result.gold,
+        stocks: result.stocks,
+        stocks_us: result.stocks_us || 0,
+        bonds: result.bonds,
+        crypto: result.crypto,
+>>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
         recommendation: result.recommendation,
-        marketViews:   result.marketViews,
+        marketViews: result.marketViews,
       },
     });
 
@@ -90,7 +100,7 @@ export async function generateStrategy(req: AuthenticatedRequest, res: Response)
     });
 
     console.info(
-      `[InvestmentAdvisor] strategy-generate:complete user=${shortUserId(req.userId)} strategy=${strategy.id} sentiment=${sentimentValue} dataQuality=${result.optimization?.marketDataQuality || 'unknown'} quotaAfter=${updatedUser.strategyQuota} durationMs=${Date.now() - startedAt}`
+      `[InvestmentAdvisor] strategy-generate:complete user=${shortUserId(req.userId)} strategy=${strategy.id} sentiment=${sentimentValue} dataQuality=${result.optimization?.marketDataQuality || 'unknown'} quotaAfter=${updatedUser.strategyQuota} durationMs=${Date.now() - startedAt}`,
     );
 
     invalidateCache([`investment:allocation:${req.userId}:*`]);
@@ -98,10 +108,14 @@ export async function generateStrategy(req: AuthenticatedRequest, res: Response)
     // Fire-and-forget: pre-warm hist:* Redis keys so next GET /allocation is fast
     warmHistoricalDataCache(user.investorProfile, req.userId!);
 
-    return success(res, {
-      strategy,
-      remainingQuota: updatedUser.strategyQuota,
-    }, 201);
+    return success(
+      res,
+      {
+        strategy,
+        remainingQuota: updatedUser.strategyQuota,
+      },
+      201,
+    );
   } catch (err) {
     console.error('generateStrategy error:', err);
     return error(res, 'Internal server error');
@@ -130,7 +144,11 @@ export async function upsertPortfolio(req: AuthenticatedRequest, res: Response) 
       return error(res, `Tổng phân bổ phải bằng 100% (hiện tại: ${total.toFixed(1)}%)`, 400);
     }
 
+<<<<<<< HEAD
     if ([savings, gold, stocks, bonds, crypto].some(v => v < 0)) {
+=======
+    if ([savings, gold, stocks, stocks_us, bonds, crypto].some((v) => v < 0)) {
+>>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
       return error(res, 'Phân bổ không được âm', 400);
     }
 
@@ -142,18 +160,18 @@ export async function upsertPortfolio(req: AuthenticatedRequest, res: Response) 
         stocks,
         bonds,
         crypto,
-        notes:            notes ?? null,
+        notes: notes ?? null,
         sourceStrategyId: sourceStrategyId ?? null,
-        updatedAt:        new Date(),
+        updatedAt: new Date(),
       },
       create: {
-        userId:           req.userId,
+        userId: req.userId,
         savings,
         gold,
         stocks,
         bonds,
         crypto,
-        notes:            notes ?? null,
+        notes: notes ?? null,
         sourceStrategyId: sourceStrategyId ?? null,
       },
       include: { sourceStrategy: true },
@@ -175,11 +193,20 @@ export async function updatePortfolio(req: AuthenticatedRequest, res: Response) 
 
     const { savings, gold, stocks, bonds, crypto, notes } = req.body;
 
+<<<<<<< HEAD
     const newSavings  = savings   ?? existing.savings;
     const newGold     = gold      ?? existing.gold;
     const newStocks   = stocks    ?? existing.stocks;
     const newBonds    = bonds     ?? existing.bonds;
     const newCrypto   = crypto    ?? existing.crypto;
+=======
+    const newSavings = savings ?? existing.savings;
+    const newGold = gold ?? existing.gold;
+    const newStocks = stocks ?? existing.stocks;
+    const newStocksUs = stocks_us ?? existing.stocks_us;
+    const newBonds = bonds ?? existing.bonds;
+    const newCrypto = crypto ?? existing.crypto;
+>>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
 
     const total = newSavings + newGold + newStocks + newBonds + newCrypto;
     if (Math.abs(total - 100) > 0.5) {
@@ -190,11 +217,20 @@ export async function updatePortfolio(req: AuthenticatedRequest, res: Response) 
       where: { userId: req.userId },
       data: {
         savings: newSavings,
+<<<<<<< HEAD
         gold:    newGold,
         stocks:  newStocks,
         bonds:   newBonds,
         crypto:  newCrypto,
         notes:   notes !== undefined ? notes : existing.notes,
+=======
+        gold: newGold,
+        stocks: newStocks,
+        stocks_us: newStocksUs,
+        bonds: newBonds,
+        crypto: newCrypto,
+        notes: notes !== undefined ? notes : existing.notes,
+>>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
       },
       include: { sourceStrategy: true },
     });

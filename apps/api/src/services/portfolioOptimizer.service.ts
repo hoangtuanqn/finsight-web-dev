@@ -1,11 +1,6 @@
 import { ASSET_ORDER } from '../constants/assetTickers';
 import { BASE_ALLOCATIONS, RECOMMENDATION_TEXTS, RiskLevel } from '../constants/investmentConstants';
-import {
-  RISK_AVERSION,
-  SENTIMENT_ADJUSTMENTS,
-  SOLVER_CONFIG,
-  WEIGHT_BOUNDS,
-} from '../constants/optimizationConfig';
+import { RISK_AVERSION, SENTIMENT_ADJUSTMENTS, SOLVER_CONFIG, WEIGHT_BOUNDS } from '../constants/optimizationConfig';
 import { getSentimentLabel, getSentimentVietnamese } from '../utils/calculations.js';
 
 const EPSILON = 1e-12;
@@ -16,14 +11,14 @@ function toArrayMatrix(matrix: any): any[][] {
 
 function getBoundsArrays(bounds: any) {
   const source = bounds || WEIGHT_BOUNDS.MEDIUM;
-  const lowerBounds = ASSET_ORDER.map(asset => (source[asset]?.[0] ?? 0) / 100);
-  const upperBounds = ASSET_ORDER.map(asset => (source[asset]?.[1] ?? 100) / 100);
+  const lowerBounds = ASSET_ORDER.map((asset) => (source[asset]?.[0] ?? 0) / 100);
+  const upperBounds = ASSET_ORDER.map((asset) => (source[asset]?.[1] ?? 100) / 100);
   return { lowerBounds, upperBounds };
 }
 
 function matrixVectorMultiply(matrix: any, vector: number[]): number[] {
   const values = toArrayMatrix(matrix);
-  return values.map(row => row.reduce((sum, value, index) => sum + value * vector[index], 0));
+  return values.map((row) => row.reduce((sum, value, index) => sum + value * vector[index], 0));
 }
 
 function sumWeights(weights: number[]): number {
@@ -44,9 +39,9 @@ function redistribute(weights: number[], lowerBounds: number[], upperBounds: num
     const diff = 1 - sumWeights(projected);
     if (Math.abs(diff) <= EPSILON) break;
 
-    const capacities = projected.map((weight, index) => (
-      diff > 0 ? upperBounds[index] - weight : weight - lowerBounds[index]
-    ));
+    const capacities = projected.map((weight, index) =>
+      diff > 0 ? upperBounds[index] - weight : weight - lowerBounds[index],
+    );
     const available = capacities.reduce((sum, capacity) => sum + Math.max(0, capacity), 0);
     if (available <= EPSILON) break;
 
@@ -62,13 +57,14 @@ function redistribute(weights: number[], lowerBounds: number[], upperBounds: num
 
 function getInitialWeights(riskLevel: RiskLevel, bounds: any): number[] {
   const base = BASE_ALLOCATIONS[riskLevel] || BASE_ALLOCATIONS[RiskLevel.MEDIUM];
-  return ASSET_ORDER.map(asset => (base[asset as keyof typeof base] ?? 0) / 100)
-    .map((weight, index) => Math.min(bounds.upperBounds[index], Math.max(bounds.lowerBounds[index], weight)));
+  return ASSET_ORDER.map((asset) => (base[asset as keyof typeof base] ?? 0) / 100).map((weight, index) =>
+    Math.min(bounds.upperBounds[index], Math.max(bounds.lowerBounds[index], weight)),
+  );
 }
 
 function normalizePercentAllocation(weights: number[]): Record<string, number> {
   const allocation: Record<string, number> = Object.fromEntries(
-    ASSET_ORDER.map((asset, index) => [asset, Math.round(weights[index] * 1000) / 10])
+    ASSET_ORDER.map((asset, index) => [asset, Math.round(weights[index] * 1000) / 10]),
   );
   const total = ASSET_ORDER.reduce((sum, asset) => sum + allocation[asset], 0);
   const diff = Math.round((100 - total) * 10) / 10;
@@ -94,7 +90,11 @@ export function portfolioVariance(weights: number[], covMatrix: any): number {
   return weights.reduce((sum, weight, index) => sum + weight * sigmaW[index], 0);
 }
 
-export function adjustReturnsForSentiment(means: number[], sentimentValue: number, adjustments = SENTIMENT_ADJUSTMENTS): number[] {
+export function adjustReturnsForSentiment(
+  means: number[],
+  sentimentValue: number,
+  adjustments = SENTIMENT_ADJUSTMENTS,
+): number[] {
   const sentimentLabel = getSentimentLabel(Number.isFinite(sentimentValue) ? sentimentValue : 50);
   const multipliers = adjustments[sentimentLabel] || adjustments.NEUTRAL;
   return means.map((mean, index) => mean * (multipliers[ASSET_ORDER[index]] ?? 1));
@@ -171,26 +171,48 @@ export async function getOptimalAllocation(
   excludedAssets: string[] = [],
 ) {
   const savingsRate = (profile?.savingsRate ?? 5) / 100;
+<<<<<<< HEAD
   const marketParams = marketParamsOverride || await (async () => {
     const { getMarketParams } = await import('./historicalData.service.js');
     return getMarketParams(savingsRate);
   })();
   console.log(`[Optimizer] marketParams.means.length=${marketParams.means.length} assetOrder=${JSON.stringify(marketParams.assetOrder)} covMatrix rows=${(marketParams.covMatrix.toArray?.() ?? marketParams.covMatrix).length}`);
+=======
+  const marketParams =
+    marketParamsOverride ||
+    (await (async () => {
+      const { getMarketParams } = await import('./historicalData.service.js');
+      return getMarketParams(savingsRate);
+    })());
+>>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
   const priorMeans = adjustReturnsForSentiment(marketParams.means, sentimentValue);
   const { generateMarketViews } = await import('./marketViews.service.js');
   const marketViews = await generateMarketViews(sentimentValue, process.env.NEWS_API_KEY);
-  
+
   const { computePosteriorReturns } = await import('./blackLitterman.service.js');
   const { posteriorMeans } = computePosteriorReturns(priorMeans, marketParams.covMatrix, marketViews);
 
   // Build bounds override for excluded assets (savings is always protected)
+<<<<<<< HEAD
   const EXCLUDABLE_ASSETS = ['gold', 'stocks', 'bonds', 'crypto'];
   const validExcluded = excludedAssets.filter(a => EXCLUDABLE_ASSETS.includes(a));
   const exclusionOverride = validExcluded.length > 0
     ? Object.fromEntries(validExcluded.map(a => [a, [0, 0] as [number, number]]))
     : null;
+=======
+  const EXCLUDABLE_ASSETS = ['gold', 'stocks', 'stocks_us', 'bonds', 'crypto'];
+  const validExcluded = excludedAssets.filter((a) => EXCLUDABLE_ASSETS.includes(a));
+  const exclusionOverride =
+    validExcluded.length > 0 ? Object.fromEntries(validExcluded.map((a) => [a, [0, 0] as [number, number]])) : null;
+>>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
 
-  const result = optimizePortfolio(marketParams, posteriorMeans, (profile?.riskLevel as RiskLevel) || RiskLevel.MEDIUM, profile, exclusionOverride);
+  const result = optimizePortfolio(
+    marketParams,
+    posteriorMeans,
+    (profile?.riskLevel as RiskLevel) || RiskLevel.MEDIUM,
+    profile,
+    exclusionOverride,
+  );
   const sentimentLabel = getSentimentLabel(sentimentValue);
 
   const allocation: any = {

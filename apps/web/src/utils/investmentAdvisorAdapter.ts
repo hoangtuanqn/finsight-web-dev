@@ -32,8 +32,7 @@ function horizonLabel(years: number) {
 
 function calcFutureValue(capital: number, monthlyAdd: number, rate: number, years: number) {
   if (rate === 0) return capital + (monthlyAdd || 0) * 12 * years;
-  return capital * Math.pow(1 + rate, years)
-    + (monthlyAdd || 0) * 12 * ((Math.pow(1 + rate, years) - 1) / rate);
+  return capital * Math.pow(1 + rate, years) + (monthlyAdd || 0) * 12 * ((Math.pow(1 + rate, years) - 1) / rate);
 }
 
 function getProfileRates(profile: any = {}) {
@@ -44,9 +43,7 @@ function getProfileRates(profile: any = {}) {
 }
 
 export function getAllocationFromSource(source: any = {}) {
-  return Object.fromEntries(
-    ASSET_KEYS.map(key => [key, toNumber(source?.[key])])
-  );
+  return Object.fromEntries(ASSET_KEYS.map((key) => [key, toNumber(source?.[key])]));
 }
 
 export function buildPortfolioBreakdown(allocation: any, profile: any = {}, providedBreakdown: any = null) {
@@ -59,56 +56,49 @@ export function buildPortfolioBreakdown(allocation: any, profile: any = {}, prov
   }
 
   const capital = toNumber(profile.capital);
-  return ASSET_KEYS.map(key => ({
+  return ASSET_KEYS.map((key) => ({
     asset: ASSET_LABELS[key],
     percentage: allocation[key],
-    amount: capital * allocation[key] / 100,
+    amount: (capital * allocation[key]) / 100,
   }));
 }
 
 export function buildPieData(allocation: any) {
-  return ASSET_KEYS
-    .filter(key => allocation[key] > 0)
-    .map(key => ({
-      name: ASSET_LABELS[key],
-      value: allocation[key],
-      key,
-    }));
+  return ASSET_KEYS.filter((key) => allocation[key] > 0).map((key) => ({
+    name: ASSET_LABELS[key],
+    value: allocation[key],
+    key,
+  }));
 }
 
 function buildLegacyProjection(allocation: any, profile: any = {}) {
   const capital = toNumber(profile.capital);
   const monthlyAdd = toNumber(profile.monthlyAdd);
-  const inflationRate = profile.inflationRate !== undefined
-    ? toNumber(profile.inflationRate) / 100
-    : 0.035;
+  const inflationRate = profile.inflationRate !== undefined ? toNumber(profile.inflationRate) / 100 : 0.035;
   const rates: any = getProfileRates(profile);
-  const weightedReturn = ASSET_KEYS.reduce(
-    (sum, key) => sum + allocation[key] * rates[key],
-    0
-  ) / 100;
+  const weightedReturn = ASSET_KEYS.reduce((sum, key) => sum + allocation[key] * rates[key], 0) / 100;
   const realReturn = weightedReturn - inflationRate;
   const optimisticReturn = weightedReturn * 1.3 - inflationRate;
   const pessimisticReturn = Math.max(-0.5, weightedReturn * 0.5 - inflationRate);
 
   return {
     base: Object.fromEntries(
-      STANDARD_HORIZONS.map(years => [
+      STANDARD_HORIZONS.map((years) => [
         horizonKey(years),
         Math.round(calcFutureValue(capital, monthlyAdd, realReturn, years)),
-      ])
+      ]),
     ),
     optimistic: Object.fromEntries(
-      STANDARD_HORIZONS.map(years => [
+      STANDARD_HORIZONS.map((years) => [
         horizonKey(years),
         Math.round(calcFutureValue(capital, monthlyAdd, optimisticReturn, years)),
-      ])
+      ]),
     ),
     pessimistic: Object.fromEntries(
-      STANDARD_HORIZONS.map(years => [
+      STANDARD_HORIZONS.map((years) => [
         horizonKey(years),
         Math.round(calcFutureValue(capital, monthlyAdd, pessimisticReturn, years)),
-      ])
+      ]),
     ),
     monteCarlo: null as any,
     probLoss: null as any,
@@ -126,9 +116,7 @@ function chooseProjection(projection: any, allocation: any, profile: any) {
 export function buildProjectionData(projection: any, profile: any = {}) {
   const capital = toNumber(profile.capital);
   const monthlyAdd = toNumber(profile.monthlyAdd);
-  const inflationRate = profile.inflationRate !== undefined
-    ? toNumber(profile.inflationRate) / 100
-    : 0.035;
+  const inflationRate = profile.inflationRate !== undefined ? toNumber(profile.inflationRate) / 100 : 0.035;
   const savingsRate = toNumber(profile.savingsRate, 6) / 100 - inflationRate;
 
   return [
@@ -139,7 +127,7 @@ export function buildProjectionData(projection: any, profile: any = {}) {
       pessimistic: capital,
       savings: capital,
     },
-    ...STANDARD_HORIZONS.map(years => {
+    ...STANDARD_HORIZONS.map((years) => {
       const key = horizonKey(years);
       return {
         year: horizonLabel(years),
@@ -158,9 +146,7 @@ export function buildMonteCarloData(projection: any = null, profile: any = {}) {
 
   const capital = toNumber(profile.capital);
   const monthlyAdd = toNumber(profile.monthlyAdd);
-  const inflationRate = profile.inflationRate !== undefined
-    ? toNumber(profile.inflationRate) / 100
-    : 0.035;
+  const inflationRate = profile.inflationRate !== undefined ? toNumber(profile.inflationRate) / 100 : 0.035;
   const savingsRate = toNumber(profile.savingsRate, 6) / 100 - inflationRate;
   const currentRow = {
     year: 'Hiện tại',
@@ -179,34 +165,32 @@ export function buildMonteCarloData(projection: any = null, profile: any = {}) {
     band50Range: 0,
   };
 
-  const rows = STANDARD_HORIZONS
-    .map(years => {
-      const key = horizonKey(years);
-      const item = monteCarlo[key];
-      if (!item) return null;
-      const p5 = toNumber(item.p5);
-      const p25 = toNumber(item.p25);
-      const p75 = toNumber(item.p75);
-      const p95 = toNumber(item.p95);
+  const rows = STANDARD_HORIZONS.map((years) => {
+    const key = horizonKey(years);
+    const item = monteCarlo[key];
+    if (!item) return null;
+    const p5 = toNumber(item.p5);
+    const p25 = toNumber(item.p25);
+    const p75 = toNumber(item.p75);
+    const p95 = toNumber(item.p95);
 
-      return {
-        year: horizonLabel(years),
-        horizon: years,
-        p5,
-        p25,
-        median: toNumber(item.median),
-        p75,
-        p95,
-        mean: toNumber(item.mean),
-        probLoss: toNumber(item.probLoss),
-        savings: Math.round(calcFutureValue(capital, monthlyAdd, savingsRate, years)),
-        band90Base: p5,
-        band90Range: Math.max(0, p95 - p5),
-        band50Base: p25,
-        band50Range: Math.max(0, p75 - p25),
-      };
-    })
-    .filter(Boolean);
+    return {
+      year: horizonLabel(years),
+      horizon: years,
+      p5,
+      p25,
+      median: toNumber(item.median),
+      p75,
+      p95,
+      mean: toNumber(item.mean),
+      probLoss: toNumber(item.probLoss),
+      savings: Math.round(calcFutureValue(capital, monthlyAdd, savingsRate, years)),
+      band90Base: p5,
+      band90Range: Math.max(0, p95 - p5),
+      band50Base: p25,
+      band50Range: Math.max(0, p75 - p25),
+    };
+  }).filter(Boolean);
 
   return rows.length > 0 ? [currentRow, ...rows] : [];
 }

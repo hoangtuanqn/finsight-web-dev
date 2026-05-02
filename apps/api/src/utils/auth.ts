@@ -13,8 +13,8 @@ export async function handleUserLoginResponse(req: Request, res: Response, user:
         where: {
           userId: user.id,
           token: trustToken as string,
-          expiresAt: { gt: new Date() }
-        }
+          expiresAt: { gt: new Date() },
+        },
       });
 
       if (trusted) {
@@ -23,16 +23,14 @@ export async function handleUserLoginResponse(req: Request, res: Response, user:
     }
 
     // Yêu cầu 2FA
-    const tempToken = jwt.sign(
-      { userId: user.id, isTemp: true },
-      (process.env.JWT_SECRET as string).trim(),
-      { expiresIn: '5m' }
-    );
+    const tempToken = jwt.sign({ userId: user.id, isTemp: true }, (process.env.JWT_SECRET as string).trim(), {
+      expiresIn: '5m',
+    });
 
-    return success(res, { 
-      require2FA: true, 
+    return success(res, {
+      require2FA: true,
       tempToken,
-      message: 'Two-factor authentication required' 
+      message: 'Two-factor authentication required',
     });
   }
 
@@ -40,18 +38,16 @@ export async function handleUserLoginResponse(req: Request, res: Response, user:
 }
 
 async function sendFullLoginResponse(res: Response, user: any) {
-  const token = jwt.sign(
-    { userId: user.id, email: user.email },
-    (process.env.JWT_SECRET as string).trim(),
-    { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'] }
-  );
+  const token = jwt.sign({ userId: user.id, email: user.email }, (process.env.JWT_SECRET as string).trim(), {
+    expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'],
+  });
 
   const fullUser = await (prisma as any).user.findUnique({
     where: { id: user.id },
-    include: { investorProfile: true }
+    include: { investorProfile: true },
   });
 
   const { password: _, twoFactorSecret: __, twoFactorBackupCodes: ___, ...userData } = fullUser;
-  
+
   return success(res, { user: userData, token });
 }

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getDebtGoal, upsertDebtGoal, deleteDebtGoal } from '../controllers/debt-goal.controller';
+import { deleteDebtGoal, getDebtGoal, upsertDebtGoal } from '../controllers/debt-goal.controller';
 import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();

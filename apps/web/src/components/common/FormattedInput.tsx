@@ -1,6 +1,6 @@
+import type { LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { formatDecimalInput, formatIntegerInput, normalizeLocaleNumberInput } from '../../utils/calculations';
-import type { LucideIcon } from 'lucide-react';
 
 interface FormattedInputProps {
   kind?: 'integer' | 'decimal';
@@ -25,11 +25,8 @@ export default function FormattedInput({
   placeholder,
   maxValue = kind === 'integer' ? 100000000000 : undefined,
 }: FormattedInputProps) {
-  const normalizeInputValue = (rawValue) => (
-    kind === 'decimal'
-      ? normalizeLocaleNumberInput(rawValue)
-      : String(rawValue ?? '').replace(/\D/g, '')
-  );
+  const normalizeInputValue = (rawValue) =>
+    kind === 'decimal' ? normalizeLocaleNumberInput(rawValue) : String(rawValue ?? '').replace(/\D/g, '');
 
   const clampNormalizedValue = (rawValue) => {
     const normalized = normalizeInputValue(rawValue);
@@ -74,11 +71,11 @@ export default function FormattedInput({
     inputRef.current.setSelectionRange(nextCaret, nextCaret);
   }, [draftValue]);
 
-  const getNormalizedPrefix = (rawValue, caret) => normalizeInputValue(String(rawValue ?? '').slice(0, Math.max(0, caret ?? 0)));
+  const getNormalizedPrefix = (rawValue, caret) =>
+    normalizeInputValue(String(rawValue ?? '').slice(0, Math.max(0, caret ?? 0)));
 
-  const toDisplayFromNormalized = (normalized) => (
-    kind === 'decimal' ? formatDecimalInput(normalized) : formatIntegerInput(normalized)
-  );
+  const toDisplayFromNormalized = (normalized) =>
+    kind === 'decimal' ? formatDecimalInput(normalized) : formatIntegerInput(normalized);
 
   const findCaretPosition = (formattedValue, normalizedPrefix) => {
     if (!normalizedPrefix) return 0;

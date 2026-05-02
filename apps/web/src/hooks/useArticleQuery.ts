@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { articleAPI } from '../api';
 
 export function useArticles() {
@@ -7,7 +7,7 @@ export function useArticles() {
     queryFn: async () => {
       const res = await articleAPI.getArticles();
       return res.data.data.articles;
-    }
+    },
   });
 }
 
@@ -17,6 +17,6 @@ export function useSeedArticles() {
     mutationFn: articleAPI.seedArticles,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['articles'] });
-    }
+    },
   });
 }

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { authenticate } from '../middleware/auth.middleware';
 import { getKycStatus, submitKyc } from '../controllers/kyc.controller';
+import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
 
@@ -24,7 +24,7 @@ router.post(
     { name: 'back', maxCount: 1 },
     { name: 'video', maxCount: 1 },
   ]),
-  (req: any, res: any) => submitKyc(req, res)
+  (req: any, res: any) => submitKyc(req, res),
 );
 
 export default router;

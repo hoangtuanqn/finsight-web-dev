@@ -1,11 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
-import { investmentAPI } from "../api";
-import { queryKeys } from "../api/queryKeys";
+import { useQuery } from '@tanstack/react-query';
+import { investmentAPI } from '../api';
+import { queryKeys } from '../api/queryKeys';
 
 const ASSET_PRICE_STALE_TIME = 10 * 60 * 1000;
-const ASSET_PRICE_GC_TIME    = 10 * 60 * 1000;
+const ASSET_PRICE_GC_TIME = 10 * 60 * 1000;
 
-export function useCryptoPrices(riskLevel = "MEDIUM") {
+export function useCryptoPrices(riskLevel = 'MEDIUM') {
   return useQuery({
     queryKey: queryKeys.INVESTMENT.CRYPTO_PRICES(riskLevel),
     queryFn: async () => {
@@ -17,7 +17,7 @@ export function useCryptoPrices(riskLevel = "MEDIUM") {
   });
 }
 
-export function useStockPrices(riskLevel = "MEDIUM") {
+export function useStockPrices(riskLevel = 'MEDIUM') {
   return useQuery({
     queryKey: queryKeys.INVESTMENT.STOCK_PRICES(riskLevel),
     queryFn: async () => {
@@ -41,7 +41,7 @@ export function useGoldPrices() {
   });
 }
 
-export function useSavingsRates(riskLevel = "MEDIUM") {
+export function useSavingsRates(riskLevel = 'MEDIUM') {
   return useQuery({
     queryKey: queryKeys.INVESTMENT.SAVINGS_RATES(riskLevel),
     queryFn: async () => {
@@ -53,7 +53,7 @@ export function useSavingsRates(riskLevel = "MEDIUM") {
   });
 }
 
-export function useBondsRates(riskLevel = "MEDIUM") {
+export function useBondsRates(riskLevel = 'MEDIUM') {
   return useQuery({
     queryKey: queryKeys.INVESTMENT.BONDS_RATES(riskLevel),
     queryFn: async () => {
@@ -65,17 +65,9 @@ export function useBondsRates(riskLevel = "MEDIUM") {
   });
 }
 
-export function useAssetMonthlyHistory({
-  months,
-  days,
-  enabled = false,
-  ...requestParams
-}: any = {}) {
+export function useAssetMonthlyHistory({ months, days, enabled = false, ...requestParams }: any = {}) {
   const hasSource = Boolean(
-    requestParams.ticker ||
-    requestParams.symbol ||
-    requestParams.source ||
-    requestParams.bankId,
+    requestParams.ticker || requestParams.symbol || requestParams.source || requestParams.bankId,
   );
   const apiParams = { ...requestParams };
   delete apiParams.rangeOptions;

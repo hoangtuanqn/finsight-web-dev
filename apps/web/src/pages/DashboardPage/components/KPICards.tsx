@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
-import { HeartPulse, CreditCard, BarChart2, Thermometer } from 'lucide-react';
-import { formatVND, formatPercent } from '../../../utils/calculations';
+import { BarChart2, CreditCard, HeartPulse, Thermometer } from 'lucide-react';
+import { formatPercent, formatVND } from '../../../utils/calculations';
 
 const CARDS = [
   {
@@ -37,7 +37,7 @@ const CARDS = [
   },
 ];
 
-function AnimatedBar({ value, gradient }: { value: number, gradient: string }) {
+function AnimatedBar({ value, gradient }: { value: number; gradient: string }) {
   return (
     <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mt-3">
       <motion.div
@@ -60,7 +60,15 @@ interface KPICardsProps {
   sentimentColor: string;
 }
 
-export default function KPICards({ debtSummary, debts, sentiment, healthScore, healthColor, healthLabel, sentimentColor }: KPICardsProps) {
+export default function KPICards({
+  debtSummary,
+  debts,
+  sentiment,
+  healthScore,
+  healthColor,
+  healthLabel,
+  sentimentColor,
+}: KPICardsProps) {
   const configs = [
     {
       ...CARDS[0],

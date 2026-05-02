@@ -1,10 +1,5 @@
 import * as math from 'mathjs';
-import {
-  ASSET_TICKERS,
-  ASSET_ORDER,
-  HISTORY_CONFIG,
-  FALLBACK_PARAMS,
-} from '../constants/assetTickers';
+import { ASSET_ORDER, ASSET_TICKERS, FALLBACK_PARAMS, HISTORY_CONFIG } from '../constants/assetTickers';
 import redis from '../lib/redis';
 
 /**
@@ -19,7 +14,10 @@ export interface AssetHistory {
 /**
  * Lấy monthly adjusted close prices từ Yahoo Finance.
  */
-export async function fetchAssetHistory(ticker: string, years: number = HISTORY_CONFIG.years): Promise<AssetHistory | null> {
+export async function fetchAssetHistory(
+  ticker: string,
+  years: number = HISTORY_CONFIG.years,
+): Promise<AssetHistory | null> {
   const cacheKey = `${HISTORY_CONFIG.cacheKeyPrefix}:${ticker}`;
 
   // Check Redis cache
@@ -27,12 +25,15 @@ export async function fetchAssetHistory(ticker: string, years: number = HISTORY_
     try {
       const cached = await redis.get(cacheKey);
       if (cached) return JSON.parse(cached);
-    } catch { /* ignore cache errors */ }
+    } catch {
+      /* ignore cache errors */
+    }
   }
 
   try {
-    const url = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}`
-      + `?interval=${HISTORY_CONFIG.interval}&range=${years}y`;
+    const url =
+      `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}` +
+      `?interval=${HISTORY_CONFIG.interval}&range=${years}y`;
 
     const response = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' },
@@ -44,7 +45,7 @@ export async function fetchAssetHistory(ticker: string, years: number = HISTORY_
       return null;
     }
 
-    const json = await response.json() as any;
+    const json = (await response.json()) as any;
     const result = json?.chart?.result?.[0];
 
     if (!result) {
@@ -53,9 +54,7 @@ export async function fetchAssetHistory(ticker: string, years: number = HISTORY_
     }
 
     const timestamps = result.timestamp || [];
-    const closes = result.indicators?.adjclose?.[0]?.adjclose
-      || result.indicators?.quote?.[0]?.close
-      || [];
+    const closes = result.indicators?.adjclose?.[0]?.adjclose || result.indicators?.quote?.[0]?.close || [];
 
     const validData: AssetHistory = { timestamps: [], closes: [] };
     for (let i = 0; i < timestamps.length; i++) {
@@ -73,7 +72,9 @@ export async function fetchAssetHistory(ticker: string, years: number = HISTORY_
     if (redis) {
       try {
         await redis.setex(cacheKey, HISTORY_CONFIG.cacheTTL, JSON.stringify(validData));
-      } catch { /* ignore cache errors */ }
+      } catch {
+        /* ignore cache errors */
+      }
     }
 
     return validData;
@@ -113,11 +114,11 @@ export function annualizeStdDev(monthlyStdDev: number): number {
 
 export function calcCovarianceMatrix(returnsArrays: number[][]): math.Matrix {
   const k = returnsArrays.length;
-  const minLen = Math.min(...returnsArrays.map(r => r.length));
-  const aligned = returnsArrays.map(r => r.slice(0, minLen));
+  const minLen = Math.min(...returnsArrays.map((r) => r.length));
+  const aligned = returnsArrays.map((r) => r.slice(0, minLen));
 
-  const means = aligned.map(r => calcMean(r));
-  const demeaned = aligned.map((r, i) => r.map(v => v - means[i]));
+  const means = aligned.map((r) => calcMean(r));
+  const demeaned = aligned.map((r, i) => r.map((v) => v - means[i]));
 
   const n = minLen;
   const cov = Array.from({ length: k }, () => new Array(k).fill(0));
@@ -164,7 +165,7 @@ export async function buildMarketParams(savingsRate: number = 0.05, options: any
     tickerEntries.map(async ([asset, ticker]) => {
       const data = await historyFetcher(ticker);
       return { asset, data };
-    })
+    }),
   );
 
   const assetReturns: Record<string, number[] | null> = {};
@@ -216,7 +217,7 @@ export async function buildMarketParams(savingsRate: number = 0.05, options: any
     dataDetails[asset] = { points: data.closes.length, returns: returns.length };
   }
 
-  const hasRealData = Object.values(assetReturns).some(r => r !== null);
+  const hasRealData = Object.values(assetReturns).some((r) => r !== null);
   if (!hasRealData) {
     dataQuality = 'fallback';
     console.warn('[HistoricalData] All fetches failed — using full fallback');
@@ -237,12 +238,18 @@ export async function buildMarketParams(savingsRate: number = 0.05, options: any
   }
 
   const covSize = ASSET_ORDER.length;
+<<<<<<< HEAD
   const realAssets = ASSET_ORDER.filter(a => assetReturns[a] !== null && a !== 'savings');
   console.log(`[HistoricalData] buildMarketParams: ASSET_ORDER=${JSON.stringify(ASSET_ORDER)} covSize=${covSize} realAssets=${JSON.stringify(realAssets)}`);
   const covArray = Array.from({ length: covSize }, () => new Array(covSize).fill(0));
+=======
+  const covArray = Array.from({ length: covSize }, () => new Array(covSize).fill(0));
+
+  const realAssets = ASSET_ORDER.filter((a) => assetReturns[a] !== null && a !== 'savings');
+>>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
 
   if (realAssets.length >= 2) {
-    const realReturnsArrays = realAssets.map(a => assetReturns[a] as number[]);
+    const realReturnsArrays = realAssets.map((a) => assetReturns[a] as number[]);
     const realCov = calcCovarianceMatrix(realReturnsArrays);
     const realCovArr = realCov.toArray() as number[][];
 
@@ -266,11 +273,11 @@ export async function buildMarketParams(savingsRate: number = 0.05, options: any
 
   const stdDevsArray = ASSET_ORDER.map((a, i) => {
     const variance = covArray[i][i];
-    return variance > 0 ? Math.sqrt(variance) : (stdDevs[a] || 0);
+    return variance > 0 ? Math.sqrt(variance) : stdDevs[a] || 0;
   });
   const corrMatrix = calcCorrelationMatrix(covMatrix, stdDevsArray);
 
-  const meansArray = ASSET_ORDER.map(a => means[a] || 0);
+  const meansArray = ASSET_ORDER.map((a) => means[a] || 0);
 
   return {
     means: meansArray,
@@ -297,7 +304,9 @@ export async function getMarketParams(savingsRate: number = 0.05) {
         parsed.corrMatrix = math.matrix(parsed.corrMatrix);
         return parsed;
       }
-    } catch { /* ignore cache errors */ }
+    } catch {
+      /* ignore cache errors */
+    }
   }
 
   const params = await buildMarketParams(savingsRate);
@@ -310,7 +319,9 @@ export async function getMarketParams(savingsRate: number = 0.05) {
         corrMatrix: params.corrMatrix.toArray(),
       };
       await redis.setex(MARKET_PARAMS_CACHE_KEY, MARKET_PARAMS_TTL, JSON.stringify(serializable));
-    } catch { /* ignore cache errors */ }
+    } catch {
+      /* ignore cache errors */
+    }
   }
 
   return params;

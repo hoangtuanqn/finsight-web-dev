@@ -1,16 +1,42 @@
-import { useState, useEffect, useMemo, type JSX } from 'react';
-import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useDebts } from '../../hooks/useDebtQuery';
-import { formatVND, formatPercent } from '../../utils/calculations';
-import { PageSkeleton } from '../../components/common/LoadingSpinner';
-import ExportReportModal from '../../components/debt/ExportReportModal';
-import DebtTypeSelectionModal from '../../components/debt/DebtTypeSelectionModal';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
-  CreditCard, BarChart2, ClipboardList, Plus,
-  AlertOctagon, AlertTriangle, PartyPopper, FileText, Home, TrendingUp, ChevronRight, LayoutGrid, List, Filter, X
+  AlertOctagon,
+  AlertTriangle,
+  BarChart2,
+  ChevronRight,
+  ClipboardList,
+  CreditCard,
+  FileText,
+  Filter,
+  Home,
+  LayoutGrid,
+  List,
+  PartyPopper,
+  Plus,
+  TrendingUp,
+  X,
 } from 'lucide-react';
-import { PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
+import { useEffect, useMemo, useState, type JSX } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import { PageSkeleton } from '../../components/common/LoadingSpinner';
+import DebtTypeSelectionModal from '../../components/debt/DebtTypeSelectionModal';
+import ExportReportModal from '../../components/debt/ExportReportModal';
+import { useDebts } from '../../hooks/useDebtQuery';
+import { formatPercent, formatVND } from '../../utils/calculations';
 
 const PLATFORM_ICONS: Record<string, JSX.Element> = {
   SPAYLATER: <span className="text-orange-400 text-base font-black">S</span>,
@@ -23,22 +49,60 @@ const PLATFORM_ICONS: Record<string, JSX.Element> = {
 };
 
 const SUMMARY_CARDS = (summary: any) => [
-  { label: 'Tổng dư nợ', value: formatVND(summary.totalBalance || 0), color: '#ef4444', gradient: 'from-red-500 to-rose-400', bg: 'rgba(239,68,68,0.08)' },
-  { label: 'Trả / tháng', value: formatVND(summary.totalMinPayment || 0), color: '#f59e0b', gradient: 'from-amber-500 to-orange-400', bg: 'rgba(245,158,11,0.08)' },
-  { label: 'EAR trung bình', value: formatPercent(summary.averageEAR || 0), color: '#8b5cf6', gradient: 'from-purple-500 to-violet-400', bg: 'rgba(139,92,246,0.08)' },
+  {
+    label: 'Tổng dư nợ',
+    value: formatVND(summary.totalBalance || 0),
+    color: '#ef4444',
+    gradient: 'from-red-500 to-rose-400',
+    bg: 'rgba(239,68,68,0.08)',
+  },
+  {
+    label: 'Trả / tháng',
+    value: formatVND(summary.totalMinPayment || 0),
+    color: '#f59e0b',
+    gradient: 'from-amber-500 to-orange-400',
+    bg: 'rgba(245,158,11,0.08)',
+  },
+  {
+    label: 'EAR trung bình',
+    value: formatPercent(summary.averageEAR || 0),
+    color: '#8b5cf6',
+    gradient: 'from-purple-500 to-violet-400',
+    bg: 'rgba(139,92,246,0.08)',
+  },
   {
     label: 'DTI Ratio',
     value: formatPercent(summary.debtToIncomeRatio || 0),
-    desc: (summary.debtToIncomeRatio || 0) > 50 ? 'Khủng hoảng' : (summary.debtToIncomeRatio || 0) > 35 ? 'Nguy hiểm' : (summary.debtToIncomeRatio || 0) > 20 ? 'Cẩn thận' : 'An toàn',
-    color: (summary.debtToIncomeRatio || 0) > 50 ? '#ef4444' : (summary.debtToIncomeRatio || 0) > 35 ? '#f97316' : (summary.debtToIncomeRatio || 0) > 20 ? '#f59e0b' : '#10b981',
+    desc:
+      (summary.debtToIncomeRatio || 0) > 50
+        ? 'Khủng hoảng'
+        : (summary.debtToIncomeRatio || 0) > 35
+          ? 'Nguy hiểm'
+          : (summary.debtToIncomeRatio || 0) > 20
+            ? 'Cẩn thận'
+            : 'An toàn',
+    color:
+      (summary.debtToIncomeRatio || 0) > 50
+        ? '#ef4444'
+        : (summary.debtToIncomeRatio || 0) > 35
+          ? '#f97316'
+          : (summary.debtToIncomeRatio || 0) > 20
+            ? '#f59e0b'
+            : '#10b981',
     gradient: (summary.debtToIncomeRatio || 0) > 35 ? 'from-red-500 to-orange-400' : 'from-emerald-500 to-teal-400',
     bg: 'rgba(59,130,246,0.08)',
   },
 ];
 
 const getProgressStyle = (percent: number) => {
-  if (percent < 30) return { bg: 'from-red-500 via-rose-500 to-pink-500', shadow: 'rgba(244,63,94,0.4)', text: 'text-rose-500' };
-  if (percent < 70) return { bg: 'from-amber-400 via-orange-400 to-orange-500', shadow: 'rgba(245,158,11,0.4)', text: 'text-orange-500' };
+  if (percent < 30)
+    return { bg: 'from-red-500 via-rose-500 to-pink-500', shadow: 'rgba(244,63,94,0.4)', text: 'text-rose-500' };
+  if (percent < 70)
+    return {
+      bg: 'from-amber-400 via-orange-400 to-orange-500',
+      shadow: 'rgba(245,158,11,0.4)',
+      text: 'text-orange-500',
+    };
   return { bg: 'from-emerald-400 via-teal-400 to-teal-500', shadow: 'rgba(16,185,129,0.4)', text: 'text-emerald-500' };
 };
 
@@ -49,10 +113,10 @@ export default function DebtOverviewPage() {
     dueInDays: '',
     status: 'ACTIVE',
     search: '',
-    earRange: ''
+    earRange: '',
   });
   const [showFilters, setShowFilters] = useState(false);
-  const { data, isLoading } = useDebts(filters) as { data: any, isLoading: boolean };
+  const { data, isLoading } = useDebts(filters) as { data: any; isLoading: boolean };
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isTypeSelectionOpen, setIsTypeSelectionOpen] = useState(false);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('finsight_debt_view') || 'grid');
@@ -117,7 +181,10 @@ export default function DebtOverviewPage() {
   };
 
   const debtMixData = useMemo(() => {
-    return debtsData.map((d: any) => ({ name: d.name.substring(0, 15) + (d.name.length > 15 ? '...' : ''), value: d.balance }));
+    return debtsData.map((d: any) => ({
+      name: d.name.substring(0, 15) + (d.name.length > 15 ? '...' : ''),
+      value: d.balance,
+    }));
   }, [debtsData]);
 
   const interestVsPrincipalData = useMemo(() => {
@@ -127,7 +194,7 @@ export default function DebtOverviewPage() {
       return {
         name: d.name.substring(0, 10) + (d.name.length > 10 ? '...' : ''),
         'Lãi phát sinh': interest > 0 ? interest : 0,
-        'Gốc trả được': principal > 0 ? principal : 0
+        'Gốc trả được': principal > 0 ? principal : 0,
       };
     });
   }, [debtsData]);
@@ -142,7 +209,7 @@ export default function DebtOverviewPage() {
       data.push({ month: `T${m > 12 ? m - 12 : m}`, 'Dư nợ': Math.max(0, currentTotal) });
       const estimatedInterest = currentTotal * ((summary.averageEAR || 15) / 100 / 12);
       const principal = totalMinPayment - estimatedInterest;
-      currentTotal -= (principal > 0 ? principal : 0);
+      currentTotal -= principal > 0 ? principal : 0;
     }
     return data;
   }, [summary]);
@@ -169,16 +236,27 @@ export default function DebtOverviewPage() {
               Danh sách khoản nợ
             </h1>
           </div>
-          <p className="text-[var(--color-text-secondary)] text-base mt-2">Tổng quan và theo dõi các khoản nợ của bạn một cách trực quan.</p>
+          <p className="text-[var(--color-text-secondary)] text-base mt-2">
+            Tổng quan và theo dõi các khoản nợ của bạn một cách trực quan.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <Link to="/debts/ear-analysis" className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-secondary)] hover:text-blue-400 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all cursor-pointer bg-[var(--color-bg-card)]">
+          <Link
+            to="/debts/ear-analysis"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-secondary)] hover:text-blue-400 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all cursor-pointer bg-[var(--color-bg-card)]"
+          >
             <BarChart2 size={16} /> EAR
           </Link>
-          <Link to="/debts/dti" className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-secondary)] hover:text-blue-400 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all cursor-pointer bg-[var(--color-bg-card)]">
+          <Link
+            to="/debts/dti"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-secondary)] hover:text-blue-400 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all cursor-pointer bg-[var(--color-bg-card)]"
+          >
             <TrendingUp size={16} /> DTI
           </Link>
-          <Link to="/debts/repayment" className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-secondary)] hover:text-blue-400 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all cursor-pointer bg-[var(--color-bg-card)]">
+          <Link
+            to="/debts/repayment"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-secondary)] hover:text-blue-400 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all cursor-pointer bg-[var(--color-bg-card)]"
+          >
             <ClipboardList size={16} /> Kế hoạch
           </Link>
           <button
@@ -187,7 +265,10 @@ export default function DebtOverviewPage() {
           >
             <FileText size={16} /> Xuất báo cáo
           </button>
-          <button onClick={() => setIsTypeSelectionOpen(true)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-500/30 transition-all cursor-pointer">
+          <button
+            onClick={() => setIsTypeSelectionOpen(true)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-500/30 transition-all cursor-pointer"
+          >
             <Plus size={18} /> Thêm khoản nợ
           </button>
         </div>
@@ -201,15 +282,27 @@ export default function DebtOverviewPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.07 }}
             className="relative rounded-3xl p-6 border overflow-hidden cursor-default transition-all duration-300 hover:shadow-xl"
-            style={{ background: 'var(--color-bg-card)', borderColor: `${item.color}25`, boxShadow: `0 4px 24px ${item.color}08` }}
+            style={{
+              background: 'var(--color-bg-card)',
+              borderColor: `${item.color}25`,
+              boxShadow: `0 4px 24px ${item.color}08`,
+            }}
           >
-            <div className="absolute top-0 left-6 right-6 h-px" style={{ background: `linear-gradient(90deg,transparent,${item.color}60,transparent)` }} />
-            <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full blur-3xl opacity-25" style={{ background: item.color }} />
+            <div
+              className="absolute top-0 left-6 right-6 h-px"
+              style={{ background: `linear-gradient(90deg,transparent,${item.color}60,transparent)` }}
+            />
+            <div
+              className="absolute -top-8 -right-8 w-24 h-24 rounded-full blur-3xl opacity-25"
+              style={{ background: item.color }}
+            />
 
             <p className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-3">
               {item.label}
             </p>
-            <p className={`text-2xl md:text-3xl font-black bg-gradient-to-r ${item.gradient} bg-clip-text text-transparent leading-tight`}>
+            <p
+              className={`text-2xl md:text-3xl font-black bg-gradient-to-r ${item.gradient} bg-clip-text text-transparent leading-tight`}
+            >
               {item.value}
             </p>
             {item.desc && (
@@ -224,12 +317,18 @@ export default function DebtOverviewPage() {
       {(summary.dominoAlerts as any[])?.length > 0 && (
         <div className="space-y-3">
           {(summary.dominoAlerts as any[]).map((a, i) => (
-            <div key={i} className="flex items-start gap-3 px-5 py-4 rounded-2xl border text-sm font-medium relative overflow-hidden"
+            <div
+              key={i}
+              className="flex items-start gap-3 px-5 py-4 rounded-2xl border text-sm font-medium relative overflow-hidden"
               style={{
                 background: a.severity === 'DANGER' ? 'rgba(239,68,68,0.08)' : 'rgba(245,158,11,0.08)',
                 borderColor: a.severity === 'DANGER' ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)',
-              }}>
-              <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ background: a.severity === 'DANGER' ? '#ef4444' : '#f59e0b' }} />
+              }}
+            >
+              <div
+                className="absolute left-0 top-0 bottom-0 w-1.5"
+                style={{ background: a.severity === 'DANGER' ? '#ef4444' : '#f59e0b' }}
+              />
               <span className="mt-0.5" style={{ color: a.severity === 'DANGER' ? '#f87171' : '#fbbf24' }}>
                 {a.severity === 'DANGER' ? <AlertOctagon size={18} /> : <AlertTriangle size={18} />}
               </span>
@@ -245,7 +344,9 @@ export default function DebtOverviewPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* Debt Mix Chart */}
           <div className="bg-[var(--color-bg-card)] rounded-3xl p-6 border border-[var(--color-border)] shadow-sm">
-            <h3 className="text-sm font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-4">Cơ cấu nợ</h3>
+            <h3 className="text-sm font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-4">
+              Cơ cấu nợ
+            </h3>
             <div className="h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -264,7 +365,13 @@ export default function DebtOverviewPage() {
                   </Pie>
                   <Tooltip
                     formatter={(value: number) => formatVND(value)}
-                    contentStyle={{ backgroundColor: 'var(--color-bg-primary)', border: '1px solid var(--color-border)', borderRadius: '12px', fontSize: '13px', fontWeight: 'bold' }}
+                    contentStyle={{
+                      backgroundColor: 'var(--color-bg-primary)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: '12px',
+                      fontSize: '13px',
+                      fontWeight: 'bold',
+                    }}
                     itemStyle={{ color: 'var(--color-text-primary)' }}
                   />
                 </PieChart>
@@ -274,7 +381,9 @@ export default function DebtOverviewPage() {
 
           {/* Balance Trend Area Chart */}
           <div className="bg-[var(--color-bg-card)] rounded-3xl p-6 border border-[var(--color-border)] shadow-sm">
-            <h3 className="text-sm font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-4">Xu hướng dự kiến (6 tháng)</h3>
+            <h3 className="text-sm font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-4">
+              Xu hướng dự kiến (6 tháng)
+            </h3>
             <div className="h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -285,13 +394,38 @@ export default function DebtOverviewPage() {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.5} />
-                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }} tickFormatter={(val) => `${(val / 1000000).toFixed(0)}M`} width={45} />
+                  <XAxis
+                    dataKey="month"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }}
+                    dy={10}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }}
+                    tickFormatter={(val) => `${(val / 1000000).toFixed(0)}M`}
+                    width={45}
+                  />
                   <Tooltip
                     formatter={(value: number) => formatVND(value)}
-                    contentStyle={{ backgroundColor: 'var(--color-bg-primary)', border: '1px solid var(--color-border)', borderRadius: '12px', fontSize: '13px', fontWeight: 'bold' }}
+                    contentStyle={{
+                      backgroundColor: 'var(--color-bg-primary)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: '12px',
+                      fontSize: '13px',
+                      fontWeight: 'bold',
+                    }}
                   />
-                  <Area type="monotone" dataKey="Dư nợ" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorBalance)" />
+                  <Area
+                    type="monotone"
+                    dataKey="Dư nợ"
+                    stroke="#3b82f6"
+                    strokeWidth={3}
+                    fillOpacity={1}
+                    fill="url(#colorBalance)"
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -299,16 +433,36 @@ export default function DebtOverviewPage() {
 
           {/* Interest vs Principal Stacked Bar Chart */}
           <div className="bg-[var(--color-bg-card)] rounded-3xl p-6 border border-[var(--color-border)] shadow-sm">
-            <h3 className="text-sm font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-4">Lãi suất vs Gốc / Tháng</h3>
+            <h3 className="text-sm font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-4">
+              Lãi suất vs Gốc / Tháng
+            </h3>
             <div className="h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={interestVsPrincipalData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.5} />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }} tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`} width={45} />
+                  <XAxis
+                    dataKey="name"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }}
+                    dy={10}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }}
+                    tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`}
+                    width={45}
+                  />
                   <Tooltip
                     formatter={(value: number) => formatVND(value)}
-                    contentStyle={{ backgroundColor: 'var(--color-bg-primary)', border: '1px solid var(--color-border)', borderRadius: '12px', fontSize: '13px', fontWeight: 'bold' }}
+                    contentStyle={{
+                      backgroundColor: 'var(--color-bg-primary)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: '12px',
+                      fontSize: '13px',
+                      fontWeight: 'bold',
+                    }}
                     cursor={{ fill: 'var(--color-border)', opacity: 0.2 }}
                   />
                   <Bar dataKey="Gốc trả được" stackId="a" fill="#10b981" radius={[0, 0, 4, 4]} />
@@ -325,14 +479,15 @@ export default function DebtOverviewPage() {
           <div className="flex items-center gap-4">
             <h2 className="text-xl font-extrabold text-[var(--color-text-primary)]">Chi tiết khoản nợ</h2>
             <div className="hidden lg:flex bg-[var(--color-bg-secondary)] p-1 rounded-xl border border-[var(--color-border)]">
-              {STATUS_TABS.map(tab => (
+              {STATUS_TABS.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setFilters((f: any) => ({ ...f, status: tab.id }))}
-                  className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${filters.status === tab.id
+                  className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
+                    filters.status === tab.id
                       ? 'bg-[var(--color-bg-card)] text-blue-500 shadow-sm border border-blue-500/20'
                       : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
-                    }`}
+                  }`}
                 >
                   {tab.label}
                 </button>
@@ -342,14 +497,15 @@ export default function DebtOverviewPage() {
 
           <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="lg:hidden flex-1 flex bg-[var(--color-bg-secondary)] p-1 rounded-xl border border-[var(--color-border)]">
-              {STATUS_TABS.map(tab => (
+              {STATUS_TABS.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setFilters((f: any) => ({ ...f, status: tab.id }))}
-                  className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-bold transition-all ${filters.status === tab.id
+                  className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    filters.status === tab.id
                       ? 'bg-[var(--color-bg-card)] text-blue-500 shadow-sm border border-blue-500/20'
                       : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
-                    }`}
+                  }`}
                 >
                   {tab.label}
                 </button>
@@ -359,10 +515,11 @@ export default function DebtOverviewPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowFilters(true)}
-                className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all font-bold text-sm ${hasActiveFilters
+                className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all font-bold text-sm ${
+                  hasActiveFilters
                     ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-500/20'
                     : 'bg-[var(--color-bg-card)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-blue-500/40'
-                  }`}
+                }`}
               >
                 <Filter size={16} />
                 <span>Bộ lọc</span>
@@ -420,7 +577,9 @@ export default function DebtOverviewPage() {
                   </div>
                   <div>
                     <h3 className="font-black text-lg text-[var(--color-text-primary)]">Bộ lọc nâng cao</h3>
-                    <p className="text-xs text-[var(--color-text-muted)] font-bold uppercase tracking-widest">Tối ưu hoá danh sách</p>
+                    <p className="text-xs text-[var(--color-text-muted)] font-bold uppercase tracking-widest">
+                      Tối ưu hoá danh sách
+                    </p>
                   </div>
                 </div>
                 <button
@@ -437,7 +596,10 @@ export default function DebtOverviewPage() {
                 <div className="space-y-3">
                   <label className="text-xs font-black uppercase tracking-widest text-blue-500">Tìm kiếm</label>
                   <div className="relative">
-                    <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" size={16} />
+                    <Filter
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
+                      size={16}
+                    />
                     <input
                       type="text"
                       placeholder="Tên khoản nợ, nền tảng..."
@@ -450,7 +612,9 @@ export default function DebtOverviewPage() {
 
                 {/* Categories */}
                 <div className="space-y-3">
-                  <label className="text-xs font-black uppercase tracking-widest text-blue-500">Nền tảng / Danh mục</label>
+                  <label className="text-xs font-black uppercase tracking-widest text-blue-500">
+                    Nền tảng / Danh mục
+                  </label>
                   <select
                     value={tempFilters.platform}
                     onChange={(e) => setTempFilters((f: any) => ({ ...f, platform: e.target.value }))}
@@ -476,14 +640,15 @@ export default function DebtOverviewPage() {
                       { id: '<10000000', label: 'Dưới 10tr' },
                       { id: '10000000-50000000', label: '10tr - 50tr' },
                       { id: '>50000000', label: 'Trên 50tr' },
-                    ].map(opt => (
+                    ].map((opt) => (
                       <button
                         key={opt.id}
                         onClick={() => setTempFilters((f: any) => ({ ...f, amountRange: opt.id }))}
-                        className={`px-4 py-3 rounded-2xl text-[13px] font-bold transition-all border ${tempFilters.amountRange === opt.id
+                        className={`px-4 py-3 rounded-2xl text-[13px] font-bold transition-all border ${
+                          tempFilters.amountRange === opt.id
                             ? 'bg-blue-600 text-white border-blue-500 shadow-md'
                             : 'bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-blue-500/40'
-                          }`}
+                        }`}
                       >
                         {opt.label}
                       </button>
@@ -493,21 +658,24 @@ export default function DebtOverviewPage() {
 
                 {/* EAR Range */}
                 <div className="space-y-3">
-                  <label className="text-xs font-black uppercase tracking-widest text-blue-500">Lãi suất thực tế (EAR)</label>
+                  <label className="text-xs font-black uppercase tracking-widest text-blue-500">
+                    Lãi suất thực tế (EAR)
+                  </label>
                   <div className="grid grid-cols-2 gap-2">
                     {[
                       { id: '', label: 'Mọi lãi suất' },
                       { id: 'low', label: 'Thấp (< 15%)' },
                       { id: 'mid', label: 'Trung bình (15-30%)' },
                       { id: 'high', label: 'Cao (> 30%)' },
-                    ].map(opt => (
+                    ].map((opt) => (
                       <button
                         key={opt.id}
                         onClick={() => setTempFilters((f: any) => ({ ...f, earRange: opt.id }))}
-                        className={`px-4 py-3 rounded-2xl text-[13px] font-bold transition-all border ${tempFilters.earRange === opt.id
+                        className={`px-4 py-3 rounded-2xl text-[13px] font-bold transition-all border ${
+                          tempFilters.earRange === opt.id
                             ? 'bg-red-600 text-white border-red-500 shadow-md'
                             : 'bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-red-500/40'
-                          }`}
+                        }`}
                       >
                         {opt.label}
                       </button>
@@ -553,32 +721,52 @@ export default function DebtOverviewPage() {
 
       {filteredDebts.length === 0 ? (
         hasActiveFilters ? (
-          <div className="rounded-3xl border border-[var(--color-border)] p-12 md:p-20 text-center" style={{ background: 'var(--color-bg-card)' }}>
+          <div
+            className="rounded-3xl border border-[var(--color-border)] p-12 md:p-20 text-center"
+            style={{ background: 'var(--color-bg-card)' }}
+          >
             <div className="w-20 h-20 rounded-full bg-slate-500/10 border border-slate-500/20 flex items-center justify-center mx-auto mb-6">
               <Filter size={36} className="text-slate-400" />
             </div>
-            <h3 className="text-xl md:text-2xl text-[var(--color-text-primary)] font-bold mb-2">Không tìm thấy khoản nợ phù hợp</h3>
-            <p className="text-[var(--color-text-muted)] text-base mb-8">Thử thay đổi hoặc xóa bộ lọc để xem các khoản nợ khác</p>
+            <h3 className="text-xl md:text-2xl text-[var(--color-text-primary)] font-bold mb-2">
+              Không tìm thấy khoản nợ phù hợp
+            </h3>
+            <p className="text-[var(--color-text-muted)] text-base mb-8">
+              Thử thay đổi hoặc xóa bộ lọc để xem các khoản nợ khác
+            </p>
             <button
-              onClick={() => setFilters({ platform: '', amountRange: '', dueInDays: '', status: 'ACTIVE', search: '', earRange: '' })}
+              onClick={() =>
+                setFilters({ platform: '', amountRange: '', dueInDays: '', status: 'ACTIVE', search: '', earRange: '' })
+              }
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-bold text-base hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/25 cursor-pointer"
             >
               <X size={18} /> Xóa bộ lọc
             </button>
           </div>
         ) : (
-          <div className="rounded-3xl border border-[var(--color-border)] p-12 md:p-20 text-center" style={{ background: 'var(--color-bg-card)' }}>
+          <div
+            className="rounded-3xl border border-[var(--color-border)] p-12 md:p-20 text-center"
+            style={{ background: 'var(--color-bg-card)' }}
+          >
             <div className="w-20 h-20 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto mb-6">
               <PartyPopper size={36} className="text-blue-400" />
             </div>
-            <h3 className="text-xl md:text-2xl text-[var(--color-text-primary)] font-bold mb-2">Không có khoản nợ nào cần theo dõi</h3>
-            <p className="text-[var(--color-text-muted)] text-base">Tuyệt vời! Bạn đang quản lý tài chính rất tốt, hãy tiếp tục phát huy nhé.</p>
+            <h3 className="text-xl md:text-2xl text-[var(--color-text-primary)] font-bold mb-2">
+              Không có khoản nợ nào cần theo dõi
+            </h3>
+            <p className="text-[var(--color-text-muted)] text-base">
+              Tuyệt vời! Bạn đang quản lý tài chính rất tốt, hãy tiếp tục phát huy nhé.
+            </p>
           </div>
         )
       ) : (
-        <div className={viewMode === 'grid'
-          ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-6"
-          : "flex flex-col gap-4"}>
+        <div
+          className={
+            viewMode === 'grid'
+              ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-6'
+              : 'flex flex-col gap-4'
+          }
+        >
           {(filteredDebts as any[]).map((debt, index) => {
             const progressPercent = ((debt.originalAmount - debt.balance) / debt.originalAmount) * 100;
             const progressStyle = getProgressStyle(progressPercent);
@@ -611,11 +799,17 @@ export default function DebtOverviewPage() {
                             {PLATFORM_ICONS[debt.platform] || <FileText size={20} />}
                           </div>
                           <div>
-                            <p className="font-bold text-base md:text-lg text-[var(--color-text-primary)] group-hover:text-blue-400 transition-colors leading-snug">{debt.name}</p>
-                            <p className="text-xs text-[var(--color-text-muted)] font-medium mt-0.5 uppercase tracking-wide">{debt.platform}</p>
+                            <p className="font-bold text-base md:text-lg text-[var(--color-text-primary)] group-hover:text-blue-400 transition-colors leading-snug">
+                              {debt.name}
+                            </p>
+                            <p className="text-xs text-[var(--color-text-muted)] font-medium mt-0.5 uppercase tracking-wide">
+                              {debt.platform}
+                            </p>
                           </div>
                         </div>
-                        <span className={`px-3 py-1 rounded-lg text-xs font-bold shrink-0 ml-2 ${debt.status === 'ACTIVE' ? 'bg-blue-500/15 text-blue-400 border border-blue-500/20' : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'}`}>
+                        <span
+                          className={`px-3 py-1 rounded-lg text-xs font-bold shrink-0 ml-2 ${debt.status === 'ACTIVE' ? 'bg-blue-500/15 text-blue-400 border border-blue-500/20' : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'}`}
+                        >
                           {debt.status === 'ACTIVE' ? 'Đang vay' : 'Đã trả'}
                         </span>
                       </div>
@@ -631,9 +825,21 @@ export default function DebtOverviewPage() {
                         {[
                           { label: 'APR', value: formatPercent(debt.apr), color: 'text-blue-400' },
                           { label: 'EAR thực tế', value: formatPercent(debt.ear), color: 'text-red-400' },
-                          { label: 'Trả / tháng', value: formatVND(debt.minPayment), color: 'text-[var(--color-text-primary)]' },
+                          {
+                            label: 'Trả / tháng',
+                            value: formatVND(debt.minPayment),
+                            color: 'text-[var(--color-text-primary)]',
+                          },
                           { label: 'Đáo hạn', value: `Ngày ${debt.dueDay}`, color: 'text-[var(--color-text-primary)]' },
-                          ...(summary.debtToIncomeRatio > 0 ? [{ label: 'Đóng góp DTI', value: `${((debt.minPayment / (summary.totalMinPayment || 1)) * summary.debtToIncomeRatio).toFixed(1)}%`, color: 'text-amber-400' }] : []),
+                          ...(summary.debtToIncomeRatio > 0
+                            ? [
+                                {
+                                  label: 'Đóng góp DTI',
+                                  value: `${((debt.minPayment / (summary.totalMinPayment || 1)) * summary.debtToIncomeRatio).toFixed(1)}%`,
+                                  color: 'text-amber-400',
+                                },
+                              ]
+                            : []),
                         ].map(({ label, value, color }) => (
                           <div key={label} className="flex justify-between items-center text-sm">
                             <span className="text-[var(--color-text-muted)] font-medium">{label}</span>
@@ -645,9 +851,7 @@ export default function DebtOverviewPage() {
                       <div>
                         <div className="flex items-center justify-between mb-2">
                           <p className="text-xs font-semibold text-[var(--color-text-primary)]">Tiến độ trả nợ</p>
-                          <p className={`text-xs font-bold ${progressStyle.text}`}>
-                            {progressPercent.toFixed(0)}%
-                          </p>
+                          <p className={`text-xs font-bold ${progressStyle.text}`}>{progressPercent.toFixed(0)}%</p>
                         </div>
                         <div className="h-2 rounded-full bg-[var(--color-bg-secondary)] overflow-hidden border border-[var(--color-border)]/50">
                           <motion.div
@@ -662,7 +866,10 @@ export default function DebtOverviewPage() {
 
                       <div className="mt-5 pt-4 border-t border-[var(--color-border)] flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <span className="text-xs font-semibold text-blue-400">Xem chi tiết khoản nợ</span>
-                        <ChevronRight size={16} className="text-blue-400 group-hover:translate-x-1 transition-transform" />
+                        <ChevronRight
+                          size={16}
+                          className="text-blue-400 group-hover:translate-x-1 transition-transform"
+                        />
                       </div>
                     </>
                   ) : (
@@ -672,10 +879,16 @@ export default function DebtOverviewPage() {
                           {PLATFORM_ICONS[debt.platform] || <FileText size={22} />}
                         </div>
                         <div className="flex-1">
-                          <p className="font-bold text-lg text-[var(--color-text-primary)] group-hover:text-blue-400 transition-colors leading-snug">{debt.name}</p>
+                          <p className="font-bold text-lg text-[var(--color-text-primary)] group-hover:text-blue-400 transition-colors leading-snug">
+                            {debt.name}
+                          </p>
                           <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                            <span className="text-xs text-[var(--color-text-muted)] font-bold uppercase tracking-wider">{debt.platform}</span>
-                            <span className={`px-2 py-0.5 rounded-md border text-[10px] font-bold ${debt.status === 'ACTIVE' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
+                            <span className="text-xs text-[var(--color-text-muted)] font-bold uppercase tracking-wider">
+                              {debt.platform}
+                            </span>
+                            <span
+                              className={`px-2 py-0.5 rounded-md border text-[10px] font-bold ${debt.status === 'ACTIVE' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}
+                            >
                               {debt.status === 'ACTIVE' ? 'Đang vay' : 'Đã trả'}
                             </span>
                           </div>
@@ -693,7 +906,9 @@ export default function DebtOverviewPage() {
                         <div className="flex-1 flex gap-4 md:gap-8 justify-between xl:justify-start">
                           <div>
                             <p className="text-xs text-[var(--color-text-muted)] font-medium mb-1">Trả / tháng</p>
-                            <p className="font-bold text-sm text-[var(--color-text-primary)]">{formatVND(debt.minPayment)}</p>
+                            <p className="font-bold text-sm text-[var(--color-text-primary)]">
+                              {formatVND(debt.minPayment)}
+                            </p>
                           </div>
                           <div>
                             <p className="text-xs text-[var(--color-text-muted)] font-medium mb-1">EAR thực tế</p>
@@ -723,7 +938,10 @@ export default function DebtOverviewPage() {
                       </div>
 
                       <div className="hidden xl:flex shrink-0 w-8 justify-end border-l border-[var(--color-border)] pl-4">
-                        <ChevronRight size={20} className="text-[var(--color-text-muted)] group-hover:text-blue-400 group-hover:translate-x-1 transition-transform" />
+                        <ChevronRight
+                          size={20}
+                          className="text-[var(--color-text-muted)] group-hover:text-blue-400 group-hover:translate-x-1 transition-transform"
+                        />
                       </div>
                     </div>
                   )}
@@ -734,15 +952,9 @@ export default function DebtOverviewPage() {
         </div>
       )}
 
-      <ExportReportModal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-      />
+      <ExportReportModal isOpen={isExportModalOpen} onClose={() => setIsExportModalOpen(false)} />
 
-      <DebtTypeSelectionModal
-        isOpen={isTypeSelectionOpen}
-        onClose={() => setIsTypeSelectionOpen(false)}
-      />
+      <DebtTypeSelectionModal isOpen={isTypeSelectionOpen} onClose={() => setIsTypeSelectionOpen(false)} />
     </motion.div>
   );
 }

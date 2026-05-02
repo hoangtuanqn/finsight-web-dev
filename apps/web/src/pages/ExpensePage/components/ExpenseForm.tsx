@@ -1,13 +1,10 @@
+import { AnimatePresence, motion } from 'framer-motion';
+import { CalendarDays, Check, ChevronDown, FileText, Plus, Save, Wallet, X } from 'lucide-react';
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  X, Save, Plus, Wallet, CalendarDays, FileText,
-  ChevronDown, Check
-} from 'lucide-react';
 import { useExpenseMutations } from '../../../hooks/useExpenseQuery';
 import { useWallets } from '../../../hooks/useWalletQuery';
-import { CategoryPicker } from './CategoryPicker';
 import { EXPENSE_TYPES } from '../constants';
+import { CategoryPicker } from './CategoryPicker';
 import { WalletForm } from './WalletForm';
 
 interface ExpenseFormProps {
@@ -26,7 +23,7 @@ export function ExpenseForm({ onClose, expense, categories }: ExpenseFormProps) 
   const [walletId, setWalletId] = useState(expense?.walletId || '');
   const [description, setDescription] = useState(expense?.description || '');
   const [date, setDate] = useState(
-    expense ? new Date(expense.date).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16)
+    expense ? new Date(expense.date).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
   );
   const [showCategoryPicker, setShowCategoryPicker] = useState(!expense);
   const [selectedCategoryDisplay, setSelectedCategoryDisplay] = useState<any>(expense?.category || null);
@@ -100,7 +97,10 @@ export function ExpenseForm({ onClose, expense, categories }: ExpenseFormProps) 
         style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}
       >
         {/* Top accent line */}
-        <div className="absolute top-0 left-0 right-0 h-0.5" style={{ background: `linear-gradient(90deg, transparent, ${accentColor}, transparent)` }} />
+        <div
+          className="absolute top-0 left-0 right-0 h-0.5"
+          style={{ background: `linear-gradient(90deg, transparent, ${accentColor}, transparent)` }}
+        />
 
         {/* Header */}
         <div className="px-6 pt-6 pb-5 border-b" style={{ borderColor: 'var(--color-border)' }}>
@@ -110,7 +110,11 @@ export function ExpenseForm({ onClose, expense, categories }: ExpenseFormProps) 
                 className="w-8 h-8 rounded-xl flex items-center justify-center"
                 style={{ background: `${accentColor}15`, border: `1px solid ${accentColor}25` }}
               >
-                {expense ? <Save size={16} style={{ color: accentColor }} /> : <Plus size={16} style={{ color: accentColor }} />}
+                {expense ? (
+                  <Save size={16} style={{ color: accentColor }} />
+                ) : (
+                  <Plus size={16} style={{ color: accentColor }} />
+                )}
               </div>
               <h2 className="text-lg font-black text-[var(--color-text-primary)]">
                 {expense ? 'Cập nhật giao dịch' : 'Thêm giao dịch mới'}
@@ -126,11 +130,16 @@ export function ExpenseForm({ onClose, expense, categories }: ExpenseFormProps) 
 
           {/* Type Toggle */}
           <div className="flex bg-[var(--color-bg-secondary)] p-1 rounded-2xl border border-[var(--color-border)] gap-1">
-            {EXPENSE_TYPES.map(t => (
+            {EXPENSE_TYPES.map((t) => (
               <button
                 key={t.value}
                 type="button"
-                onClick={() => { setType(t.value as any); setCategoryId(''); setSelectedCategoryDisplay(null); setShowCategoryPicker(true); }}
+                onClick={() => {
+                  setType(t.value as any);
+                  setCategoryId('');
+                  setSelectedCategoryDisplay(null);
+                  setShowCategoryPicker(true);
+                }}
                 className={`flex-1 py-2.5 rounded-xl text-[13px] font-bold transition-all ${
                   type === t.value
                     ? 'bg-[var(--color-bg-card)] shadow-sm border border-[var(--color-border)]'
@@ -147,25 +156,28 @@ export function ExpenseForm({ onClose, expense, categories }: ExpenseFormProps) 
         {/* Scrollable Content */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto flex flex-col">
           <div className="px-6 py-5 space-y-5 flex-1">
-
             {/* Amount */}
             <div
               className="rounded-2xl p-5 text-center border"
               style={{ background: `${accentColor}06`, borderColor: `${accentColor}20` }}
             >
-              <p className="text-[11px] font-black uppercase tracking-widest mb-2" style={{ color: accentColor }}>Số tiền</p>
+              <p className="text-[11px] font-black uppercase tracking-widest mb-2" style={{ color: accentColor }}>
+                Số tiền
+              </p>
               <div className="flex items-center justify-center gap-1">
                 <input
                   type="text"
                   inputMode="numeric"
                   value={formatAmount(amount)}
-                  onChange={e => setAmount(e.target.value.replace(/\./g, '').replace(/,/g, ''))}
+                  onChange={(e) => setAmount(e.target.value.replace(/\./g, '').replace(/,/g, ''))}
                   placeholder="0"
                   className={`bg-transparent text-4xl md:text-5xl font-black text-center outline-none w-full caret-current`}
                   style={{ color: accentColor }}
                   autoFocus
                 />
-                <span className="text-2xl font-black" style={{ color: `${accentColor}80` }}>đ</span>
+                <span className="text-2xl font-black" style={{ color: `${accentColor}80` }}>
+                  đ
+                </span>
               </div>
             </div>
 
@@ -218,7 +230,10 @@ export function ExpenseForm({ onClose, expense, categories }: ExpenseFormProps) 
                     exit={{ opacity: 0, height: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="p-3 rounded-2xl border" style={{ background: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)' }}>
+                    <div
+                      className="p-3 rounded-2xl border"
+                      style={{ background: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)' }}
+                    >
                       <CategoryPicker
                         categories={categories}
                         selectedId={categoryId}
@@ -243,7 +258,7 @@ export function ExpenseForm({ onClose, expense, categories }: ExpenseFormProps) 
                 <FileText size={16} className="text-[var(--color-text-muted)] mt-0.5 shrink-0" />
                 <textarea
                   value={description}
-                  onChange={e => setDescription(e.target.value)}
+                  onChange={(e) => setDescription(e.target.value)}
                   placeholder="Ghi chú..."
                   rows={2}
                   className="bg-transparent text-[14px] font-medium outline-none w-full resize-none text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]"
@@ -259,7 +274,7 @@ export function ExpenseForm({ onClose, expense, categories }: ExpenseFormProps) 
                 <input
                   type="datetime-local"
                   value={date}
-                  onChange={e => setDate(e.target.value)}
+                  onChange={(e) => setDate(e.target.value)}
                   className="bg-transparent text-[14px] font-medium outline-none w-full text-[var(--color-text-primary)]"
                 />
               </div>
@@ -268,7 +283,7 @@ export function ExpenseForm({ onClose, expense, categories }: ExpenseFormProps) 
               <div className="relative">
                 <button
                   type="button"
-                  onClick={() => setShowWalletPicker(v => !v)}
+                  onClick={() => setShowWalletPicker((v) => !v)}
                   className="flex items-center gap-3 p-4 w-full rounded-2xl border text-left transition-all"
                   style={{
                     background: 'var(--color-bg-secondary)',
@@ -305,7 +320,10 @@ export function ExpenseForm({ onClose, expense, categories }: ExpenseFormProps) 
                       {/* No wallet option */}
                       <button
                         type="button"
-                        onClick={() => { setWalletId(''); setShowWalletPicker(false); }}
+                        onClick={() => {
+                          setWalletId('');
+                          setShowWalletPicker(false);
+                        }}
                         className="flex items-center gap-3 w-full px-4 py-3.5 text-[13px] font-bold transition-colors hover:bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)]"
                       >
                         <span className="w-7 h-7 rounded-xl bg-[var(--color-bg-secondary)] flex items-center justify-center text-base border border-[var(--color-border)]">
@@ -319,12 +337,18 @@ export function ExpenseForm({ onClose, expense, categories }: ExpenseFormProps) 
                         <button
                           key={w.id}
                           type="button"
-                          onClick={() => { setWalletId(w.id); setShowWalletPicker(false); }}
+                          onClick={() => {
+                            setWalletId(w.id);
+                            setShowWalletPicker(false);
+                          }}
                           className="flex items-center gap-3 w-full px-4 py-3.5 text-[13px] font-bold transition-colors hover:bg-[var(--color-bg-secondary)]"
                         >
                           <span
                             className="w-7 h-7 rounded-xl flex items-center justify-center text-base"
-                            style={{ background: `${w.color || '#3b82f6'}15`, border: `1px solid ${w.color || '#3b82f6'}25` }}
+                            style={{
+                              background: `${w.color || '#3b82f6'}15`,
+                              border: `1px solid ${w.color || '#3b82f6'}25`,
+                            }}
                           >
                             {w.icon || '💳'}
                           </span>
@@ -340,7 +364,10 @@ export function ExpenseForm({ onClose, expense, categories }: ExpenseFormProps) 
                       <div className="h-px mx-3" style={{ background: 'var(--color-border)' }} />
                       <button
                         type="button"
-                        onClick={() => { setShowWalletForm(true); setShowWalletPicker(false); }}
+                        onClick={() => {
+                          setShowWalletForm(true);
+                          setShowWalletPicker(false);
+                        }}
                         className="flex items-center gap-3 w-full px-4 py-3.5 text-[13px] font-bold transition-colors hover:bg-blue-500/5 text-blue-500"
                       >
                         <Plus size={16} /> Thêm ví mới
@@ -366,9 +393,13 @@ export function ExpenseForm({ onClose, expense, categories }: ExpenseFormProps) 
               {isPending ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : expense ? (
-                <><Save size={18} /> Lưu thay đổi</>
+                <>
+                  <Save size={18} /> Lưu thay đổi
+                </>
               ) : (
-                <><Plus size={18} /> Thêm giao dịch</>
+                <>
+                  <Plus size={18} /> Thêm giao dịch
+                </>
               )}
             </button>
           </div>
@@ -376,13 +407,7 @@ export function ExpenseForm({ onClose, expense, categories }: ExpenseFormProps) 
       </motion.div>
 
       {/* Inline Wallet Form */}
-      <AnimatePresence>
-        {showWalletForm && (
-          <WalletForm
-            onClose={() => setShowWalletForm(false)}
-          />
-        )}
-      </AnimatePresence>
+      <AnimatePresence>{showWalletForm && <WalletForm onClose={() => setShowWalletForm(false)} />}</AnimatePresence>
     </div>
   );
 }

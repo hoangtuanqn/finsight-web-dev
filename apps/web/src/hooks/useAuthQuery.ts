@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { authAPI, userAPI } from '../api';
 import { queryKeys } from '../api/queryKeys';
 
@@ -22,7 +22,7 @@ export function useUpdateProfile() {
     onSuccess: (res) => {
       queryClient.setQueryData(queryKeys.AUTH.ME, res.data.data || res.data.user);
       queryClient.invalidateQueries({ queryKey: queryKeys.AUTH.ME });
-    }
+    },
   });
 }
 
@@ -34,7 +34,7 @@ export function useAuthMutations() {
     onSuccess: (res) => {
       localStorage.setItem('finsight_token', res.data.token);
       queryClient.setQueryData(queryKeys.AUTH.ME, res.data.user);
-    }
+    },
   });
 
   const logoutMutation = useMutation({
@@ -43,13 +43,13 @@ export function useAuthMutations() {
       localStorage.removeItem('finsight_token');
       queryClient.setQueryData(queryKeys.AUTH.ME, null);
       queryClient.clear();
-    }
+    },
   });
 
   return {
     login: loginMutation.mutateAsync,
     logout: logoutMutation.mutateAsync,
     isLoggingIn: loginMutation.isPending,
-    isLoggingOut: logoutMutation.isPending
+    isLoggingOut: logoutMutation.isPending,
   };
 }

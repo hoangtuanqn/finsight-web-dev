@@ -1,10 +1,37 @@
 import { Request, Response } from 'express';
+<<<<<<< HEAD
 import { success, error } from '../utils/apiResponse';
 import { getCryptoPricesData, getCryptoCache, scoreCoin, buildCoinCard, STABLECOIN_IDS, BLACKLIST_IDS } from '../services/assetGuide/crypto.service';
 import { getGoldPricesData, getGoldCache } from '../services/assetGuide/gold.service';
 import { getStockPricesData, getStockCacheForFallback, STOCK_UNIVERSE, scoreStock, buildStockCard } from '../services/assetGuide/stocks.service';
+=======
+>>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
 import { getBondsRatesData } from '../services/assetGuide/bonds.service';
+import {
+  BLACKLIST_IDS,
+  buildCoinCard,
+  getCryptoCache,
+  getCryptoPricesData,
+  scoreCoin,
+  STABLECOIN_IDS,
+} from '../services/assetGuide/crypto.service';
+import { getGoldCache, getGoldPricesData } from '../services/assetGuide/gold.service';
 import { getSavingsRatesData } from '../services/assetGuide/savings.service';
+import {
+  buildStockCard,
+  getStockCacheForFallback,
+  getStockPricesData,
+  scoreStock,
+  STOCK_UNIVERSE,
+} from '../services/assetGuide/stocks.service';
+import {
+  buildUsStockCard,
+  getStocksUsPricesData,
+  getUsStockCacheForFallback,
+  scoreUsStock,
+  US_STOCK_UNIVERSE,
+} from '../services/assetGuide/stocks_us.service';
+import { error, success } from '../utils/apiResponse';
 
 // ─── Bonds ───────────────────────────────────────────────────────
 
@@ -60,8 +87,7 @@ export async function getStockPrices(req: Request, res: Response) {
     const cache = getStockCacheForFallback();
     if (cache.data) {
       const rl = (req.query.riskLevel as string) || 'MEDIUM';
-      const scored = STOCK_UNIVERSE
-        .filter((m) => cache.data![m.ticker])
+      const scored = STOCK_UNIVERSE.filter((m) => cache.data![m.ticker])
         .map((m) => ({ meta: m, quote: cache.data![m.ticker], score: scoreStock(cache.data![m.ticker], m, rl) }))
         .sort((a, b) => b.score - a.score);
       const top5 = scored.slice(0, 5).map((s, i) => buildStockCard(s.quote, s.meta, i));
@@ -71,6 +97,31 @@ export async function getStockPrices(req: Request, res: Response) {
   }
 }
 
+<<<<<<< HEAD
+=======
+// ─── Stocks US ───────────────────────────────────────────────────
+
+export async function getStocksUsPrices(req: Request, res: Response) {
+  try {
+    const riskLevel = (req.query.riskLevel as string) || 'MEDIUM';
+    const data = await getStocksUsPricesData(riskLevel);
+    return success(res, data);
+  } catch (err: any) {
+    console.error('getStocksUsPrices error:', err.message);
+    const cache = getUsStockCacheForFallback();
+    if (cache.data) {
+      const rl = (req.query.riskLevel as string) || 'MEDIUM';
+      const scored = US_STOCK_UNIVERSE.filter((m) => cache.data![m.ticker])
+        .map((m) => ({ meta: m, quote: cache.data![m.ticker], score: scoreUsStock(cache.data![m.ticker], m, rl) }))
+        .sort((a, b) => b.score - a.score);
+      const top5 = scored.slice(0, 5).map((s, i) => buildUsStockCard(s.quote, s.meta, i));
+      return success(res, { stocks: top5, intro: '', riskLevel: rl, cached: true, stale: true });
+    }
+    return error(res, 'Không thể lấy dữ liệu chứng khoán Mỹ lúc này');
+  }
+}
+
+>>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
 // ─── Crypto ──────────────────────────────────────────────────────
 
 export async function getCryptoPrices(req: Request, res: Response) {
@@ -84,9 +135,7 @@ export async function getCryptoPrices(req: Request, res: Response) {
     if (cache.data) {
       const rl = (req.query.riskLevel as string) || 'MEDIUM';
       const filtered = cache.data.filter(
-        (c: any) => !STABLECOIN_IDS.has(c.id)
-                 && !BLACKLIST_IDS.has(c.id)
-                 && !/usd|dollar/i.test(c.name)
+        (c: any) => !STABLECOIN_IDS.has(c.id) && !BLACKLIST_IDS.has(c.id) && !/usd|dollar/i.test(c.name),
       );
       const top5 = filtered
         .map((c: any) => ({ coin: c, score: scoreCoin(c, rl) }))

@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { motion } from "framer-motion";
+import { motion } from 'framer-motion';
+import { useMemo } from 'react';
 
 export default function SentimentGauge({ value = 50, size = 200 }) {
   const { angle, color, label } = useMemo(() => {
@@ -7,20 +7,20 @@ export default function SentimentGauge({ value = 50, size = 200 }) {
     const a = -90 + (value / 100) * 180;
     let c, l;
     if (value <= 24) {
-      c = "#dc2626";
-      l = "Sợ hãi cực độ";
+      c = '#dc2626';
+      l = 'Sợ hãi cực độ';
     } else if (value <= 49) {
-      c = "#f97316";
-      l = "Sợ hãi";
+      c = '#f97316';
+      l = 'Sợ hãi';
     } else if (value === 50) {
-      c = "#eab308";
-      l = "Trung lập";
+      c = '#eab308';
+      l = 'Trung lập';
     } else if (value <= 74) {
-      c = "#22c55e";
-      l = "Tham lam";
+      c = '#22c55e';
+      l = 'Tham lam';
     } else {
-      c = "#15803d";
-      l = "Tham lam cực độ";
+      c = '#15803d';
+      l = 'Tham lam cực độ';
     }
     return { angle: a, color: c, label: l };
   }, [value]);
@@ -31,11 +31,11 @@ export default function SentimentGauge({ value = 50, size = 200 }) {
 
   // Semicircle arc segments
   const segments = [
-    { start: -90, end: -54, color: "#dc2626" },
-    { start: -54, end: -18, color: "#f97316" },
-    { start: -18, end: 18, color: "#eab308" },
-    { start: 18, end: 54, color: "#22c55e" },
-    { start: 54, end: 90, color: "#15803d" },
+    { start: -90, end: -54, color: '#dc2626' },
+    { start: -54, end: -18, color: '#f97316' },
+    { start: -18, end: 18, color: '#eab308' },
+    { start: 18, end: 54, color: '#22c55e' },
+    { start: 54, end: 90, color: '#15803d' },
   ];
 
   const toRad = (deg) => (deg * Math.PI) / 180;
@@ -56,11 +56,7 @@ export default function SentimentGauge({ value = 50, size = 200 }) {
 
   return (
     <div className="flex flex-col items-center">
-      <svg
-        width={size}
-        height={size / 2 + 20}
-        viewBox={`0 0 ${size} ${size / 2 + 20}`}
-      >
+      <svg width={size} height={size / 2 + 20} viewBox={`0 0 ${size} ${size / 2 + 20}`}>
         {/* Arc segments */}
         {segments.map((seg, i) => (
           <path
@@ -85,7 +81,7 @@ export default function SentimentGauge({ value = 50, size = 200 }) {
           strokeLinecap="round"
           initial={{ x2: cx, y2: cy - needleLen }}
           animate={{ x2: needleX, y2: needleY }}
-          transition={{ type: "spring", damping: 15, stiffness: 60 }}
+          transition={{ type: 'spring', damping: 15, stiffness: 60 }}
         />
 
         {/* Center dot */}

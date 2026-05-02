@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import prisma from '../lib/prisma';
-import { success, error } from '../utils/apiResponse';
 import { AuthenticatedRequest } from '../types';
+import { error, success } from '../utils/apiResponse';
 import {
   resolveRepaymentExtraBudget,
   simulateCustomRepaymentWithExtraBudget,
@@ -40,16 +40,13 @@ async function getOwnedActiveDebts(userId: string, debtIds: string[]) {
   const orderMap = new Map(debtIds.map((id, index) => [id, index]));
   return debts.sort(
     (a: any, b: any) =>
-      (orderMap.get(String(a.id)) ?? Number.MAX_SAFE_INTEGER) -
-      (orderMap.get(String(b.id)) ?? Number.MAX_SAFE_INTEGER),
+      (orderMap.get(String(a.id)) ?? Number.MAX_SAFE_INTEGER) - (orderMap.get(String(b.id)) ?? Number.MAX_SAFE_INTEGER),
   );
 }
 
 function formatPlan(plan: any) {
   if (!plan) return null;
-  const sortedItems = [...(plan.items || [])].sort(
-    (a: any, b: any) => a.sortOrder - b.sortOrder,
-  );
+  const sortedItems = [...(plan.items || [])].sort((a: any, b: any) => a.sortOrder - b.sortOrder);
   const selectedDebts = sortedItems
     .map((item: any) => item.debt)
     .filter((debt: any) => debt?.status === 'ACTIVE' && !debt?.deletedAt);
@@ -147,7 +144,11 @@ export async function createRepaymentPlan(req: AuthenticatedRequest, res: Respon
         },
       });
 
-      await replacePlanItems(tx, created.id, debts.map((debt: any) => debt.id));
+      await replacePlanItems(
+        tx,
+        created.id,
+        debts.map((debt: any) => debt.id),
+      );
 
       return tx.repaymentPlan.findUnique({
         where: { id: created.id },
@@ -224,7 +225,11 @@ export async function updateRepaymentPlan(req: AuthenticatedRequest, res: Respon
       });
 
       if (hasDebtIds) {
-        await replacePlanItems(tx, existing.id, debts.map((debt: any) => debt.id));
+        await replacePlanItems(
+          tx,
+          existing.id,
+          debts.map((debt: any) => debt.id),
+        );
       }
 
       return tx.repaymentPlan.findUnique({

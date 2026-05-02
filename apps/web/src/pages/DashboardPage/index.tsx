@@ -1,21 +1,21 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
-import { PageSkeleton } from "../../components/common/LoadingSpinner";
-import { useAuth } from "../../context/AuthContext";
-import { useDashboardData } from "./hooks/useDashboardData";
-import { staggerContainer, fadeUp } from "./constants";
+import { motion } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { PageSkeleton } from '../../components/common/LoadingSpinner';
+import { useAuth } from '../../context/AuthContext';
+import { fadeUp, staggerContainer } from './constants';
+import { useDashboardData } from './hooks/useDashboardData';
 
-import DominoAlerts from "./components/DominoAlerts";
-import TwoFactorBanner from "../../components/auth/TwoFactorBanner";
-import KPICards from "./components/KPICards";
-import QuickActions from "./components/QuickActions";
-import EARChart from "./components/EARChart";
-import DueDebts from "./components/DueDebts";
-import TopDebts from "./components/TopDebts";
-import PlatformPie from "./components/PlatformPie";
-import DTIMetrics from "./components/DTIMetrics";
-import ExportReportModal from "../../components/debt/ExportReportModal";
+import TwoFactorBanner from '../../components/auth/TwoFactorBanner';
+import ExportReportModal from '../../components/debt/ExportReportModal';
+import DominoAlerts from './components/DominoAlerts';
+import DTIMetrics from './components/DTIMetrics';
+import DueDebts from './components/DueDebts';
+import EARChart from './components/EARChart';
+import KPICards from './components/KPICards';
+import PlatformPie from './components/PlatformPie';
+import QuickActions from './components/QuickActions';
+import TopDebts from './components/TopDebts';
 
 // ─── Derived metric helpers ───────────────────────────────────────
 
@@ -23,50 +23,35 @@ function getHealthMetrics(dtiRatio: number) {
   const score = Math.round(Math.max(0, 100 - dtiRatio * 2));
   return {
     healthScore: score,
-    healthColor: score > 70 ? "#10b981" : score > 40 ? "#f59e0b" : "#ef4444",
-    healthLabel:
-      score > 70 ? "Tốt" : score > 40 ? "Trung bình" : "Cần cải thiện",
+    healthColor: score > 70 ? '#10b981' : score > 40 ? '#f59e0b' : '#ef4444',
+    healthLabel: score > 70 ? 'Tốt' : score > 40 ? 'Trung bình' : 'Cần cải thiện',
   };
 }
 
 function getSentimentColor(value: number = 50) {
-  if (value <= 24) return "#ef4444";
-  if (value <= 49) return "#f97316";
-  if (value <= 74) return "#22c55e";
-  return "#15803d";
+  if (value <= 24) return '#ef4444';
+  if (value <= 49) return '#f97316';
+  if (value <= 74) return '#22c55e';
+  return '#15803d';
 }
 
 function getDTIMetrics(ratio: number) {
-  const dtiColor =
-    ratio > 50
-      ? "#ef4444"
-      : ratio > 35
-        ? "#f97316"
-        : ratio > 20
-          ? "#f59e0b"
-          : "#10b981";
-  const dtiZoneLabel =
-    ratio > 50
-      ? "Khủng hoảng"
-      : ratio > 35
-        ? "Nguy hiểm"
-        : ratio > 20
-          ? "Cẩn thận"
-          : "An toàn";
+  const dtiColor = ratio > 50 ? '#ef4444' : ratio > 35 ? '#f97316' : ratio > 20 ? '#f59e0b' : '#10b981';
+  const dtiZoneLabel = ratio > 50 ? 'Khủng hoảng' : ratio > 35 ? 'Nguy hiểm' : ratio > 20 ? 'Cẩn thận' : 'An toàn';
   const dtiLabel =
     ratio > 50
-      ? "Mức khủng hoảng - hành động ngay!"
+      ? 'Mức khủng hoảng - hành động ngay!'
       : ratio > 35
-        ? "Rủi ro cao - cần giảm nợ"
+        ? 'Rủi ro cao - cần giảm nợ'
         : ratio > 20
-          ? "Trung bình - cần chú ý"
-          : "Lành mạnh - tốt lắm!";
+          ? 'Trung bình - cần chú ý'
+          : 'Lành mạnh - tốt lắm!';
   return { dtiColor, dtiZoneLabel, dtiLabel };
 }
 
 function buildEARChartData(debts: any[]) {
   return debts.slice(0, 5).map((d) => ({
-    name: d.name.length > 12 ? d.name.slice(0, 12) + "…" : d.name,
+    name: d.name.length > 12 ? d.name.slice(0, 12) + '…' : d.name,
     APR: d.apr,
     EAR: d.ear,
   }));
@@ -82,11 +67,7 @@ function buildPlatformPieData(debts: any[]) {
 
 function getGreeting() {
   const h = new Date().getHours();
-  return h < 12
-    ? "Chào buổi sáng"
-    : h < 18
-      ? "Chào buổi chiều"
-      : "Chào buổi tối";
+  return h < 12 ? 'Chào buổi sáng' : h < 18 ? 'Chào buổi chiều' : 'Chào buổi tối';
 }
 
 // ─── Section divider ─────────────────────────────────────────────
@@ -95,9 +76,7 @@ function SectionLabel({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3 mb-3">
       <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-      <span className="text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-[0.25em]">
-        {label}
-      </span>
+      <span className="text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-[0.25em]">{label}</span>
       <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
     </div>
   );
@@ -127,12 +106,7 @@ export default function DashboardPage() {
   const platformPieData = buildPlatformPieData(debts);
 
   return (
-    <motion.div
-      initial="initial"
-      animate="animate"
-      variants={staggerContainer}
-      className="relative pb-10 space-y-6"
-    >
+    <motion.div initial="initial" animate="animate" variants={staggerContainer} className="relative pb-10 space-y-6">
       {/* ── Background ambient orbs (matches Landing Page) ── */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
         <div className="absolute top-[-5%] left-[-5%] w-[35%] h-[35%] rounded-full bg-blue-600/8 dark:bg-blue-600/12 blur-[100px]" />
@@ -151,17 +125,17 @@ export default function DashboardPage() {
         <div className="flex items-end justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-[var(--color-text-primary)] leading-[1.1]">
-              {getGreeting()},{" "}
+              {getGreeting()},{' '}
               <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent">
-                {user?.fullName?.split(" ").pop() || "bạn"}
+                {user?.fullName?.split(' ').pop() || 'bạn'}
               </span>
             </h1>
             <p className="text-[var(--color-text-secondary)] text-sm mt-2 font-medium">
-              {new Date().toLocaleDateString("vi-VN", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-                year: "numeric",
+              {new Date().toLocaleDateString('vi-VN', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
               })}
             </p>
           </div>
@@ -169,9 +143,7 @@ export default function DashboardPage() {
           {/* Live badge */}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-emerald-500/20 bg-emerald-500/8">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#10b981]" />
-            <span className="text-[11px] font-bold text-emerald-400">
-              Dữ liệu real-time
-            </span>
+            <span className="text-[11px] font-bold text-emerald-400">Dữ liệu real-time</span>
           </div>
         </div>
       </motion.div>
@@ -232,10 +204,7 @@ export default function DashboardPage() {
         </div>
       </motion.div>
 
-      <ExportReportModal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-      />
+      <ExportReportModal isOpen={isExportModalOpen} onClose={() => setIsExportModalOpen(false)} />
     </motion.div>
   );
 }

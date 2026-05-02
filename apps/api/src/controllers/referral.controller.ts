@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { ReferralService } from '../services/referral.service';
-import { success, error } from '../utils/apiResponse';
 import { AuthenticatedRequest } from '../types';
+import { error, success } from '../utils/apiResponse';
 
 export class ReferralController {
   /**
@@ -26,11 +26,11 @@ export class ReferralController {
   static async trackClick(req: AuthenticatedRequest, res: Response) {
     try {
       const { code } = req.params;
-      const ip = req.ip || req.headers['x-forwarded-for'] as string;
+      const ip = req.ip || (req.headers['x-forwarded-for'] as string);
       const userAgent = req.headers['user-agent'];
 
       await ReferralService.trackClick(code, ip, userAgent);
-      
+
       // Chuyển hướng hoặc trả về success
       // Ở đây ta trả về success, frontend sẽ xử lý logic chuyển hướng nếu cần
       return success(res, { message: 'Click tracked' });

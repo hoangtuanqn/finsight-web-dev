@@ -1,8 +1,8 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
-import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
-import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from './AuthContext';
 
 const SocketContext = createContext(null);
 
@@ -21,8 +21,8 @@ export function SocketProvider({ children }) {
       return;
     }
 
-    const socketUrl = import.meta.env.VITE_API_URL 
-      ? import.meta.env.VITE_API_URL.replace('/api', '') 
+    const socketUrl = import.meta.env.VITE_API_URL
+      ? import.meta.env.VITE_API_URL.replace('/api', '')
       : 'http://localhost:5001';
 
     const newSocket = io(socketUrl, {
@@ -40,7 +40,7 @@ export function SocketProvider({ children }) {
     // Real-time Event Listeners
     newSocket.on('subscription:upgraded', (data) => {
       console.log('🎉 Subscription upgraded event received:', data);
-      
+
       toast.success(data.message || `Đã nâng cấp lên gói ${data.level}!`, {
         duration: 8000,
         icon: '💎',
@@ -60,7 +60,7 @@ export function SocketProvider({ children }) {
     newSocket.on('wallet:new_pending_transactions', (data) => {
       console.log('📥 New pending transactions:', data);
       queryClient.invalidateQueries({ queryKey: ['bank-sync-pending'] });
-      
+
       toast.info(`Bạn có ${data.count} giao dịch mới từ "${data.walletName}" cần duyệt.`, {
         description: 'Vào mục Sổ thu chi > Chờ duyệt để xử lý.',
         duration: 5000,
@@ -73,11 +73,7 @@ export function SocketProvider({ children }) {
     };
   }, [user]); // Re-run when user changes (login/logout)
 
-  return (
-    <SocketContext.Provider value={{ socket }}>
-      {children}
-    </SocketContext.Provider>
-  );
+  return <SocketContext.Provider value={{ socket }}>{children}</SocketContext.Provider>;
 }
 
 export function useSocket() {
