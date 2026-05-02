@@ -44,22 +44,13 @@ const ASSET_CONFIGS: AssetConfig[] = [
     description: 'VN-Index / VN30 ETF, cổ phiếu niêm yết Việt Nam.',
   },
   {
-    key: 'stocks_us',
-    label: 'Cổ phiếu Mỹ',
-    emoji: '🇺🇸',
-    color: '#ef4444',
-    borderColor: 'border-red-500/40',
-    bgColor: 'bg-red-500/10',
-    description: 'S&P 500 / SPY ETF, thị trường chứng khoán Hoa Kỳ.',
-  },
-  {
-    key: 'bonds',
-    label: 'Trái phiếu',
-    emoji: '📄',
-    color: '#8b5cf6',
-    borderColor: 'border-violet-500/40',
-    bgColor: 'bg-violet-500/10',
-    description: 'Trái phiếu Chính phủ VN, lãi suất cố định, rủi ro thấp.',
+    key: "bonds",
+    label: "Trái phiếu",
+    emoji: "📄",
+    color: "#8b5cf6",
+    borderColor: "border-violet-500/40",
+    bgColor: "bg-violet-500/10",
+    description: "Trái phiếu Chính phủ VN, lãi suất cố định, rủi ro thấp.",
   },
   {
     key: 'crypto',
@@ -136,7 +127,7 @@ export default function AssetFilterPanel({
       </div>
 
       {/* Asset Grid */}
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
         {ASSET_CONFIGS.map((asset) => {
           const selected = isSelected(asset.key);
           const isAlwaysLocked = asset.alwaysLocked;

@@ -238,9 +238,9 @@ export async function buildMarketParams(savingsRate: number = 0.05, options: any
   }
 
   const covSize = ASSET_ORDER.length;
+  const realAssets = ASSET_ORDER.filter(a => assetReturns[a] !== null && a !== 'savings');
+  console.log(`[HistoricalData] buildMarketParams: ASSET_ORDER=${JSON.stringify(ASSET_ORDER)} covSize=${covSize} realAssets=${JSON.stringify(realAssets)}`);
   const covArray = Array.from({ length: covSize }, () => new Array(covSize).fill(0));
-
-  const realAssets = ASSET_ORDER.filter((a) => assetReturns[a] !== null && a !== 'savings');
 
   if (realAssets.length >= 2) {
     const realReturnsArrays = realAssets.map((a) => assetReturns[a] as number[]);
@@ -285,7 +285,7 @@ export async function buildMarketParams(savingsRate: number = 0.05, options: any
   };
 }
 
-const MARKET_PARAMS_CACHE_KEY = 'market:params:v2';
+const MARKET_PARAMS_CACHE_KEY = 'market:params:v3';
 const MARKET_PARAMS_TTL = 86400;
 
 export async function getMarketParams(savingsRate: number = 0.05) {

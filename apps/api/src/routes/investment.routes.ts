@@ -1,16 +1,22 @@
-import { Request, Router } from 'express';
-import { getAllocationHistory, getAllocationRecommendation } from '../controllers/allocation.controller';
+import { Router, Request } from 'express';
 import {
   getBondsRates,
   getCryptoPrices,
   getGoldPrices,
   getSavingsRates,
   getStockPrices,
-  getStocksUsPrices,
 } from '../controllers/assetGuide.controller';
 import { getAssetHistory } from '../controllers/assetHistory.controller';
-import { createInvestorProfile, getInvestorProfile, updateInvestorProfile } from '../controllers/profile.controller';
+import {
+  createInvestorProfile,
+  getInvestorProfile,
+  updateInvestorProfile,
+} from '../controllers/profile.controller';
 import { submitRiskAssessment } from '../controllers/riskAssessment.controller';
+import {
+  getAllocationRecommendation,
+  getAllocationHistory,
+} from '../controllers/allocation.controller';
 import {
   generateStrategy,
   getMyPortfolio,
@@ -48,32 +54,11 @@ router.get('/history', getAllocationHistory);
 router.post('/risk-assessment', submitRiskAssessment);
 
 // Cache chung — giá thị trường không phụ thuộc user
-router.get('/gold-prices', cache('investment:gold-prices', TTL_10M), getGoldPrices);
-router.get(
-  '/savings-rates',
-  cache((req) => `investment:savings-rates:${req.query.riskLevel || 'MEDIUM'}`, TTL_10M),
-  getSavingsRates,
-);
-router.get(
-  '/bonds-rates',
-  cache((req) => `investment:bonds-rates:${req.query.riskLevel || 'MEDIUM'}`, TTL_10M),
-  getBondsRates,
-);
-router.get(
-  '/stock-prices',
-  cache((req) => `investment:stock-prices:${req.query.riskLevel || 'MEDIUM'}`, TTL_10M),
-  getStockPrices,
-);
-router.get(
-  '/crypto-prices',
-  cache((req) => `investment:crypto-prices:${req.query.riskLevel || 'MEDIUM'}`, TTL_10M),
-  getCryptoPrices,
-);
-router.get(
-  '/stocks-us-prices',
-  cache((req) => `investment:stocks-us-prices:${req.query.riskLevel || 'MEDIUM'}`, TTL_10M),
-  getStocksUsPrices,
-);
+router.get('/gold-prices',    cache('investment:gold-prices',                        TTL_10M), getGoldPrices);
+router.get('/savings-rates',  cache((req) => `investment:savings-rates:${req.query.riskLevel || 'MEDIUM'}`, TTL_10M), getSavingsRates);
+router.get('/bonds-rates',    cache((req) => `investment:bonds-rates:${req.query.riskLevel || 'MEDIUM'}`,   TTL_10M), getBondsRates);
+router.get('/stock-prices',   cache((req) => `investment:stock-prices:${req.query.riskLevel || 'MEDIUM'}`,  TTL_10M), getStockPrices);
+router.get('/crypto-prices',    cache((req) => `investment:crypto-prices:${req.query.riskLevel || 'MEDIUM'}`,    TTL_10M), getCryptoPrices);
 
 router.get(
   '/asset-history',
