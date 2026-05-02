@@ -442,12 +442,10 @@ class ReportService {
       width: colWidth - 20,
       align: 'center',
     });
-    doc
-      .fillColor('#10b981')
-      .text(`- ${formatVND(data.summary.totalPaidInPeriod)}`, 50 + colWidth + 10, moveY + 35, {
-        width: colWidth - 20,
-        align: 'center',
-      });
+    doc.fillColor('#10b981').text(`- ${formatVND(data.summary.totalPaidInPeriod)}`, 50 + colWidth + 10, moveY + 35, {
+      width: colWidth - 20,
+      align: 'center',
+    });
     doc
       .fillColor('#ef4444')
       .text(`+ ${formatVND(data.summary.totalInterestEstimated)}`, 50 + colWidth * 2 + 10, moveY + 35, {
