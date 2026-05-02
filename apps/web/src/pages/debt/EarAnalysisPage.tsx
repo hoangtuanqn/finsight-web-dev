@@ -1,9 +1,9 @@
-import { motion } from "framer-motion";
-import { useEarAnalysis } from "../../hooks/useDebtQuery";
-import { PageSkeleton } from "../../components/common/LoadingSpinner";
-import EARBreakdown from "../../components/debt/EARBreakdown";
-import { formatVND, formatPercent } from "../../utils/calculations";
-import { BarChart2, Lightbulb, TrendingUp, AlertCircle } from "lucide-react";
+import { motion } from 'framer-motion';
+import { AlertCircle, BarChart2, Lightbulb, TrendingUp } from 'lucide-react';
+import { PageSkeleton } from '../../components/common/LoadingSpinner';
+import EARBreakdown from '../../components/debt/EARBreakdown';
+import { useEarAnalysis } from '../../hooks/useDebtQuery';
+import { formatPercent, formatVND } from '../../utils/calculations';
 
 export default function EarAnalysisPage() {
   const { data, isLoading: loading } = useEarAnalysis() as {
@@ -19,52 +19,44 @@ export default function EarAnalysisPage() {
         <div className="w-16 h-16 rounded-2xl bg-slate-500/10 flex items-center justify-center">
           <BarChart2 size={28} className="text-slate-500" />
         </div>
-        <p className="text-[var(--color-text-muted)] font-medium">
-          Không có dữ liệu phân tích
-        </p>
+        <p className="text-[var(--color-text-muted)] font-medium">Không có dữ liệu phân tích</p>
       </div>
     );
 
   const SUMMARY = [
     {
-      label: "APR trung bình",
+      label: 'APR trung bình',
       value: formatPercent(data.summary.averageAPR),
-      color: "#3b82f6",
-      gradient: "from-blue-500 to-cyan-400",
-      desc: "Lãi suất quảng cáo",
+      color: '#3b82f6',
+      gradient: 'from-blue-500 to-cyan-400',
+      desc: 'Lãi suất quảng cáo',
       icon: TrendingUp,
     },
     {
-      label: "EAR trung bình",
+      label: 'EAR trung bình',
       value: formatPercent(data.summary.averageEAR),
-      color: "#ef4444",
-      gradient: "from-red-500 to-rose-400",
-      desc: "Chi phí thực tế",
+      color: '#ef4444',
+      gradient: 'from-red-500 to-rose-400',
+      desc: 'Chi phí thực tế',
       icon: BarChart2,
     },
     {
-      label: "Chi phí ẩn",
+      label: 'Chi phí ẩn',
       value: `+${formatPercent(data.summary.totalHiddenCost)}`,
-      color: "#f59e0b",
-      gradient: "from-amber-500 to-orange-400",
-      desc: "Chênh lệch APR vs EAR",
+      color: '#f59e0b',
+      gradient: 'from-amber-500 to-orange-400',
+      desc: 'Chênh lệch APR vs EAR',
       icon: AlertCircle,
     },
   ];
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="pb-8 space-y-6"
-    >
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-8 space-y-6">
       <div className="pt-2">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-purple-500/20 bg-purple-500/8 text-purple-400 text-[10px] font-black uppercase tracking-widest mb-3">
           <BarChart2 size={11} /> Phân tích lãi suất
         </div>
-        <h1 className="text-3xl font-black tracking-tighter text-[var(--color-text-primary)]">
-          Phân tích EAR toàn bộ
-        </h1>
+        <h1 className="text-3xl font-black tracking-tighter text-[var(--color-text-primary)]">Phân tích EAR toàn bộ</h1>
         <p className="text-[var(--color-text-secondary)] text-sm mt-1">
           So sánh lãi suất quảng cáo vs chi phí thực tế từng khoản nợ
         </p>
@@ -79,7 +71,7 @@ export default function EarAnalysisPage() {
             transition={{ delay: i * 0.1 }}
             className="relative rounded-3xl p-6 border overflow-hidden cursor-default"
             style={{
-              background: "var(--color-bg-card)",
+              background: 'var(--color-bg-card)',
               borderColor: `${item.color}20`,
               boxShadow: `0 4px 20px ${item.color}08`,
             }}
@@ -106,14 +98,10 @@ export default function EarAnalysisPage() {
                   {item.label}
                 </span>
               </div>
-              <p
-                className={`text-3xl font-black bg-gradient-to-r ${item.gradient} bg-clip-text text-transparent mb-1`}
-              >
+              <p className={`text-3xl font-black bg-gradient-to-r ${item.gradient} bg-clip-text text-transparent mb-1`}>
                 {item.value}
               </p>
-              <p className="text-[11px] text-[var(--color-text-muted)]">
-                {item.desc}
-              </p>
+              <p className="text-[11px] text-[var(--color-text-muted)]">{item.desc}</p>
             </div>
           </motion.div>
         ))}
@@ -122,24 +110,14 @@ export default function EarAnalysisPage() {
       {data.summary.totalHiddenCost > 0 && (
         <div className="flex items-start gap-3 px-5 py-4 rounded-2xl border border-amber-500/20 bg-amber-500/6 relative overflow-hidden">
           <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl bg-gradient-to-b from-amber-500 to-orange-400" />
-          <Lightbulb
-            size={16}
-            className="text-amber-400 shrink-0 mt-0.5 ml-1"
-          />
+          <Lightbulb size={16} className="text-amber-400 shrink-0 mt-0.5 ml-1" />
           <p className="text-[13px] text-amber-300 leading-relaxed">
-            Tổng chi phí ẩn trung bình{" "}
+            Tổng chi phí ẩn trung bình{' '}
+            <span className="font-black text-amber-200">+{formatPercent(data.summary.totalHiddenCost)}</span> - khoản nợ
+            đắt hơn{' '}
             <span className="font-black text-amber-200">
-              +{formatPercent(data.summary.totalHiddenCost)}
-            </span>{" "}
-            - khoản nợ đắt hơn{" "}
-            <span className="font-black text-amber-200">
-              {Math.round(
-                (data.summary.totalHiddenCost /
-                  (data.summary.averageAPR || 1)) *
-                  100,
-              )}
-              %
-            </span>{" "}
+              {Math.round((data.summary.totalHiddenCost / (data.summary.averageAPR || 1)) * 100)}%
+            </span>{' '}
             so với lãi suất quảng cáo.
           </p>
         </div>
@@ -154,16 +132,14 @@ export default function EarAnalysisPage() {
             transition={{ delay: 0.2 + i * 0.08 }}
             className="rounded-3xl border p-5 relative overflow-hidden"
             style={{
-              background: "var(--color-bg-card)",
-              borderColor: "rgba(139,92,246,0.12)",
+              background: 'var(--color-bg-card)',
+              borderColor: 'rgba(139,92,246,0.12)',
             }}
           >
             <div className="absolute top-0 left-5 right-5 h-px bg-gradient-to-r from-transparent via-purple-500/30 to-transparent" />
             <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
               <div>
-                <h3 className="font-black text-[var(--color-text-primary)] tracking-tight">
-                  {debt.name}
-                </h3>
+                <h3 className="font-black text-[var(--color-text-primary)] tracking-tight">{debt.name}</h3>
                 <p className="text-[12px] text-[var(--color-text-muted)] mt-0.5">
                   {debt.platform} • Dư nợ: {formatVND(debt.balance)}
                 </p>
@@ -174,8 +150,7 @@ export default function EarAnalysisPage() {
                 </span>
                 <span className="text-[var(--color-text-muted)]">→</span>
                 <span className="px-2.5 py-1 rounded-lg bg-red-500/10 text-red-400">
-                  EAR{" "}
-                  {formatPercent(debt.earBreakdown?.totalEAR || debt.ear || 0)}
+                  EAR {formatPercent(debt.earBreakdown?.totalEAR || debt.ear || 0)}
                 </span>
               </div>
             </div>

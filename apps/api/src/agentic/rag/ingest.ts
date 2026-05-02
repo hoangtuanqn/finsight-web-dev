@@ -1,7 +1,7 @@
-import fs from 'fs';
-import path from 'path';
 import crypto from 'crypto';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
 import prisma from '../../lib/prisma';
 import { getEmbeddingModel } from '../llm-provider';
 
@@ -22,11 +22,13 @@ function parseFrontmatter(content: string) {
     if (colonIdx === -1) continue;
     const key = line.slice(0, colonIdx).trim();
     let value = line.slice(colonIdx + 1).trim();
-    
+
     if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
-    
+
     if (value.startsWith('[')) {
-      try { value = JSON.parse(value); } catch { }
+      try {
+        value = JSON.parse(value);
+      } catch {}
     }
     metadata[key] = value;
   }
@@ -35,7 +37,7 @@ function parseFrontmatter(content: string) {
 }
 
 function chunkByHeadings(body: string, docTitle: string) {
-  const sections = body.split(/(?=^## )/m).filter(s => s.trim());
+  const sections = body.split(/(?=^## )/m).filter((s) => s.trim());
   const chunks = [];
 
   for (const section of sections) {
@@ -66,7 +68,7 @@ async function ingest() {
     process.exit(1);
   }
 
-  const files = fs.readdirSync(KNOWLEDGE_DIR).filter(f => f.endsWith('.md'));
+  const files = fs.readdirSync(KNOWLEDGE_DIR).filter((f) => f.endsWith('.md'));
   console.log(`📄 Tìm thấy ${files.length} tài liệu`);
 
   const embeddingModel = getEmbeddingModel();
@@ -90,7 +92,7 @@ async function ingest() {
 
       const existing: any = await (prisma as any).$queryRawUnsafe(
         `SELECT id FROM finance_knowledge WHERE metadata->>'contentHash' = $1 LIMIT 1`,
-        chunk.hash
+        chunk.hash,
       );
 
       if (existing.length > 0) {
@@ -110,7 +112,7 @@ async function ingest() {
         chunk.text,
         category,
         vectorStr,
-        JSON.stringify({ contentHash: chunk.hash, source: file, tags: metadata.tags || [] })
+        JSON.stringify({ contentHash: chunk.hash, source: file, tags: metadata.tags || [] }),
       );
 
       newChunks++;
@@ -127,7 +129,7 @@ async function ingest() {
   process.exit(0);
 }
 
-ingest().catch(err => {
+ingest().catch((err) => {
   console.error('❌ Lỗi nạp dữ liệu:', err);
   process.exit(1);
 });

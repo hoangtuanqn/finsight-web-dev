@@ -1,8 +1,8 @@
-import { Controller } from "react-hook-form";
-import type { Control, FieldErrors } from "react-hook-form";
-import { DollarSign, TrendingDown, Wallet, TrendingUp, AlertTriangle } from "lucide-react";
-import FormattedInput from "../../../components/common/FormattedInput";
-import { LABEL_CLASSES, INPUT_CLASSES } from "../constants";
+import { AlertTriangle, DollarSign, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
+import type { Control, FieldErrors } from 'react-hook-form';
+import { Controller } from 'react-hook-form';
+import FormattedInput from '../../../components/common/FormattedInput';
+import { INPUT_CLASSES, LABEL_CLASSES } from '../constants';
 
 interface FinanceSectionProps {
   control: Control<any>;
@@ -11,7 +11,7 @@ interface FinanceSectionProps {
 
 export default function FinanceSection({ control, errors }: FinanceSectionProps) {
   const inputCls = (hasError: any) =>
-    `${INPUT_CLASSES} ${hasError ? "border-red-500/60 focus:border-red-500 ring-2 ring-red-500/10" : "focus:ring-2 focus:ring-blue-500/10"}`;
+    `${INPUT_CLASSES} ${hasError ? 'border-red-500/60 focus:border-red-500 ring-2 ring-red-500/10' : 'focus:ring-2 focus:ring-blue-500/10'}`;
 
   return (
     <div className="space-y-5">
@@ -26,7 +26,7 @@ export default function FinanceSection({ control, errors }: FinanceSectionProps)
                 icon={DollarSign}
                 kind="integer"
                 value={field.value}
-                onValueChange={(v) => field.onChange(v === "" ? 0 : Number(v))}
+                onValueChange={(v) => field.onChange(v === '' ? 0 : Number(v))}
                 className={inputCls(errors.monthlyIncome)}
                 placeholder="0"
                 suffix="đ"
@@ -49,7 +49,7 @@ export default function FinanceSection({ control, errors }: FinanceSectionProps)
                 icon={TrendingDown}
                 kind="integer"
                 value={field.value}
-                onValueChange={(v) => field.onChange(v === "" ? 0 : Number(v))}
+                onValueChange={(v) => field.onChange(v === '' ? 0 : Number(v))}
                 className={inputCls(errors.extraBudget)}
                 placeholder="0"
                 suffix="đ"
@@ -73,7 +73,7 @@ export default function FinanceSection({ control, errors }: FinanceSectionProps)
               icon={Wallet}
               kind="integer"
               value={field.value}
-              onValueChange={(v) => field.onChange(v === "" ? 0 : Number(v))}
+              onValueChange={(v) => field.onChange(v === '' ? 0 : Number(v))}
               className={inputCls(errors.capital)}
               placeholder="100.000.000"
               suffix="đ"
@@ -97,7 +97,7 @@ export default function FinanceSection({ control, errors }: FinanceSectionProps)
                 icon={TrendingUp}
                 kind="decimal"
                 value={field.value}
-                onValueChange={(v) => field.onChange(v === "" ? 0 : Number(v))}
+                onValueChange={(v) => field.onChange(v === '' ? 0 : Number(v))}
                 className={inputCls(errors.savingsRate)}
                 placeholder="6,0"
                 suffix="%"
@@ -115,7 +115,7 @@ export default function FinanceSection({ control, errors }: FinanceSectionProps)
                 icon={AlertTriangle}
                 kind="decimal"
                 value={field.value}
-                onValueChange={(v) => field.onChange(v === "" ? 0 : Number(v))}
+                onValueChange={(v) => field.onChange(v === '' ? 0 : Number(v))}
                 className={inputCls(errors.inflationRate)}
                 placeholder="3,5"
                 suffix="%"

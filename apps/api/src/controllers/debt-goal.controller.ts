@@ -1,15 +1,18 @@
 import { Response } from 'express';
 import prisma from '../lib/prisma';
-import { success, error } from '../utils/apiResponse';
 import { invalidateCache } from '../middleware/cache.middleware';
-import { simulateRepaymentWithExtraBudget } from '../utils/calculations';
 import { AuthenticatedRequest } from '../types';
+import { error, success } from '../utils/apiResponse';
+import { simulateRepaymentWithExtraBudget } from '../utils/calculations';
 
 export async function getDebtGoal(req: AuthenticatedRequest, res: Response) {
   try {
     const [goal, user, debts] = await Promise.all([
       (prisma as any).debtGoal.findUnique({ where: { userId: req.userId } }),
-      (prisma as any).user.findUnique({ where: { id: req.userId }, select: { monthlyIncome: true, extraBudget: true } }),
+      (prisma as any).user.findUnique({
+        where: { id: req.userId },
+        select: { monthlyIncome: true, extraBudget: true },
+      }),
       (prisma as any).debt.findMany({ where: { userId: req.userId } }),
     ]);
 
@@ -22,8 +25,8 @@ export async function getDebtGoal(req: AuthenticatedRequest, res: Response) {
 
     const milestones = [25, 50, 75, 100].map((pct) => ({
       percent: pct,
-      targetAmount: totalOriginal * pct / 100,
-      reached: totalPaid >= totalOriginal * pct / 100,
+      targetAmount: (totalOriginal * pct) / 100,
+      reached: totalPaid >= (totalOriginal * pct) / 100,
     }));
 
     let onTrack: any = null;
@@ -64,7 +67,7 @@ export async function getDebtGoal(req: AuthenticatedRequest, res: Response) {
             if (s.months <= targetMonths) hi = mid;
             else lo = mid;
           }
-          requiredExtraBudget = Math.ceil(hi / 10000) * 10000; 
+          requiredExtraBudget = Math.ceil(hi / 10000) * 10000;
         }
 
         onTrack = {

@@ -1,22 +1,10 @@
-import { motion, Reorder } from "framer-motion";
-import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
-import {
-  ArrowDown,
-  ArrowUp,
-  GripVertical,
-  Plus,
-  X,
-} from "lucide-react";
-import { formatVND } from "../../../utils/calculations";
+import { motion, Reorder } from 'framer-motion';
+import { ArrowDown, ArrowUp, GripVertical, Plus, X } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import { formatVND } from '../../../utils/calculations';
 
-export function AvailableDebtRow({
-  debt,
-  onAdd,
-}: {
-  debt: any;
-  onAdd: (id: string) => void;
-}) {
+export function AvailableDebtRow({ debt, onAdd }: { debt: any; onAdd: (id: string) => void }) {
   const debtId = String(debt.id);
 
   return (
@@ -27,8 +15,8 @@ export function AvailableDebtRow({
       exit={{ opacity: 0, x: -20, transition: { duration: 0.15 } }}
       className="group rounded-2xl border p-3.5 transition-all hover:border-cyan-500/30"
       style={{
-        background: "var(--color-bg-secondary)",
-        borderColor: "var(--color-border)",
+        background: 'var(--color-bg-secondary)',
+        borderColor: 'var(--color-border)',
       }}
     >
       <div className="flex items-center gap-3">
@@ -43,14 +31,11 @@ export function AvailableDebtRow({
             {debt.name}
           </Link>
           <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5 truncate">
-            {debt.platform} · APR {debt.apr}% · Tối thiểu{" "}
-            {formatVND(debt.minPayment)}
+            {debt.platform} · APR {debt.apr}% · Tối thiểu {formatVND(debt.minPayment)}
           </p>
         </div>
         <div className="text-right shrink-0">
-          <p className="text-sm font-black text-[var(--color-text-primary)]">
-            {formatVND(debt.balance)}
-          </p>
+          <p className="text-sm font-black text-[var(--color-text-primary)]">{formatVND(debt.balance)}</p>
           <p className="text-[10px] text-[var(--color-text-muted)]">dư nợ</p>
         </div>
         <motion.button
@@ -89,21 +74,20 @@ export function SelectedDebtItem({
       exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
       whileDrag={{
         scale: 1.03,
-        boxShadow:
-          "0 12px 40px rgba(14,165,233,0.25), 0 0 0 2px rgba(14,165,233,0.4)",
+        boxShadow: '0 12px 40px rgba(14,165,233,0.25), 0 0 0 2px rgba(14,165,233,0.4)',
         zIndex: 50,
       }}
-      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
       className="rounded-2xl border p-3.5 cursor-grab active:cursor-grabbing"
       style={{
-        background: "rgba(14,165,233,0.08)",
-        borderColor: "rgba(14,165,233,0.22)",
+        background: 'rgba(14,165,233,0.08)',
+        borderColor: 'rgba(14,165,233,0.22)',
       }}
     >
       <div className="flex items-center gap-3">
         <motion.div
           className="w-8 h-8 rounded-xl bg-cyan-500/15 text-cyan-300 flex items-center justify-center text-xs font-black shrink-0 select-none"
-          whileHover={{ scale: 1.1, background: "rgba(14,165,233,0.25)" }}
+          whileHover={{ scale: 1.1, background: 'rgba(14,165,233,0.25)' }}
           whileTap={{ scale: 0.95 }}
         >
           {index + 1}
@@ -116,14 +100,11 @@ export function SelectedDebtItem({
             {debt.name}
           </Link>
           <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5 truncate">
-            {debt.platform} · APR {debt.apr}% · Tối thiểu{" "}
-            {formatVND(debt.minPayment)}
+            {debt.platform} · APR {debt.apr}% · Tối thiểu {formatVND(debt.minPayment)}
           </p>
         </div>
         <div className="text-right shrink-0">
-          <p className="text-sm font-black text-[var(--color-text-primary)]">
-            {formatVND(debt.balance)}
-          </p>
+          <p className="text-sm font-black text-[var(--color-text-primary)]">{formatVND(debt.balance)}</p>
           <p className="text-[10px] text-[var(--color-text-muted)]">dư nợ</p>
         </div>
         <div className="flex items-center gap-1 shrink-0">
@@ -149,7 +130,7 @@ export function SelectedDebtItem({
 function IconButton({
   title,
   onClick,
-  className = "bg-white/5 hover:bg-white/10 text-[var(--color-text-muted)] hover:text-cyan-300",
+  className = 'bg-white/5 hover:bg-white/10 text-[var(--color-text-muted)] hover:text-cyan-300',
   children,
 }: {
   title: string;

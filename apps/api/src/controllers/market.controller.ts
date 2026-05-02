@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { success, error } from '../utils/apiResponse';
-import { fetchFearGreedIndex, fetchCryptoPrices, fetchNews, fetchGoldPrice } from '../services/market.service';
+import { fetchCryptoPrices, fetchFearGreedIndex, fetchGoldPrice, fetchNews } from '../services/market.service';
+import { error, success } from '../utils/apiResponse';
 
 export async function getSentiment(req: Request, res: Response) {
   try {

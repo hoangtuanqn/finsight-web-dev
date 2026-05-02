@@ -1,18 +1,18 @@
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useAuth } from "../../context/AuthContext";
-import { userAPI } from "../../api/index";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { userAPI } from '../../api/index';
+import { useAuth } from '../../context/AuthContext';
 
 // Components
-import { ProfileHeader } from "./components/ProfileHeader";
-import { RiskBanner } from "./components/RiskBanner";
-import { ProfileForm } from "./components/ProfileForm";
-import { ProfileSidebar } from "./components/ProfileSidebar";
+import { ProfileForm } from './components/ProfileForm';
+import { ProfileHeader } from './components/ProfileHeader';
+import { ProfileSidebar } from './components/ProfileSidebar';
+import { RiskBanner } from './components/RiskBanner';
 
 // Constants & Types
-import { profileSchema } from "./constants";
+import { profileSchema } from './constants';
 
 export default function ProfilePage() {
   const { user, setUser } = useAuth() as any;
@@ -32,13 +32,13 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user) {
       reset({
-        fullName: user.fullName || "",
+        fullName: user.fullName || '',
         monthlyIncome: user.monthlyIncome || 0,
         extraBudget: user.extraBudget || 0,
         capital: user.investorProfile?.capital || 0,
-        goal: user.investorProfile?.goal || "GROWTH",
-        horizon: user.investorProfile?.horizon || "MEDIUM",
-        riskLevel: user.investorProfile?.riskLevel || "MEDIUM",
+        goal: user.investorProfile?.goal || 'GROWTH',
+        horizon: user.investorProfile?.horizon || 'MEDIUM',
+        riskLevel: user.investorProfile?.riskLevel || 'MEDIUM',
         savingsRate: user.investorProfile?.savingsRate ?? 6.0,
         inflationRate: user.investorProfile?.inflationRate ?? 3.5,
       });
@@ -50,7 +50,7 @@ export default function ProfilePage() {
       const res = await userAPI.getProfile();
       setUser(res.data.data);
     } catch (e) {
-      console.error("Fetch user error:", e);
+      console.error('Fetch user error:', e);
     }
   };
 
@@ -63,7 +63,7 @@ export default function ProfilePage() {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (e) {
-      console.error("Update profile error:", e);
+      console.error('Update profile error:', e);
     } finally {
       setLoading(false);
     }
@@ -76,7 +76,7 @@ export default function ProfilePage() {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+      transition={{ duration: 0.4, ease: 'easeOut' }}
       className="pb-10 space-y-8"
     >
       {/* Header Section */}
@@ -86,8 +86,8 @@ export default function ProfilePage() {
         {/* Main Column */}
         <div className="xl:col-span-2 space-y-6">
           <RiskBanner user={user} />
-          
-          <ProfileForm 
+
+          <ProfileForm
             register={register}
             handleSubmit={handleSubmit}
             control={control}
@@ -103,10 +103,7 @@ export default function ProfilePage() {
 
         {/* Sidebar Column */}
         <div className="xl:sticky xl:top-6">
-          <ProfileSidebar 
-            user={user} 
-            hasCompletedQuiz={hasCompletedQuiz} 
-          />
+          <ProfileSidebar user={user} hasCompletedQuiz={hasCompletedQuiz} />
         </div>
       </div>
     </motion.div>

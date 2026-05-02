@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Gamepad2, X, CheckSquare, Square } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { CheckSquare, Gamepad2, Square, X } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 
 export default function MockMarketControl() {
   const [isOpen, setIsOpen] = useState(false);
@@ -10,7 +10,7 @@ export default function MockMarketControl() {
   const handleKeyDown = useCallback((e) => {
     if (e.ctrlKey && e.shiftKey && e.key === 'D') {
       e.preventDefault();
-      setIsOpen(prev => !prev);
+      setIsOpen((prev) => !prev);
     }
   }, []);
 
@@ -57,8 +57,12 @@ export default function MockMarketControl() {
           className="fixed bottom-4 right-4 z-50 w-80 glass-card bg-slate-900/95 border-yellow-500/30"
         >
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold text-yellow-400 flex items-center gap-2"><Gamepad2 size={16} /> Mock Market Control</h3>
-            <button onClick={() => setIsOpen(false)} className="text-slate-500 hover:text-white"><X size={18} /></button>
+            <h3 className="text-sm font-bold text-yellow-400 flex items-center gap-2">
+              <Gamepad2 size={16} /> Mock Market Control
+            </h3>
+            <button onClick={() => setIsOpen(false)} className="text-slate-500 hover:text-white">
+              <X size={18} />
+            </button>
           </div>
 
           <p className="text-xs text-slate-500 mb-3">Ctrl+Shift+D để toggle panel này</p>
@@ -72,7 +76,15 @@ export default function MockMarketControl() {
                   : 'bg-slate-800 text-slate-400 border border-slate-700'
               }`}
             >
-              {isActive ? <><CheckSquare size={14} /> ACTIVE</> : <><Square size={14} /> INACTIVE</>}
+              {isActive ? (
+                <>
+                  <CheckSquare size={14} /> ACTIVE
+                </>
+              ) : (
+                <>
+                  <Square size={14} /> INACTIVE
+                </>
+              )}
             </button>
             <span className={`text-sm font-bold ${label.color}`}>{label.text}</span>
           </div>
@@ -88,7 +100,9 @@ export default function MockMarketControl() {
               className="w-full mt-1 accent-yellow-500"
             />
             <div className="flex justify-between text-xs text-slate-600 mt-1">
-              <span>0</span><span>50</span><span>100</span>
+              <span>0</span>
+              <span>50</span>
+              <span>100</span>
             </div>
           </div>
         </motion.div>

@@ -1,91 +1,61 @@
+import { AnimatePresence, motion, Reorder } from 'framer-motion';
 import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { motion, Reorder, AnimatePresence } from "framer-motion";
-import {
-  ArrowLeft,
   AlertTriangle,
+  ArrowLeft,
   Check,
-  ChevronRight,
-  ClipboardList,
   DollarSign,
   LineChart as LineChartIcon,
   Plus,
-  Play,
   Save,
   Sparkles,
-  Trash2,
   Target,
+  Trash2,
   X,
   Zap,
-} from "lucide-react";
-import {
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import { toast } from "sonner";
-import { useAuth } from "../../context/AuthContext";
+} from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import FormattedInput from '../../components/common/FormattedInput';
+import { PageSkeleton } from '../../components/common/LoadingSpinner';
+import { useAuth } from '../../context/AuthContext';
 import {
   useDebts,
   useRepaymentPlanMutations,
   useRepaymentPlans,
   useRepaymentPlanSimulation,
-} from "../../hooks/useDebtQuery";
-import { PageSkeleton } from "../../components/common/LoadingSpinner";
-import FormattedInput from "../../components/common/FormattedInput";
-import { formatVND } from "../../utils/calculations";
-import {
-  breachDot,
-  MethodPlanCard,
-  TOOLTIP_STYLE,
-} from "./components/repaymentShared";
-import {
-  AvailableDebtRow,
-  SelectedDebtItem,
-} from "./components/customPlanRows";
+} from '../../hooks/useDebtQuery';
+import { formatVND } from '../../utils/calculations';
+import { AvailableDebtRow, SelectedDebtItem } from './components/customPlanRows';
+import { breachDot, MethodPlanCard, TOOLTIP_STYLE } from './components/repaymentShared';
 
-function metricDelta(delta: number, unit: "money" | "month") {
+function metricDelta(delta: number, unit: 'money' | 'month') {
   const abs = Math.abs(delta);
-  if (unit === "money") {
+  if (unit === 'money') {
     if (delta < 0) return `Tiết kiệm ${formatVND(abs)}`;
     if (delta > 0) return `Tốn thêm ${formatVND(abs)}`;
-    return "Ngang bằng";
+    return 'Ngang bằng';
   }
 
   if (delta < 0) return `Nhanh hơn ${abs} tháng`;
   if (delta > 0) return `Chậm hơn ${abs} tháng`;
-  return "Cùng thời gian";
+  return 'Cùng thời gian';
 }
 
 function buildTimeline(simulationData: any) {
   const customSchedule = simulationData?.custom?.schedule || [];
   const avalancheSchedule = simulationData?.avalanche?.schedule || [];
   const snowballSchedule = simulationData?.snowball?.schedule || [];
-  const maxMonths = Math.max(
-    customSchedule.length,
-    avalancheSchedule.length,
-    snowballSchedule.length,
-  );
+  const maxMonths = Math.max(customSchedule.length, avalancheSchedule.length, snowballSchedule.length);
 
   return Array.from({ length: maxMonths }, (_, index) => {
     const custom = customSchedule[index];
     const avalanche = avalancheSchedule[index];
     const snowball = snowballSchedule[index];
-    const monthNumber =
-      custom?.month ?? avalanche?.month ?? snowball?.month ?? index;
+    const monthNumber = custom?.month ?? avalanche?.month ?? snowball?.month ?? index;
 
     return {
-      month: monthNumber === 0 ? "Hiện tại" : `T${monthNumber}`,
+      month: monthNumber === 0 ? 'Hiện tại' : `T${monthNumber}`,
       ...(custom && { custom: custom.totalBalance }),
       ...(avalanche && { avalanche: avalanche.totalBalance }),
       ...(snowball && { snowball: snowball.totalBalance }),
@@ -104,20 +74,14 @@ export default function CustomRepaymentPlanPage() {
     data: any;
     isLoading: boolean;
   };
-  const {
-    createPlan,
-    updatePlan,
-    deletePlan,
-    isCreatingPlan,
-    isUpdatingPlan,
-    isDeletingPlan,
-  } = useRepaymentPlanMutations();
+  const { createPlan, updatePlan, deletePlan, isCreatingPlan, isUpdatingPlan, isDeletingPlan } =
+    useRepaymentPlanMutations();
 
   const { planId: routePlanId } = useParams<{ planId: string }>();
   const plans = plansData?.plans || [];
   const debts = debtsData?.debts || [];
   const [activePlanId, setActivePlanId] = useState<string | null>(null);
-  const [planName, setPlanName] = useState("Kế hoạch trả nợ riêng");
+  const [planName, setPlanName] = useState('Kế hoạch trả nợ riêng');
   const [extraBudget, setExtraBudget] = useState(user?.extraBudget || 0);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
@@ -126,58 +90,43 @@ export default function CustomRepaymentPlanPage() {
     title: string;
     message: string;
     actionLabel: string;
-    actionType: "danger" | "primary";
+    actionType: 'danger' | 'primary';
     onConfirm: () => void;
   }>({
     isOpen: false,
-    title: "",
-    message: "",
-    actionLabel: "",
-    actionType: "primary",
-    onConfirm: () => { },
+    title: '',
+    message: '',
+    actionLabel: '',
+    actionType: 'primary',
+    onConfirm: () => {},
   });
 
-  const openConfirm = (options: Omit<typeof confirmDialog, "isOpen">) => {
+  const openConfirm = (options: Omit<typeof confirmDialog, 'isOpen'>) => {
     setConfirmDialog({ isOpen: true, ...options });
   };
 
-
   // Load plan from route param
   useEffect(() => {
-    if (routePlanId && routePlanId !== "new" && plans.length > 0) {
+    if (routePlanId && routePlanId !== 'new' && plans.length > 0) {
       setActivePlanId(routePlanId);
     }
   }, [routePlanId, plans]);
 
-  const activePlan = useMemo(
-    () => plans.find((plan: any) => plan.id === activePlanId),
-    [activePlanId, plans],
-  );
-  const debtMap = useMemo(
-    () => new Map(debts.map((debt: any) => [String(debt.id), debt])),
-    [debts],
-  );
+  const activePlan = useMemo(() => plans.find((plan: any) => plan.id === activePlanId), [activePlanId, plans]);
+  const debtMap = useMemo(() => new Map(debts.map((debt: any) => [String(debt.id), debt])), [debts]);
 
   useEffect(() => {
     if (!activePlan) return;
-    setPlanName(activePlan.name || "Kế hoạch trả nợ riêng");
+    setPlanName(activePlan.name || 'Kế hoạch trả nợ riêng');
     setExtraBudget(activePlan.extraBudget || user?.extraBudget || 0);
     setSelectedIds(
-      (activePlan.selectedDebts || [])
-        .map((debt: any) => String(debt.id))
-        .filter((id: string) => debtMap.has(id)),
+      (activePlan.selectedDebts || []).map((debt: any) => String(debt.id)).filter((id: string) => debtMap.has(id)),
     );
   }, [activePlan, debtMap, user?.extraBudget]);
 
-  const selectedDebts = useMemo(
-    () => selectedIds.map((id) => debtMap.get(id)).filter(Boolean),
-    [debtMap, selectedIds],
-  );
+  const selectedDebts = useMemo(() => selectedIds.map((id) => debtMap.get(id)).filter(Boolean), [debtMap, selectedIds]);
   const availableDebts = useMemo(
-    () =>
-      debts.filter(
-        (debt: any) => !selectedIds.includes(String(debt.id)) && debt.balance > 0,
-      ),
+    () => debts.filter((debt: any) => !selectedIds.includes(String(debt.id)) && debt.balance > 0),
     [debts, selectedIds],
   );
   const selectedSummary = useMemo(
@@ -191,35 +140,31 @@ export default function CustomRepaymentPlanPage() {
       ),
     [selectedDebts],
   );
-  const avalanchePriority = useMemo(
-    () => [...selectedDebts].sort((a: any, b: any) => b.apr - a.apr),
-    [selectedDebts],
-  );
+  const avalanchePriority = useMemo(() => [...selectedDebts].sort((a: any, b: any) => b.apr - a.apr), [selectedDebts]);
   const snowballPriority = useMemo(
     () => [...selectedDebts].sort((a: any, b: any) => a.balance - b.balance),
     [selectedDebts],
   );
 
-  const { data: simulationData, isFetching: simulating } =
-    useRepaymentPlanSimulation(selectedIds, extraBudget) as {
-      data: any;
-      isFetching: boolean;
-    };
+  const { data: simulationData, isFetching: simulating } = useRepaymentPlanSimulation(selectedIds, extraBudget) as {
+    data: any;
+    isFetching: boolean;
+  };
 
   const chartData = useMemo(() => buildTimeline(simulationData), [simulationData]);
   const termBreachAlerts = useMemo(
     () =>
       [
         simulationData?.custom?.termBreach && {
-          method: "Kế hoạch của bạn",
+          method: 'Kế hoạch của bạn',
           ...simulationData.custom.termBreach,
         },
         simulationData?.avalanche?.termBreach && {
-          method: "Avalanche",
+          method: 'Avalanche',
           ...simulationData.avalanche.termBreach,
         },
         simulationData?.snowball?.termBreach && {
-          method: "Snowball",
+          method: 'Snowball',
           ...simulationData.snowball.termBreach,
         },
       ].filter(Boolean),
@@ -227,9 +172,7 @@ export default function CustomRepaymentPlanPage() {
   );
 
   const addDebt = useCallback((debtId: string) => {
-    setSelectedIds((current) =>
-      current.includes(debtId) ? current : [...current, debtId],
-    );
+    setSelectedIds((current) => (current.includes(debtId) ? current : [...current, debtId]));
   }, []);
 
   const removeDebt = useCallback((debtId: string) => {
@@ -266,34 +209,25 @@ export default function CustomRepaymentPlanPage() {
     });
   }, []);
 
-
-
   const sortByAvalanche = useCallback(() => {
-    setSelectedIds((current) =>
-      [...current].sort(
-        (a, b) => (debtMap.get(b)?.apr || 0) - (debtMap.get(a)?.apr || 0),
-      ),
-    );
+    setSelectedIds((current) => [...current].sort((a, b) => (debtMap.get(b)?.apr || 0) - (debtMap.get(a)?.apr || 0)));
   }, [debtMap]);
 
   const sortBySnowball = useCallback(() => {
     setSelectedIds((current) =>
-      [...current].sort(
-        (a, b) =>
-          (debtMap.get(a)?.balance || 0) - (debtMap.get(b)?.balance || 0),
-      ),
+      [...current].sort((a, b) => (debtMap.get(a)?.balance || 0) - (debtMap.get(b)?.balance || 0)),
     );
   }, [debtMap]);
 
   const startNewPlan = useCallback(() => {
     setActivePlanId(null);
-    setPlanName("Kế hoạch trả nợ");
+    setPlanName('Kế hoạch trả nợ');
     setExtraBudget(user?.extraBudget || 0);
     setSelectedIds([]);
   }, [user?.extraBudget]);
 
   const openNewPlan = useCallback(() => {
-    navigate("/debts/plan/new");
+    navigate('/debts/plan/new');
     startNewPlan();
   }, [navigate, startNewPlan]);
 
@@ -301,13 +235,13 @@ export default function CustomRepaymentPlanPage() {
     if (selectedIds.length === 0) return;
 
     openConfirm({
-      title: "Lưu bản kế hoạch",
-      message: "Bạn có chắc chắn muốn lưu bản kế hoạch này?",
-      actionLabel: "Lưu lại",
-      actionType: "primary",
+      title: 'Lưu bản kế hoạch',
+      message: 'Bạn có chắc chắn muốn lưu bản kế hoạch này?',
+      actionLabel: 'Lưu lại',
+      actionType: 'primary',
       onConfirm: async () => {
         const payload = {
-          name: planName.trim() || "Kế hoạch trả nợ riêng",
+          name: planName.trim() || 'Kế hoạch trả nợ riêng',
           extraBudget,
           debtIds: selectedIds,
         };
@@ -323,7 +257,7 @@ export default function CustomRepaymentPlanPage() {
           setActivePlanId(createdPlan.id);
           navigate(`/debts/plan/${createdPlan.id}`, { replace: true });
         }
-      }
+      },
     });
   }, [activePlanId, createPlan, extraBudget, navigate, planName, selectedIds, updatePlan]);
 
@@ -331,25 +265,21 @@ export default function CustomRepaymentPlanPage() {
     if (!activePlanId) return;
 
     openConfirm({
-      title: "Xóa bản kế hoạch",
-      message: "Bạn có chắc chắn muốn xóa bản kế hoạch này? Hành động này không thể hoàn tác.",
-      actionLabel: "Xóa bản kế hoạch",
-      actionType: "danger",
+      title: 'Xóa bản kế hoạch',
+      message: 'Bạn có chắc chắn muốn xóa bản kế hoạch này? Hành động này không thể hoàn tác.',
+      actionLabel: 'Xóa bản kế hoạch',
+      actionType: 'danger',
       onConfirm: async () => {
         await deletePlan(activePlanId);
-        navigate("/debts/repayment");
-      }
+        navigate('/debts/repayment');
+      },
     });
   };
 
   if (debtsLoading || plansLoading) return <PageSkeleton />;
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="pb-8 space-y-6"
-    >
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-8 space-y-6">
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5 pt-2">
         <div>
           <Link
@@ -358,12 +288,9 @@ export default function CustomRepaymentPlanPage() {
           >
             <ArrowLeft size={14} /> Kế hoạch trả nợ
           </Link>
-          <h1 className="text-3xl font-black tracking-tighter text-[var(--color-text-primary)]">
-            Lập kế hoạch trả nợ
-          </h1>
+          <h1 className="text-3xl font-black tracking-tighter text-[var(--color-text-primary)]">Lập kế hoạch trả nợ</h1>
           <p className="text-[var(--color-text-secondary)] text-sm mt-1 max-w-2xl">
-            Chọn một số khoản nợ, tự sắp thứ tự trả, rồi so sánh với Avalanche
-            và Snowball trên đúng nhóm nợ đó.
+            Chọn một số khoản nợ, tự sắp thứ tự trả, rồi so sánh với Avalanche và Snowball trên đúng nhóm nợ đó.
           </p>
         </div>
       </div>
@@ -371,8 +298,8 @@ export default function CustomRepaymentPlanPage() {
       <div
         className="rounded-3xl border p-5 md:p-6"
         style={{
-          background: "var(--color-bg-card)",
-          borderColor: "rgba(14,165,233,0.18)",
+          background: 'var(--color-bg-card)',
+          borderColor: 'rgba(14,165,233,0.18)',
         }}
       >
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(280px,360px)_minmax(0,1fr)] gap-5">
@@ -420,7 +347,7 @@ export default function CustomRepaymentPlanPage() {
                 value={planName}
                 onChange={(event) => setPlanName(event.target.value)}
                 className="w-full px-4 py-3 rounded-2xl border bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] font-bold outline-none focus:border-cyan-500/50"
-                style={{ borderColor: "var(--color-border)" }}
+                style={{ borderColor: 'var(--color-border)' }}
               />
             </div>
 
@@ -446,8 +373,8 @@ export default function CustomRepaymentPlanPage() {
             <div
               className="relative rounded-3xl p-6 border overflow-hidden"
               style={{
-                background: "var(--color-bg-card)",
-                borderColor: "rgba(14,165,233,0.15)",
+                background: 'var(--color-bg-card)',
+                borderColor: 'rgba(14,165,233,0.15)',
               }}
             >
               <div className="absolute top-0 left-5 right-5 h-px bg-gradient-to-r from-transparent via-cyan-500/40 to-transparent" />
@@ -466,11 +393,7 @@ export default function CustomRepaymentPlanPage() {
                   <FormattedInput
                     kind="integer"
                     value={extraBudget}
-                    onValueChange={(value) =>
-                      setExtraBudget(
-                        Math.max(0, parseInt(String(value || "0"), 10) || 0),
-                      )
-                    }
+                    onValueChange={(value) => setExtraBudget(Math.max(0, parseInt(String(value || '0'), 10) || 0))}
                     maxValue={100000000000}
                     placeholder="Nhập số tiền..."
                     suffix="đ"
@@ -481,14 +404,11 @@ export default function CustomRepaymentPlanPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-5">
                 {[
-                  { label: "Tối thiểu", value: selectedSummary.minPayment },
-                  { label: "Trả thêm", value: extraBudget },
-                  { label: "Tổng/tháng", value: selectedSummary.minPayment + extraBudget },
+                  { label: 'Tối thiểu', value: selectedSummary.minPayment },
+                  { label: 'Trả thêm', value: extraBudget },
+                  { label: 'Tổng/tháng', value: selectedSummary.minPayment + extraBudget },
                 ].map((item) => (
-                  <div
-                    key={item.label}
-                    className="rounded-xl border border-white/6 bg-white/4 px-3 py-2.5"
-                  >
+                  <div key={item.label} className="rounded-xl border border-white/6 bg-white/4 px-3 py-2.5">
                     <p className="text-[10px] text-[var(--color-text-muted)] font-black uppercase tracking-wider">
                       {item.label}
                     </p>
@@ -567,8 +487,8 @@ export default function CustomRepaymentPlanPage() {
             <div
               className="rounded-3xl border p-4 min-h-[180px]"
               style={{
-                background: "rgba(15,23,42,0.35)",
-                borderColor: "var(--color-border)",
+                background: 'rgba(15,23,42,0.35)',
+                borderColor: 'var(--color-border)',
               }}
             >
               <div className="flex items-center justify-between gap-3 mb-3">
@@ -595,12 +515,7 @@ export default function CustomRepaymentPlanPage() {
                   Kéo khoản nợ từ bên trái vào đây hoặc bấm nút thêm.
                 </motion.div>
               ) : (
-                <Reorder.Group
-                  axis="y"
-                  values={selectedIds}
-                  onReorder={setSelectedIds}
-                  className="space-y-3"
-                >
+                <Reorder.Group axis="y" values={selectedIds} onReorder={setSelectedIds} className="space-y-3">
                   <AnimatePresence mode="popLayout">
                     {selectedDebts.map((debt: any, index: number) => (
                       <SelectedDebtItem
@@ -625,30 +540,24 @@ export default function CustomRepaymentPlanPage() {
             <div
               className="rounded-3xl border p-5 md:p-6"
               style={{
-                background: "var(--color-bg-card)",
-                borderColor: "var(--color-border)",
+                background: 'var(--color-bg-card)',
+                borderColor: 'var(--color-border)',
               }}
             >
               <h3 className="text-[14px] font-black text-[var(--color-text-primary)] mb-5 flex items-center gap-2">
                 <LineChartIcon size={16} className="text-blue-400" />
                 Tiến trình giảm dư nợ
                 {simulating && (
-                  <span className="text-[11px] text-[var(--color-text-muted)] font-bold">
-                    đang tính...
-                  </span>
+                  <span className="text-[11px] text-[var(--color-text-muted)] font-bold">đang tính...</span>
                 )}
               </h3>
               <div className="h-[360px] md:h-[380px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData}>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="rgba(255,255,255,0.04)"
-                      vertical={false}
-                    />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
                     <XAxis
                       dataKey="month"
-                      tick={{ fill: "var(--color-text-muted)", fontSize: 11 }}
+                      tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }}
                       axisLine={false}
                       tickLine={false}
                       interval={0}
@@ -657,39 +566,32 @@ export default function CustomRepaymentPlanPage() {
                       tickMargin={8}
                     />
                     <YAxis
-                      tick={{ fill: "var(--color-text-muted)", fontSize: 11 }}
+                      tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }}
                       axisLine={false}
                       tickLine={false}
-                      tickFormatter={(value) =>
-                        `${(Number(value) / 1000000).toFixed(0)}tr`
-                      }
+                      tickFormatter={(value) => `${(Number(value) / 1000000).toFixed(0)}tr`}
                       width={42}
                     />
                     <Tooltip
                       contentStyle={TOOLTIP_STYLE}
                       formatter={(value, _name, entry: any) => {
                         const labels: Record<string, string> = {
-                          custom: "Kế hoạch của bạn",
-                          avalanche: "Avalanche",
-                          snowball: "Snowball",
+                          custom: 'Kế hoạch của bạn',
+                          avalanche: 'Avalanche',
+                          snowball: 'Snowball',
                         };
 
-                        return [
-                          formatVND(Number(value)),
-                          labels[String(entry?.dataKey)] || String(_name),
-                        ];
+                        return [formatVND(Number(value)), labels[String(entry?.dataKey)] || String(_name)];
                       }}
                     />
-                    <Legend
-                      wrapperStyle={{ fontSize: "12px", paddingTop: "12px" }}
-                    />
+                    <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '12px' }} />
                     <Line
                       type="monotone"
                       dataKey="custom"
                       name="Kế hoạch của bạn"
                       stroke="#f87171"
                       strokeWidth={3}
-                      dot={breachDot(simulationData?.custom, "#f87171")}
+                      dot={breachDot(simulationData?.custom, '#f87171')}
                     />
                     <Line
                       type="monotone"
@@ -697,7 +599,7 @@ export default function CustomRepaymentPlanPage() {
                       name="Avalanche"
                       stroke="#3b82f6"
                       strokeWidth={2.5}
-                      dot={breachDot(simulationData?.avalanche, "#3b82f6")}
+                      dot={breachDot(simulationData?.avalanche, '#3b82f6')}
                     />
                     <Line
                       type="monotone"
@@ -705,7 +607,7 @@ export default function CustomRepaymentPlanPage() {
                       name="Snowball"
                       stroke="#10b981"
                       strokeWidth={2.5}
-                      dot={breachDot(simulationData?.snowball, "#10b981")}
+                      dot={breachDot(simulationData?.snowball, '#10b981')}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -717,8 +619,8 @@ export default function CustomRepaymentPlanPage() {
                 <div
                   className="rounded-3xl border p-5"
                   style={{
-                    background: "var(--color-bg-card)",
-                    borderColor: "rgba(248,113,113,0.28)",
+                    background: 'var(--color-bg-card)',
+                    borderColor: 'rgba(248,113,113,0.28)',
                   }}
                 >
                   <div className="flex items-center gap-2 mb-4">
@@ -726,9 +628,7 @@ export default function CustomRepaymentPlanPage() {
                       <Check size={16} />
                     </div>
                     <div>
-                      <h3 className="font-black text-[var(--color-text-primary)]">
-                        Kết quả Kế hoạch của bạn
-                      </h3>
+                      <h3 className="font-black text-[var(--color-text-primary)]">Kết quả Kế hoạch của bạn</h3>
                       <p className="text-[11px] text-[var(--color-text-muted)]">
                         Tính trên {selectedIds.length} khoản đã chọn
                       </p>
@@ -760,47 +660,35 @@ export default function CustomRepaymentPlanPage() {
                   <div
                     className="rounded-3xl border p-5"
                     style={{
-                      background: "rgba(59,130,246,0.07)",
-                      borderColor: "rgba(59,130,246,0.20)",
+                      background: 'rgba(59,130,246,0.07)',
+                      borderColor: 'rgba(59,130,246,0.20)',
                     }}
                   >
                     <p className="text-[11px] uppercase tracking-widest font-black text-blue-300/80 mb-2">
                       So với Avalanche
                     </p>
                     <p className="text-lg font-black text-blue-200">
-                      {metricDelta(
-                        simulationData.comparison.customVsAvalanche.interestDelta,
-                        "money",
-                      )}
+                      {metricDelta(simulationData.comparison.customVsAvalanche.interestDelta, 'money')}
                     </p>
                     <p className="text-sm text-[var(--color-text-secondary)] mt-1">
-                      {metricDelta(
-                        simulationData.comparison.customVsAvalanche.monthsDelta,
-                        "month",
-                      )}
+                      {metricDelta(simulationData.comparison.customVsAvalanche.monthsDelta, 'month')}
                     </p>
                   </div>
                   <div
                     className="rounded-3xl border p-5"
                     style={{
-                      background: "rgba(16,185,129,0.07)",
-                      borderColor: "rgba(16,185,129,0.20)",
+                      background: 'rgba(16,185,129,0.07)',
+                      borderColor: 'rgba(16,185,129,0.20)',
                     }}
                   >
                     <p className="text-[11px] uppercase tracking-widest font-black text-emerald-300/80 mb-2">
                       So với Snowball
                     </p>
                     <p className="text-lg font-black text-emerald-200">
-                      {metricDelta(
-                        simulationData.comparison.customVsSnowball.interestDelta,
-                        "money",
-                      )}
+                      {metricDelta(simulationData.comparison.customVsSnowball.interestDelta, 'money')}
                     </p>
                     <p className="text-sm text-[var(--color-text-secondary)] mt-1">
-                      {metricDelta(
-                        simulationData.comparison.customVsSnowball.monthsDelta,
-                        "month",
-                      )}
+                      {metricDelta(simulationData.comparison.customVsSnowball.monthsDelta, 'month')}
                     </p>
                   </div>
                 </>
@@ -812,27 +700,21 @@ export default function CustomRepaymentPlanPage() {
             <div className="w-8 h-8 rounded-xl bg-cyan-500/15 flex items-center justify-center text-cyan-400">
               <Target size={16} />
             </div>
-            <h2 className="text-xl font-black text-[var(--color-text-primary)]">
-              Chiến lược trả nợ
-            </h2>
+            <h2 className="text-xl font-black text-[var(--color-text-primary)]">Chiến lược trả nợ</h2>
           </div>
           {termBreachAlerts.length > 0 && (
             <div className="mb-5 rounded-3xl border border-red-400/25 bg-red-500/8 p-4">
               <div className="flex items-start gap-3">
                 <AlertTriangle size={18} className="text-red-300 shrink-0 mt-0.5" />
                 <div className="space-y-1.5">
-                  <p className="text-sm font-black text-red-200">
-                    Cảnh báo quá hạn hợp đồng
-                  </p>
+                  <p className="text-sm font-black text-red-200">Cảnh báo quá hạn hợp đồng</p>
                   {termBreachAlerts.map((breach: any) => (
                     <p
                       key={`${breach.method}-${breach.debtId}-${breach.month}`}
                       className="text-[12px] text-red-100/85 leading-relaxed"
                     >
-                      Khoản nợ{" "}
-                      <span className="font-black text-red-100">{breach.name}</span>{" "}
-                      bị quá hạn khi chạy {breach.method} vào tháng T{breach.month}.
-                      Còn {formatVND(breach.remainingBalance)} sau kỳ hạn{" "}
+                      Khoản nợ <span className="font-black text-red-100">{breach.name}</span> bị quá hạn khi chạy{' '}
+                      {breach.method} vào tháng T{breach.month}. Còn {formatVND(breach.remainingBalance)} sau kỳ hạn{' '}
                       {breach.deadlineMonth} tháng. Hãy tăng ngân sách trả thêm mỗi tháng.
                     </p>
                   ))}
@@ -841,16 +723,8 @@ export default function CustomRepaymentPlanPage() {
             </div>
           )}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-            <MethodPlanCard
-              type="AVALANCHE"
-              debts={avalanchePriority}
-              simulation={simulationData?.avalanche}
-            />
-            <MethodPlanCard
-              type="SNOWBALL"
-              debts={snowballPriority}
-              simulation={simulationData?.snowball}
-            />
+            <MethodPlanCard type="AVALANCHE" debts={avalanchePriority} simulation={simulationData?.avalanche} />
+            <MethodPlanCard type="SNOWBALL" debts={snowballPriority} simulation={simulationData?.snowball} />
           </div>
         </>
       )}
@@ -871,16 +745,12 @@ export default function CustomRepaymentPlanPage() {
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               className="relative w-full max-w-sm rounded-3xl p-6 border shadow-2xl"
               style={{
-                background: "var(--color-bg-card)",
-                borderColor: "var(--color-border)",
+                background: 'var(--color-bg-card)',
+                borderColor: 'var(--color-border)',
               }}
             >
-              <h3 className="text-xl font-black text-[var(--color-text-primary)] mb-2">
-                {confirmDialog.title}
-              </h3>
-              <p className="text-sm text-[var(--color-text-secondary)] mb-6 leading-relaxed">
-                {confirmDialog.message}
-              </p>
+              <h3 className="text-xl font-black text-[var(--color-text-primary)] mb-2">{confirmDialog.title}</h3>
+              <p className="text-sm text-[var(--color-text-secondary)] mb-6 leading-relaxed">{confirmDialog.message}</p>
               <div className="flex justify-end gap-3">
                 <button
                   type="button"
@@ -895,10 +765,11 @@ export default function CustomRepaymentPlanPage() {
                     confirmDialog.onConfirm();
                     setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
                   }}
-                  className={`px-4 py-2.5 rounded-xl font-bold text-sm transition-colors cursor-pointer ${confirmDialog.actionType === "danger"
-                    ? "bg-red-500/10 text-red-400 hover:bg-red-500/20"
-                    : "bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20"
-                    }`}
+                  className={`px-4 py-2.5 rounded-xl font-bold text-sm transition-colors cursor-pointer ${
+                    confirmDialog.actionType === 'danger'
+                      ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
+                      : 'bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20'
+                  }`}
                 >
                   {confirmDialog.actionLabel}
                 </button>

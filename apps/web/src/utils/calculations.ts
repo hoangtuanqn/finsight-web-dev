@@ -1,13 +1,17 @@
 // Client-side calculations (mirrored from server)
-import {
-  ASSET_CLASSES,
-} from '../constants/investmentConstants';
+import { ASSET_CLASSES } from '../constants/investmentConstants';
 
 export function calcAPY(apr: number, n = 12) {
-  return (Math.pow(1 + (apr / 100) / n, n) - 1) * 100;
+  return (Math.pow(1 + apr / 100 / n, n) - 1) * 100;
 }
 
-export function calcEAR(apr: number, feeProcessing: number, feeInsurance: number, feeManagement: number, termMonths: number) {
+export function calcEAR(
+  apr: number,
+  feeProcessing: number,
+  feeInsurance: number,
+  feeManagement: number,
+  termMonths: number,
+) {
   const apy = calcAPY(apr);
   const annualizedProcessingFee = termMonths > 0 ? (feeProcessing / termMonths) * 12 : 0;
   const totalAnnualFees = Math.min(annualizedProcessingFee + feeInsurance + feeManagement, 300);
@@ -15,9 +19,9 @@ export function calcEAR(apr: number, feeProcessing: number, feeInsurance: number
 }
 
 export function calcReducingMonthlyPayment(principal: number, apr: number, termMonths: number) {
-  const r = (apr / 100) / 12;
+  const r = apr / 100 / 12;
   if (r === 0) return principal / termMonths;
-  return principal * r * Math.pow(1 + r, termMonths) / (Math.pow(1 + r, termMonths) - 1);
+  return (principal * r * Math.pow(1 + r, termMonths)) / (Math.pow(1 + r, termMonths) - 1);
 }
 
 export function calcFlatMonthlyPayment(principal: number, apr: number, termMonths: number) {
@@ -88,7 +92,9 @@ export function detectDominoRisk(debts: any[], monthlyIncome: number) {
 export { ASSET_CLASSES };
 
 export function formatVND(amount: number) {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(amount);
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(
+    amount,
+  );
 }
 
 export function formatPercent(value: number, decimals = 1) {

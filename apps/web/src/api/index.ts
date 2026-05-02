@@ -11,7 +11,7 @@ const api = axios.create({
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = localStorage.getItem('finsight_token');
   const trustToken = localStorage.getItem('finsight_trust_token');
-  
+
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -23,7 +23,7 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // AUTH
@@ -40,7 +40,8 @@ export const authAPI = {
   setup2FA: () => api.get('/auth/2fa/setup'),
   enable2FA: (data: { token: string }) => api.post('/auth/2fa/enable', data),
   disable2FA: (data: { token: string }) => api.post('/auth/2fa/disable', data),
-  verify2FA: (data: { tempToken: string; otpCode: string; trustDevice?: boolean }) => api.post('/auth/2fa/verify', data),
+  verify2FA: (data: { tempToken: string; otpCode: string; trustDevice?: boolean }) =>
+    api.post('/auth/2fa/verify', data),
   trustDevice: () => api.post('/auth/2fa/trust'),
 };
 
@@ -107,7 +108,8 @@ export const investmentAPI = {
   getProfile: () => api.get('/investment/profile'),
   createProfile: (data: any) => api.post('/investment/profile', data),
   updateProfile: (data: any) => api.put('/investment/profile', data),
-  getAllocation: (params?: { mockSentiment?: number; excludedAssets?: string }) => api.get('/investment/allocation', { params }),
+  getAllocation: (params?: { mockSentiment?: number; excludedAssets?: string }) =>
+    api.get('/investment/allocation', { params }),
   getHistory: () => api.get('/investment/history'),
   submitRiskAssessment: (data: any) => api.post('/investment/risk-assessment', data),
   getCryptoPrices: () => api.get('/investment/crypto-prices'),
@@ -118,7 +120,8 @@ export const investmentAPI = {
   getBondsRates: (params: any) => api.get('/investment/bonds-rates', { params }),
   // ── AI Strategy & User Portfolio ──
   getStrategies: () => api.get('/investment/strategies'),
-  generateStrategy: (excludedAssets?: string[]) => api.post('/investment/strategies/generate', { excludedAssets: excludedAssets ?? [] }),
+  generateStrategy: (excludedAssets?: string[]) =>
+    api.post('/investment/strategies/generate', { excludedAssets: excludedAssets ?? [] }),
   getPortfolio: () => api.get('/investment/portfolio'),
   upsertPortfolio: (data: any) => api.post('/investment/portfolio', data),
   updatePortfolio: (data: any) => api.put('/investment/portfolio', data),
@@ -143,16 +146,17 @@ export const agenticAPI = {
 
 // REPORTS
 export const reportAPI = {
-  exportReport: (params: { 
-    format: string; 
-    timeRange?: string; 
-    debtId?: string; 
-    startDate?: string; 
-    endDate?: string 
-  }) => api.get('/reports/export', {
-    params,
-    responseType: 'blob'
-  }),
+  exportReport: (params: {
+    format: string;
+    timeRange?: string;
+    debtId?: string;
+    startDate?: string;
+    endDate?: string;
+  }) =>
+    api.get('/reports/export', {
+      params,
+      responseType: 'blob',
+    }),
 };
 
 // SUBSCRIPTION
@@ -213,8 +217,7 @@ export const referralAPI = {
     api.post('/referral/bank-accounts', data),
   setDefaultBankAccount: (id: string) => api.patch(`/referral/bank-accounts/${id}/default`),
   deleteBankAccount: (id: string) => api.delete(`/referral/bank-accounts/${id}`),
-  requestWithdrawal: (data: { bankAccountId: string; amount: number }) =>
-    api.post('/referral/withdraw', data),
+  requestWithdrawal: (data: { bankAccountId: string; amount: number }) => api.post('/referral/withdraw', data),
   getWithdrawalHistory: () => api.get('/referral/withdrawals'),
 };
 

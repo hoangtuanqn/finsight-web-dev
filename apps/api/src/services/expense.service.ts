@@ -19,7 +19,7 @@ export class ExpenseService {
       },
       include: {
         category: {
-          include: { parent: true }
+          include: { parent: true },
         },
         wallet: true,
       },
@@ -52,7 +52,7 @@ export class ExpenseService {
         amount: data.amount,
         type: data.type,
         categoryId: data.categoryId,
-        walletId: data.walletId !== undefined ? (data.walletId || null) : undefined,
+        walletId: data.walletId !== undefined ? data.walletId || null : undefined,
         description: data.description,
         date: data.date ? new Date(data.date) : undefined,
       },
@@ -113,12 +113,8 @@ export class ExpenseService {
       include: { category: { include: { parent: true } } },
     });
 
-    const totalIncome = expenses
-      .filter((e) => e.type === 'INCOME')
-      .reduce((sum, e) => sum + e.amount, 0);
-    const totalExpense = expenses
-      .filter((e) => e.type === 'EXPENSE')
-      .reduce((sum, e) => sum + e.amount, 0);
+    const totalIncome = expenses.filter((e) => e.type === 'INCOME').reduce((sum, e) => sum + e.amount, 0);
+    const totalExpense = expenses.filter((e) => e.type === 'EXPENSE').reduce((sum, e) => sum + e.amount, 0);
 
     // Group by parent category name (top-level group)
     const groupByCat = (type: 'EXPENSE' | 'INCOME') => {

@@ -4,12 +4,22 @@
  */
 
 const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 function pad2(n: number) {
-  return String(n).padStart(2, "0");
+  return String(n).padStart(2, '0');
 }
 
 export function dateKey(year: number, month: number, day: number) {
@@ -60,11 +70,7 @@ function clampDay(dueDay: number, daysInMonth: number) {
   return Math.min(Math.max(1, Math.round(dueDay)), daysInMonth);
 }
 
-export function buildDebtCalendar(
-  currentMonth: Date,
-  debts: any[],
-  monthlyIncome: number,
-): DebtCalendarResult {
+export function buildDebtCalendar(currentMonth: Date, debts: any[], monthlyIncome: number): DebtCalendarResult {
   const year = currentMonth.getFullYear();
   const monthIndex = currentMonth.getMonth();
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
@@ -72,9 +78,7 @@ export function buildDebtCalendar(
 
   // Build debt events for this month
   const events: DebtEvent[] = [];
-  const activeDebts = debts.filter(
-    (d) => !d?.deletedAt && d?.status !== "PAID",
-  );
+  const activeDebts = debts.filter((d) => !d?.deletedAt && d?.status !== 'PAID');
 
   for (const debt of activeDebts) {
     const dueDay = debt?.dueDay;
@@ -85,8 +89,8 @@ export function buildDebtCalendar(
 
     events.push({
       debtId: debt.id,
-      name: debt.name || "Khoản nợ",
-      platform: debt.platform || "",
+      name: debt.name || 'Khoản nợ',
+      platform: debt.platform || '',
       amount,
       date: dateKey(year, monthIndex, clampDay(dueDay, daysInMonth)),
       balance: Number(debt?.balance) || 0,

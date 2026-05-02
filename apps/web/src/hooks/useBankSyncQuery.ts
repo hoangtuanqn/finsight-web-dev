@@ -1,6 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { bankSyncAPI } from '../api';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { bankSyncAPI } from '../api';
 
 export const useBankSyncQuery = (walletId?: string) => {
   return useQuery({
@@ -23,7 +23,17 @@ export const useBankSyncMutations = () => {
   const queryClient = useQueryClient();
 
   const approveMutation = useMutation({
-    mutationFn: async ({ id, categoryId, description, type }: { id: string, categoryId: string, description?: string, type?: string }) => {
+    mutationFn: async ({
+      id,
+      categoryId,
+      description,
+      type,
+    }: {
+      id: string;
+      categoryId: string;
+      description?: string;
+      type?: string;
+    }) => {
       const res = await bankSyncAPI.approve(id, { categoryId, description, type });
       return res.data;
     },
@@ -36,7 +46,7 @@ export const useBankSyncMutations = () => {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Không thể duyệt giao dịch');
-    }
+    },
   });
 
   const rejectMutation = useMutation({
@@ -50,7 +60,7 @@ export const useBankSyncMutations = () => {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Thao tác thất bại');
-    }
+    },
   });
 
   const fetchMutation = useMutation({
@@ -65,7 +75,7 @@ export const useBankSyncMutations = () => {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || 'Lỗi khi đồng bộ giao dịch');
-    }
+    },
   });
 
   return {

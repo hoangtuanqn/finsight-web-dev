@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { createPortal } from 'react-dom';
-import { 
-  FileDown, 
-  FileSpreadsheet, 
-  FileText, 
-  X, 
-  Loader2, 
-  CheckCircle2, 
-  ShieldCheck,
+import { AnimatePresence, motion } from 'framer-motion';
+import {
   Calendar,
-  CreditCard
+  CheckCircle2,
+  CreditCard,
+  FileDown,
+  FileSpreadsheet,
+  FileText,
+  Loader2,
+  ShieldCheck,
+  X,
 } from 'lucide-react';
+import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { reportAPI } from '../../api';
 import { useDebts } from '../../hooks/useDebtQuery';
 
@@ -29,9 +29,9 @@ const ExportReportModal = ({ isOpen, onClose }) => {
     if (id === 'all') {
       setSelectedDebts(['all']);
     } else {
-      let next = selectedDebts.filter(d => d !== 'all');
+      let next = selectedDebts.filter((d) => d !== 'all');
       if (next.includes(id)) {
-        next = next.filter(d => d !== id);
+        next = next.filter((d) => d !== id);
       } else {
         next.push(id);
       }
@@ -44,15 +44,15 @@ const ExportReportModal = ({ isOpen, onClose }) => {
     setLoadingType(format);
     try {
       const debtIdParam = selectedDebts.includes('all') ? 'all' : selectedDebts.join(',');
-      
+
       const response = await reportAPI.exportReport({
         format,
         timeRange,
         debtId: debtIdParam,
         startDate: timeRange === 'custom' ? customDates.start : undefined,
-        endDate: timeRange === 'custom' ? customDates.end : undefined
+        endDate: timeRange === 'custom' ? customDates.end : undefined,
       });
-      
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -61,7 +61,7 @@ const ExportReportModal = ({ isOpen, onClose }) => {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      
+
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);
@@ -78,9 +78,7 @@ const ExportReportModal = ({ isOpen, onClose }) => {
   const modalContent = (
     <AnimatePresence>
       {isOpen && (
-        <div 
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-        >
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -105,7 +103,7 @@ const ExportReportModal = ({ isOpen, onClose }) => {
                   <FileDown className="w-6 h-6 text-blue-400" />
                   Xuất Báo Cáo Chuyên Sâu
                 </h3>
-                <button 
+                <button
                   onClick={onClose}
                   className="p-2 text-slate-400 hover:text-white transition-colors rounded-full hover:bg-slate-800"
                 >
@@ -129,14 +127,14 @@ const ExportReportModal = ({ isOpen, onClose }) => {
                         { id: '3m', label: '3 tháng qua' },
                         { id: '6m', label: '6 tháng qua' },
                         { id: 'custom', label: 'Tùy chọn' },
-                        { id: 'all', label: 'Tất cả' }
+                        { id: 'all', label: 'Tất cả' },
                       ].map((opt) => (
                         <button
                           key={opt.id}
                           onClick={() => setTimeRange(opt.id)}
                           className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all border ${
-                            timeRange === opt.id 
-                              ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20' 
+                            timeRange === opt.id
+                              ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20'
                               : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:border-slate-600'
                           }`}
                         >
@@ -146,26 +144,26 @@ const ExportReportModal = ({ isOpen, onClose }) => {
                     </div>
 
                     {timeRange === 'custom' && (
-                      <motion.div 
+                      <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         className="grid grid-cols-2 gap-3 p-4 bg-slate-800/30 rounded-2xl border border-slate-800"
                       >
                         <div className="space-y-1.5">
                           <label className="text-[10px] text-slate-500 uppercase font-bold">Từ ngày</label>
-                          <input 
-                            type="date" 
+                          <input
+                            type="date"
                             value={customDates.start}
-                            onChange={(e) => setCustomDates({...customDates, start: e.target.value})}
+                            onChange={(e) => setCustomDates({ ...customDates, start: e.target.value })}
                             className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
                           />
                         </div>
                         <div className="space-y-1.5">
                           <label className="text-[10px] text-slate-500 uppercase font-bold">Đến ngày</label>
-                          <input 
-                            type="date" 
+                          <input
+                            type="date"
                             value={customDates.end}
-                            onChange={(e) => setCustomDates({...customDates, end: e.target.value})}
+                            onChange={(e) => setCustomDates({ ...customDates, end: e.target.value })}
                             className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
                           />
                         </div>
@@ -209,7 +207,7 @@ const ExportReportModal = ({ isOpen, onClose }) => {
                       ))}
                     </div>
                   </div>
-                  
+
                   <div className="h-px bg-slate-800" />
 
                   <div className="grid grid-cols-2 gap-4">
@@ -237,7 +235,7 @@ const ExportReportModal = ({ isOpen, onClose }) => {
               )}
 
               {success && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="flex flex-col items-center justify-center py-12 text-center"
@@ -254,11 +252,11 @@ const ExportReportModal = ({ isOpen, onClose }) => {
             </div>
 
             <div className="p-4 bg-slate-950/50 border-t border-slate-800 flex items-center gap-3">
-               <ShieldCheck className="w-5 h-5 text-blue-400 shrink-0" />
-               <p className="text-[10px] text-slate-500 leading-relaxed">
-                 Dữ liệu báo cáo được tổng hợp dựa trên các khoản nợ bạn đã chọn. 
-                 FinSight cam kết bảo mật thông tin tài chính của bạn theo tiêu chuẩn quốc tế.
-               </p>
+              <ShieldCheck className="w-5 h-5 text-blue-400 shrink-0" />
+              <p className="text-[10px] text-slate-500 leading-relaxed">
+                Dữ liệu báo cáo được tổng hợp dựa trên các khoản nợ bạn đã chọn. FinSight cam kết bảo mật thông tin tài
+                chính của bạn theo tiêu chuẩn quốc tế.
+              </p>
             </div>
           </motion.div>
         </div>

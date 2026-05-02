@@ -1,4 +1,4 @@
-import React from 'react';
+import { Info, TrendingUp } from 'lucide-react';
 import {
   Area,
   AreaChart,
@@ -11,9 +11,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { TrendingUp, Info } from 'lucide-react';
-import { TOOLTIP_STYLE } from './InvestmentConstants';
 import { formatVND } from '../../utils/calculations';
+import { TOOLTIP_STYLE } from './InvestmentConstants';
 
 const CHART_MARGIN = { top: 20, right: 30, left: 20, bottom: 10 };
 const AXIS_TICK = { fill: '#94a3b8', fontSize: 11, fontWeight: 600 };
@@ -45,7 +44,7 @@ function FanLegend() {
 
   return (
     <div className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs font-semibold text-slate-300">
-      {items.map(item => (
+      {items.map((item) => (
         <div key={item.label} className="flex items-center gap-2">
           <span className={`h-2 w-7 rounded-full ${item.className}`} />
           <span>{item.label}</span>
@@ -73,9 +72,7 @@ function FanChartTooltip({ active, payload, label }) {
       className="rounded-2xl border border-white/10 bg-slate-950/95 p-3 shadow-2xl backdrop-blur-xl"
       style={{ maxWidth: 'min(18rem, calc(100vw - 3rem))' }}
     >
-      <div className="mb-2 text-xs font-black uppercase tracking-widest text-slate-500">
-        {label}
-      </div>
+      <div className="mb-2 text-xs font-black uppercase tracking-widest text-slate-500">{label}</div>
       <div className="space-y-1.5">
         {rows.map(([name, value, className]) => (
           <div key={name} className="flex items-center justify-between gap-4 text-xs">
@@ -105,20 +102,8 @@ function FanChart({ data }) {
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-            <XAxis
-              dataKey="year"
-              tick={AXIS_TICK}
-              axisLine={false}
-              tickLine={false}
-              dy={15}
-            />
-            <YAxis
-              tick={AXIS_TICK}
-              axisLine={false}
-              tickLine={false}
-              tickFormatter={compactVND}
-              dx={-15}
-            />
+            <XAxis dataKey="year" tick={AXIS_TICK} axisLine={false} tickLine={false} dy={15} />
+            <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={compactVND} dx={-15} />
             <Tooltip
               content={<FanChartTooltip />}
               wrapperStyle={{ outline: 'none' }}
@@ -195,22 +180,16 @@ function LegacyLineChart({ data }) {
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={data} margin={CHART_MARGIN}>
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-        <XAxis
-          dataKey="year"
-          tick={AXIS_TICK}
-          axisLine={false}
-          tickLine={false}
-          dy={15}
-        />
-        <YAxis
-          tick={AXIS_TICK}
-          axisLine={false}
-          tickLine={false}
-          tickFormatter={compactVND}
-          dx={-15}
-        />
+        <XAxis dataKey="year" tick={AXIS_TICK} axisLine={false} tickLine={false} dy={15} />
+        <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={compactVND} dx={-15} />
         <Tooltip
-          contentStyle={{ ...TOOLTIP_STYLE, borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', backgroundColor: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(8px)' }}
+          contentStyle={{
+            ...TOOLTIP_STYLE,
+            borderRadius: '16px',
+            border: '1px solid rgba(255,255,255,0.1)',
+            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+            backdropFilter: 'blur(8px)',
+          }}
           formatter={(v) => [formatVND(v), '']}
           labelStyle={{ fontWeight: 'bold', marginBottom: '8px', color: '#94a3b8', fontSize: '12px' }}
           itemStyle={{ fontWeight: 'bold', fontSize: '13px' }}
@@ -299,9 +278,7 @@ export default function WealthProjection({ projectionData, monteCarloData, mockP
       </div>
 
       <div className="h-[360px] md:h-[380px] w-full relative z-10">
-        {hasMonteCarlo
-          ? <FanChart data={monteCarloData} />
-          : <LegacyLineChart data={projectionData} />}
+        {hasMonteCarlo ? <FanChart data={monteCarloData} /> : <LegacyLineChart data={projectionData} />}
       </div>
 
       <div className="mt-8 p-5 bg-white/[0.02] border border-white/5 rounded-2xl flex items-start gap-4 relative z-10">
@@ -309,12 +286,10 @@ export default function WealthProjection({ projectionData, monteCarloData, mockP
           <Info size={16} className="text-blue-400" />
         </div>
         <p className="text-xs font-medium text-slate-400 leading-relaxed">
-          Giá trị dự phóng đã tính chiết khấu lạm phát ({mockProfile?.inflationRate ?? 3.5}%/năm).
-          {' '}
+          Giá trị dự phóng đã tính chiết khấu lạm phát ({mockProfile?.inflationRate ?? 3.5}%/năm).{' '}
           {hasMonteCarlo
             ? 'Vùng xác suất dùng percentile từ mô phỏng Monte Carlo; đường trung vị thể hiện kịch bản kỳ vọng cân bằng.'
-            : 'Mô hình sử dụng phương pháp mô phỏng xác suất để tính toán 3 kịch bản thị trường.'}
-          {' '}
+            : 'Mô hình sử dụng phương pháp mô phỏng xác suất để tính toán 3 kịch bản thị trường.'}{' '}
           Kết quả phản ánh giá trị tài sản ròng quy đổi về sức mua hiện tại.
         </p>
       </div>

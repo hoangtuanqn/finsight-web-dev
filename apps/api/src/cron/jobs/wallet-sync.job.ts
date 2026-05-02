@@ -1,15 +1,15 @@
 import prisma from '../../lib/prisma';
-import { getIO } from '../../utils/socket';
 import { fetchSepayTransactions, toSepayDate } from '../../services/sepay.service';
+import { getIO } from '../../utils/socket';
 
 // ─── Quét tất cả ví ngân hàng có token ───────────────────────────────────────
 
 export async function syncAllBankWallets() {
   const wallets = await (prisma as any).wallet.findMany({
-    where: { 
-      type: 'BANK', 
+    where: {
+      type: 'BANK',
       sepayToken: { not: null },
-      sepayLinkedAt: { not: null }
+      sepayLinkedAt: { not: null },
     },
   });
 
@@ -39,7 +39,7 @@ export async function syncWalletTransactions(wallet: any) {
       token,
       accountNumber: wallet.bankAccountNumber ?? undefined,
       transactionDateMin, // Lọc theo ngày bắt đầu liên kết
-      sinceId,           // Lọc theo ID giao dịch cuối cùng đã lấy
+      sinceId, // Lọc theo ID giao dịch cuối cùng đã lấy
       limit: 100,
     });
     transactions = result.transactions;
@@ -55,7 +55,7 @@ export async function syncWalletTransactions(wallet: any) {
       where: { id: wallet.id },
       data: { balance: latestBalance },
     });
-    
+
     emitToUser(wallet.userId, 'wallet:balance_updated', {
       walletId: wallet.id,
       walletName: wallet.name,
@@ -82,9 +82,9 @@ export async function syncWalletTransactions(wallet: any) {
       where: {
         walletId_sepayTxId: {
           walletId: wallet.id,
-          sepayTxId: sepayTxId
-        }
-      }
+          sepayTxId: sepayTxId,
+        },
+      },
     });
 
     if (existing) continue;
@@ -108,7 +108,7 @@ export async function syncWalletTransactions(wallet: any) {
         description: tx.transaction_content || 'Giao dịch ngân hàng',
         bankBrandName: tx.bank_brand_name,
         accountNumber: tx.account_number,
-        status: 'PENDING'
+        status: 'PENDING',
       },
     });
 
@@ -140,5 +140,7 @@ function emitToUser(userId: string, event: string, payload: any) {
   try {
     const io = getIO();
     if (io) io.to(`user_${userId}`).emit(event, payload);
-  } catch { /* Socket chưa khởi tạo */ }
+  } catch {
+    /* Socket chưa khởi tạo */
+  }
 }

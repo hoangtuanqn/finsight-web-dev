@@ -1,5 +1,5 @@
-import Redis from 'ioredis';
 import dotenv from 'dotenv';
+import Redis from 'ioredis';
 dotenv.config();
 
 let redis: Redis | null = null;
@@ -28,7 +28,7 @@ try {
   await redisInstance.connect().catch(() => {
     console.warn('⚠️  Redis not available — running without cache');
   });
-  
+
   redis = redisInstance;
 } catch {
   console.warn('⚠️  Redis not available — running without cache');

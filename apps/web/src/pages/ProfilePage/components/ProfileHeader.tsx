@@ -1,13 +1,9 @@
-import { User, ShieldCheck } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion } from 'framer-motion';
+import { ShieldCheck, User } from 'lucide-react';
 
 export function ProfileHeader({ user }: { user: any }) {
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 5 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="pt-4 pb-2"
-    >
+    <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} className="pt-4 pb-2">
       <div className="flex items-center gap-3 mb-4">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-blue-500/20 bg-blue-500/10 text-blue-500 text-[11px] font-black uppercase tracking-widest">
           <User size={12} /> Hồ sơ cá nhân
@@ -18,7 +14,7 @@ export function ProfileHeader({ user }: { user: any }) {
           </div>
         )}
       </div>
-      
+
       <h1 className="text-4xl font-black tracking-tight text-[var(--color-text-primary)]">
         {user?.fullName ? `Chào, ${user.fullName.split(' ').pop()} 👋` : 'Hồ sơ của bạn'}
       </h1>

@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { motion } from 'framer-motion';
-import { PieChart as PieChartIcon, TrendingUp, TrendingDown, Target } from 'lucide-react';
+import { PieChart as PieChartIcon, Target } from 'lucide-react';
+import { useState } from 'react';
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface ExpenseStatsProps {
   stats: any;
@@ -10,14 +10,12 @@ interface ExpenseStatsProps {
 
 export function ExpenseStats({ stats, loading }: ExpenseStatsProps) {
   const [view, setView] = useState<'EXPENSE' | 'INCOME'>('EXPENSE');
-  
-  const data = view === 'EXPENSE' ? (stats?.byCategory || []) : (stats?.byCategoryIncome || []);
+
+  const data = view === 'EXPENSE' ? stats?.byCategory || [] : stats?.byCategoryIncome || [];
   const totalValue = view === 'EXPENSE' ? stats?.totalExpense : stats?.totalIncome;
 
   if (loading) {
-    return (
-      <div className="h-[400px] bg-[var(--color-bg-secondary)]/50 animate-pulse rounded-3xl" />
-    );
+    return <div className="h-[400px] bg-[var(--color-bg-secondary)]/50 animate-pulse rounded-3xl" />;
   }
 
   return (
@@ -32,8 +30,8 @@ export function ExpenseStats({ stats, loading }: ExpenseStatsProps) {
           <button
             onClick={() => setView('EXPENSE')}
             className={`px-3 py-1.5 rounded-lg text-[11px] font-black transition-all ${
-              view === 'EXPENSE' 
-                ? 'bg-[var(--color-bg-card)] text-red-500 shadow-sm' 
+              view === 'EXPENSE'
+                ? 'bg-[var(--color-bg-card)] text-red-500 shadow-sm'
                 : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
             }`}
           >
@@ -42,8 +40,8 @@ export function ExpenseStats({ stats, loading }: ExpenseStatsProps) {
           <button
             onClick={() => setView('INCOME')}
             className={`px-3 py-1.5 rounded-lg text-[11px] font-black transition-all ${
-              view === 'INCOME' 
-                ? 'bg-[var(--color-bg-card)] text-emerald-500 shadow-sm' 
+              view === 'INCOME'
+                ? 'bg-[var(--color-bg-card)] text-emerald-500 shadow-sm'
                 : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
             }`}
           >
@@ -51,33 +49,25 @@ export function ExpenseStats({ stats, loading }: ExpenseStatsProps) {
           </button>
         </div>
       </div>
-      
+
       <div>
         {data.length > 0 ? (
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie
-                  data={data}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
+                <Pie data={data} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
                   {data.map((entry: any, index: number) => (
                     <Cell key={`cell-${index}`} fill={entry.color || '#3b82f6'} />
                   ))}
                 </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'var(--color-bg-card)', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'var(--color-bg-card)',
                     borderColor: 'var(--color-border)',
                     borderRadius: '16px',
                     fontSize: '12px',
-                    fontWeight: 'bold'
-                  }} 
+                    fontWeight: 'bold',
+                  }}
                   itemStyle={{ color: 'var(--color-text-primary)' }}
                 />
               </PieChart>
@@ -101,7 +91,7 @@ export function ExpenseStats({ stats, loading }: ExpenseStatsProps) {
             <div key={item.name} className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div 
+                  <div
                     className="w-10 h-10 rounded-2xl flex items-center justify-center text-[18px]"
                     style={{ background: `${item.color}15`, color: item.color }}
                   >
@@ -117,7 +107,7 @@ export function ExpenseStats({ stats, loading }: ExpenseStatsProps) {
                 </div>
               </div>
               <div className="w-full h-1.5 bg-[var(--color-bg-secondary)] rounded-full overflow-hidden">
-                <motion.div 
+                <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${percentage}%` }}
                   className="h-full rounded-full"
@@ -136,9 +126,19 @@ export function ExpenseStats({ stats, loading }: ExpenseStatsProps) {
           </div>
           <p className="text-[11px] text-[var(--color-text-muted)] leading-relaxed font-medium">
             {stats?.totalIncome > 0 ? (
-              <>Dựa trên thu nhập, bạn nên dành ít nhất <strong>20%</strong> cho tiết kiệm và đầu tư. Hiện tại bạn đang tiết kiệm được <strong>{Math.max(0, Math.round(((stats.totalIncome - stats.totalExpense) / stats.totalIncome) * 100))}%</strong> thu nhập của mình.</>
+              <>
+                Dựa trên thu nhập, bạn nên dành ít nhất <strong>20%</strong> cho tiết kiệm và đầu tư. Hiện tại bạn đang
+                tiết kiệm được{' '}
+                <strong>
+                  {Math.max(0, Math.round(((stats.totalIncome - stats.totalExpense) / stats.totalIncome) * 100))}%
+                </strong>{' '}
+                thu nhập của mình.
+              </>
             ) : (
-              <>Hãy thêm các khoản thu nhập của bạn để AI có thể phân tích và đưa ra các lời khuyên về tỷ lệ tiết kiệm hợp lý.</>
+              <>
+                Hãy thêm các khoản thu nhập của bạn để AI có thể phân tích và đưa ra các lời khuyên về tỷ lệ tiết kiệm
+                hợp lý.
+              </>
             )}
           </p>
         </div>

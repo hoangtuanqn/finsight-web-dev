@@ -1,11 +1,11 @@
-import Navigation from './LandingPage/components/Navigation';
-import Hero from './LandingPage/components/Hero';
-import Problems from './LandingPage/components/Problems';
-import Features from './LandingPage/components/Features';
-import HowItWorks from './LandingPage/components/HowItWorks';
-import FAQ from './LandingPage/components/FAQ';
 import CTA from './LandingPage/components/CTA';
+import FAQ from './LandingPage/components/FAQ';
+import Features from './LandingPage/components/Features';
 import Footer from './LandingPage/components/Footer';
+import Hero from './LandingPage/components/Hero';
+import HowItWorks from './LandingPage/components/HowItWorks';
+import Navigation from './LandingPage/components/Navigation';
+import Problems from './LandingPage/components/Problems';
 
 export default function LandingPage() {
   return (
@@ -14,7 +14,7 @@ export default function LandingPage() {
       <div className="fixed inset-0 z-0 pointer-events-none">
         {/* Subtle Grid */}
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHBhdGggZD0iTTAgMGg0MHY0MEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0wIDM5LjVoNDBNMzkuNSAwdi00ME0wIDAuNWg0ME0wLjUgMHY0MCIgc3Ryb2tlPSJyZ2JhKDAsMCwwLDAuMDMpIiBzdHJva2Utd2lkdGg9IjEiLz48L3N2Zz4=')] dark:bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHBhdGggZD0iTTAgMGg0MHY0MEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0wIDM5LjVoNDBNMzkuNSAwdi00ME0wIDAuNWg0ME0wLjUgMHY0MCIgc3Ryb2tlPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMDIpIiBzdHJva2Utd2lkdGg9IjEiLz48L3N2Zz4=')]" />
-        
+
         {/* Glowing Orbs */}
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-500/10 dark:bg-blue-600/20 blur-[120px] animate-pulse" />
         <div className="absolute top-[40%] right-[-10%] w-[50%] h-[50%] rounded-full bg-cyan-400/10 dark:bg-cyan-500/20 blur-[150px] animate-pulse [animation-delay:2s]" />
