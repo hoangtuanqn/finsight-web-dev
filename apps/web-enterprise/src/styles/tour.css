@@ -1,0 +1,187 @@
+/* ═══════════════════════════════════════════
+   FinSight Ultra-Premium Tour Theme (V3 - Native & Clean)
+   ═══════════════════════════════════════════ */
+
+/* Xóa hoàn toàn các hack background và backdrop-filter trên .driver-overlay.
+   Để thư viện driver.js tự động xử lý lớp phủ bằng SVG Path cutout. */
+
+/* ── Highlight Area (Khung viền sáng quanh phần tử focus) ── */
+/* driver.js cung cấp .driver-stage là một thẻ div nằm ngay dưới lỗ đục SVG */
+.driver-stage {
+  border: 2px solid #3b82f6 !important;
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.6) !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease !important;
+}
+
+/* ── Popover Design (Hộp thoại chỉ dẫn) ── */
+.finsight-tour-popover.driver-popover {
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    sans-serif !important;
+  background: #111827 !important;
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
+  border-radius: 16px !important;
+  box-shadow:
+    0 20px 40px -10px rgba(0, 0, 0, 0.8),
+    0 0 30px rgba(59, 130, 246, 0.15) !important;
+  padding: 24px !important;
+  max-width: 360px !important;
+  animation: popover-fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes popover-fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Thanh Progress (Dải sáng phía trên popover) */
+.finsight-tour-popover.driver-popover::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #3b82f6, #06b6d4, #3b82f6);
+  background-size: 200% 100%;
+  animation: progress-shimmer 3s infinite linear;
+  border-radius: 16px 16px 0 0;
+}
+
+@keyframes progress-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+/* ── Mũi tên chỉ hướng (Driver.js Arrow) ── */
+/* Mũi tên tự động của driver.js, chỉ việc đổi màu để khớp với nền popover */
+.finsight-tour-popover.driver-popover .driver-popover-arrow-side-left {
+  border-left-color: #111827 !important;
+}
+.finsight-tour-popover.driver-popover .driver-popover-arrow-side-right {
+  border-right-color: white !important;
+}
+.finsight-tour-popover.driver-popover .driver-popover-arrow-side-top {
+  border-top-color: #111827 !important;
+}
+.finsight-tour-popover.driver-popover .driver-popover-arrow-side-bottom {
+  border-bottom-color: #111827 !important;
+}
+
+/* ── Typography (Phông chữ) ── */
+.finsight-tour-popover .driver-popover-title {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  margin-bottom: 10px !important;
+  letter-spacing: -0.01em !important;
+}
+
+.finsight-tour-popover .driver-popover-description {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 13.5px !important;
+  color: #cbd5e1 !important;
+  line-height: 1.6 !important;
+  font-weight: 400 !important;
+}
+
+/* ── Footer & Buttons (Nút bấm) ── */
+.finsight-tour-popover .driver-popover-footer {
+  margin-top: 20px !important;
+  padding-top: 16px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+.finsight-tour-popover .driver-popover-progress-text {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #64748b !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+.finsight-tour-popover .driver-popover-footer button {
+  font-family: 'Inter', sans-serif !important;
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  transition: all 0.2s ease !important;
+  border: none !important;
+  cursor: pointer !important;
+}
+
+/* Nút Tiếp theo */
+.finsight-tour-popover .driver-popover-next-btn {
+  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3) !important;
+}
+.finsight-tour-popover .driver-popover-next-btn:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.5) !important;
+  filter: brightness(1.1) !important;
+}
+
+/* Nút Quay lại */
+.finsight-tour-popover .driver-popover-prev-btn {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #94a3b8 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+.finsight-tour-popover .driver-popover-prev-btn:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+}
+
+/* Nút Đóng (X) */
+.finsight-tour-popover .driver-popover-close-btn {
+  top: 12px !important;
+  right: 12px !important;
+  color: #64748b !important;
+  font-size: 18px !important;
+  transition: all 0.2s !important;
+}
+.finsight-tour-popover .driver-popover-close-btn:hover {
+  color: #ef4444 !important;
+}
+
+/* ── Responsive (Thiết bị di động) ── */
+@media (max-width: 768px) {
+  .finsight-tour-popover.driver-popover {
+    max-width: calc(100vw - 32px) !important;
+    padding: 20px !important;
+  }
+  .finsight-tour-popover .driver-popover-title {
+    font-size: 16px !important;
+  }
+  .finsight-tour-popover .driver-popover-description {
+    font-size: 13px !important;
+  }
+  .finsight-tour-popover .driver-popover-footer {
+    flex-direction: column !important;
+    gap: 12px !important;
+    align-items: flex-start !important;
+  }
+  .finsight-tour-popover .driver-popover-footer button {
+    width: 100% !important;
+  }
+}
