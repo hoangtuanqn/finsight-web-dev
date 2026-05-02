@@ -18,6 +18,7 @@ import bankSyncRoutes from './routes/bank-sync.routes';
 import debtGoalRoutes from './routes/debt-goal.routes';
 import debtRoutes from './routes/debt.routes';
 import expenseRoutes from './routes/expense.routes';
+import faceRoutes from './routes/face.routes';
 import investmentRoutes from './routes/investment.routes';
 import kycRoutes from './routes/kyc.routes';
 import marketRoutes from './routes/market.routes';
@@ -75,6 +76,7 @@ app.use('/api/articles', articleRoutes);
 app.use('/api/bank-sync', bankSyncRoutes);
 app.use('/api/referral', referralRoutes);
 app.use('/api/kyc', kycRoutes);
+app.use('/api/face', faceRoutes);
 
 // Health check
 app.get('/api/health', (req: Request, res: Response) => {
