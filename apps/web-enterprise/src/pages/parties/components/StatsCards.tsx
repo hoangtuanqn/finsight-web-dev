@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { LucideIcon } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import React from 'react';
 
 interface StatsCard {

@@ -1,13 +1,14 @@
 import { Button, Input, Modal } from '@repo/ui';
 import { User } from 'lucide-react';
 import React from 'react';
+import type { Party } from '../types';
 
 interface PartyFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
-  formData: any;
-  setFormData: (data: any) => void;
+  formData: Partial<Party>;
+  setFormData: (data: Partial<Party>) => void;
   internalUsers: any[];
   isEdit: boolean;
 }
@@ -114,13 +115,14 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                 key={tag}
                 type="button"
                 onClick={() => {
-                  const tags = formData.typeTags.includes(tag)
-                    ? formData.typeTags.filter((t: string) => t !== tag)
-                    : [...formData.typeTags, tag];
+                  const currentTags = formData.typeTags || [];
+                  const tags = currentTags.includes(tag)
+                    ? currentTags.filter((t: string) => t !== tag)
+                    : [...currentTags, tag];
                   setFormData({ ...formData, typeTags: tags });
                 }}
                 className={`px-6 py-2.5 rounded-xl border text-xs font-bold transition-all ${
-                  formData.typeTags.includes(tag)
+                  formData.typeTags?.includes(tag)
                     ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400 shadow-[0_0_15px_-3px_rgba(16,185,129,0.3)]'
                     : 'bg-slate-950/30 border-slate-800 text-slate-500 hover:border-slate-700'
                 }`}
@@ -147,9 +149,11 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
               <Input
                 placeholder="Nguyễn Văn A"
                 className="w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white"
-                value={formData.contacts[0].name}
+                value={formData.contacts?.[0]?.name || ''}
                 onChange={(e) => {
-                  const newContacts = [...formData.contacts];
+                  const newContacts = [
+                    ...(formData.contacts || [{ name: '', position: '', email: '', phone: '', isPrimary: true }]),
+                  ];
                   newContacts[0].name = e.target.value;
                   setFormData({ ...formData, contacts: newContacts });
                 }}
@@ -160,9 +164,11 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
               <Input
                 placeholder="090 123 4567"
                 className="w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white"
-                value={formData.contacts[0].phone}
+                value={formData.contacts?.[0]?.phone || ''}
                 onChange={(e) => {
-                  const newContacts = [...formData.contacts];
+                  const newContacts = [
+                    ...(formData.contacts || [{ name: '', position: '', email: '', phone: '', isPrimary: true }]),
+                  ];
                   newContacts[0].phone = e.target.value;
                   setFormData({ ...formData, contacts: newContacts });
                 }}

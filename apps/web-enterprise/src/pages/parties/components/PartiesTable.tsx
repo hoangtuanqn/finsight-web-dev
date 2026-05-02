@@ -1,18 +1,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@repo/ui';
 import { History, ShieldAlert, User } from 'lucide-react';
 import React from 'react';
-
-interface Party {
-  id: string;
-  internalCode: string;
-  name: string;
-  shortName?: string;
-  taxCode: string;
-  typeTags: string[];
-  creditLimit: number;
-  status: string;
-  isRelatedParty: boolean;
-}
+import type { Party } from '../types';
 
 interface PartiesTableProps {
   parties: Party[];
