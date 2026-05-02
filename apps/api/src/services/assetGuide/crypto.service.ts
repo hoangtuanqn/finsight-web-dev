@@ -84,11 +84,11 @@ function scoreCoin(coin: any, riskLevel: string = 'MEDIUM'): number {
   const mcap = coin.market_cap || 0;
   const volume = coin.total_volume || 0;
   const change = Math.abs(coin.price_change_percentage_24h || 0);
-  const fdv    = coin.fully_diluted_valuation || 0;
+  const fdv = coin.fully_diluted_valuation || 0;
 
   // MCap: dùng để lọc an toàn tối thiểu, không để xếp hạng
   // Cap tại 70 để coin rank 5-30 có thể cạnh tranh với BTC/ETH
-  const mcapRaw   = Math.min(100, (Math.log10(Math.max(mcap, 1)) / Math.log10(3e12)) * 100);
+  const mcapRaw = Math.min(100, (Math.log10(Math.max(mcap, 1)) / Math.log10(3e12)) * 100);
   const mcapScore = Math.min(70, mcapRaw) - (mcap < 5e9 ? 30 : mcap < 20e9 ? 10 : 0);
 
   // Liquidity: volume/mcap ratio — coin đang được giao dịch tích cực
@@ -97,7 +97,7 @@ function scoreCoin(coin: any, riskLevel: string = 'MEDIUM'): number {
 
   // MC/FDV: ít token chưa unlock = ít áp lực xả
   const mcFdvRatio = fdv > 0 ? Math.min(mcap / fdv, 1) : 1;
-  const fdvScore   = (mcFdvRatio * 100) - (mcFdvRatio < 0.2 ? 25 : mcFdvRatio < 0.5 ? 10 : 0);
+  const fdvScore = mcFdvRatio * 100 - (mcFdvRatio < 0.2 ? 25 : mcFdvRatio < 0.5 ? 10 : 0);
 
   // Momentum/Volatility: thay đổi theo khẩu vị rủi ro
   let momentumScore: number;
@@ -107,19 +107,16 @@ function scoreCoin(coin: any, riskLevel: string = 'MEDIUM'): number {
   } else if (riskLevel === 'HIGH') {
     // Thưởng coin đang tăng mạnh (3–15%), không thích coin đang giảm
     const raw24h = coin.price_change_percentage_24h || 0;
-    momentumScore = raw24h >= 3 && raw24h <= 15
-      ? 100 - Math.abs(raw24h - 9) * 4
-      : raw24h > 0 ? 50 : Math.max(0, 40 + raw24h * 3);
+    momentumScore =
+      raw24h >= 3 && raw24h <= 15 ? 100 - Math.abs(raw24h - 9) * 4 : raw24h > 0 ? 50 : Math.max(0, 40 + raw24h * 3);
   } else {
     // MEDIUM: thưởng tăng nhẹ, phạt giảm, phạt biến động quá lớn
     const raw24h = coin.price_change_percentage_24h || 0;
-    momentumScore = raw24h >= 0
-      ? Math.max(0, 100 - Math.max(0, raw24h - 8) * 6)
-      : Math.max(0, 80 + raw24h * 5);
+    momentumScore = raw24h >= 0 ? Math.max(0, 100 - Math.max(0, raw24h - 8) * 6) : Math.max(0, 80 + raw24h * 5);
   }
 
   // Trọng số: mcap 25% (lọc an toàn), liq 30% (đang sôi động), momentum 30%, fdv 15%
-  return (mcapScore * 0.25) + (liqScore * 0.30) + (momentumScore * 0.30) + (fdvScore * 0.15);
+  return mcapScore * 0.25 + liqScore * 0.3 + momentumScore * 0.3 + fdvScore * 0.15;
 }
 
 function buildCoinCard(coin: any, rank: number): CoinCard {
@@ -140,27 +137,45 @@ function buildCoinCard(coin: any, rank: number): CoinCard {
         ? `$${(mcap / 1e9).toFixed(0)}B`
         : `$${(mcap / 1e6).toFixed(0)}M`;
 
-  const fdv         = coin.fully_diluted_valuation || 0;
-  const mcFdvRatio  = fdv > 0 ? mcap / fdv : 1;
-  const fdvLabel    = mcFdvRatio >= 0.9 ? 'lưu hành gần max' : mcFdvRatio >= 0.5 ? `MC/FDV ${(mcFdvRatio * 100).toFixed(0)}%` : `MC/FDV ${(mcFdvRatio * 100).toFixed(0)}% ⚠️`;
-  const liqLabel    = volRatio > 0.15 ? 'thanh khoản rất cao' : volRatio > 0.07 ? 'thanh khoản tốt' : 'thanh khoản trung bình';
-  const trendLabel  = change > 5 ? '🚀 đang tăng mạnh' : change > 1 ? '📈 xu hướng tăng' : change < -5 ? '📉 đang giảm mạnh' : change < -1 ? '📉 xu hướng giảm' : '➡️ đi ngang';
-  const note        = `MCap ${mcapLabel} · ${fdvLabel} · ${liqLabel} · ${trendLabel} 24h`;
+  const fdv = coin.fully_diluted_valuation || 0;
+  const mcFdvRatio = fdv > 0 ? mcap / fdv : 1;
+  const fdvLabel =
+    mcFdvRatio >= 0.9
+      ? 'lưu hành gần max'
+      : mcFdvRatio >= 0.5
+        ? `MC/FDV ${(mcFdvRatio * 100).toFixed(0)}%`
+        : `MC/FDV ${(mcFdvRatio * 100).toFixed(0)}% ⚠️`;
+  const liqLabel =
+    volRatio > 0.15 ? 'thanh khoản rất cao' : volRatio > 0.07 ? 'thanh khoản tốt' : 'thanh khoản trung bình';
+  const trendLabel =
+    change > 5
+      ? '🚀 đang tăng mạnh'
+      : change > 1
+        ? '📈 xu hướng tăng'
+        : change < -5
+          ? '📉 đang giảm mạnh'
+          : change < -1
+            ? '📉 xu hướng giảm'
+            : '➡️ đi ngang';
+  const note = `MCap ${mcapLabel} · ${fdvLabel} · ${liqLabel} · ${trendLabel} 24h`;
 
   const reason: string[] = [];
-  if (coin.market_cap_rank <= 2)   reason.push(`Top ${coin.market_cap_rank} thị trường — vốn hóa lớn nhất, ít rủi ro mất thanh khoản`);
-  else if (mcap >= 20e9)           reason.push(`Vốn hóa ${mcapLabel} — đủ lớn để ổn định, khó bị thao túng giá`);
-  else                             reason.push(`Vốn hóa ${mcapLabel} — mid-cap có tiềm năng tăng trưởng cao hơn blue-chip`);
+  if (coin.market_cap_rank <= 2)
+    reason.push(`Top ${coin.market_cap_rank} thị trường — vốn hóa lớn nhất, ít rủi ro mất thanh khoản`);
+  else if (mcap >= 20e9) reason.push(`Vốn hóa ${mcapLabel} — đủ lớn để ổn định, khó bị thao túng giá`);
+  else reason.push(`Vốn hóa ${mcapLabel} — mid-cap có tiềm năng tăng trưởng cao hơn blue-chip`);
 
-  if (volRatio > 0.15)             reason.push(`Thanh khoản rất cao (vol/mcap ${(volRatio * 100).toFixed(0)}%) — dễ mua/bán bất kỳ lúc nào`);
-  else if (volRatio > 0.07)        reason.push(`Thanh khoản tốt — giao dịch sôi động, ít bị trượt giá`);
+  if (volRatio > 0.15)
+    reason.push(`Thanh khoản rất cao (vol/mcap ${(volRatio * 100).toFixed(0)}%) — dễ mua/bán bất kỳ lúc nào`);
+  else if (volRatio > 0.07) reason.push(`Thanh khoản tốt — giao dịch sôi động, ít bị trượt giá`);
 
-  if (change > 5)                  reason.push(`Tăng ${change.toFixed(1)}% trong 24h — đang có momentum mạnh`);
-  else if (change > 1)             reason.push(`Tăng nhẹ ${change.toFixed(1)}% trong 24h — xu hướng tích cực`);
-  else if (change >= -1)           reason.push(`Biến động thấp (${change.toFixed(1)}% 24h) — phù hợp giữ vốn ổn định`);
+  if (change > 5) reason.push(`Tăng ${change.toFixed(1)}% trong 24h — đang có momentum mạnh`);
+  else if (change > 1) reason.push(`Tăng nhẹ ${change.toFixed(1)}% trong 24h — xu hướng tích cực`);
+  else if (change >= -1) reason.push(`Biến động thấp (${change.toFixed(1)}% 24h) — phù hợp giữ vốn ổn định`);
 
-  if (mcFdvRatio >= 0.9)           reason.push(`Hầu hết token đã lưu hành — ít rủi ro bị xả từ token mở khóa`);
-  else if (mcFdvRatio < 0.5)       reason.push(`Còn ${((1 - mcFdvRatio) * 100).toFixed(0)}% token chưa unlock — cần theo dõi lịch mở khóa`);
+  if (mcFdvRatio >= 0.9) reason.push(`Hầu hết token đã lưu hành — ít rủi ro bị xả từ token mở khóa`);
+  else if (mcFdvRatio < 0.5)
+    reason.push(`Còn ${((1 - mcFdvRatio) * 100).toFixed(0)}% token chưa unlock — cần theo dõi lịch mở khóa`);
 
   let badge = '',
     badgeColor = '';
@@ -213,10 +228,11 @@ export async function getCryptoPricesData(riskLevel: string): Promise<CryptoServ
   if (cryptoCache.data && now - cryptoCache.fetchedAt < CRYPTO_CACHE_TTL_MS) {
     rawCoins = cryptoCache.data;
   } else {
-    const url = 'https://api.coingecko.com/api/v3/coins/markets'
-      + '?vs_currency=usd&order=market_cap_desc&per_page=30&page=1'
-      + '&sparkline=false&price_change_percentage=24h'
-      + '&include_fully_diluted_valuation=true';
+    const url =
+      'https://api.coingecko.com/api/v3/coins/markets' +
+      '?vs_currency=usd&order=market_cap_desc&per_page=30&page=1' +
+      '&sparkline=false&price_change_percentage=24h' +
+      '&include_fully_diluted_valuation=true';
     const response = await fetch(url, { headers: { Accept: 'application/json' } });
     if (!response.ok) throw new Error(`CoinGecko ${response.status}`);
     rawCoins = await response.json();
@@ -276,11 +292,11 @@ export async function getCryptoPricesData(riskLevel: string): Promise<CryptoServ
   };
 
   return {
-    coins:      top5,
-    intro:      introMap[riskLevel] || introMap.MEDIUM,
+    coins: top5,
+    intro: introMap[riskLevel] || introMap.MEDIUM,
     disclaimer: `Xếp hạng dựa trên dữ liệu thị trường (MCap, thanh khoản, MC/FDV). Chưa tính đến team, use case hay tokenomics chi tiết — cần DYOR trước khi đầu tư.`,
     riskLevel,
-    cached:     cryptoCache.fetchedAt !== now,
+    cached: cryptoCache.fetchedAt !== now,
   };
 }
 

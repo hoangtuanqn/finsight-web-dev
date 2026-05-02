@@ -1,13 +1,15 @@
 import { Request, Response } from 'express';
+import { getBondsRatesData } from '../services/assetGuide/bonds.service';
 import {
+  BLACKLIST_IDS,
   buildCoinCard,
   getCryptoCache,
   getCryptoPricesData,
   scoreCoin,
   STABLECOIN_IDS,
-  BLACKLIST_IDS,
 } from '../services/assetGuide/crypto.service';
 import { getGoldCache, getGoldPricesData } from '../services/assetGuide/gold.service';
+import { getSavingsRatesData } from '../services/assetGuide/savings.service';
 import {
   buildStockCard,
   getStockCacheForFallback,
@@ -15,8 +17,6 @@ import {
   scoreStock,
   STOCK_UNIVERSE,
 } from '../services/assetGuide/stocks.service';
-import { getBondsRatesData } from '../services/assetGuide/bonds.service';
-import { getSavingsRatesData } from '../services/assetGuide/savings.service';
 import { error, success } from '../utils/apiResponse';
 
 // ─── Bonds ───────────────────────────────────────────────────────

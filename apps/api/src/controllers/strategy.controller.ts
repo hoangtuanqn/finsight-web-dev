@@ -72,12 +72,12 @@ export async function generateStrategy(req: AuthenticatedRequest, res: Response)
         userId: req.userId,
         sentimentValue,
         sentimentLabel: result.sentimentLabel,
-        riskLevel:     user.investorProfile.riskLevel,
-        savings:       result.savings,
-        gold:          result.gold,
-        stocks:        result.stocks,
-        bonds:         result.bonds,
-        crypto:        result.crypto,
+        riskLevel: user.investorProfile.riskLevel,
+        savings: result.savings,
+        gold: result.gold,
+        stocks: result.stocks,
+        bonds: result.bonds,
+        crypto: result.crypto,
         recommendation: result.recommendation,
         marketViews: result.marketViews,
       },
@@ -134,7 +134,7 @@ export async function upsertPortfolio(req: AuthenticatedRequest, res: Response) 
       return error(res, `Tổng phân bổ phải bằng 100% (hiện tại: ${total.toFixed(1)}%)`, 400);
     }
 
-    if ([savings, gold, stocks, bonds, crypto].some(v => v < 0)) {
+    if ([savings, gold, stocks, bonds, crypto].some((v) => v < 0)) {
       return error(res, 'Phân bổ không được âm', 400);
     }
 
@@ -179,11 +179,11 @@ export async function updatePortfolio(req: AuthenticatedRequest, res: Response) 
 
     const { savings, gold, stocks, bonds, crypto, notes } = req.body;
 
-    const newSavings  = savings   ?? existing.savings;
-    const newGold     = gold      ?? existing.gold;
-    const newStocks   = stocks    ?? existing.stocks;
-    const newBonds    = bonds     ?? existing.bonds;
-    const newCrypto   = crypto    ?? existing.crypto;
+    const newSavings = savings ?? existing.savings;
+    const newGold = gold ?? existing.gold;
+    const newStocks = stocks ?? existing.stocks;
+    const newBonds = bonds ?? existing.bonds;
+    const newCrypto = crypto ?? existing.crypto;
 
     const total = newSavings + newGold + newStocks + newBonds + newCrypto;
     if (Math.abs(total - 100) > 0.5) {
@@ -194,11 +194,11 @@ export async function updatePortfolio(req: AuthenticatedRequest, res: Response) 
       where: { userId: req.userId },
       data: {
         savings: newSavings,
-        gold:    newGold,
-        stocks:  newStocks,
-        bonds:   newBonds,
-        crypto:  newCrypto,
-        notes:   notes !== undefined ? notes : existing.notes,
+        gold: newGold,
+        stocks: newStocks,
+        bonds: newBonds,
+        crypto: newCrypto,
+        notes: notes !== undefined ? notes : existing.notes,
       },
       include: { sourceStrategy: true },
     });

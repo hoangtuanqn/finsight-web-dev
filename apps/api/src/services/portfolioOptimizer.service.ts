@@ -171,11 +171,15 @@ export async function getOptimalAllocation(
   excludedAssets: string[] = [],
 ) {
   const savingsRate = (profile?.savingsRate ?? 5) / 100;
-  const marketParams = marketParamsOverride || await (async () => {
-    const { getMarketParams } = await import('./historicalData.service.js');
-    return getMarketParams(savingsRate);
-  })();
-  console.log(`[Optimizer] marketParams.means.length=${marketParams.means.length} assetOrder=${JSON.stringify(marketParams.assetOrder)} covMatrix rows=${(marketParams.covMatrix.toArray?.() ?? marketParams.covMatrix).length}`);
+  const marketParams =
+    marketParamsOverride ||
+    (await (async () => {
+      const { getMarketParams } = await import('./historicalData.service.js');
+      return getMarketParams(savingsRate);
+    })());
+  console.log(
+    `[Optimizer] marketParams.means.length=${marketParams.means.length} assetOrder=${JSON.stringify(marketParams.assetOrder)} covMatrix rows=${(marketParams.covMatrix.toArray?.() ?? marketParams.covMatrix).length}`,
+  );
   const priorMeans = adjustReturnsForSentiment(marketParams.means, sentimentValue);
   const { generateMarketViews } = await import('./marketViews.service.js');
   const marketViews = await generateMarketViews(sentimentValue, process.env.NEWS_API_KEY);
@@ -185,10 +189,9 @@ export async function getOptimalAllocation(
 
   // Build bounds override for excluded assets (savings is always protected)
   const EXCLUDABLE_ASSETS = ['gold', 'stocks', 'bonds', 'crypto'];
-  const validExcluded = excludedAssets.filter(a => EXCLUDABLE_ASSETS.includes(a));
-  const exclusionOverride = validExcluded.length > 0
-    ? Object.fromEntries(validExcluded.map(a => [a, [0, 0] as [number, number]]))
-    : null;
+  const validExcluded = excludedAssets.filter((a) => EXCLUDABLE_ASSETS.includes(a));
+  const exclusionOverride =
+    validExcluded.length > 0 ? Object.fromEntries(validExcluded.map((a) => [a, [0, 0] as [number, number]])) : null;
 
   const result = optimizePortfolio(
     marketParams,

@@ -51,14 +51,14 @@ function useAssetData(asset, riskLevel) {
 
   const payload = q.data;
   return {
-    items:      payload?.coins || payload?.stocks || payload?.goldItems || payload?.savingsItems || payload?.bondItems || [],
-    intro:      payload?.intro || '',
+    items: payload?.coins || payload?.stocks || payload?.goldItems || payload?.savingsItems || payload?.bondItems || [],
+    intro: payload?.intro || '',
     disclaimer: payload?.disclaimer || '',
-    updatedAt:  payload?.updatedAt || '',
-    metrics:    payload?.metrics ?? null,
+    updatedAt: payload?.updatedAt || '',
+    metrics: payload?.metrics ?? null,
     worldPrice: payload?.worldPrice ?? null,
-    loading:    q.isLoading,
-    error:      q.isError,
+    loading: q.isLoading,
+    error: q.isError,
   };
 }
 
@@ -580,7 +580,10 @@ export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
             {suggestion.tips.length > 0 && (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 {suggestion.tips.map((tip: string, i: number) => (
-                  <div key={i} className="p-5 rounded-2xl bg-white/[0.01] border border-white/5 flex gap-4 group hover:border-white/10 hover:bg-white/[0.02] transition-all duration-300">
+                  <div
+                    key={i}
+                    className="p-5 rounded-2xl bg-white/[0.01] border border-white/5 flex gap-4 group hover:border-white/10 hover:bg-white/[0.02] transition-all duration-300"
+                  >
                     <div className="shrink-0 w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-xs font-bold text-slate-400 group-hover:text-white group-hover:bg-blue-500/20 transition-all duration-300 shadow-sm">
                       {i + 1}
                     </div>
