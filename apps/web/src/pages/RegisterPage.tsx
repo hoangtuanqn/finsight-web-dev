@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 import { referralAPI } from '../api/index';
+import SetSocialPasswordModal from '../components/auth/SetSocialPasswordModal';
 import SocialLoginButtons from '../components/auth/SocialLoginButtons';
 import { ToggleMode } from '../components/layout/components/ToggleMode';
 import { useAuth } from '../context/AuthContext';
@@ -32,6 +33,9 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [requirePasswordAuth, setRequirePasswordAuth] = useState(false);
+  const [tempToken, setTempToken] = useState('');
+  const [socialEmail, setSocialEmail] = useState('');
   const { register: registerAuth } = useAuth() as any;
   const navigate = useNavigate();
   const [dark, setDark] = useDarkMode() as [boolean, (val: boolean) => void];
@@ -78,6 +82,18 @@ export default function RegisterPage() {
       <div className="absolute top-16 left-16 opacity-[0.03] dark:opacity-[0.05] pointer-events-none">
         <UserPlus size={120} className="text-slate-800 dark:text-slate-200" />
       </div>
+
+      {requirePasswordAuth && (
+        <SetSocialPasswordModal
+          tempToken={tempToken}
+          email={socialEmail}
+          onComplete={() => {
+            setRequirePasswordAuth(false);
+            navigate('/home');
+          }}
+          onCancel={() => setRequirePasswordAuth(false)}
+        />
+      )}
 
       {/* Floating Toggle */}
       <div className="absolute top-6 right-6 z-50">
@@ -363,8 +379,16 @@ export default function RegisterPage() {
             <div className="w-full [&>button]:w-full [&>button]:bg-white [&>button]:dark:bg-slate-800/80 [&>button]:border [&>button]:border-slate-200 [&>button]:dark:border-slate-700 [&>button]:rounded-xl [&>button]:py-3.5 [&>button]:shadow-sm [&>button:hover]:shadow-md [&>button]:transition-all">
               <SocialLoginButtons
                 setError={setServerError}
-                onSuccess={() => {
-                  navigate('/home');
+                onSuccess={(result) => {
+                  if (result && result.requirePassword) {
+                    setTempToken(result.tempToken);
+                    setSocialEmail(result.email);
+                    setRequirePasswordAuth(true);
+                  } else if (result && result.require2FA) {
+                    navigate('/login', { state: { fromAuth: true } });
+                  } else {
+                    navigate('/home');
+                  }
                 }}
               />
             </div>

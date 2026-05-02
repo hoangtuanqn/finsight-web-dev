@@ -111,3 +111,42 @@ export async function verifyPassword(req: AuthenticatedRequest, res: Response) {
     return error(res, 'Internal server error');
   }
 }
+
+export async function setSocialPassword(req: Request, res: Response) {
+  try {
+    const { tempToken, password } = req.body;
+    if (!tempToken || !password) return error(res, 'Missing required fields', 400);
+
+    let decoded: any;
+    try {
+      decoded = jwt.verify(tempToken, (process.env.JWT_SECRET as string).trim());
+    } catch (err) {
+      return error(res, 'Invalid or expired session', 401);
+    }
+
+    if (!decoded.isTemp) {
+      return error(res, 'Invalid session type', 401);
+    }
+
+    const user = await (prisma as any).user.findUnique({
+      where: { id: decoded.userId },
+    });
+
+    if (!user) return error(res, 'User not found', 404);
+
+    if (user.password) {
+      return error(res, 'Tài khoản này đã có mật khẩu', 400);
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const updatedUser = await (prisma as any).user.update({
+      where: { id: user.id },
+      data: { password: hashedPassword },
+    });
+
+    return handleUserLoginResponse(req, res, updatedUser);
+  } catch (err) {
+    console.error('Set social password error:', err);
+    return error(res, 'Internal server error');
+  }
+}
