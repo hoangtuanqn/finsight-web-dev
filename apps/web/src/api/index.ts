@@ -143,8 +143,14 @@ export const agenticAPI = {
 
 // REPORTS
 export const reportAPI = {
-  exportReport: (format: string) => api.get('/reports/export', {
-    params: { format },
+  exportReport: (params: { 
+    format: string; 
+    timeRange?: string; 
+    debtId?: string; 
+    startDate?: string; 
+    endDate?: string 
+  }) => api.get('/reports/export', {
+    params,
     responseType: 'blob'
   }),
 };

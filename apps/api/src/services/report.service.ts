@@ -1,5 +1,7 @@
-import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const ExcelJS = require('exceljs');
 import prisma from '../lib/prisma.js';
 import path from 'path';
 import axios from 'axios';
@@ -12,6 +14,7 @@ import {
   simulateRepayment,
   simulateRepaymentWithExtraBudget
 } from '../utils/calculations.js';
+import dayjs from 'dayjs';
 
 const LOGO_URL = 'https://i.ibb.co/84xLmWTK/LOGO.png';
 const LOGO_PATH = path.resolve(process.cwd(), '..', 'LOGO.png');
@@ -23,11 +26,50 @@ const FONT_REGULAR = path.join(__dirname, '..', 'assets', 'fonts', 'Arial.ttf');
 const FONT_BOLD = path.join(__dirname, '..', 'assets', 'fonts', 'ArialBold.ttf');
 
 class ReportService {
-  async getReportData(userId: string) {
+  async getReportData(userId: string, timeRange?: string, debtIds?: string | string[], startDateStr?: string, endDateStr?: string) {
+    let start = dayjs(0).toDate();
+    let end = new Date();
+    let timeRangeStr = 'Toàn thời gian';
+
+    if (timeRange === 'this_month') {
+      start = dayjs().startOf('month').toDate();
+      timeRangeStr = 'Tháng này';
+    } else if (timeRange === '3m') {
+      start = dayjs().subtract(3, 'month').startOf('month').toDate();
+      timeRangeStr = '3 tháng gần nhất';
+    } else if (timeRange === '6m') {
+      start = dayjs().subtract(6, 'month').startOf('month').toDate();
+      timeRangeStr = '6 tháng gần nhất';
+    } else if (timeRange === 'custom' && startDateStr && endDateStr) {
+      start = dayjs(startDateStr).startOf('day').toDate();
+      end = dayjs(endDateStr).endOf('day').toDate();
+      timeRangeStr = `${dayjs(start).format('DD/MM/YYYY')} - ${dayjs(end).format('DD/MM/YYYY')}`;
+    }
+
+    const debtsQuery: any = { status: 'ACTIVE' };
+    if (debtIds) {
+      const ids = Array.isArray(debtIds) ? debtIds : (debtIds === 'all' ? [] : debtIds.split(','));
+      if (ids.length > 0) {
+        debtsQuery.id = { in: ids };
+      }
+    }
+
     const user = await (prisma as any).user.findUnique({
       where: { id: userId },
       include: {
-        debts: { where: { status: 'ACTIVE' } },
+        debts: { 
+          where: debtsQuery,
+          include: {
+            payments: {
+              where: { 
+                paidAt: { 
+                  gte: start,
+                  lte: end
+                } 
+              }
+            }
+          }
+        },
         investorProfile: true,
       },
     });
@@ -37,13 +79,31 @@ class ReportService {
     const debts = user.debts;
     const totalBalance = debts.reduce((sum: number, d: any) => sum + d.balance, 0);
     const totalMinPayment = debts.reduce((sum: number, d: any) => sum + d.minPayment, 0);
+    
+    // Estimate Movement Summary
+    let totalPaidInPeriod = 0;
+    let totalInterestEstimated = 0;
+    
+    const detailedDebts = debts.map((d: any) => {
+      const ear = calcEAR(d.apr, d.feeProcessing || 0, d.feeInsurance || 0, d.feeManagement || 0, d.termMonths || 12);
+      const paid = d.payments.reduce((sum: number, p: any) => sum + p.amount, 0);
+      totalPaidInPeriod += paid;
+      
+      // Calculate months in period for interest estimation
+      const mDiff = Math.max(1, dayjs(end).diff(dayjs(start), 'month'));
+      const interest = d.balance * (ear / 100 / 12) * mDiff;
+      totalInterestEstimated += interest;
+
+      return {
+        ...d,
+        ear,
+        periodPaid: paid,
+        periodInterest: interest
+      };
+    });
+
     const dtiRatio = calcDebtToIncomeRatio(totalMinPayment, user.monthlyIncome);
     const dominoAlerts = detectDominoRisk(debts, user.monthlyIncome);
-
-    const detailedDebts = debts.map((d: any) => ({
-      ...d,
-      ear: calcEAR(d.apr, d.feeProcessing || 0, d.feeInsurance || 0, d.feeManagement || 0, d.termMonths || 12)
-    }));
 
     const simulation = simulateRepaymentWithExtraBudget(
       debts,
@@ -53,6 +113,8 @@ class ReportService {
     );
 
     return {
+      reportId: `RPT-${dayjs().format('YYYYMMDD')}-${Math.random().toString(36).substring(7).toUpperCase()}`,
+      generatedAt: dayjs().format('HH:mm DD/MM/YYYY'),
       user: {
         fullName: user.fullName,
         email: user.email,
@@ -63,16 +125,19 @@ class ReportService {
         totalMinPayment,
         dtiRatio,
         dominoAlerts,
+        totalPaidInPeriod,
+        totalInterestEstimated,
+        timeRangeStr
       },
       debts: detailedDebts,
-      simulation,
-      reportId: `FS-${Date.now().toString().slice(-6)}`,
-      generatedAt: new Date().toLocaleDateString('vi-VN'),
+      simulation: {
+        months: simulation.months || 0
+      }
     };
   }
 
-  async generateExcel(userId: string) {
-    const data = await this.getReportData(userId);
+  async generateExcel(userId: string, timeRange?: string, debtIds?: string | string[], startDate?: string, endDate?: string) {
+    const data = await this.getReportData(userId, timeRange, debtIds, startDate, endDate);
     const workbook = new ExcelJS.Workbook();
     
     const sheet = workbook.addWorksheet('Báo cáo phân tích tài chính');
@@ -98,6 +163,13 @@ class ReportService {
       ['Tổng trả tối thiểu', data.summary.totalMinPayment],
       ['Tỷ lệ DTI (%)', `${data.summary.dtiRatio.toFixed(2)}%`],
       ['Trạng thái', data.summary.dtiRatio > 50 ? 'KHỦNG HOẢNG' : (data.summary.dtiRatio > 30 ? 'CẢNH BÁO' : 'AN TOÀN')],
+      [],
+      ['BIẾN ĐỘNG NỢ TRONG KỲ', '', '', '', ''],
+      [`(Thời gian: ${data.summary.timeRangeStr})`, '', '', '', ''],
+      ['Số dư đầu kỳ (Ước tính)', Math.max(0, data.summary.totalBalance + data.summary.totalPaidInPeriod - data.summary.totalInterestEstimated)],
+      ['Tổng tiền đã trả', -data.summary.totalPaidInPeriod],
+      ['Lãi/Phí phát sinh', data.summary.totalInterestEstimated],
+      ['Số dư cuối kỳ', data.summary.totalBalance],
       [] 
     ]);
 
@@ -107,6 +179,7 @@ class ReportService {
     sheet.getColumn('D').width = 15;
     sheet.getColumn('E').width = 15;
 
+    // Formatting for General info + Financial health
     for (let i = 3; i <= 13; i++) {
       const row = sheet.getRow(i);
       row.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
@@ -114,14 +187,27 @@ class ReportService {
       row.height = 22; 
     }
 
-    [8, 9, 10].forEach(rowIdx => {
+    // Formatting for Movement Summary
+    for (let i = 17; i <= 21; i++) {
+      const row = sheet.getRow(i);
+      row.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
+      row.getCell(2).alignment = { horizontal: 'right', vertical: 'middle' };
+      row.height = 22;
+      row.getCell(2).numFmt = '#,##0 "₫"';
+    }
+
+    sheet.getRow(16).getCell(1).font = { italic: true, size: 9, color: { argb: 'FF64748B' } };
+    sheet.mergeCells('A16:E16');
+
+    [8, 9, 10, 17, 18, 19, 20].forEach(rowIdx => {
       sheet.getRow(rowIdx).getCell(2).numFmt = '#,##0 "₫"';
     });
 
     const sectionHeaders = [
       { row: 2, text: 'THÔNG TIN CHUNG' },
       { row: 7, text: 'CHỈ SỐ SỨC KHỎE TÀI CHÍNH' },
-      { row: 15, text: 'DANH SÁCH CHI TIẾT CÁC KHOẢN NỢ' }
+      { row: 15, text: 'BIẾN ĐỘNG NỢ TRONG KỲ' },
+      { row: 23, text: 'DANH SÁCH CHI TIẾT CÁC KHOẢN NỢ' }
     ];
 
     sectionHeaders.forEach(sh => {
@@ -134,7 +220,7 @@ class ReportService {
       sheet.getRow(sh.row).height = 25;
     });
 
-    const debtStartRow = 15;
+    const debtStartRow = 23;
     const tableHeaderRow = debtStartRow + 1;
     sheet.getRow(tableHeaderRow).values = ['Tên khoản nợ', 'Nền tảng', 'Lãi suất EAR (%)', 'Dư nợ hiện tại', 'Trả tối thiểu'];
     const headerRow = sheet.getRow(tableHeaderRow);
@@ -172,11 +258,22 @@ class ReportService {
       });
     });
 
+    sheet.addRow([]);
+    const simulationRow = sheet.addRow(['DỰ BÁO TÀI CHÍNH KẾ HOẠCH TRẢ NỢ']);
+    const forecastHeaderRow = simulationRow.number;
+    sheet.mergeCells(`A${forecastHeaderRow}:E${forecastHeaderRow}`);
+    sheet.getCell(`A${forecastHeaderRow}`).font = { bold: true, size: 12 };
+    sheet.getCell(`A${forecastHeaderRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+    
+    const infoRow = sheet.addRow([`Nếu duy trì kế hoạch thanh toán hiện tại, bạn sẽ hoàn tất toàn bộ nợ trong ${data.simulation.months} tháng.`]);
+    sheet.mergeCells(`A${infoRow.number}:E${infoRow.number}`);
+    sheet.getCell(`A${infoRow.number}`).font = { italic: true, color: { argb: 'FF1E40AF' } };
+
     return workbook;
   }
 
-  async generatePDF(userId: string, res: any) {
-    const data = await this.getReportData(userId);
+  async generatePDF(userId: string, res: any, timeRange?: string, debtIds?: string | string[], startDate?: string, endDate?: string) {
+    const data = await this.getReportData(userId, timeRange, debtIds, startDate, endDate);
     const doc = new PDFDocument({
       margin: 50,
       size: 'A4',
@@ -218,7 +315,7 @@ class ReportService {
 
     currentY += 35;
     doc.fillColor('#64748b').font('Main').fontSize(10);
-    doc.text(`Mã số: ${data.reportId}  |  Ngày lập: ${data.generatedAt}`, 50, currentY, { align: 'center', width: 495, lineGap: 5 });
+    doc.text(`Mã số: ${data.reportId}  |  Ngày lập: ${data.generatedAt}  |  Kỳ báo cáo: ${data.summary.timeRangeStr}`, 50, currentY, { align: 'center', width: 495, lineGap: 5 });
 
     doc.fontSize(11).fillColor('#334155');
     const labelStr = 'Khách hàng: ';
@@ -249,10 +346,37 @@ class ReportService {
     doc.fillColor('#64748b').fontSize(8.5).font('Main').text('TỶ LỆ DTI', 230, boxY);
     doc.fillColor('#0f172a').fontSize(15).font('MainBold').text(`${dti.toFixed(1)}%`, 230, boxY + 18);
 
-    doc.fillColor('#64748b').fontSize(8.5).font('Main').text('TRẠNG THÁI', 380, boxY);
+    doc.fillColor('#64748b').fontSize(8.5).font('Main').text('TRẠNG THÁI DTI', 380, boxY);
     doc.fillColor(healthColor).fontSize(15).font('MainBold').text(healthStatus, 380, boxY + 18);
 
-    doc.y = currentY + 80 + 35; 
+    doc.y = currentY + 80 + 30; 
+
+    // Bảng biến động nợ (Movement Summary)
+    doc.fillColor('#0f172a').font('MainBold').fontSize(15).text(`BẢNG SAO KÊ BIẾN ĐỘNG NỢ (${data.summary.timeRangeStr.toUpperCase()})`, 50, doc.y);
+    doc.moveDown(1);
+    
+    const moveY = doc.y;
+    doc.rect(50, moveY, 495, 75).fill('#f8fafc').strokeColor('#cbd5e1').lineWidth(0.5).stroke();
+    
+    // Calculate opening balance roughly: closing + paid - interest
+    const closingBalance = data.summary.totalBalance;
+    const openingBalance = closingBalance + data.summary.totalPaidInPeriod - data.summary.totalInterestEstimated;
+
+    const colWidth = 495 / 4;
+    
+    doc.fillColor('#64748b').fontSize(8.5).font('Main');
+    doc.text('SỐ DƯ ĐẦU KỲ (Ước tính)', 50 + 10, moveY + 15, { width: colWidth - 20, align: 'center' });
+    doc.text('TỔNG ĐÃ TRẢ', 50 + colWidth + 10, moveY + 15, { width: colWidth - 20, align: 'center' });
+    doc.text('LÃI/PHÍ PHÁT SINH', 50 + colWidth * 2 + 10, moveY + 15, { width: colWidth - 20, align: 'center' });
+    doc.text('SỐ DƯ CUỐI KỲ', 50 + colWidth * 3 + 10, moveY + 15, { width: colWidth - 20, align: 'center' });
+
+    doc.fillColor('#0f172a').fontSize(13).font('MainBold');
+    doc.text(formatVND(openingBalance > 0 ? openingBalance : closingBalance), 50 + 10, moveY + 35, { width: colWidth - 20, align: 'center' });
+    doc.fillColor('#10b981').text(`- ${formatVND(data.summary.totalPaidInPeriod)}`, 50 + colWidth + 10, moveY + 35, { width: colWidth - 20, align: 'center' });
+    doc.fillColor('#ef4444').text(`+ ${formatVND(data.summary.totalInterestEstimated)}`, 50 + colWidth * 2 + 10, moveY + 35, { width: colWidth - 20, align: 'center' });
+    doc.fillColor('#0f172a').text(formatVND(closingBalance), 50 + colWidth * 3 + 10, moveY + 35, { width: colWidth - 20, align: 'center' });
+
+    doc.y = moveY + 75 + 35;
 
     if (doc.y > 750) doc.addPage();
     doc.fillColor('#0f172a').font('MainBold').fontSize(15).text('2. PHÂN TÍCH CHI TIẾT', 50, doc.y);
