@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { agenticAPI } from '../../api/index';
+import { useAuth } from '../../context/AuthContext';
+import { useUpdateProfile } from '../../hooks/useAuthQuery';
 
 interface RepaymentConfirmModalProps {
   data: unknown;
@@ -33,6 +35,9 @@ const STRATEGY_LABELS: Record<Strategy, { label: string; desc: string; color: st
 
 export default function RepaymentConfirmModal({ data, onDismiss, onFeedback }: RepaymentConfirmModalProps) {
   const navigate = useNavigate();
+  const { user, setUser } = useAuth() as any;
+  const updateProfile = useUpdateProfile();
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,11 +52,12 @@ export default function RepaymentConfirmModal({ data, onDismiss, onFeedback }: R
 
   useEffect(() => {
     setForm({
-      extraBudget: src.extraBudget != null ? String(src.extraBudget) : '',
+      extraBudget:
+        src.extraBudget != null ? String(src.extraBudget) : user?.extraBudget != null ? String(user.extraBudget) : '',
       targetDate: src.targetDate ?? '',
       strategy: (src.strategy as Strategy) ?? '',
     });
-  }, []);
+  }, [user]);
 
   const formatVND = (v: string) => {
     const num = Number(v);
@@ -75,11 +81,22 @@ export default function RepaymentConfirmModal({ data, onDismiss, onFeedback }: R
     setLoading(true);
     setError(null);
     try {
+      // 1. Update the repayment plan setup
       await agenticAPI.repaymentSetup({
         extraBudget: +form.extraBudget,
         targetDate: form.targetDate || null,
         strategy: (form.strategy as Strategy) || null,
       });
+
+      // 2. Sync to user profile so it reflects in CustomRepaymentPlanPage and other places
+      const res = await updateProfile.mutateAsync({
+        extraBudget: +form.extraBudget,
+      });
+
+      // 3. Update global auth state
+      const updatedUser = res.data.data.user || res.data.user || res.data.data;
+      setUser((prev: any) => ({ ...prev, ...updatedUser }));
+
       onFeedback?.('confirmed');
       onDismiss();
       // Navigate with slight delay so user sees the modal close
