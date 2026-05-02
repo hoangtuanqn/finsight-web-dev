@@ -77,10 +77,13 @@ export const authSchemas = {
         });
       }
 
-      if (data.balance > data.originalAmount && data.originalAmount > 0) {
+      const setupFees = (data.feeProcessing || 0) + (data.feeInsurance || 0);
+      const maxAllowed = Math.round(data.originalAmount * (1 + setupFees / 100));
+
+      if (data.balance > maxAllowed && data.originalAmount > 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: 'Dư nợ hiện tại không được lớn hơn số tiền gốc/hạn mức ban đầu',
+          message: 'Dư nợ hiện tại không được lớn hơn tổng tiền gốc kèm phí ban đầu',
           path: ['balance'],
         });
       }
