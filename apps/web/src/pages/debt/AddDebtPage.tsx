@@ -528,15 +528,15 @@ export default function AddDebtPage() {
                               setIsAutoCalcBalance(false);
                             }}
                             className={`${inputCls(errors.balance)} ${
-                              loanStatus === 'NEW'
+                              debtType === 'INSTALLMENT' && loanStatus === 'NEW'
                                 ? 'bg-blue-500/5 border-blue-500/20 text-blue-200 cursor-not-allowed'
                                 : ''
                             }`}
                             placeholder="0"
                             suffix="đ"
-                            readOnly={loanStatus === 'NEW'}
+                            readOnly={debtType === 'INSTALLMENT' && loanStatus === 'NEW'}
                           />
-                          {loanStatus === 'NEW' && (
+                          {debtType === 'INSTALLMENT' && loanStatus === 'NEW' && (
                             <p className="mt-1.5 text-[10px] text-blue-400/70 flex items-center gap-1 italic">
                               <Info size={10} /> Tự tính: Gốc + các loại phí thiết lập
                             </p>
@@ -606,7 +606,9 @@ export default function AddDebtPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <div className="flex justify-between items-end mb-1.5">
-                      <label className="input-label mb-0">Khoản trả hàng tháng</label>
+                      <label className="input-label mb-0">
+                        {debtType === 'CREDIT_CARD' ? 'Thanh toán tối thiểu' : 'Khoản trả hàng tháng'}
+                      </label>
                       {debtType === 'INSTALLMENT' && (
                         <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                           <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
