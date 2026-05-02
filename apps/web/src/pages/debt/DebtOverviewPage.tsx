@@ -5,6 +5,7 @@ import { useDebts } from '../../hooks/useDebtQuery';
 import { formatVND, formatPercent } from '../../utils/calculations';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
 import ExportReportModal from '../../components/debt/ExportReportModal';
+import DebtTypeSelectionModal from '../../components/debt/DebtTypeSelectionModal';
 import {
   CreditCard, BarChart2, ClipboardList, Plus,
   AlertOctagon, AlertTriangle, PartyPopper, FileText, Home, TrendingUp, ChevronRight, LayoutGrid, List, Filter, X
@@ -53,6 +54,7 @@ export default function DebtOverviewPage() {
   const [showFilters, setShowFilters] = useState(false);
   const { data, isLoading } = useDebts(filters) as { data: any, isLoading: boolean };
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isTypeSelectionOpen, setIsTypeSelectionOpen] = useState(false);
   const [viewMode, setViewMode] = useState(() => localStorage.getItem('finsight_debt_view') || 'grid');
 
   useEffect(() => {
@@ -185,9 +187,9 @@ export default function DebtOverviewPage() {
           >
             <FileText size={16} /> Xuất báo cáo
           </button>
-          <Link to="/debts/add" className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-500/30 transition-all cursor-pointer">
+          <button onClick={() => setIsTypeSelectionOpen(true)} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-500/30 transition-all cursor-pointer">
             <Plus size={18} /> Thêm khoản nợ
-          </Link>
+          </button>
         </div>
       </div>
 
@@ -735,6 +737,11 @@ export default function DebtOverviewPage() {
       <ExportReportModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
+      />
+
+      <DebtTypeSelectionModal
+        isOpen={isTypeSelectionOpen}
+        onClose={() => setIsTypeSelectionOpen(false)}
       />
     </motion.div>
   );
