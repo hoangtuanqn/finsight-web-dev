@@ -27,10 +27,10 @@ export function generateGoogleCalendarLink({ name, amount, dueDay, platform, id 
   const title = encodeURIComponent(`[FinSight] Trả nợ: ${name}`);
   const details = encodeURIComponent(
     `Cần thanh toán khoản nợ: ${name}\n` +
-      `Nền tảng: ${platform}\n` +
-      `Số tiền: ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)}\n\n` +
-      `--- \n` +
-      `Quản lý tài chính thông minh cùng FinSight Advisor.`,
+    `Nền tảng: ${platform}\n` +
+    `Số tiền: ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)}\n\n` +
+    `--- \n` +
+    `Quản lý tài chính thông minh cùng FinSight Advisor.`,
   );
   const location = encodeURIComponent('Tại ứng dụng ngân hàng/ví điện tử của bạn');
   const dates = `${formatGCalDate(startDate)}/${formatGCalDate(endDate)}`;
