@@ -20,14 +20,15 @@ export const STRESS_SCENARIOS: StressScenario[] = [
   {
     id: 'financial_crisis_2008',
     name: 'Khủng hoảng tài chính 2008',
-    description: 'Thị trường chứng khoán toàn cầu sụp đổ, thanh khoản cạn kiệt. Vàng và Trái phiếu đóng vai trò trú ẩn an toàn.',
+    description:
+      'Thị trường chứng khoán toàn cầu sụp đổ, thanh khoản cạn kiệt. Vàng và Trái phiếu đóng vai trò trú ẩn an toàn.',
     shocks: {
       savings: 0,
-      gold: 0.15,         // Vàng tăng nhẹ trong giai đoạn đầu
-      stocks: -0.65,      // VN-Index giảm cực mạnh năm 2008
-      stocks_us: -0.50,   // S&P 500 giảm ~50%
-      bonds: 0.05,        // Lãi suất trái phiếu giảm, giá tăng
-      crypto: -0.80,      // Proxy: Sụt giảm mạnh mẽ tương đương bong bóng dot-com
+      gold: 0.15, // Vàng tăng nhẹ trong giai đoạn đầu
+      stocks: -0.65, // VN-Index giảm cực mạnh năm 2008
+      stocks_us: -0.5, // S&P 500 giảm ~50%
+      bonds: 0.05, // Lãi suất trái phiếu giảm, giá tăng
+      crypto: -0.8, // Proxy: Sụt giảm mạnh mẽ tương đương bong bóng dot-com
     },
   },
   {
@@ -38,9 +39,9 @@ export const STRESS_SCENARIOS: StressScenario[] = [
       savings: 0,
       gold: 0.05,
       stocks: -0.33,
-      stocks_us: -0.30,
+      stocks_us: -0.3,
       bonds: 0.02,
-      crypto: -0.50,
+      crypto: -0.5,
     },
   },
   {
@@ -51,8 +52,8 @@ export const STRESS_SCENARIOS: StressScenario[] = [
       savings: 0,
       gold: -0.05,
       stocks: -0.32,
-      stocks_us: -0.20,
-      bonds: -0.10,       // Trái phiếu giảm giá do lãi suất tăng
+      stocks_us: -0.2,
+      bonds: -0.1, // Trái phiếu giảm giá do lãi suất tăng
       crypto: -0.65,
     },
   },

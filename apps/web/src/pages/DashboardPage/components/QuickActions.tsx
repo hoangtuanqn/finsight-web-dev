@@ -1,18 +1,73 @@
-import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, ClipboardList, Target, TrendingUp, Search, User } from 'lucide-react';
+import { ClipboardList, Plus, Search, Target, TrendingUp, User } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const QUICK_ACTIONS = [
-  { to: '/debts/add',          icon: Plus,          label: 'Thêm nợ',        desc: 'Nhập nợ mới',           gradient: 'from-blue-500 to-cyan-400',      glow: '#3b82f6' },
-  { to: '/debts/repayment',    icon: ClipboardList, label: 'Kế hoạch',       desc: 'Avalanche/Snowball',    gradient: 'from-emerald-500 to-teal-400',   glow: '#10b981' },
-  { to: '/risk-assessment',    icon: Target,        label: 'Rủi ro',         desc: '10 câu hỏi nhanh',       gradient: 'from-purple-500 to-violet-400',  glow: '#8b5cf6' },
-  { to: '/investment',         icon: TrendingUp,    label: 'Đầu tư',         desc: 'Tư vấn AI',             gradient: 'from-cyan-500 to-sky-400',       glow: '#06b6d4' },
-  { to: '/debts/ear-analysis', icon: Search,        label: 'EAR',            desc: 'Chi phí ẩn',            gradient: 'from-amber-500 to-orange-400',   glow: '#f59e0b' },
-  { to: '/debts/dti',          icon: TrendingUp,    label: 'DTI',            desc: 'Nợ/Thu nhập',           gradient: 'from-rose-500 to-pink-400',      glow: '#f43f5e' },
-  { to: '/profile',            icon: User,          label: 'Hồ sơ',          desc: 'Cập nhật thu nhập',     gradient: 'from-slate-500 to-slate-400',    glow: '#64748b' },
+  {
+    to: '/debts/add',
+    icon: Plus,
+    label: 'Thêm nợ',
+    desc: 'Nhập nợ mới',
+    gradient: 'from-blue-500 to-cyan-400',
+    glow: '#3b82f6',
+  },
+  {
+    to: '/debts/repayment',
+    icon: ClipboardList,
+    label: 'Kế hoạch',
+    desc: 'Avalanche/Snowball',
+    gradient: 'from-emerald-500 to-teal-400',
+    glow: '#10b981',
+  },
+  {
+    to: '/risk-assessment',
+    icon: Target,
+    label: 'Rủi ro',
+    desc: '10 câu hỏi nhanh',
+    gradient: 'from-purple-500 to-violet-400',
+    glow: '#8b5cf6',
+  },
+  {
+    to: '/investment',
+    icon: TrendingUp,
+    label: 'Đầu tư',
+    desc: 'Tư vấn AI',
+    gradient: 'from-cyan-500 to-sky-400',
+    glow: '#06b6d4',
+  },
+  {
+    to: '/debts/ear-analysis',
+    icon: Search,
+    label: 'EAR',
+    desc: 'Chi phí ẩn',
+    gradient: 'from-amber-500 to-orange-400',
+    glow: '#f59e0b',
+  },
+  {
+    to: '/debts/dti',
+    icon: TrendingUp,
+    label: 'DTI',
+    desc: 'Nợ/Thu nhập',
+    gradient: 'from-rose-500 to-pink-400',
+    glow: '#f43f5e',
+  },
+  {
+    to: '/profile',
+    icon: User,
+    label: 'Hồ sơ',
+    desc: 'Cập nhật thu nhập',
+    gradient: 'from-slate-500 to-slate-400',
+    glow: '#64748b',
+  },
 ];
 
-const EXPORT_ACTION = { icon: FileText, label: 'Báo cáo', desc: 'Xuất PDF/Excel', gradient: 'from-blue-600 to-cyan-500', glow: '#06b6d4' };
+const EXPORT_ACTION = {
+  icon: FileText,
+  label: 'Báo cáo',
+  desc: 'Xuất PDF/Excel',
+  gradient: 'from-blue-600 to-cyan-500',
+  glow: '#06b6d4',
+};
 
 import { FileText } from 'lucide-react';
 
@@ -41,9 +96,9 @@ export default function QuickActions({ onExportClick }: { onExportClick: () => v
               to={action.to}
               className="relative flex flex-col items-center gap-2.5 p-3.5 rounded-2xl border text-center group overflow-hidden cursor-pointer"
               style={{
-                background:  'var(--color-bg-card)',
+                background: 'var(--color-bg-card)',
                 borderColor: `${action.glow}25`,
-                boxShadow:   `0 2px 12px ${action.glow}10`,
+                boxShadow: `0 2px 12px ${action.glow}10`,
               }}
             >
               {/* Hover glow fill */}
@@ -62,9 +117,7 @@ export default function QuickActions({ onExportClick }: { onExportClick: () => v
 
               {/* Text */}
               <div className="relative">
-                <p className="text-[11px] font-bold text-[var(--color-text-primary)] leading-tight">
-                  {action.label}
-                </p>
+                <p className="text-[11px] font-bold text-[var(--color-text-primary)] leading-tight">{action.label}</p>
                 <p className="text-[9px] text-[var(--color-text-muted)] mt-0.5 hidden sm:block leading-tight">
                   {action.desc}
                 </p>
@@ -85,9 +138,9 @@ export default function QuickActions({ onExportClick }: { onExportClick: () => v
             onClick={onExportClick}
             className="w-full relative flex flex-col items-center gap-2.5 p-3.5 rounded-2xl border text-center group overflow-hidden cursor-pointer"
             style={{
-              background:  'var(--color-bg-card)',
+              background: 'var(--color-bg-card)',
               borderColor: `${EXPORT_ACTION.glow}25`,
-              boxShadow:   `0 2px 12px ${EXPORT_ACTION.glow}10`,
+              boxShadow: `0 2px 12px ${EXPORT_ACTION.glow}10`,
             }}
           >
             <div

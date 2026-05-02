@@ -1,4 +1,4 @@
-import { ShieldCheck, ShieldAlert, Clock, ChevronRight } from 'lucide-react';
+import { ChevronRight, Clock, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useKycStatus } from '../../../hooks/useKycQuery';
 
@@ -19,7 +19,6 @@ export default function KycStatusCard() {
   return (
     <div className="p-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-card)]">
       <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center justify-between">
-        
         {/* State: NONE */}
         {status === 'NONE' && (
           <>
@@ -73,8 +72,12 @@ export default function KycStatusCard() {
               <div>
                 <h4 className="text-base font-bold text-[var(--color-text-primary)]">Đã xác minh danh tính</h4>
                 <div className="text-sm text-[var(--color-text-secondary)] mt-1 space-y-1">
-                  <p>Họ tên: <strong className="text-[var(--color-text-primary)]">{kyc?.kycName}</strong></p>
-                  <p>Số CCCD: <strong className="text-[var(--color-text-primary)]">{kyc?.kycIdNumber}</strong></p>
+                  <p>
+                    Họ tên: <strong className="text-[var(--color-text-primary)]">{kyc?.kycName}</strong>
+                  </p>
+                  <p>
+                    Số CCCD: <strong className="text-[var(--color-text-primary)]">{kyc?.kycIdNumber}</strong>
+                  </p>
                 </div>
               </div>
             </div>
@@ -94,7 +97,10 @@ export default function KycStatusCard() {
               <div>
                 <h4 className="text-base font-bold text-rose-500">Xác minh thất bại</h4>
                 <p className="text-sm text-[var(--color-text-secondary)] mt-1 max-w-md">
-                  Lý do: <strong className="text-[var(--color-text-primary)]">{kyc?.kycRecord?.rejectReason || 'Thông tin không hợp lệ'}</strong>
+                  Lý do:{' '}
+                  <strong className="text-[var(--color-text-primary)]">
+                    {kyc?.kycRecord?.rejectReason || 'Thông tin không hợp lệ'}
+                  </strong>
                 </p>
               </div>
             </div>
@@ -106,7 +112,6 @@ export default function KycStatusCard() {
             </button>
           </>
         )}
-
       </div>
     </div>
   );

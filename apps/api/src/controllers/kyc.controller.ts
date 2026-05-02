@@ -1,8 +1,8 @@
 import { Response } from 'express';
-import { AuthenticatedRequest } from '../types';
 import prisma from '../lib/prisma';
-import { success, error } from '../utils/apiResponse';
-import { ocrIdCard, checkLiveness } from '../services/kyc.service';
+import { checkLiveness, ocrIdCard } from '../services/kyc.service';
+import { AuthenticatedRequest } from '../types';
+import { error, success } from '../utils/apiResponse';
 
 export async function getKycStatus(req: AuthenticatedRequest, res: Response) {
   try {
@@ -17,9 +17,9 @@ export async function getKycStatus(req: AuthenticatedRequest, res: Response) {
           select: {
             status: true,
             rejectReason: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
 
     if (!user) return error(res, 'User not found', 404);
@@ -34,18 +34,18 @@ export async function getKycStatus(req: AuthenticatedRequest, res: Response) {
 export async function submitKyc(req: AuthenticatedRequest, res: Response) {
   try {
     const userId = req.userId!;
-    
+
     // Check if already verified or pending
     const user = await (prisma as any).user.findUnique({
       where: { id: userId },
-      select: { kycStatus: true }
+      select: { kycStatus: true },
     });
 
     if (!user) return error(res, 'User not found', 404);
     if (user.kycStatus === 'VERIFIED') return error(res, 'Tài khoản đã xác minh eKYC', 400);
 
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-    
+
     if (!files?.front?.[0] || !files?.back?.[0] || !files?.video?.[0]) {
       return error(res, 'Vui lòng cung cấp đầy đủ ảnh mặt trước, mặt sau và video xác thực', 400);
     }
@@ -58,7 +58,7 @@ export async function submitKyc(req: AuthenticatedRequest, res: Response) {
     const frontRes = await ocrIdCard(frontBuffer, 'front');
     console.log('\n--- [KYC] FPT.AI OCR Front Response ---');
     console.dir(frontRes, { depth: null });
-    
+
     if (frontRes.errorCode !== 0 || !frontRes.data || frontRes.data.length === 0) {
       return error(res, `Ảnh mặt trước không hợp lệ: ${frontRes.errorMessage || 'Không nhận diện được'}`, 400, 'front');
     }
@@ -68,7 +68,7 @@ export async function submitKyc(req: AuthenticatedRequest, res: Response) {
     const backRes = await ocrIdCard(backBuffer, 'back');
     console.log('\n--- [KYC] FPT.AI OCR Back Response ---');
     console.dir(backRes, { depth: null });
-    
+
     if (backRes.errorCode !== 0 || !backRes.data || backRes.data.length === 0) {
       return error(res, `Ảnh mặt sau không hợp lệ: ${backRes.errorMessage || 'Không nhận diện được'}`, 400, 'back');
     }
@@ -77,11 +77,11 @@ export async function submitKyc(req: AuthenticatedRequest, res: Response) {
     // 3. Match ID numbers
     const frontId = frontData.id;
     const backId = backData.mrz_details?.id;
-    
+
     if (!frontId) {
-       return error(res, 'Không đọc được số CCCD mặt trước', 400, 'front');
+      return error(res, 'Không đọc được số CCCD mặt trước', 400, 'front');
     }
-    
+
     if (backId && frontId !== backId) {
       return error(res, 'Số CCCD mặt trước và mặt sau không khớp', 400, 'back');
     }
@@ -90,18 +90,18 @@ export async function submitKyc(req: AuthenticatedRequest, res: Response) {
     const livenessRes = await checkLiveness(videoBuffer, frontBuffer);
     console.log('\n--- [KYC] FPT.AI Liveness Response ---');
     console.dir(livenessRes, { depth: null });
-    
-    if (String(livenessRes.code) !== "200") {
-       return error(res, `Lỗi xác thực video: ${livenessRes.message} (Code: ${livenessRes.code})`, 400, 'video');
+
+    if (String(livenessRes.code) !== '200') {
+      return error(res, `Lỗi xác thực video: ${livenessRes.message} (Code: ${livenessRes.code})`, 400, 'video');
     }
 
-    const isLive = String(livenessRes.liveness?.is_live) === "true";
-    const isMatch = String(livenessRes.face_match?.isMatch) === "true";
+    const isLive = String(livenessRes.liveness?.is_live) === 'true';
+    const isMatch = String(livenessRes.face_match?.isMatch) === 'true';
     const similarity = livenessRes.face_match?.similarity;
-    
+
     let kycStatus = 'REJECTED';
     let rejectReason = '';
-    
+
     if (!isLive) {
       rejectReason = 'Không vượt qua kiểm tra người thật (Liveness failed).';
     } else if (!isMatch) {
@@ -145,7 +145,7 @@ export async function submitKyc(req: AuthenticatedRequest, res: Response) {
         faceMatchScore: String(similarity),
         status: kycStatus,
         rejectReason: rejectReason || null,
-      }
+      },
     });
 
     // Update User
@@ -157,22 +157,21 @@ export async function submitKyc(req: AuthenticatedRequest, res: Response) {
           kycVerifiedAt: new Date(),
           kycName: frontData.name?.toUpperCase(),
           kycIdNumber: frontId,
-        }
+        },
       });
-      
+
       return success(res, { message: 'Xác minh eKYC thành công', status: 'VERIFIED' });
     } else {
       await (prisma as any).user.update({
         where: { id: userId },
-        data: { kycStatus: 'REJECTED' }
+        data: { kycStatus: 'REJECTED' },
       });
       return error(res, `Xác minh thất bại: ${rejectReason}`, 400, 'video');
     }
-
   } catch (err: any) {
     const apiError = err?.response?.data;
     console.error('[KYC] submitKyc error:', apiError || err.message || err);
-    
+
     if (apiError && apiError.errorMessage) {
       return error(res, `Lỗi xác thực ảnh: ${apiError.errorMessage}`, 400, 'front');
     }

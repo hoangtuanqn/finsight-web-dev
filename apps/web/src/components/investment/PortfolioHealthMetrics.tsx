@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Target, TrendingUp, Scale, ShieldCheck } from 'lucide-react';
+import { Scale, ShieldCheck, Target, TrendingUp } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 function useCountUp(target, duration = 1200) {
   const [val, setVal] = useState(0);
@@ -34,30 +34,40 @@ export default function PortfolioHealthMetrics({ allocation, projection, profile
 
   // Risk alignment
   const aggressiveWeight = ((allocation.stocks || 0) + (allocation.crypto || 0)) / 100;
-  const riskTarget = { LOW: 0.15, MEDIUM: 0.40, HIGH: 0.65 }[profile?.riskLevel] ?? 0.40;
+  const riskTarget = { LOW: 0.15, MEDIUM: 0.4, HIGH: 0.65 }[profile?.riskLevel] ?? 0.4;
   const riskAlignmentScore = Math.max(0, Math.round(100 - Math.abs(aggressiveWeight - riskTarget) * 200));
 
-  const healthScore = Math.round(diversificationScore * 0.35 + returnScore * 0.40 + riskAlignmentScore * 0.25);
+  const healthScore = Math.round(diversificationScore * 0.35 + returnScore * 0.4 + riskAlignmentScore * 0.25);
   const displayed = useCountUp(healthScore);
 
-  const scoreColor = healthScore >= 80 ? '#10b981' : healthScore >= 65 ? '#3b82f6' : healthScore >= 50 ? '#f59e0b' : '#ef4444';
-  const scoreLabel = healthScore >= 80 ? 'Xuất sắc' : healthScore >= 65 ? 'Tốt' : healthScore >= 50 ? 'Trung bình' : 'Cần cải thiện';
-  const scoreGlow = healthScore >= 80 ? 'rgba(16, 185, 129, 0.2)' : healthScore >= 65 ? 'rgba(59, 130, 246, 0.2)' : healthScore >= 50 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(239, 68, 68, 0.2)';
+  const scoreColor =
+    healthScore >= 80 ? '#10b981' : healthScore >= 65 ? '#3b82f6' : healthScore >= 50 ? '#f59e0b' : '#ef4444';
+  const scoreLabel =
+    healthScore >= 80 ? 'Xuất sắc' : healthScore >= 65 ? 'Tốt' : healthScore >= 50 ? 'Trung bình' : 'Cần cải thiện';
+  const scoreGlow =
+    healthScore >= 80
+      ? 'rgba(16, 185, 129, 0.2)'
+      : healthScore >= 65
+        ? 'rgba(59, 130, 246, 0.2)'
+        : healthScore >= 50
+          ? 'rgba(245, 158, 11, 0.2)'
+          : 'rgba(239, 68, 68, 0.2)';
 
   const circumference = 2 * Math.PI * 40;
 
   const SubMetric = ({ icon: Icon, label, score, desc, color, glow }) => (
-    <div className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl relative group hover:bg-white/[0.04] transition-all duration-300 hover:-translate-y-1 hover:shadow-lg flex flex-col justify-between" style={{ hover: { boxShadow: `0 8px 32px ${glow}` } }}>
+    <div
+      className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl relative group hover:bg-white/[0.04] transition-all duration-300 hover:-translate-y-1 hover:shadow-lg flex flex-col justify-between"
+      style={{ hover: { boxShadow: `0 8px 32px ${glow}` } }}
+    >
       <div className="flex flex-col gap-2 mb-3">
         <div className="flex items-center justify-between">
           <div className="p-1.5 rounded-lg bg-white/5 group-hover:scale-110 transition-transform shrink-0">
-             <Icon size={14} className="text-slate-400 group-hover:text-white transition-colors" />
+            <Icon size={14} className="text-slate-400 group-hover:text-white transition-colors" />
           </div>
           <span className="text-xl font-bold text-white shrink-0">{score}</span>
         </div>
-        <span className="text-xs font-semibold text-slate-300">
-          {label}
-        </span>
+        <span className="text-xs font-semibold text-slate-300">{label}</span>
       </div>
       <div className="h-1.5 bg-white/5 rounded-full overflow-hidden mb-3">
         <motion.div
@@ -78,14 +88,27 @@ export default function PortfolioHealthMetrics({ allocation, projection, profile
         {/* Main Score Ring */}
         <div className="relative shrink-0 flex items-center justify-center">
           {/* Ambient Glow behind ring */}
-          <div className="absolute inset-0 rounded-full blur-3xl transition-colors duration-1000" style={{ background: scoreGlow }} />
-          
+          <div
+            className="absolute inset-0 rounded-full blur-3xl transition-colors duration-1000"
+            style={{ background: scoreGlow }}
+          />
+
           <svg className="w-48 h-48 -rotate-90 relative z-10" viewBox="0 0 100 100">
             {/* Background ring */}
-            <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" strokeLinecap="round" />
+            <circle
+              cx="50"
+              cy="50"
+              r="45"
+              fill="none"
+              stroke="rgba(255,255,255,0.05)"
+              strokeWidth="6"
+              strokeLinecap="round"
+            />
             {/* Progress ring */}
             <motion.circle
-              cx="50" cy="50" r="45"
+              cx="50"
+              cy="50"
+              r="45"
               fill="none"
               stroke={scoreColor}
               strokeWidth="6"
@@ -98,7 +121,9 @@ export default function PortfolioHealthMetrics({ allocation, projection, profile
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
-            <span className="text-5xl font-bold tracking-tight" style={{ color: scoreColor }}>{displayed}</span>
+            <span className="text-5xl font-bold tracking-tight" style={{ color: scoreColor }}>
+              {displayed}
+            </span>
             <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mt-1">Sức khỏe</span>
           </div>
         </div>
@@ -107,15 +132,15 @@ export default function PortfolioHealthMetrics({ allocation, projection, profile
         <div className="flex-1 w-full z-10">
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
-               <div>
-                  <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
-                    {scoreLabel}
-                    {healthScore >= 80 && <ShieldCheck size={20} className="text-emerald-500" />}
-                  </h2>
-                  <p className="text-sm text-slate-400">Đánh giá danh mục đầu tư</p>
-               </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
+                  {scoreLabel}
+                  {healthScore >= 80 && <ShieldCheck size={20} className="text-emerald-500" />}
+                </h2>
+                <p className="text-sm text-slate-400">Đánh giá danh mục đầu tư</p>
+              </div>
             </div>
-            
+
             <div className="flex items-center gap-8 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
               <div>
                 <p className="text-xs font-semibold text-slate-500 mb-1">Kỳ vọng (CAGR 10 Năm)</p>
@@ -144,7 +169,7 @@ export default function PortfolioHealthMetrics({ allocation, projection, profile
               score={returnScore}
               color="#10b981"
               glow="rgba(16, 185, 129, 0.15)"
-              desc={`Đạt ${(returnScore).toFixed(0)}% mục tiêu lợi nhuận`}
+              desc={`Đạt ${returnScore.toFixed(0)}% mục tiêu lợi nhuận`}
             />
             <SubMetric
               icon={Scale}

@@ -1,60 +1,47 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  Target,
-  Sparkles,
-  Zap,
-  ChevronRight,
-  User,
-} from "lucide-react";
-import { toast } from "sonner";
-import { investmentAPI, marketAPI } from "../api/index";
-import { useAuth } from "../context/AuthContext";
-import { PageSkeleton } from "../components/common/LoadingSpinner";
-import {
-  normalizeAllocationAnalysis,
-  normalizeStrategy,
-} from "../utils/investmentAdvisorAdapter";
+import { AnimatePresence, motion } from 'framer-motion';
+import { ChevronRight, Sparkles, Target, User, Zap } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import { investmentAPI, marketAPI } from '../api/index';
+import { PageSkeleton } from '../components/common/LoadingSpinner';
+import { useAuth } from '../context/AuthContext';
+import { normalizeAllocationAnalysis, normalizeStrategy } from '../utils/investmentAdvisorAdapter';
 
 // Modular Components (giữ nguyên)
+import AllocationEngine from '../components/investment/AllocationEngine';
 import MarketLivePulse from '../components/investment/MarketLivePulse';
 import PortfolioHealthMetrics from '../components/investment/PortfolioHealthMetrics';
-import AllocationEngine from '../components/investment/AllocationEngine';
 import SmartAssetGuide from '../components/investment/SmartAssetGuide';
 import WealthProjection from '../components/investment/WealthProjection';
 
-import EconomicNewsFeed from '../components/investment/EconomicNewsFeed';
-import StrategyRecommendation from '../components/investment/StrategyRecommendation';
-import IncompleteProfile from '../components/investment/IncompleteProfile';
-import SentimentGauge from '../components/investment/SentimentGauge';
-import AssetFilterPanel from '../components/investment/AssetFilterPanel';
-import GenerateStrategyPopup from '../components/investment/GenerateStrategyPopup';
-import NoStrategyPopup from '../components/investment/NoStrategyPopup';
 import ApplyStrategyModal from '../components/investment/ApplyStrategyModal';
+import AssetFilterPanel from '../components/investment/AssetFilterPanel';
+import EconomicNewsFeed from '../components/investment/EconomicNewsFeed';
+import GenerateStrategyPopup from '../components/investment/GenerateStrategyPopup';
+import IncompleteProfile from '../components/investment/IncompleteProfile';
+import NoStrategyPopup from '../components/investment/NoStrategyPopup';
+import SentimentGauge from '../components/investment/SentimentGauge';
+import StrategyRecommendation from '../components/investment/StrategyRecommendation';
 
-import {
-  ASSET_LABELS,
-} from "../components/investment/InvestmentConstants";
-import { calcFV } from "../components/investment/InvestmentUtils";
+import { ASSET_LABELS } from '../components/investment/InvestmentConstants';
+import { calcFV } from '../components/investment/InvestmentUtils';
 
 // ─── Sentiment label mapping ──────────────────────────────────
 const SENTIMENT_LABEL_VI: Record<string, string> = {
-  EXTREME_FEAR: "Sợ hãi cực độ",
-  FEAR: "Sợ hãi",
-  NEUTRAL: "Trung lập",
-  GREED: "Tham lam",
-  EXTREME_GREED: "Tham lam cực độ",
+  EXTREME_FEAR: 'Sợ hãi cực độ',
+  FEAR: 'Sợ hãi',
+  NEUTRAL: 'Trung lập',
+  GREED: 'Tham lam',
+  EXTREME_GREED: 'Tham lam cực độ',
 };
-
 
 // [LEGACY] Client-side projection fallback for old strategy records.
 // Runtime analytics should come from investmentAdvisorAdapter.js.
 function buildRenderData(allocation: any, profile: any) {
   const capital = profile?.capital || 0;
   const savingsRate = profile?.savingsRate || 6.0;
-  const inflationRate =
-    profile?.inflationRate !== undefined ? profile.inflationRate / 100 : 0.035;
+  const inflationRate = profile?.inflationRate !== undefined ? profile.inflationRate / 100 : 0.035;
   const rates = {
     savings: savingsRate / 100,
     gold: 0.08,
@@ -76,12 +63,16 @@ function buildRenderData(allocation: any, profile: any) {
   const pessReturn = Math.max(-0.5, weightedReturn * 0.5 - inflationRate);
 
   const portfolioBreakdown = [
-    { asset: 'Tiết kiệm',   percentage: allocation.savings, amount: capital * allocation.savings / 100 },
-    { asset: 'Vàng',        percentage: allocation.gold,    amount: capital * allocation.gold    / 100 },
-    { asset: 'Cổ phiếu VN', percentage: allocation.stocks,  amount: capital * allocation.stocks  / 100 },
-    { asset: 'Cổ phiếu Mỹ', percentage: allocation.stocks_us || 0, amount: capital * (allocation.stocks_us || 0) / 100 },
-    { asset: 'Trái phiếu',  percentage: allocation.bonds,   amount: capital * allocation.bonds   / 100 },
-    { asset: 'Crypto',      percentage: allocation.crypto,  amount: capital * allocation.crypto  / 100 },
+    { asset: 'Tiết kiệm', percentage: allocation.savings, amount: (capital * allocation.savings) / 100 },
+    { asset: 'Vàng', percentage: allocation.gold, amount: (capital * allocation.gold) / 100 },
+    { asset: 'Cổ phiếu VN', percentage: allocation.stocks, amount: (capital * allocation.stocks) / 100 },
+    {
+      asset: 'Cổ phiếu Mỹ',
+      percentage: allocation.stocks_us || 0,
+      amount: (capital * (allocation.stocks_us || 0)) / 100,
+    },
+    { asset: 'Trái phiếu', percentage: allocation.bonds, amount: (capital * allocation.bonds) / 100 },
+    { asset: 'Crypto', percentage: allocation.crypto, amount: (capital * allocation.crypto) / 100 },
   ];
 
   const pieData = Object.entries(allocation)
@@ -92,17 +83,15 @@ function buildRenderData(allocation: any, profile: any) {
     }));
 
   const projectionBase = {
-    "1y": Math.round(calcFV(capital, profile?.monthlyAdd || 0, realReturn, 1)),
-    "3y": Math.round(calcFV(capital, profile?.monthlyAdd || 0, realReturn, 3)),
-    "5y": Math.round(calcFV(capital, profile?.monthlyAdd || 0, realReturn, 5)),
-    "10y": Math.round(
-      calcFV(capital, profile?.monthlyAdd || 0, realReturn, 10),
-    ),
+    '1y': Math.round(calcFV(capital, profile?.monthlyAdd || 0, realReturn, 1)),
+    '3y': Math.round(calcFV(capital, profile?.monthlyAdd || 0, realReturn, 3)),
+    '5y': Math.round(calcFV(capital, profile?.monthlyAdd || 0, realReturn, 5)),
+    '10y': Math.round(calcFV(capital, profile?.monthlyAdd || 0, realReturn, 10)),
   };
 
   const projectionData = [
     {
-      year: "Hiện tại",
+      year: 'Hiện tại',
       base: capital,
       optimistic: capital,
       pessimistic: capital,
@@ -110,23 +99,10 @@ function buildRenderData(allocation: any, profile: any) {
     },
     ...[1, 3, 5, 10].map((years) => ({
       year: `${years} năm`,
-      base: Math.round(
-        calcFV(capital, profile?.monthlyAdd || 0, realReturn, years),
-      ),
-      optimistic: Math.round(
-        calcFV(capital, profile?.monthlyAdd || 0, optReturn, years),
-      ),
-      pessimistic: Math.round(
-        calcFV(capital, profile?.monthlyAdd || 0, pessReturn, years),
-      ),
-      savings: Math.round(
-        calcFV(
-          capital,
-          profile?.monthlyAdd || 0,
-          rates.savings - inflationRate,
-          years,
-        ),
-      ),
+      base: Math.round(calcFV(capital, profile?.monthlyAdd || 0, realReturn, years)),
+      optimistic: Math.round(calcFV(capital, profile?.monthlyAdd || 0, optReturn, years)),
+      pessimistic: Math.round(calcFV(capital, profile?.monthlyAdd || 0, pessReturn, years)),
+      savings: Math.round(calcFV(capital, profile?.monthlyAdd || 0, rates.savings - inflationRate, years)),
     })),
   ];
 
@@ -169,10 +145,7 @@ export default function InvestmentPage() {
   }, [excludedAssets]);
 
   const isProfileIncomplete =
-    !user?.fullName ||
-    !user?.email ||
-    !user?.monthlyIncome ||
-    !user?.investorProfile?.capital;
+    !user?.fullName || !user?.email || !user?.monthlyIncome || !user?.investorProfile?.capital;
   const advisorProfile = useMemo(
     () => ({
       ...user?.investorProfile,
@@ -181,28 +154,26 @@ export default function InvestmentPage() {
     [user?.investorProfile],
   );
 
-  const refreshAdvisorAnalysis = useCallback(async (excluded: string[] = []) => {
-    setAdvisorLoading(true);
-    setAdvisorError(null);
-    try {
-      const params = excluded.length > 0
-        ? { excludedAssets: excluded.join(',') }
-        : undefined;
-      const res = await investmentAPI.getAllocation(params);
-      const analysis = normalizeAllocationAnalysis(
-        res.data.data,
-        advisorProfile,
-      );
-      setAdvisorAnalysis(analysis);
-      return analysis;
-    } catch (err) {
-      setAdvisorAnalysis(null);
-      setAdvisorError(err);
-      return null;
-    } finally {
-      setAdvisorLoading(false);
-    }
-  }, [advisorProfile]);
+  const refreshAdvisorAnalysis = useCallback(
+    async (excluded: string[] = []) => {
+      setAdvisorLoading(true);
+      setAdvisorError(null);
+      try {
+        const params = excluded.length > 0 ? { excludedAssets: excluded.join(',') } : undefined;
+        const res = await investmentAPI.getAllocation(params);
+        const analysis = normalizeAllocationAnalysis(res.data.data, advisorProfile);
+        setAdvisorAnalysis(analysis);
+        return analysis;
+      } catch (err) {
+        setAdvisorAnalysis(null);
+        setAdvisorError(err);
+        return null;
+      } finally {
+        setAdvisorLoading(false);
+      }
+    },
+    [advisorProfile],
+  );
 
   // ── Initial load ──────────────────────────────────────────
   useEffect(() => {
@@ -229,11 +200,13 @@ export default function InvestmentPage() {
         setLoading(false);
 
         // Tải vàng + tin tức sau khi trang đã hiển thị
-        marketAPI.getGoldPrice()
-          .then(res => setGoldPrice(res.data.data?.gold || null))
+        marketAPI
+          .getGoldPrice()
+          .then((res) => setGoldPrice(res.data.data?.gold || null))
           .catch(() => {});
-        marketAPI.getNews()
-          .then(res => setMarketNews(res.data.data?.articles || []))
+        marketAPI
+          .getNews()
+          .then((res) => setMarketNews(res.data.data?.articles || []))
           .catch(() => {});
 
         if (loadedStrategies.length === 0) {
@@ -243,12 +216,14 @@ export default function InvestmentPage() {
           const savedExcluded = (() => {
             try {
               return JSON.parse(localStorage.getItem('finsight_excluded_assets') || '[]');
-            } catch { return []; }
+            } catch {
+              return [];
+            }
           })();
           refreshAdvisorAnalysis(savedExcluded);
         }
       } catch (e) {
-        console.error("InvestmentPage load error:", e);
+        console.error('InvestmentPage load error:', e);
         setLoading(false);
       }
     };
@@ -257,37 +232,38 @@ export default function InvestmentPage() {
   }, [isProfileIncomplete, refreshAdvisorAnalysis, user?.strategyQuota]);
 
   // ── Generate chiến lược mới ───────────────────────────────
-  const handleGenerate = useCallback(async (newExcludedAssets: string[] = []) => {
-    setGenerating(true);
-    setShowGeneratePopup(false);
-    setShowNoStrategyPopup(false);
-    setExcludedAssets(newExcludedAssets);
-    try {
-      const res = await investmentAPI.generateStrategy(newExcludedAssets);
-      const { strategy, remainingQuota } = res.data.data;
-      setStrategies((prev) => [strategy, ...prev]);
-      setQuota(remainingQuota);
-      setActiveStrategyIndex(0);
-      await refreshAdvisorAnalysis(newExcludedAssets);
-      toast.success("Chiến lược đầu tư mới đã được tạo!");
-    } catch (err: any) {
-      const msg =
-        err.response?.data?.message ||
-        "Không thể tạo chiến lược. Vui lòng thử lại.";
-      if (err.response?.status === 403) {
-        toast.error(msg, {
-          action: {
-            label: "Nâng cấp",
-            onClick: () => (window.location.href = "/upgrade"),
-          },
-        });
-      } else {
-        toast.error(msg);
+  const handleGenerate = useCallback(
+    async (newExcludedAssets: string[] = []) => {
+      setGenerating(true);
+      setShowGeneratePopup(false);
+      setShowNoStrategyPopup(false);
+      setExcludedAssets(newExcludedAssets);
+      try {
+        const res = await investmentAPI.generateStrategy(newExcludedAssets);
+        const { strategy, remainingQuota } = res.data.data;
+        setStrategies((prev) => [strategy, ...prev]);
+        setQuota(remainingQuota);
+        setActiveStrategyIndex(0);
+        await refreshAdvisorAnalysis(newExcludedAssets);
+        toast.success('Chiến lược đầu tư mới đã được tạo!');
+      } catch (err: any) {
+        const msg = err.response?.data?.message || 'Không thể tạo chiến lược. Vui lòng thử lại.';
+        if (err.response?.status === 403) {
+          toast.error(msg, {
+            action: {
+              label: 'Nâng cấp',
+              onClick: () => (window.location.href = '/upgrade'),
+            },
+          });
+        } else {
+          toast.error(msg);
+        }
+      } finally {
+        setGenerating(false);
       }
-    } finally {
-      setGenerating(false);
-    }
-  }, [refreshAdvisorAnalysis]);
+    },
+    [refreshAdvisorAnalysis],
+  );
 
   // ── Lưu / cập nhật UserPortfolio ─────────────────────────
   const handleUpsertPortfolio = useCallback(
@@ -295,11 +271,11 @@ export default function InvestmentPage() {
       try {
         await investmentAPI.upsertPortfolio(data);
         setApplyTarget(null);
-        toast.success("Đã áp dụng chiến lược! Đang chuyển sang trang của bạn…");
+        toast.success('Đã áp dụng chiến lược! Đang chuyển sang trang của bạn…');
         // Chuyển sang trang chiến lược cá nhân sau 600ms để toast kịp hiển thị
-        setTimeout(() => navigate("/investment/my-portfolio"), 600);
+        setTimeout(() => navigate('/investment/my-portfolio'), 600);
       } catch (err: any) {
-        toast.error(err.response?.data?.message || "Lưu thất bại");
+        toast.error(err.response?.data?.message || 'Lưu thất bại');
       }
     },
     [navigate],
@@ -309,9 +285,9 @@ export default function InvestmentPage() {
     try {
       const res = await investmentAPI.updatePortfolio(data);
       setPortfolio(res.data.data);
-      toast.success("Đã cập nhật chiến lược!");
+      toast.success('Đã cập nhật chiến lược!');
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Cập nhật thất bại");
+      toast.error(err.response?.data?.message || 'Cập nhật thất bại');
     }
   }, []);
 
@@ -323,15 +299,9 @@ export default function InvestmentPage() {
   const activeStrategy = strategies[activeStrategyIndex] || null;
 
   const mockProfile = advisorProfile;
-  const legacyViewModel = activeStrategy
-    ? normalizeStrategy(activeStrategy, mockProfile)
-    : null;
-  const viewModel =
-    advisorAnalysis && activeStrategyIndex === 0
-      ? advisorAnalysis
-      : legacyViewModel;
-  const sentimentValue =
-    viewModel?.sentimentData?.value || activeStrategy?.sentimentValue || 50;
+  const legacyViewModel = activeStrategy ? normalizeStrategy(activeStrategy, mockProfile) : null;
+  const viewModel = advisorAnalysis && activeStrategyIndex === 0 ? advisorAnalysis : legacyViewModel;
+  const sentimentValue = viewModel?.sentimentData?.value || activeStrategy?.sentimentValue || 50;
 
   const activeAllocation = viewModel?.allocation || {
     savings: 20,
@@ -382,11 +352,7 @@ export default function InvestmentPage() {
         )}
       </AnimatePresence>
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="max-w-7xl mx-auto space-y-10 pb-24"
-      >
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto space-y-10 pb-24">
         {/* ── Header ── */}
         <header className="pt-2 flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
           <div>
@@ -404,18 +370,10 @@ export default function InvestmentPage() {
           <div className="flex items-center gap-3 flex-wrap">
             {/* Quota badge */}
             <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full">
-              <Zap
-                size={13}
-                className={quota > 3 ? "text-amber-400" : "text-red-400"}
-              />
+              <Zap size={13} className={quota > 3 ? 'text-amber-400' : 'text-red-400'} />
               <span className="text-xs font-bold text-slate-300">
-                Còn{" "}
-                <span
-                  className={`font-black ${quota > 3 ? "text-amber-400" : "text-red-400"}`}
-                >
-                  {quota}
-                </span>{" "}
-                lượt tạo
+                Còn <span className={`font-black ${quota > 3 ? 'text-amber-400' : 'text-red-400'}`}>{quota}</span> lượt
+                tạo
               </span>
             </div>
 
@@ -428,13 +386,10 @@ export default function InvestmentPage() {
               {generating ? (
                 <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
               ) : (
-                <Sparkles
-                  size={14}
-                  className="group-hover:scale-110 transition-transform"
-                />
+                <Sparkles size={14} className="group-hover:scale-110 transition-transform" />
               )}
               <span className="text-xs font-bold uppercase tracking-wide">
-                {generating ? "Đang phân tích..." : "Tạo chiến lược mới"}
+                {generating ? 'Đang phân tích...' : 'Tạo chiến lược mới'}
               </span>
             </button>
 
@@ -442,10 +397,7 @@ export default function InvestmentPage() {
               to="/investment/my-portfolio"
               className="group flex items-center gap-2.5 px-5 py-2.5 bg-[var(--color-bg-card)] border border-white/10 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all duration-300 rounded-full shadow-sm"
             >
-              <User
-                size={14}
-                className="text-emerald-400 group-hover:scale-110 transition-transform"
-              />
+              <User size={14} className="text-emerald-400 group-hover:scale-110 transition-transform" />
               <span className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-primary)]">
                 Chiến lược của tôi
               </span>
@@ -455,10 +407,7 @@ export default function InvestmentPage() {
               to="/risk-assessment"
               className="group flex items-center gap-2.5 px-5 py-2.5 bg-[var(--color-bg-card)] border border-white/10 hover:border-blue-500/30 hover:bg-blue-500/5 transition-all duration-300 rounded-full shadow-sm"
             >
-              <Target
-                size={14}
-                className="text-blue-400 group-hover:scale-110 transition-transform"
-              />
+              <Target size={14} className="text-blue-400 group-hover:scale-110 transition-transform" />
               <span className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-primary)]">
                 Hồ sơ rủi ro
               </span>
@@ -469,9 +418,8 @@ export default function InvestmentPage() {
         {/* ── Tài sản trong chiến lược hiện tại (read-only) ── */}
         {(() => {
           const EXCLUDABLE = ['gold', 'stocks', 'stocks_us', 'bonds', 'crypto'] as const;
-          const lockedExcluded = strategies.length > 0
-            ? EXCLUDABLE.filter(a => !(activeAllocation[a] > 0))
-            : excludedAssets; // fallback khi chưa có chiến lược
+          const lockedExcluded =
+            strategies.length > 0 ? EXCLUDABLE.filter((a) => !(activeAllocation[a] > 0)) : excludedAssets; // fallback khi chưa có chiến lược
           return (
             <AssetFilterPanel
               excludedAssets={lockedExcluded}
@@ -502,9 +450,7 @@ export default function InvestmentPage() {
                   </div>
                   <div className="mt-10 w-full space-y-3 relative z-10 bg-white/[0.02] p-4 rounded-2xl border border-white/5">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-medium text-slate-400">
-                        Trạng thái
-                      </span>
+                      <span className="text-xs font-medium text-slate-400">Trạng thái</span>
                       <span className="text-sm font-bold text-white">
                         {viewModel?.sentimentData?.labelVi ||
                           SENTIMENT_LABEL_VI[viewModel?.sentimentData?.label] ||
@@ -514,12 +460,8 @@ export default function InvestmentPage() {
                     </div>
                     <div className="w-full h-px bg-white/5" />
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-medium text-slate-400">
-                        Điểm số
-                      </span>
-                      <span className="text-base font-bold text-blue-400">
-                        {sentimentValue}/100
-                      </span>
+                      <span className="text-xs font-medium text-slate-400">Điểm số</span>
+                      <span className="text-base font-bold text-blue-400">{sentimentValue}/100</span>
                     </div>
                   </div>
                 </div>
@@ -538,30 +480,22 @@ export default function InvestmentPage() {
                 views={viewModel?.marketViews || activeStrategy?.marketViews || []}
               />
 
-              {(advisorLoading || advisorError) &&
-                activeStrategyIndex === 0 && (
-                  <div
-                    className={`px-4 py-2 rounded-2xl border text-xs font-bold ${
-                      advisorError
-                        ? "bg-amber-500/10 border-amber-500/20 text-amber-300"
-                        : "bg-blue-500/10 border-blue-500/20 text-blue-300"
-                    }`}
-                  >
-                    {advisorError
-                      ? "Đang hiển thị dữ liệu chiến lược cũ vì phân tích nâng cao chưa sẵn sàng."
-                      : "Đang cập nhật phân tích nâng cao..."}
-                  </div>
-                )}
+              {(advisorLoading || advisorError) && activeStrategyIndex === 0 && (
+                <div
+                  className={`px-4 py-2 rounded-2xl border text-xs font-bold ${
+                    advisorError
+                      ? 'bg-amber-500/10 border-amber-500/20 text-amber-300'
+                      : 'bg-blue-500/10 border-blue-500/20 text-blue-300'
+                  }`}
+                >
+                  {advisorError
+                    ? 'Đang hiển thị dữ liệu chiến lược cũ vì phân tích nâng cao chưa sẵn sàng.'
+                    : 'Đang cập nhật phân tích nâng cao...'}
+                </div>
+              )}
 
-              <AllocationEngine
-                pieData={pieData}
-                portfolioBreakdown={portfolioBreakdown}
-                history={[]}
-              />
-              <SmartAssetGuide
-                allocation={activeAllocation}
-                riskLevel={mockProfile?.riskLevel || "MEDIUM"}
-              />
+              <AllocationEngine pieData={pieData} portfolioBreakdown={portfolioBreakdown} history={[]} />
+              <SmartAssetGuide allocation={activeAllocation} riskLevel={mockProfile?.riskLevel || 'MEDIUM'} />
               <WealthProjection
                 projectionData={projectionData}
                 monteCarloData={viewModel?.monteCarloData}
@@ -614,50 +548,64 @@ export default function InvestmentPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {strategies.slice(historyPage * HISTORY_PAGE_SIZE, (historyPage + 1) * HISTORY_PAGE_SIZE).map((s, i) => {
-                        const globalIndex = historyPage * HISTORY_PAGE_SIZE + i;
-                        return (
-                          <tr
-                            key={s.id}
-                            className={`border-b border-white/5 transition-colors cursor-pointer ${activeStrategyIndex === globalIndex ? "bg-blue-500/5" : "hover:bg-white/2"}`}
-                            onClick={() => setActiveStrategyIndex(globalIndex)}
-                          >
-                            <td className="px-5 py-3.5">
-                              <div className="flex items-center gap-2">
-                                {activeStrategyIndex === globalIndex && (
-                                  <div className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
-                                )}
-                                <span className="text-slate-400 font-medium">
-                                  {globalIndex + 1}
+                      {strategies
+                        .slice(historyPage * HISTORY_PAGE_SIZE, (historyPage + 1) * HISTORY_PAGE_SIZE)
+                        .map((s, i) => {
+                          const globalIndex = historyPage * HISTORY_PAGE_SIZE + i;
+                          return (
+                            <tr
+                              key={s.id}
+                              className={`border-b border-white/5 transition-colors cursor-pointer ${activeStrategyIndex === globalIndex ? 'bg-blue-500/5' : 'hover:bg-white/2'}`}
+                              onClick={() => setActiveStrategyIndex(globalIndex)}
+                            >
+                              <td className="px-5 py-3.5">
+                                <div className="flex items-center gap-2">
+                                  {activeStrategyIndex === globalIndex && (
+                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                                  )}
+                                  <span className="text-slate-400 font-medium">{globalIndex + 1}</span>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3.5 text-slate-300 whitespace-nowrap">
+                                <div className="text-sm">
+                                  {new Date(s.createdAt).toLocaleDateString('vi-VN', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                  })}
+                                </div>
+                                <div className="text-[11px] text-slate-500 mt-0.5">
+                                  {new Date(s.createdAt).toLocaleTimeString('vi-VN', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3.5">
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-slate-300">
+                                  {SENTIMENT_LABEL_VI[s.sentimentLabel] || s.sentimentLabel}
                                 </span>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3.5 text-slate-300 whitespace-nowrap">
-                              <div className="text-sm">{new Date(s.createdAt).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}</div>
-                              <div className="text-[11px] text-slate-500 mt-0.5">{new Date(s.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}</div>
-                            </td>
-                            <td className="px-4 py-3.5">
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-slate-300">
-                                {SENTIMENT_LABEL_VI[s.sentimentLabel] || s.sentimentLabel}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3.5 text-right font-bold text-emerald-400">{s.savings}%</td>
-                            <td className="px-4 py-3.5 text-right font-bold text-amber-400">{s.gold}%</td>
-                            <td className="px-4 py-3.5 text-right font-bold text-blue-400">{s.stocks}%</td>
-                            <td className="px-4 py-3.5 text-right font-bold text-purple-400">{s.bonds}%</td>
-                            <td className="px-4 py-3.5 text-right font-bold text-pink-400">{s.crypto}%</td>
-                            <td className="px-5 py-3.5 text-right">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setApplyTarget(s); }}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-400 text-xs font-bold transition-colors whitespace-nowrap"
-                              >
-                                <ChevronRight size={12} />
-                                Áp dụng
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                              </td>
+                              <td className="px-4 py-3.5 text-right font-bold text-emerald-400">{s.savings}%</td>
+                              <td className="px-4 py-3.5 text-right font-bold text-amber-400">{s.gold}%</td>
+                              <td className="px-4 py-3.5 text-right font-bold text-blue-400">{s.stocks}%</td>
+                              <td className="px-4 py-3.5 text-right font-bold text-purple-400">{s.bonds}%</td>
+                              <td className="px-4 py-3.5 text-right font-bold text-pink-400">{s.crypto}%</td>
+                              <td className="px-5 py-3.5 text-right">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setApplyTarget(s);
+                                  }}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-400 text-xs font-bold transition-colors whitespace-nowrap"
+                                >
+                                  <ChevronRight size={12} />
+                                  Áp dụng
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
                     </tbody>
                   </table>
                 </div>
@@ -666,11 +614,13 @@ export default function InvestmentPage() {
                 {strategies.length > HISTORY_PAGE_SIZE && (
                   <div className="flex items-center justify-between px-5 py-3.5 border-t border-white/5">
                     <span className="text-[11px] text-slate-500">
-                      {historyPage * HISTORY_PAGE_SIZE + 1}–{Math.min((historyPage + 1) * HISTORY_PAGE_SIZE, strategies.length)} / {strategies.length} chiến lược
+                      {historyPage * HISTORY_PAGE_SIZE + 1}–
+                      {Math.min((historyPage + 1) * HISTORY_PAGE_SIZE, strategies.length)} / {strategies.length} chiến
+                      lược
                     </span>
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => setHistoryPage(p => Math.max(0, p - 1))}
+                        onClick={() => setHistoryPage((p) => Math.max(0, p - 1))}
                         disabled={historyPage === 0}
                         className="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                       >
@@ -680,13 +630,15 @@ export default function InvestmentPage() {
                         <button
                           key={idx}
                           onClick={() => setHistoryPage(idx)}
-                          className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${historyPage === idx ? "bg-blue-500/20 text-blue-400 border border-blue-500/30" : "text-slate-500 hover:text-white hover:bg-white/5"}`}
+                          className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${historyPage === idx ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
                         >
                           {idx + 1}
                         </button>
                       ))}
                       <button
-                        onClick={() => setHistoryPage(p => Math.min(Math.ceil(strategies.length / HISTORY_PAGE_SIZE) - 1, p + 1))}
+                        onClick={() =>
+                          setHistoryPage((p) => Math.min(Math.ceil(strategies.length / HISTORY_PAGE_SIZE) - 1, p + 1))
+                        }
                         disabled={historyPage >= Math.ceil(strategies.length / HISTORY_PAGE_SIZE) - 1}
                         className="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                       >
@@ -706,12 +658,10 @@ export default function InvestmentPage() {
         <footer className="pt-12 border-t border-white/5 text-center flex flex-col items-center">
           <div className="w-12 h-1 rounded-full bg-white/10 mb-6" />
           <p className="text-xs font-medium text-slate-500 leading-relaxed max-w-4xl">
-            Tuyên bố miễn trừ trách nhiệm: Các phân bổ và dự phóng tài sản trên
-            chỉ mang tính chất mô phỏng kỹ thuật dựa trên dữ liệu quá khứ và hồ
-            sơ rủi ro. Thị trường tài chính luôn biến động. Sự suy giảm vốn hoàn
-            toàn có thể xảy ra ở kịch bản tiêu cực. FinSight và Golden Hands
-            không chịu trách nhiệm cho bất kỳ tổn thất tài chính nào phát sinh
-            từ việc sử dụng công cụ này.
+            Tuyên bố miễn trừ trách nhiệm: Các phân bổ và dự phóng tài sản trên chỉ mang tính chất mô phỏng kỹ thuật dựa
+            trên dữ liệu quá khứ và hồ sơ rủi ro. Thị trường tài chính luôn biến động. Sự suy giảm vốn hoàn toàn có thể
+            xảy ra ở kịch bản tiêu cực. FinSight và Golden Hands không chịu trách nhiệm cho bất kỳ tổn thất tài chính
+            nào phát sinh từ việc sử dụng công cụ này.
           </p>
         </footer>
       </motion.div>

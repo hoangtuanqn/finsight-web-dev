@@ -1,14 +1,14 @@
 import { Request, Response } from 'express';
-import prisma from '../lib/prisma';
-import { success, error } from '../utils/apiResponse';
-import { TOTPService } from '../utils/totp';
-import { AuthenticatedRequest } from '../types';
 import jwt, { SignOptions } from 'jsonwebtoken';
+import prisma from '../lib/prisma';
+import { AuthenticatedRequest } from '../types';
+import { error, success } from '../utils/apiResponse';
+import { TOTPService } from '../utils/totp';
 
 export async function setup2FA(req: AuthenticatedRequest, res: Response) {
   try {
     const user = await (prisma as any).user.findUnique({
-      where: { id: req.userId }
+      where: { id: req.userId },
     });
 
     if (!user) return error(res, 'User not found', 404);
@@ -25,7 +25,7 @@ export async function setup2FA(req: AuthenticatedRequest, res: Response) {
     // Lưu tạm secret vào DB nhưng chưa bật isTwoFactorEnabled
     await (prisma as any).user.update({
       where: { id: req.userId },
-      data: { twoFactorSecret: secret }
+      data: { twoFactorSecret: secret },
     });
 
     return success(res, { qrCode, secret });
@@ -39,7 +39,7 @@ export async function enable2FA(req: AuthenticatedRequest, res: Response) {
   try {
     const { token } = req.body;
     const user = await (prisma as any).user.findUnique({
-      where: { id: req.userId }
+      where: { id: req.userId },
     });
 
     if (!user || !user.twoFactorSecret) {
@@ -57,8 +57,8 @@ export async function enable2FA(req: AuthenticatedRequest, res: Response) {
       where: { id: req.userId },
       data: {
         isTwoFactorEnabled: true,
-        twoFactorBackupCodes: JSON.stringify(backupCodes)
-      }
+        twoFactorBackupCodes: JSON.stringify(backupCodes),
+      },
     });
 
     return success(res, { backupCodes });
@@ -72,7 +72,7 @@ export async function disable2FA(req: AuthenticatedRequest, res: Response) {
   try {
     const { token } = req.body; // Yêu cầu OTP để tắt
     const user = await (prisma as any).user.findUnique({
-      where: { id: req.userId }
+      where: { id: req.userId },
     });
 
     if (!user || !user.isTwoFactorEnabled || !user.twoFactorSecret) {
@@ -89,8 +89,8 @@ export async function disable2FA(req: AuthenticatedRequest, res: Response) {
       data: {
         isTwoFactorEnabled: false,
         twoFactorSecret: null,
-        twoFactorBackupCodes: null
-      }
+        twoFactorBackupCodes: null,
+      },
     });
 
     return success(res, { message: '2FA disabled successfully' });
@@ -121,13 +121,13 @@ export async function verify2FALogin(req: Request, res: Response) {
     }
 
     const user = await (prisma as any).user.findUnique({
-      where: { id: decoded.userId }
+      where: { id: decoded.userId },
     });
 
     if (!user) return error(res, 'User not found', 404);
 
     let isValid = false;
-    
+
     // Check OTP
     if (user.twoFactorSecret) {
       isValid = TOTPService.verifyToken(otpCode, user.twoFactorSecret);
@@ -143,7 +143,7 @@ export async function verify2FALogin(req: Request, res: Response) {
         backupCodes.splice(codeIndex, 1);
         await (prisma as any).user.update({
           where: { id: user.id },
-          data: { twoFactorBackupCodes: JSON.stringify(backupCodes) }
+          data: { twoFactorBackupCodes: JSON.stringify(backupCodes) },
         });
       }
     }
@@ -153,11 +153,9 @@ export async function verify2FALogin(req: Request, res: Response) {
     }
 
     // Generate real JWT
-    const token = jwt.sign(
-      { userId: user.id, email: user.email },
-      (process.env.JWT_SECRET as string).trim(),
-      { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'] }
-    );
+    const token = jwt.sign({ userId: user.id, email: user.email }, (process.env.JWT_SECRET as string).trim(), {
+      expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'],
+    });
 
     let trustToken = null;
     if (trustDevice) {
@@ -165,24 +163,24 @@ export async function verify2FALogin(req: Request, res: Response) {
       const userAgent = req.headers['user-agent'] || 'unknown';
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 30); // Tin cậy 30 ngày
-      
+
       const device = await (prisma as any).trustedDevice.create({
         data: {
           userId: user.id,
           userAgent,
           token: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
-          expiresAt
-        }
+          expiresAt,
+        },
       });
       trustToken = device.token;
     }
 
     const { password: _, twoFactorSecret: __, ...userData } = user;
 
-    return success(res, { 
-      user: userData, 
+    return success(res, {
+      user: userData,
       token,
-      trustToken 
+      trustToken,
     });
   } catch (err) {
     console.error('verify2FALogin error:', err);
@@ -195,14 +193,14 @@ export async function trustDevice(req: AuthenticatedRequest, res: Response) {
     const userAgent = req.headers['user-agent'] || 'unknown';
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30); // Tin cậy 30 ngày
-    
+
     const device = await (prisma as any).trustedDevice.create({
       data: {
         userId: req.userId,
         userAgent,
         token: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15),
-        expiresAt
-      }
+        expiresAt,
+      },
     });
 
     return success(res, { trustToken: device.token });

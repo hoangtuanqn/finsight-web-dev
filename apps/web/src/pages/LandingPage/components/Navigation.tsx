@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ChevronRight, LayoutDashboard, LogIn, Menu, Sparkles, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X, ChevronRight, LayoutDashboard, LogIn, Sparkles } from 'lucide-react';
-import { useAuth } from '../../../context/AuthContext';
-import { motion, AnimatePresence } from 'framer-motion';
 import { ToggleMode } from '../../../components/layout/components/ToggleMode';
+import { useAuth } from '../../../context/AuthContext';
 import { useDarkMode } from '../../../hooks/useDarkMode';
 
 export default function Navigation() {
@@ -28,10 +28,15 @@ export default function Navigation() {
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'py-4' : 'py-8'}`}>
       <div className={`max-w-7xl mx-auto px-6`}>
-        <div className={`relative flex items-center justify-between px-6 py-3 rounded-2xl border transition-all duration-500 ${scrolled ? 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border-slate-200 dark:border-white/10 shadow-2xl' : 'bg-transparent border-transparent'}`}>
-          
+        <div
+          className={`relative flex items-center justify-between px-6 py-3 rounded-2xl border transition-all duration-500 ${scrolled ? 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border-slate-200 dark:border-white/10 shadow-2xl' : 'bg-transparent border-transparent'}`}
+        >
           <Link to="/" className="flex items-center gap-2.5 group">
-            <img src="https://i.ibb.co/84xLmWTK/LOGO.png" alt="FinSight Logo" className="h-9 md:h-10 w-auto object-contain group-hover:scale-105 transition-transform" />
+            <img
+              src="https://i.ibb.co/84xLmWTK/LOGO.png"
+              alt="FinSight Logo"
+              className="h-9 md:h-10 w-auto object-contain group-hover:scale-105 transition-transform"
+            />
           </Link>
 
           <div className="hidden md:flex items-center gap-10">
@@ -50,15 +55,24 @@ export default function Navigation() {
             <ToggleMode dark={dark} setDark={setDark} />
             <div className="w-px h-6 bg-slate-200 dark:bg-white/10 mx-2" />
             {isLoggedIn ? (
-              <Link to="/home" className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white font-black text-sm rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all hover:scale-105">
+              <Link
+                to="/home"
+                className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white font-black text-sm rounded-xl shadow-lg hover:shadow-blue-500/30 transition-all hover:scale-105"
+              >
                 Dashboard <LayoutDashboard size={16} />
               </Link>
             ) : (
               <>
-                <Link to="/login" className="text-sm font-black text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white uppercase tracking-widest px-4 py-2">
+                <Link
+                  to="/login"
+                  className="text-sm font-black text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white uppercase tracking-widest px-4 py-2"
+                >
                   Đăng nhập
                 </Link>
-                <Link to="/register" className="group relative flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white font-black text-sm rounded-xl transition-all hover:scale-105 shadow-xl">
+                <Link
+                  to="/register"
+                  className="group relative flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white font-black text-sm rounded-xl transition-all hover:scale-105 shadow-xl"
+                >
                   Bắt đầu <Sparkles size={16} className="group-hover:rotate-12 transition-transform" />
                 </Link>
               </>
@@ -95,15 +109,24 @@ export default function Navigation() {
                 <div className="flex flex-col gap-4">
                   <ToggleMode dark={dark} setDark={setDark} />
                   {isLoggedIn ? (
-                    <Link to="/home" className="flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white font-black rounded-2xl">
+                    <Link
+                      to="/home"
+                      className="flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white font-black rounded-2xl"
+                    >
                       Dashboard <LayoutDashboard size={20} />
                     </Link>
                   ) : (
                     <>
-                      <Link to="/login" className="flex items-center justify-center gap-2 px-6 py-4 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-black rounded-2xl">
+                      <Link
+                        to="/login"
+                        className="flex items-center justify-center gap-2 px-6 py-4 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-black rounded-2xl"
+                      >
                         Đăng nhập <LogIn size={20} />
                       </Link>
-                      <Link to="/register" className="flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white font-black rounded-2xl">
+                      <Link
+                        to="/register"
+                        className="flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white font-black rounded-2xl"
+                      >
                         Bắt đầu ngay <ChevronRight size={20} />
                       </Link>
                     </>

@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { qrAPI } from '../api';
 import { motion } from 'framer-motion';
-import { Monitor, CheckCircle, XCircle, ShieldAlert, Loader2, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Loader2, Monitor, ShieldAlert, XCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import { qrAPI } from '../api';
+import { useAuth } from '../context/AuthContext';
 
 export default function QRConfirmPage() {
   const [searchParams] = useSearchParams();
@@ -12,7 +12,7 @@ export default function QRConfirmPage() {
   const { user } = useAuth() as any;
   const navigate = useNavigate();
 
-  const [status, setStatus] = useState<'loading' | 'scanned' | 'approved' | 'rejected' | 'error'>('loading'); 
+  const [status, setStatus] = useState<'loading' | 'scanned' | 'approved' | 'rejected' | 'error'>('loading');
   const [deviceInfo, setDeviceInfo] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -40,7 +40,7 @@ export default function QRConfirmPage() {
   const handleConfirm = async (action: string) => {
     if (!token || isProcessing) return;
     setIsProcessing(true);
-    
+
     try {
       await (qrAPI as any).confirm({ qrToken: token, action });
       if (action === 'approve') {
@@ -67,7 +67,7 @@ export default function QRConfirmPage() {
 
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center p-4">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl p-8 relative overflow-hidden"
@@ -76,7 +76,6 @@ export default function QRConfirmPage() {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 bg-blue-500/10 blur-3xl rounded-full pointer-events-none" />
 
         <div className="relative z-10 flex flex-col items-center text-center">
-          
           {status === 'loading' && (
             <div className="flex flex-col items-center gap-4 py-8">
               <Loader2 className="w-12 h-12 text-blue-500 animate-spin" />
@@ -92,7 +91,7 @@ export default function QRConfirmPage() {
               </div>
               <h2 className="text-xl font-bold text-slate-800 dark:text-white">Phiên bản không hợp lệ</h2>
               <p className="text-slate-500 text-sm mb-6">Mã QR có thể đã hết hạn hoặc được sử dụng.</p>
-              <button 
+              <button
                 onClick={() => navigate('/home')}
                 className="flex items-center gap-2 px-6 py-3 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-white rounded-xl font-bold hover:bg-slate-200 transition-colors"
               >
@@ -113,7 +112,7 @@ export default function QRConfirmPage() {
               </div>
 
               <h2 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">Xác nhận đăng nhập</h2>
-              
+
               <div className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-5 my-4 text-left">
                 <div className="flex flex-col gap-3">
                   <div>
@@ -122,8 +121,12 @@ export default function QRConfirmPage() {
                   </div>
                   <div className="h-px w-full bg-slate-200 dark:bg-white/10" />
                   <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Thiết bị yêu cầu</p>
-                    <p className="text-sm font-semibold text-slate-800 dark:text-white">{deviceInfo || 'Trình duyệt Web Desktop'}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                      Thiết bị yêu cầu
+                    </p>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-white">
+                      {deviceInfo || 'Trình duyệt Web Desktop'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -157,7 +160,7 @@ export default function QRConfirmPage() {
             <div className="flex flex-col items-center gap-4 py-8">
               <div className="w-24 h-24 rounded-full bg-emerald-500/10 flex items-center justify-center mb-4 relative">
                 <CheckCircle className="w-12 h-12 text-emerald-500" />
-                <motion.div 
+                <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   className="absolute inset-0 border-2 border-emerald-500 rounded-full"
@@ -167,7 +170,7 @@ export default function QRConfirmPage() {
               <p className="text-slate-500 text-sm mb-6 text-center">
                 Thiết bị đã được đăng nhập thành công. Bạn có thể tiếp tục sử dụng máy tính.
               </p>
-              <button 
+              <button
                 onClick={() => navigate('/home')}
                 className="w-full py-4 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-white font-bold rounded-xl hover:bg-slate-200 transition-colors"
               >
@@ -183,7 +186,7 @@ export default function QRConfirmPage() {
               </div>
               <h2 className="text-xl font-bold text-slate-800 dark:text-white">Đã hủy yêu cầu</h2>
               <p className="text-slate-500 text-sm mb-6">Bạn đã từ chối quyền đăng nhập cho thiết bị này.</p>
-              <button 
+              <button
                 onClick={() => navigate('/home')}
                 className="flex items-center gap-2 px-6 py-3 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-white rounded-xl font-bold hover:bg-slate-200 transition-colors"
               >
@@ -191,7 +194,6 @@ export default function QRConfirmPage() {
               </button>
             </div>
           )}
-
         </div>
       </motion.div>
     </div>

@@ -1,6 +1,6 @@
-import { useState, useRef, useCallback } from 'react';
+import { AlertTriangle, Camera, Image as ImageIcon, RotateCcw, Upload, X } from 'lucide-react';
+import { useCallback, useRef, useState } from 'react';
 import Webcam from 'react-webcam';
-import { Camera, Image as ImageIcon, RotateCcw, X, Upload, AlertTriangle } from 'lucide-react';
 import { useCameraPermission } from '../../../hooks/useCameraPermission';
 
 interface Step1Props {
@@ -46,11 +46,11 @@ function CameraErrorModal({ message, onClose }: { message: string; onClose: () =
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
 function dataURLtoFile(dataurl: string, filename: string): File {
-  const arr  = dataurl.split(',');
+  const arr = dataurl.split(',');
   const mime = arr[0].match(/:(.*?);/)![1];
   const bstr = atob(arr[1]);
-  let n      = bstr.length;
-  const u8   = new Uint8Array(n);
+  let n = bstr.length;
+  const u8 = new Uint8Array(n);
   while (n--) u8[n] = bstr.charCodeAt(n);
   return new File([u8], filename, { type: mime });
 }
@@ -58,13 +58,11 @@ function dataURLtoFile(dataurl: string, filename: string): File {
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function Step1_IdCapture({ onNext, initialFront, initialBack }: Step1Props) {
   const [frontImage, setFrontImage] = useState<File | null>(initialFront || null);
-  const [backImage,  setBackImage]  = useState<File | null>(initialBack  || null);
+  const [backImage, setBackImage] = useState<File | null>(initialBack || null);
   const [frontPreview, setFrontPreview] = useState<string | null>(
-    initialFront ? URL.createObjectURL(initialFront) : null
+    initialFront ? URL.createObjectURL(initialFront) : null,
   );
-  const [backPreview, setBackPreview] = useState<string | null>(
-    initialBack ? URL.createObjectURL(initialBack) : null
-  );
+  const [backPreview, setBackPreview] = useState<string | null>(initialBack ? URL.createObjectURL(initialBack) : null);
 
   const [activeCamera, setActiveCamera] = useState<'front' | 'back' | null>(null);
   const [showCamError, setShowCamError] = useState(false);
@@ -73,14 +71,17 @@ export default function Step1_IdCapture({ onNext, initialFront, initialBack }: S
   const { errorMessage, requestPermission, reset: resetCam } = useCameraPermission();
 
   // ── Open camera with permission check ──
-  const openCamera = useCallback(async (side: 'front' | 'back') => {
-    const ok = await requestPermission();
-    if (!ok) {
-      setShowCamError(true);
-      return;
-    }
-    setActiveCamera(side);
-  }, [requestPermission]);
+  const openCamera = useCallback(
+    async (side: 'front' | 'back') => {
+      const ok = await requestPermission();
+      if (!ok) {
+        setShowCamError(true);
+        return;
+      }
+      setActiveCamera(side);
+    },
+    [requestPermission],
+  );
 
   const capture = useCallback(() => {
     const imageSrc = webcamRef.current?.getScreenshot();
@@ -101,8 +102,13 @@ export default function Step1_IdCapture({ onNext, initialFront, initialBack }: S
     const file = e.target.files?.[0];
     if (!file) return;
     const preview = URL.createObjectURL(file);
-    if (side === 'front') { setFrontImage(file); setFrontPreview(preview); }
-    else                  { setBackImage(file);  setBackPreview(preview);  }
+    if (side === 'front') {
+      setFrontImage(file);
+      setFrontPreview(preview);
+    } else {
+      setBackImage(file);
+      setBackPreview(preview);
+    }
   };
 
   const handleNext = () => {
@@ -111,12 +117,14 @@ export default function Step1_IdCapture({ onNext, initialFront, initialBack }: S
 
   return (
     <div className="space-y-6">
-
       {/* Camera error modal */}
       {showCamError && (
         <CameraErrorModal
           message={errorMessage || 'Không thể truy cập camera.'}
-          onClose={() => { setShowCamError(false); resetCam(); }}
+          onClose={() => {
+            setShowCamError(false);
+            resetCam();
+          }}
         />
       )}
 
@@ -160,7 +168,7 @@ export default function Step1_IdCapture({ onNext, initialFront, initialBack }: S
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {(['front', 'back'] as const).map((side) => {
           const preview = side === 'front' ? frontPreview : backPreview;
-          const label   = side === 'front' ? 'Mặt trước CCCD' : 'Mặt sau CCCD';
+          const label = side === 'front' ? 'Mặt trước CCCD' : 'Mặt sau CCCD';
 
           return (
             <div key={side} className="space-y-3">
@@ -178,14 +186,27 @@ export default function Step1_IdCapture({ onNext, initialFront, initialBack }: S
                       >
                         <Camera size={20} />
                       </button>
-                      <label className="p-3 bg-white/10 text-white rounded-full hover:bg-white/20 backdrop-blur-md cursor-pointer transition-colors" title="Tải ảnh khác">
+                      <label
+                        className="p-3 bg-white/10 text-white rounded-full hover:bg-white/20 backdrop-blur-md cursor-pointer transition-colors"
+                        title="Tải ảnh khác"
+                      >
                         <Upload size={20} />
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, side)} />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleFileUpload(e, side)}
+                        />
                       </label>
                       <button
                         onClick={() => {
-                          if (side === 'front') { setFrontImage(null); setFrontPreview(null); }
-                          else                  { setBackImage(null);  setBackPreview(null); }
+                          if (side === 'front') {
+                            setFrontImage(null);
+                            setFrontPreview(null);
+                          } else {
+                            setBackImage(null);
+                            setBackPreview(null);
+                          }
                         }}
                         className="p-3 bg-red-500/20 text-red-400 rounded-full hover:bg-red-500/30 backdrop-blur-md transition-colors"
                         title="Xoá"
@@ -206,7 +227,12 @@ export default function Step1_IdCapture({ onNext, initialFront, initialBack }: S
                       </button>
                       <label className="px-4 py-2 bg-[var(--color-bg-card)] border border-[var(--color-border)] text-[var(--color-text-primary)] rounded-xl font-bold text-sm flex items-center gap-2 cursor-pointer hover:bg-[var(--color-bg-secondary)] transition-colors">
                         <Upload size={16} /> Tải ảnh lên
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, side)} />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => handleFileUpload(e, side)}
+                        />
                       </label>
                     </div>
                   </div>
@@ -226,7 +252,6 @@ export default function Step1_IdCapture({ onNext, initialFront, initialBack }: S
           Tiếp tục
         </button>
       </div>
-
     </div>
   );
 }

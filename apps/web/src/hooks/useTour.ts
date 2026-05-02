@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 
 const TOUR_KEY = 'finsight_tour_completed';
 
@@ -9,9 +9,7 @@ const TOUR_KEY = 'finsight_tour_completed';
  * - resetTour: xóa localStorage để hiện lại lần sau
  */
 export function useTour() {
-  const [hasSeenTour, setHasSeenTour] = useState(
-    () => localStorage.getItem(TOUR_KEY) === 'true'
-  );
+  const [hasSeenTour, setHasSeenTour] = useState(() => localStorage.getItem(TOUR_KEY) === 'true');
 
   const markTourDone = useCallback(() => {
     localStorage.setItem(TOUR_KEY, 'true');
