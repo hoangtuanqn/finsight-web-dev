@@ -184,6 +184,9 @@ export const subscriptionAPI = {
 
 export const articleAPI = {
   getArticles: () => api.get('/articles'),
+  createArticle: (data: Record<string, unknown>) => api.post('/articles', data),
+  updateArticle: (id: string, data: Record<string, unknown>) => api.patch(`/articles/${id}`, data),
+  deleteArticle: (id: string) => api.delete(`/articles/${id}`),
   seedArticles: () => api.post('/articles/seed'),
 };
 
