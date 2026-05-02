@@ -247,30 +247,6 @@ export async function getCryptoPricesData(riskLevel: string): Promise<CryptoServ
 
   const top5 = scored.slice(0, 8).map((s, i) => buildCoinCard(s.coin, i));
 
-  // Stablecoin luôn có trong list (ngoại trừ HIGH risk không cần)
-  if (riskLevel !== 'HIGH') {
-    const usdc = rawCoins.find((c) => c.id === 'usd-coin');
-    if (usdc) {
-      top5.push({
-        id: 'usd-coin',
-        name: 'USDC / USDT',
-        symbol: 'USDC',
-        image: usdc.image,
-        price: 1,
-        marketCap: usdc.market_cap,
-        change24h: 0,
-        volRatio: 0,
-        marketCapRank: usdc.market_cap_rank,
-        tag: 'Stablecoin',
-        note: 'Gửi nhận lãi 5–8%/năm trên các nền tảng DeFi · không chịu biến động giá',
-        reason: ['Ổn định giá trị so với USD', 'Thanh khoản cực cao'],
-        badge: 'Ít rủi ro',
-        badgeColor: 'emerald',
-        rate: '$1.00 (Stablecoin)',
-      });
-    }
-  }
-
   const filteredSlice = filtered.slice(0, 20);
   const avgChange =
     filteredSlice.length > 0
