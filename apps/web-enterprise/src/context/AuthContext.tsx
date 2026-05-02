@@ -1,5 +1,5 @@
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
-import { authAPI } from '../api/index';
+import { authAPI, enterpriseAuthAPI } from '../api/index';
 
 interface AuthContextType {
   user: any;
@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const token = localStorage.getItem('finsight_token');
         if (token) {
-          const userRes = await (authAPI as any).me();
+          const userRes = await (enterpriseAuthAPI as any).me();
           if (userRes.data?.success) {
             setUser(userRes.data.data.user);
           } else {
@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: any, password: any) => {
-    const res = await (authAPI as any).login({ email, password });
+    const res = await (enterpriseAuthAPI as any).login({ email, password });
     if (res.data.data.require2FA) {
       return { require2FA: true, tempToken: res.data.data.tempToken };
     }
@@ -107,7 +107,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (email: any, password: any, fullName: any, referralCode?: string) => {
-    const res = await (authAPI as any).register({ email, password, fullName, referralCode });
+    // Note: The multi-step register page calls /api/v1/enterprise/auth/register directly,
+    // but this method might be used elsewhere.
+    const res = await (enterpriseAuthAPI as any).register({ email, password, fullName, referralCode });
     const { user, token } = res.data.data;
     localStorage.setItem('finsight_token', token);
     setUser(user);
@@ -123,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const token = localStorage.getItem('finsight_token');
       if (token) {
-        const userRes = await (authAPI as any).me();
+        const userRes = await (enterpriseAuthAPI as any).me();
         if (userRes.data?.success) {
           setUser(userRes.data.data.user);
           return userRes.data.data.user;

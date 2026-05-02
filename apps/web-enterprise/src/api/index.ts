@@ -74,7 +74,9 @@ export const partiesAPI = {
 
 // ENTERPRISE REGISTRATION
 export const enterpriseAuthAPI = {
-  register: (data: Record<string, unknown>) => api.post('/enterprise/auth/register', data),
+  register: (data: Record<string, unknown>) => api.post('/v1/enterprise/auth/register', data),
+  login: (data: Record<string, unknown>) => api.post('/v1/enterprise/auth/login', data),
+  me: () => api.get('/v1/enterprise/auth/me'),
 };
 
 export default api;

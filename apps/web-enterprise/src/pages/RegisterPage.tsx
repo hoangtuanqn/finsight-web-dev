@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AuthLayout, StepIndicator } from '@repo/ui';
+import { AuthLayout, SetSocialPasswordModal, SocialLoginButtons, StepIndicator } from '@repo/ui';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Briefcase,
@@ -21,7 +21,9 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { z } from 'zod';
+import { authAPI } from '../api';
 import { ToggleMode } from '../components/layout/components/ToggleMode';
+import { useAuth } from '../context/AuthContext';
 import { useDarkMode } from '../hooks/useDarkMode';
 
 const step1Schema = z
@@ -58,8 +60,12 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState<Partial<Step1Data & Step2Data & Step3Data>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [requirePasswordAuth, setRequirePasswordAuth] = useState(false);
+  const [tempToken, setTempToken] = useState('');
+  const [socialEmail, setSocialEmail] = useState('');
   const navigate = useNavigate();
   const [dark, setDark] = useDarkMode() as [boolean, (val: boolean) => void];
+  const { setUser, googleClientId, facebookAppId, loginWithGoogle, loginWithFacebook } = useAuth()!;
 
   const form1 = useForm<Step1Data>({
     resolver: zodResolver(step1Schema),
@@ -90,22 +96,30 @@ export default function RegisterPage() {
     setError('');
 
     try {
-      const res = await fetch('/api/v1/enterprise/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(finalData),
-      });
-      const result = await res.json();
+      const res = await (enterpriseAuthAPI as any).register(finalData);
+      const result = res.data;
 
-      if (!res.ok) {
+      if (result.success) {
+        localStorage.setItem('finsight_token', result.data.token);
+        setTimeout(() => navigate('/home'), 1000);
+      } else {
         throw new Error(result.error || 'Đăng ký thất bại');
       }
-
-      localStorage.setItem('finsight_token', result.data.token);
-      setTimeout(() => navigate('/home'), 1000);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.response?.data?.error || err.message || 'Đăng ký thất bại');
       setIsSubmitting(false);
+    }
+  };
+
+  const onAuthSuccess = (result: any) => {
+    if (result && result.requirePassword) {
+      setTempToken(result.tempToken);
+      setSocialEmail(result.email);
+      setRequirePasswordAuth(true);
+    } else if (result && result.require2FA) {
+      navigate('/login');
+    } else {
+      navigate('/home');
     }
   };
 
@@ -145,6 +159,21 @@ export default function RegisterPage() {
         <ToggleMode dark={dark} setDark={setDark} />
       </div>
 
+      {requirePasswordAuth && (
+        <SetSocialPasswordModal
+          tempToken={tempToken}
+          email={socialEmail}
+          themeColor="emerald"
+          onComplete={(user) => {
+            setUser(user);
+            setRequirePasswordAuth(false);
+            navigate('/home');
+          }}
+          onCancel={() => setRequirePasswordAuth(false)}
+          setSocialPasswordApi={authAPI.setSocialPassword}
+        />
+      )}
+
       <div className="w-full flex flex-col items-center">
         {/* Brand Logo */}
         <Link to="/" className="mb-8 transition-transform hover:scale-105 active:scale-95">
@@ -165,88 +194,105 @@ export default function RegisterPage() {
         )}
 
         {/* Stepper */}
-        <StepIndicator currentStep={step} totalSteps={3} />
+        <StepIndicator currentStep={step} totalSteps={3} themeColor="emerald" />
 
         <div className="w-full relative min-h-[340px]">
           <AnimatePresence mode="wait">
             {step === 1 && (
-              <motion.form
+              <motion.div
                 key="step1"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                onSubmit={form1.handleSubmit(onStep1Submit)}
-                className="space-y-4"
+                className="w-full"
               >
-                <div className="space-y-1.5">
-                  <label className="text-[12px] font-bold text-slate-800 dark:text-slate-200">Email công ty *</label>
-                  <div className="relative group/input">
-                    <Mail
-                      size={16}
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-emerald-500 transition-colors duration-300"
-                    />
-                    <input
-                      {...form1.register('email')}
-                      className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${form1.formState.errors.email ? 'border-rose-500' : 'border-transparent'} focus:border-emerald-500/50 rounded-xl pl-10 pr-3 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white`}
-                      placeholder="admin@company.com"
-                    />
+                <form onSubmit={form1.handleSubmit(onStep1Submit)} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[12px] font-bold text-slate-800 dark:text-slate-200">Email công ty *</label>
+                    <div className="relative group/input">
+                      <Mail
+                        size={16}
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-emerald-500 transition-colors duration-300"
+                      />
+                      <input
+                        {...form1.register('email')}
+                        className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${form1.formState.errors.email ? 'border-rose-500' : 'border-transparent'} focus:border-emerald-500/50 rounded-xl pl-10 pr-3 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white`}
+                        placeholder="admin@company.com"
+                      />
+                    </div>
+                    {form1.formState.errors.email && (
+                      <p className="text-[10px] text-rose-500 font-bold">{form1.formState.errors.email.message}</p>
+                    )}
                   </div>
-                  {form1.formState.errors.email && (
-                    <p className="text-[10px] text-rose-500 font-bold">{form1.formState.errors.email.message}</p>
-                  )}
+
+                  <div className="space-y-1.5">
+                    <label className="text-[12px] font-bold text-slate-800 dark:text-slate-200">Mật khẩu *</label>
+                    <div className="relative group/input">
+                      <Lock
+                        size={16}
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-emerald-500 transition-colors duration-300"
+                      />
+                      <input
+                        {...form1.register('password')}
+                        type="password"
+                        className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${form1.formState.errors.password ? 'border-rose-500' : 'border-transparent'} focus:border-emerald-500/50 rounded-xl pl-10 pr-3 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white`}
+                        placeholder="••••••••"
+                      />
+                    </div>
+                    {form1.formState.errors.password && (
+                      <p className="text-[10px] text-rose-500 font-bold">{form1.formState.errors.password.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[12px] font-bold text-slate-800 dark:text-slate-200">
+                      Xác nhận mật khẩu *
+                    </label>
+                    <div className="relative group/input">
+                      <CheckCircle2
+                        size={16}
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-emerald-500 transition-colors duration-300"
+                      />
+                      <input
+                        {...form1.register('confirmPassword')}
+                        type="password"
+                        className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${form1.formState.errors.confirmPassword ? 'border-rose-500' : 'border-transparent'} focus:border-emerald-500/50 rounded-xl pl-10 pr-3 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white`}
+                        placeholder="••••••••"
+                      />
+                    </div>
+                    {form1.formState.errors.confirmPassword && (
+                      <p className="text-[10px] text-rose-500 font-bold">
+                        {form1.formState.errors.confirmPassword.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <motion.button
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-emerald-400 to-emerald-600 text-white rounded-xl py-3.5 flex items-center justify-center gap-2 font-bold transition-all shadow-lg shadow-emerald-500/20 mt-4"
+                  >
+                    Tiếp tục <ChevronRight size={18} />
+                  </motion.button>
+                </form>
+
+                <div className="flex items-center gap-4 my-6 opacity-80 w-full">
+                  <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
+                  <span className="text-[11px] font-medium text-slate-400">hoặc</span>
+                  <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[12px] font-bold text-slate-800 dark:text-slate-200">Mật khẩu *</label>
-                  <div className="relative group/input">
-                    <Lock
-                      size={16}
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-emerald-500 transition-colors duration-300"
-                    />
-                    <input
-                      {...form1.register('password')}
-                      type="password"
-                      className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${form1.formState.errors.password ? 'border-rose-500' : 'border-transparent'} focus:border-emerald-500/50 rounded-xl pl-10 pr-3 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white`}
-                      placeholder="••••••••"
-                    />
-                  </div>
-                  {form1.formState.errors.password && (
-                    <p className="text-[10px] text-rose-500 font-bold">{form1.formState.errors.password.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[12px] font-bold text-slate-800 dark:text-slate-200">
-                    Xác nhận mật khẩu *
-                  </label>
-                  <div className="relative group/input">
-                    <CheckCircle2
-                      size={16}
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-emerald-500 transition-colors duration-300"
-                    />
-                    <input
-                      {...form1.register('confirmPassword')}
-                      type="password"
-                      className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${form1.formState.errors.confirmPassword ? 'border-rose-500' : 'border-transparent'} focus:border-emerald-500/50 rounded-xl pl-10 pr-3 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white`}
-                      placeholder="••••••••"
-                    />
-                  </div>
-                  {form1.formState.errors.confirmPassword && (
-                    <p className="text-[10px] text-rose-500 font-bold">
-                      {form1.formState.errors.confirmPassword.message}
-                    </p>
-                  )}
-                </div>
-
-                <motion.button
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-emerald-400 to-emerald-600 text-white rounded-xl py-3.5 flex items-center justify-center gap-2 font-bold transition-all shadow-lg shadow-emerald-500/20 mt-4"
-                >
-                  Tiếp tục <ChevronRight size={18} />
-                </motion.button>
-              </motion.form>
+                <SocialLoginButtons
+                  setError={setError}
+                  onSuccess={onAuthSuccess}
+                  googleClientId={googleClientId}
+                  facebookAppId={facebookAppId}
+                  loginWithGoogle={loginWithGoogle}
+                  loginWithFacebook={loginWithFacebook}
+                  dark={dark}
+                />
+              </motion.div>
             )}
 
             {step === 2 && (
