@@ -1,14 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AuthLayout } from '@repo/ui';
+import { AuthLayout, SetSocialPasswordModal, SocialLoginButtons } from '@repo/ui';
 import { motion } from 'framer-motion';
 import { AlertTriangle, CheckCircle2, Eye, EyeOff, Lock, LogIn, Mail, Sparkles, User, UserPlus } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
-import { referralAPI } from '../api/index';
-import SetSocialPasswordModal from '../components/auth/SetSocialPasswordModal';
-import SocialLoginButtons from '../components/auth/SocialLoginButtons';
+import { authAPI, referralAPI } from '../api/index';
 import { ToggleMode } from '../components/layout/components/ToggleMode';
 import { useAuth } from '../context/AuthContext';
 import { useDarkMode } from '../hooks/useDarkMode';
@@ -37,7 +35,14 @@ export default function RegisterPage() {
   const [requirePasswordAuth, setRequirePasswordAuth] = useState(false);
   const [tempToken, setTempToken] = useState('');
   const [socialEmail, setSocialEmail] = useState('');
-  const { register: registerAuth } = useAuth() as any;
+  const {
+    setUser,
+    register: registerAuth,
+    googleClientId,
+    facebookAppId,
+    loginWithGoogle,
+    loginWithFacebook,
+  } = useAuth() as any;
   const navigate = useNavigate();
   const [dark, setDark] = useDarkMode() as [boolean, (val: boolean) => void];
   const [searchParams] = useSearchParams();
@@ -77,6 +82,18 @@ export default function RegisterPage() {
     }
   };
 
+  const onAuthSuccess = (result: any) => {
+    if (result && result.requirePassword) {
+      setTempToken(result.tempToken);
+      setSocialEmail(result.email);
+      setRequirePasswordAuth(true);
+    } else if (result && result.require2FA) {
+      navigate('/login', { state: { fromAuth: true } });
+    } else {
+      navigate('/home');
+    }
+  };
+
   const promoContent = (
     <>
       <motion.div
@@ -91,7 +108,7 @@ export default function RegisterPage() {
       </motion.div>
 
       <h3 className="text-3xl font-black text-white mb-4 drop-shadow-md">Đã có tài khoản?</h3>
-      <p className="text-emerald-50 text-[15px] mb-10 leading-relaxed px-4 font-medium opacity-90 drop-shadow-sm">
+      <p className="text-indigo-50 text-[15px] mb-10 leading-relaxed px-4 font-medium opacity-90 drop-shadow-sm">
         Đăng nhập để tiếp tục sử dụng
         <br />
         hệ thống quản lý chuyên nghiệp
@@ -100,7 +117,7 @@ export default function RegisterPage() {
       <Link
         to="/login"
         state={{ fromAuth: true }}
-        className="group px-10 py-3.5 rounded-2xl border border-white/40 bg-white/5 backdrop-blur-sm text-white font-bold hover:bg-white hover:text-emerald-600 transition-all flex items-center gap-3 shadow-lg hover:shadow-white/20 active:scale-95"
+        className="group px-10 py-3.5 rounded-2xl border border-white/40 bg-white/5 backdrop-blur-sm text-white font-bold hover:bg-white hover:text-indigo-600 transition-all flex items-center gap-3 shadow-lg hover:shadow-white/20 active:scale-95"
       >
         <LogIn size={18} className="group-hover:-translate-x-1 transition-transform" /> Đăng nhập
       </Link>
@@ -118,11 +135,14 @@ export default function RegisterPage() {
         <SetSocialPasswordModal
           tempToken={tempToken}
           email={socialEmail}
-          onComplete={() => {
+          themeColor="indigo"
+          onComplete={(user) => {
+            setUser(user);
             setRequirePasswordAuth(false);
             navigate('/home');
           }}
           onCancel={() => setRequirePasswordAuth(false)}
+          setSocialPasswordApi={authAPI.setSocialPassword}
         />
       )}
 
@@ -136,7 +156,7 @@ export default function RegisterPage() {
         <img src="https://i.ibb.co/84xLmWTK/LOGO.png" alt="FinSight Logo" className="h-14 w-auto drop-shadow-sm" />
       </Link>
 
-      <h2 className="text-[28px] font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500 dark:from-emerald-400 dark:to-teal-400 mb-2">
+      <h2 className="text-[28px] font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-violet-500 dark:from-indigo-400 dark:to-violet-400 mb-2">
         Tạo tài khoản
       </h2>
       <p className="text-slate-500 dark:text-slate-400 text-[13px] mb-8 font-medium">Đăng ký để bắt đầu sử dụng</p>
@@ -157,11 +177,11 @@ export default function RegisterPage() {
           <div className="relative group/input">
             <User
               size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-emerald-500 transition-colors duration-300"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-indigo-500 transition-colors duration-300"
             />
             <input
               {...register('fullName')}
-              className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.fullName ? 'border-rose-500' : 'border-transparent'} focus:border-emerald-500/50 rounded-xl pl-10 pr-3 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#f8fafc] dark:[&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#1e293b] dark:[&:-webkit-autofill]:-webkit-text-fill-color-white`}
+              className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.fullName ? 'border-rose-500' : 'border-transparent'} focus:border-indigo-500/50 rounded-xl pl-10 pr-3 py-3 text-[13px] font-medium focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all dark:text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#f8fafc] dark:[&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#1e293b] dark:[&:-webkit-autofill]:-webkit-text-fill-color-white`}
               placeholder="Nguyễn Văn A"
             />
           </div>
@@ -175,11 +195,11 @@ export default function RegisterPage() {
           <div className="relative group/input">
             <Mail
               size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-emerald-500 transition-colors duration-300"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-indigo-500 transition-colors duration-300"
             />
             <input
               {...register('email')}
-              className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.email ? 'border-rose-500' : 'border-transparent'} focus:border-emerald-500/50 rounded-xl pl-10 pr-3 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#f8fafc] dark:[&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#1e293b] dark:[&:-webkit-autofill]:-webkit-text-fill-color-white`}
+              className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.email ? 'border-rose-500' : 'border-transparent'} focus:border-indigo-500/50 rounded-xl pl-10 pr-3 py-3 text-[13px] font-medium focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all dark:text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#f8fafc] dark:[&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#1e293b] dark:[&:-webkit-autofill]:-webkit-text-fill-color-white`}
               placeholder="email@example.com"
             />
           </div>
@@ -192,12 +212,12 @@ export default function RegisterPage() {
             <div className="relative group/input">
               <Lock
                 size={16}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-emerald-500 transition-colors duration-300"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-indigo-500 transition-colors duration-300"
               />
               <input
                 {...register('password')}
                 type={showPassword ? 'text' : 'password'}
-                className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.password ? 'border-rose-500' : 'border-transparent'} focus:border-emerald-500/50 rounded-xl pl-10 pr-8 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#f8fafc] dark:[&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#1e293b] dark:[&:-webkit-autofill]:-webkit-text-fill-color-white`}
+                className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.password ? 'border-rose-500' : 'border-transparent'} focus:border-indigo-500/50 rounded-xl pl-10 pr-8 py-3 text-[13px] font-medium focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all dark:text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#f8fafc] dark:[&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#1e293b] dark:[&:-webkit-autofill]:-webkit-text-fill-color-white`}
                 placeholder="Tối thiểu 6 ký tự"
               />
             </div>
@@ -211,12 +231,12 @@ export default function RegisterPage() {
             <div className="relative group/input">
               <Lock
                 size={16}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-emerald-500 transition-colors duration-300"
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-indigo-500 transition-colors duration-300"
               />
               <input
                 {...register('confirmPassword')}
                 type={showPassword ? 'text' : 'password'}
-                className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.confirmPassword ? 'border-rose-500' : 'border-transparent'} focus:border-emerald-500/50 rounded-xl pl-10 pr-8 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#f8fafc] dark:[&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#1e293b] dark:[&:-webkit-autofill]:-webkit-text-fill-color-white`}
+                className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.confirmPassword ? 'border-rose-500' : 'border-transparent'} focus:border-indigo-500/50 rounded-xl pl-10 pr-8 py-3 text-[13px] font-medium focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all dark:text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#f8fafc] dark:[&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#1e293b] dark:[&:-webkit-autofill]:-webkit-text-fill-color-white`}
                 placeholder="Nhập lại"
               />
               <button
@@ -238,11 +258,11 @@ export default function RegisterPage() {
           <div className="relative group/input">
             <Sparkles
               size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-emerald-500 transition-colors duration-300"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-indigo-500 transition-colors duration-300"
             />
             <input
               {...register('referralCode')}
-              className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border border-transparent focus:border-emerald-500/50 rounded-xl pl-10 pr-3 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#f8fafc] dark:[&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#1e293b] dark:[&:-webkit-autofill]:-webkit-text-fill-color-white`}
+              className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border border-transparent focus:border-indigo-500/50 rounded-xl pl-10 pr-3 py-3 text-[13px] font-medium focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all dark:text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#f8fafc] dark:[&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#1e293b] dark:[&:-webkit-autofill]:-webkit-text-fill-color-white`}
               placeholder="Nhập mã (nếu có)"
             />
           </div>
@@ -252,12 +272,12 @@ export default function RegisterPage() {
           <input
             type="checkbox"
             id="tos"
-            className="w-3.5 h-3.5 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500"
+            className={`w-3.5 h-3.5 rounded border-slate-300 text-indigo-500 focus:ring-indigo-500`}
             required
           />
           <label htmlFor="tos" className="text-[11px] text-slate-500 cursor-pointer">
             Tôi đồng ý với{' '}
-            <Link to="#" className="text-emerald-500 hover:underline font-bold">
+            <Link to="#" className="text-indigo-500 hover:underline font-bold">
               Điều khoản & Chính sách
             </Link>
           </label>
@@ -268,7 +288,7 @@ export default function RegisterPage() {
           whileTap={{ scale: 0.98 }}
           type="submit"
           disabled={loading}
-          className="w-full bg-gradient-to-r from-emerald-400 to-emerald-600 hover:from-emerald-500 hover:to-emerald-700 text-white rounded-xl py-3.5 flex items-center justify-center gap-2 font-bold transition-all shadow-[0_8px_20px_-6px_rgba(16,185,129,0.5)] hover:shadow-[0_12px_25px_-6px_rgba(16,185,129,0.6)] mt-2"
+          className="w-full bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white rounded-xl py-3.5 flex items-center justify-center gap-2 font-bold transition-all shadow-[0_8px_20px_-6px_rgba(99,102,241,0.5)] hover:shadow-[0_12px_25px_-6px_rgba(99,102,241,0.6)] mt-2"
         >
           {loading ? (
             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -286,29 +306,22 @@ export default function RegisterPage() {
         <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
       </div>
 
-      <div className="w-full [&>button]:w-full [&>button]:bg-white [&>button]:dark:bg-slate-800/80 [&>button]:border [&>button]:border-slate-200 [&>button]:dark:border-slate-700 [&>button]:rounded-xl [&>button]:py-3.5 [&>button]:shadow-sm [&>button:hover]:shadow-md [&>button]:transition-all">
-        <SocialLoginButtons
-          setError={setServerError}
-          onSuccess={(result) => {
-            if (result && result.requirePassword) {
-              setTempToken(result.tempToken);
-              setSocialEmail(result.email);
-              setRequirePasswordAuth(true);
-            } else if (result && result.require2FA) {
-              navigate('/login', { state: { fromAuth: true } });
-            } else {
-              navigate('/home');
-            }
-          }}
-        />
-      </div>
+      <SocialLoginButtons
+        setError={setServerError}
+        onSuccess={onAuthSuccess}
+        googleClientId={googleClientId}
+        facebookAppId={facebookAppId}
+        loginWithGoogle={loginWithGoogle}
+        loginWithFacebook={loginWithFacebook}
+        dark={dark}
+      />
 
       <p className="mt-8 text-[13px] text-slate-500 font-medium lg:hidden">
         Đã có tài khoản?{' '}
         <Link
           to="/login"
           state={{ fromAuth: true }}
-          className="font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 transition-colors"
+          className="font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 transition-colors"
         >
           Đăng nhập
         </Link>
