@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
-import { AlertTriangle, BarChart2, Info, Plus } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { AlertTriangle, BarChart2, Check, Clock, Info, Lock, Plus, Unlock } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
@@ -149,6 +149,21 @@ function calcRemainingTerms(startDate: string, termMonths: number) {
   return Math.max(0, termMonths - monthsPassed);
 }
 
+function calculateMonthlyPayment(principal: number, apr: number, terms: number, rateType: 'FLAT' | 'REDUCING') {
+  if (!principal || !terms) return 0;
+  const r = apr / 100 / 12;
+  if (r === 0) return Math.round(principal / terms);
+
+  if (rateType === 'FLAT') {
+    // Flat: (Gốc / Kỳ hạn) + (Gốc * Lãi tháng)
+    return Math.round(principal / terms + principal * r);
+  } else {
+    // Reducing (EMI): P * r * (1 + r)^n / ((1 + r)^n - 1)
+    const emi = (principal * r * Math.pow(1 + r, terms)) / (Math.pow(1 + r, terms) - 1);
+    return Math.round(emi);
+  }
+}
+
 export default function AddDebtPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -189,7 +204,19 @@ export default function AddDebtPage() {
   });
 
   const formValues = watch();
+  const [loanStatus, setLoanStatus] = useState<'NEW' | 'EXISTING'>('NEW');
   const [isAutoCalcBalance, setIsAutoCalcBalance] = useState(true);
+  const [isManualMinPayment, setIsManualMinPayment] = useState(false);
+
+  const suggestedMinPayment = useMemo(() => {
+    if (debtType === 'CREDIT_CARD') return 0;
+    return calculateMonthlyPayment(
+      formValues.originalAmount,
+      formValues.apr,
+      formValues.termMonths,
+      formValues.rateType,
+    );
+  }, [formValues.originalAmount, formValues.apr, formValues.termMonths, formValues.rateType, debtType]);
 
   const toNumberValue = (value: string | number) => (value === '' ? 0 : Number(value));
 
@@ -209,23 +236,34 @@ export default function AddDebtPage() {
   // Auto-calculate initial balance for Installment based on original amount + hidden fees
   useEffect(() => {
     if (debtType === 'INSTALLMENT' && isAutoCalcBalance && formValues.originalAmount > 0) {
-      // Logic: Dư nợ ban đầu = Số tiền gốc + (Số tiền gốc * Phí xử lý) + (Số tiền gốc * Phí bảo hiểm)
-      // Chú ý: Phí quản lý thường thu hàng tháng nên không cộng gộp vào gốc ban đầu.
-      const fees = (formValues.feeProcessing + formValues.feeInsurance) / 100;
-      const calculatedBalance = Math.round(formValues.originalAmount * (1 + fees));
+      if (loanStatus === 'NEW') {
+        const fees = (formValues.feeProcessing + formValues.feeInsurance) / 100;
+        const calculatedBalance = Math.round(formValues.originalAmount * (1 + fees));
 
-      if (calculatedBalance !== formValues.balance) {
-        setValue('balance', calculatedBalance, { shouldValidate: true });
+        if (calculatedBalance !== formValues.balance) {
+          setValue('balance', calculatedBalance, { shouldValidate: true });
+        }
       }
     }
   }, [
     formValues.originalAmount,
     formValues.feeProcessing,
     formValues.feeInsurance,
-    debtType,
+    loanStatus,
     isAutoCalcBalance,
+    debtType,
     setValue,
+    formValues.balance,
   ]);
+
+  // Auto-calculate Monthly Payment for NEW Installment
+  useEffect(() => {
+    if (debtType === 'INSTALLMENT' && loanStatus === 'NEW' && !isManualMinPayment && suggestedMinPayment > 0) {
+      if (formValues.minPayment !== suggestedMinPayment) {
+        setValue('minPayment', suggestedMinPayment, { shouldValidate: true });
+      }
+    }
+  }, [suggestedMinPayment, loanStatus, isManualMinPayment, debtType, setValue, formValues.minPayment]);
 
   const ear = calcEAR(
     formValues.apr,
@@ -292,6 +330,46 @@ export default function AddDebtPage() {
           >
             <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-blue-500/30 to-transparent" />
             <div className="p-6">
+              {/* Trạng thái khoản vay (Chỉ cho Trả góp) */}
+              {debtType === 'INSTALLMENT' && (
+                <div className="mb-6">
+                  <label className="block text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-2">
+                    Trạng thái khoản vay
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoanStatus('NEW');
+                        setIsAutoCalcBalance(true);
+                        setValue('startDate', new Date().toISOString().split('T')[0]);
+                      }}
+                      className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-[12px] font-bold transition-all border cursor-pointer ${
+                        loanStatus === 'NEW'
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.1)]'
+                          : 'bg-white/[0.03] text-slate-500 border-white/[0.06] hover:bg-white/[0.05]'
+                      }`}
+                    >
+                      <Plus size={14} /> Mới bắt đầu
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoanStatus('EXISTING');
+                        setIsAutoCalcBalance(false);
+                      }}
+                      className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-[12px] font-bold transition-all border cursor-pointer ${
+                        loanStatus === 'EXISTING'
+                          ? 'bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.1)]'
+                          : 'bg-white/[0.03] text-slate-500 border-white/[0.06] hover:bg-white/[0.05]'
+                      }`}
+                    >
+                      <Clock size={14} /> Đang trả dở
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Nền tảng */}
               <div className="mb-6">
                 <label className="block text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-2">
@@ -363,6 +441,64 @@ export default function AddDebtPage() {
                     {errors.originalAmount && (
                       <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
                         <AlertTriangle size={11} /> {errors.originalAmount.message as string}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Kỳ hạn và Ngày tháng */}
+                <div className={`grid ${debtType === 'INSTALLMENT' ? 'grid-cols-3' : 'grid-cols-2'} gap-4`}>
+                  {debtType === 'INSTALLMENT' && (
+                    <>
+                      <div>
+                        <label className="input-label">Ngày vay</label>
+                        <input
+                          type="date"
+                          {...register('startDate')}
+                          className={inputCls(errors.startDate)}
+                          max={new Date().toISOString().split('T')[0]}
+                        />
+                        {errors.startDate && (
+                          <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
+                            <AlertTriangle size={11} /> {errors.startDate.message as string}
+                          </p>
+                        )}
+                        {formValues.startDate &&
+                          new Date(formValues.startDate) <
+                            new Date(new Date().setFullYear(new Date().getFullYear() - 1)) && (
+                            <p className="mt-1 text-[10px] text-amber-400 flex items-center gap-1">
+                              <Info size={10} /> Ngày vay cách đây hơn 1 năm?
+                            </p>
+                          )}
+                      </div>
+                      <div>
+                        <label className="input-label">Kỳ hạn (tháng)</label>
+                        <input
+                          type="number"
+                          {...register('termMonths', { valueAsNumber: true })}
+                          className={inputCls(errors.termMonths)}
+                          placeholder="12"
+                        />
+                        {errors.termMonths && (
+                          <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
+                            <AlertTriangle size={11} /> {errors.termMonths.message as string}
+                          </p>
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  <div>
+                    <label className="input-label">Ngày thanh toán hàng tháng</label>
+                    <input
+                      type="number"
+                      {...register('dueDay', { valueAsNumber: true })}
+                      className={inputCls(errors.dueDay)}
+                      placeholder="VD: 15"
+                    />
+                    {errors.dueDay && (
+                      <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
+                        <AlertTriangle size={11} /> {errors.dueDay.message as string}
                       </p>
                     )}
                   </div>
@@ -458,25 +594,92 @@ export default function AddDebtPage() {
                 {/* Trả tối thiểu và Hình thức lãi */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="input-label">Khoản trả tối thiểu/tháng</label>
+                    <div className="flex justify-between items-end mb-1.5">
+                      <label className="input-label mb-0">Khoản trả hàng tháng</label>
+                      {debtType === 'INSTALLMENT' && loanStatus === 'NEW' && (
+                        <button
+                          type="button"
+                          onClick={() => setIsManualMinPayment(!isManualMinPayment)}
+                          className={`flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all ${
+                            !isManualMinPayment
+                              ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                              : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                          }`}
+                        >
+                          {!isManualMinPayment ? (
+                            <>
+                              <Lock size={10} /> Tự động tính
+                            </>
+                          ) : (
+                            <>
+                              <Unlock size={10} /> Tự nhập
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
                     <Controller
                       name="minPayment"
                       control={control}
                       render={({ field }) => (
-                        <FormattedInput
-                          kind="integer"
-                          value={field.value}
-                          onValueChange={(value) => field.onChange(toNumberValue(value))}
-                          className={inputCls(errors.minPayment)}
-                          placeholder="0"
-                          suffix="đ"
-                        />
+                        <div className="relative group">
+                          <FormattedInput
+                            kind="integer"
+                            value={field.value}
+                            onValueChange={(value) => field.onChange(toNumberValue(value))}
+                            className={`${inputCls(errors.minPayment)} ${
+                              debtType === 'INSTALLMENT' && loanStatus === 'NEW' && !isManualMinPayment
+                                ? 'bg-blue-500/5 border-blue-500/20 text-blue-200 cursor-not-allowed'
+                                : ''
+                            }`}
+                            placeholder="0"
+                            suffix="đ"
+                            readOnly={debtType === 'INSTALLMENT' && loanStatus === 'NEW' && !isManualMinPayment}
+                          />
+                          {!isManualMinPayment && debtType === 'INSTALLMENT' && loanStatus === 'NEW' && (
+                            <div className="absolute right-12 top-1/2 -translate-y-1/2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+                              <span className="text-[10px] font-medium text-blue-400/50 italic">
+                                Nhấp icon khóa để sửa
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       )}
                     />
                     {errors.minPayment && (
                       <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
                         <AlertTriangle size={11} /> {errors.minPayment.message as string}
                       </p>
+                    )}
+
+                    {debtType === 'INSTALLMENT' && isManualMinPayment && suggestedMinPayment > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setValue('minPayment', suggestedMinPayment, { shouldValidate: true });
+                          setIsManualMinPayment(false);
+                        }}
+                        className="mt-2 w-full flex items-center justify-between px-3 py-2 rounded-lg bg-blue-500/5 border border-blue-500/10 hover:bg-blue-500/10 transition-colors group cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center">
+                            <Check size={12} className="text-blue-400" />
+                          </div>
+                          <div className="text-left">
+                            <p className="text-[10px] text-blue-400/70 font-medium leading-none mb-1">
+                              Gợi ý hàng tháng
+                            </p>
+                            <p className="text-[12px] text-blue-400 font-bold leading-none">
+                              {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
+                                suggestedMinPayment,
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-black text-blue-400/50 group-hover:text-blue-400 transition-colors">
+                          ÁP DỤNG
+                        </span>
+                      </button>
                     )}
                   </div>
 
@@ -553,63 +756,6 @@ export default function AddDebtPage() {
                         />
                       )}
                     />
-                  </div>
-                </div>
-
-                {/* Ngày tháng */}
-                <div className="grid grid-cols-3 gap-4">
-                  {debtType === 'INSTALLMENT' && (
-                    <>
-                      <div>
-                        <label className="input-label">Ngày vay</label>
-                        <input
-                          type="date"
-                          {...register('startDate')}
-                          className={inputCls(errors.startDate)}
-                          max={new Date().toISOString().split('T')[0]}
-                        />
-                        {errors.startDate && (
-                          <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
-                            <AlertTriangle size={11} /> {errors.startDate.message as string}
-                          </p>
-                        )}
-                        {formValues.startDate &&
-                          new Date(formValues.startDate) <
-                            new Date(new Date().setFullYear(new Date().getFullYear() - 1)) && (
-                            <p className="mt-1 text-[10px] text-amber-400 flex items-center gap-1">
-                              <Info size={10} /> Ngày vay cách đây hơn 1 năm? Hãy kiểm tra lại.
-                            </p>
-                          )}
-                      </div>
-                      <div>
-                        <label className="input-label">Kỳ hạn (tháng)</label>
-                        <input
-                          type="number"
-                          {...register('termMonths', { valueAsNumber: true })}
-                          className={inputCls(errors.termMonths)}
-                        />
-                        {errors.termMonths && (
-                          <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
-                            <AlertTriangle size={11} /> {errors.termMonths.message as string}
-                          </p>
-                        )}
-                      </div>
-                    </>
-                  )}
-
-                  <div>
-                    <label className="input-label">Ngày thanh toán hàng tháng</label>
-                    <input
-                      type="number"
-                      {...register('dueDay', { valueAsNumber: true })}
-                      className={inputCls(errors.dueDay)}
-                      placeholder="VD: 15"
-                    />
-                    {errors.dueDay && (
-                      <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
-                        <AlertTriangle size={11} /> {errors.dueDay.message as string}
-                      </p>
-                    )}
                   </div>
                 </div>
 
