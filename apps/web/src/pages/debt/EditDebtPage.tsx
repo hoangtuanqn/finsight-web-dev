@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
-import { AlertTriangle, BarChart2, Calendar, Clock, CreditCard, Edit3, Info, Plus } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { AlertTriangle, BarChart2, Calendar, Clock, CreditCard, Info, Plus } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -183,6 +183,16 @@ export default function EditDebtPage() {
         (data.debt.platform === 'CREDIT_CARD' || data.debt.termMonths === 0 ? 'CREDIT_CARD' : 'INSTALLMENT');
       setDebtType(type);
 
+      // Infer loanStatus: if no payments made yet (remainingTerms === termMonths) → NEW
+      if (type === 'INSTALLMENT') {
+        const isNew =
+          data.debt.remainingTerms != null &&
+          data.debt.termMonths != null &&
+          data.debt.remainingTerms === data.debt.termMonths;
+        setLoanStatus(isNew ? 'NEW' : 'EXISTING');
+        setIsAutoCalcBalance(isNew);
+      }
+
       reset({
         name: data.debt.name,
         platform: data.debt.platform,
@@ -261,6 +271,15 @@ export default function EditDebtPage() {
     setValue,
   ]);
 
+  // Auto-suggest paid terms based on startDate
+  const suggestedPaidTerms = useMemo(() => {
+    if (!formValues.startDate || debtType !== 'INSTALLMENT') return 0;
+    const start = new Date(formValues.startDate);
+    const now = new Date();
+    const months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+    return Math.min(Math.max(0, months), formValues.termMonths || 0);
+  }, [formValues.startDate, formValues.termMonths, debtType]);
+
   const ear = calcEAR(
     formValues.apr || 0,
     formValues.feeProcessing || 0,
@@ -325,106 +344,54 @@ export default function EditDebtPage() {
       <div>
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-black tracking-tighter text-[var(--color-text-primary)]">Chỉnh sửa khoản nợ</h1>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-amber-500/20 bg-amber-500/8 text-amber-400 text-[10px] font-black uppercase tracking-widest">
-            <Edit3 size={11} /> {debtType === 'INSTALLMENT' ? 'Vay trả góp' : 'Thẻ tín dụng'}
-          </div>
         </div>
-        <p className="text-[var(--color-text-secondary)] text-sm mt-1">
+        <p className="text-[var(--color-text-secondary)] text-sm mt-1 mb-6">
           Cập nhật thông tin chi tiết cho khoản nợ của bạn
         </p>
       </div>
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div className="flex flex-col">
-          <div className="flex bg-white/[0.03] p-1.5 rounded-2xl border border-white/[0.06] relative">
-            <div
-              className="absolute h-[calc(100%-12px)] top-1.5 transition-all duration-300 rounded-xl bg-blue-500 shadow-lg"
-              style={{
-                width: 'calc(50% - 9px)',
-                left: debtType === 'INSTALLMENT' ? '6px' : 'calc(50% + 3px)',
-              }}
-            />
-            <button
-              type="button"
-              className={`flex-1 px-4 py-2 rounded-xl text-[13px] font-black transition-all flex items-center justify-center gap-2 z-10 ${
-                debtType === 'INSTALLMENT' ? 'text-white' : 'text-slate-500 opacity-50 cursor-not-allowed'
-              }`}
-              title="Không thể đổi loại nợ sau khi đã tạo"
-            >
-              <Calendar size={15} /> Vay Trả Góp
-            </button>
-            <button
-              type="button"
-              className={`flex-1 px-4 py-2 rounded-xl text-[13px] font-black transition-all flex items-center justify-center gap-2 z-10 ${
-                debtType === 'CREDIT_CARD' ? 'text-white' : 'text-slate-500 opacity-50 cursor-not-allowed'
-              }`}
-              title="Không thể đổi loại nợ sau khi đã tạo"
-            >
-              <CreditCard size={15} /> Thẻ Tín Dụng
-            </button>
-          </div>
-          <p className="text-[10px] text-amber-400/70 font-medium flex items-center gap-1 mt-2 ml-1">
-            <Info size={10} /> Loại nợ đã được cố định sau khi tạo.
-          </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 p-4 bg-white/[0.02] rounded-2xl border border-white/[0.04]">
+        {/* Debt Type Badge */}
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">Loại nợ:</span>
+          {debtType === 'INSTALLMENT' ? (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+              <Calendar size={12} />
+              <span className="text-[11px] font-black uppercase">Vay Trả Góp</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400">
+              <CreditCard size={12} />
+              <span className="text-[11px] font-black uppercase">Thẻ Tín Dụng</span>
+            </div>
+          )}
         </div>
 
-        {debtType === 'INSTALLMENT' && (
-          <div className="flex bg-white/[0.03] p-1 rounded-xl border border-white/[0.06]">
-            <button
-              type="button"
-              onClick={() => {
-                setLoanStatus('NEW');
-                setIsAutoCalcBalance(true);
-              }}
-              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-2 ${
-                loanStatus === 'NEW'
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20'
-                  : 'text-slate-400 hover:bg-white/5'
-              }`}
-            >
-              <Plus size={12} /> Vừa bắt đầu
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setLoanStatus('EXISTING');
-                setIsAutoCalcBalance(false);
-              }}
-              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center gap-2 ${
-                loanStatus === 'EXISTING'
-                  ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/20'
-                  : 'text-slate-400 hover:bg-white/5'
-              }`}
-            >
-              <Clock size={12} /> Đang trả dở
-            </button>
-          </div>
-        )}
+        {/* Loan Status Badge */}
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">Trạng thái:</span>
+          {loanStatus === 'NEW' ? (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400">
+              <Plus size={12} className="animate-pulse" />
+              <span className="text-[11px] font-black uppercase">Vừa bắt đầu</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400">
+              <Clock size={12} />
+              <span className="text-[11px] font-black uppercase">Đang trả dở</span>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
           <div className="glass-card p-6 md:p-8">
             <div className="mb-8">
-              <label className="input-label mb-3 block">Chọn nhanh mẫu nền tảng</label>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(PLATFORM_PRESETS)
-                  .filter(([, val]) => val.type === debtType)
-                  .map(([key, val]) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => applyPreset(key as any)}
-                      className={`px-4 py-2 rounded-xl text-[13px] font-medium transition-all border ${
-                        formValues.platform === key
-                          ? 'bg-blue-500/20 text-blue-400 border-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.1)]'
-                          : 'bg-white/[0.03] text-slate-500 border-white/[0.06] hover:bg-white/[0.08] hover:text-slate-300'
-                      }`}
-                    >
-                      {val.name || 'Tự nhập'}
-                    </button>
-                  ))}
-              </div>
+              <h2 className="text-xl font-bold text-white flex items-center gap-2 mb-2">
+                <Info size={18} className="text-blue-400" /> Thông tin cơ bản
+              </h2>
+              <p className="text-slate-400 text-xs">Cập nhật các thông số gốc của khoản nợ</p>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -523,22 +490,80 @@ export default function EditDebtPage() {
               </div>
 
               {debtType === 'INSTALLMENT' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="input-label">Số kỳ đã trả</label>
-                    <input
-                      type="number"
-                      value={(formValues.termMonths || 0) - (formValues.remainingTerms || 0)}
-                      onChange={(e) => {
-                        const paid = Number(e.target.value);
-                        setValue('remainingTerms', Math.max(0, (formValues.termMonths || 0) - paid));
-                      }}
-                      className="input-field"
-                    />
+                <div className="p-4 bg-white/[0.02] border border-white/[0.06] rounded-xl space-y-3">
+                  {/* Label row: title + startDate hint + suggestion button */}
+                  <div className="flex items-center gap-2">
+                    <label className="input-label mb-0 shrink-0">Số kỳ đã trả</label>
+                    {formValues.startDate && (
+                      <span className="text-[10px] text-slate-500 italic flex items-center gap-1">
+                        <Info size={9} />
+                        từ {new Date(formValues.startDate).toLocaleDateString('vi-VN')}
+                      </span>
+                    )}
+                    <div className="ml-auto">
+                      {suggestedPaidTerms > 0 &&
+                        suggestedPaidTerms !== (formValues.termMonths || 0) - (formValues.remainingTerms || 0) && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setValue('remainingTerms', Math.max(0, (formValues.termMonths || 0) - suggestedPaidTerms))
+                            }
+                            className="text-[10px] font-bold text-blue-400 hover:text-blue-300 border border-blue-500/30 hover:border-blue-400/50 px-2 py-0.5 rounded-full transition-all bg-blue-500/5 hover:bg-blue-500/10"
+                          >
+                            Gợi ý: {suggestedPaidTerms} kỳ — Áp dụng?
+                          </button>
+                        )}
+                    </div>
                   </div>
-                  <div className="flex items-center px-4 py-3 bg-white/[0.02] border border-white/[0.06] rounded-xl text-slate-500 text-sm italic">
-                    <Info size={16} className="mr-2 text-slate-600" />
-                    Kỳ còn lại: {formValues.remainingTerms || 0} tháng
+
+                  {/* Input */}
+                  <input
+                    type="number"
+                    value={(formValues.termMonths || 0) - (formValues.remainingTerms || 0)}
+                    onChange={(e) => {
+                      const paid = Number(e.target.value);
+                      setValue('remainingTerms', Math.max(0, (formValues.termMonths || 0) - paid));
+                    }}
+                    className="input-field"
+                    min={0}
+                    max={formValues.termMonths || 0}
+                  />
+
+                  {/* Progress row */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-base font-black text-white">
+                        {(formValues.termMonths || 0) - (formValues.remainingTerms || 0)}
+                      </span>
+                      <span className="text-slate-500 text-sm">/ {formValues.termMonths || 0} kỳ</span>
+                      <span className="ml-auto text-[11px] font-bold text-amber-400">
+                        Còn {formValues.remainingTerms || 0} kỳ
+                      </span>
+                    </div>
+                    <div className="w-full bg-white/[0.05] rounded-full h-1.5">
+                      <div
+                        className="bg-gradient-to-r from-blue-500 to-blue-400 h-1.5 rounded-full transition-all duration-300"
+                        style={{
+                          width: `${
+                            formValues.termMonths
+                              ? (
+                                  ((formValues.termMonths - (formValues.remainingTerms || 0)) / formValues.termMonths) *
+                                  100
+                                ).toFixed(1)
+                              : 0
+                          }%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Auto-update notice */}
+                  <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-blue-500/5 border border-blue-500/10">
+                    <Info size={11} className="text-blue-400/70 mt-0.5 shrink-0" />
+                    <p className="text-[10px] text-blue-300/60 leading-relaxed">
+                      Số kỳ đã trả sẽ <span className="font-bold text-blue-300/80">tự động cập nhật</span> khi bạn ghi
+                      nhận thanh toán đủ một kỳ (≥ khoản trả tối thiểu). Bạn cũng có thể điều chỉnh thủ công ở đây.
+                    </p>
                   </div>
                 </div>
               )}
