@@ -345,7 +345,7 @@ export default function EditDebtPage() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="input-label">Tên khoản nợ</label>
+                  <label className="input-label">Tên khoản {debtType === 'INSTALLMENT' ? 'vay' : 'nợ'}</label>
                   <input
                     {...register('name')}
                     className={inputCls(errors.name)}
@@ -382,6 +382,81 @@ export default function EditDebtPage() {
                   )}
                 </div>
               </div>
+
+              {/* Kỳ hạn và Ngày tháng */}
+              <div
+                className={`grid grid-cols-1 md:${debtType === 'INSTALLMENT' ? 'grid-cols-3' : 'grid-cols-2'} gap-6`}
+              >
+                <div>
+                  <label className="input-label">Ngày vay</label>
+                  <input
+                    type="date"
+                    {...register('startDate')}
+                    className={inputCls(errors.startDate)}
+                    max={new Date().toISOString().split('T')[0]}
+                  />
+                  {errors.startDate && (
+                    <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1">
+                      <AlertTriangle size={12} /> {errors.startDate.message}
+                    </p>
+                  )}
+                </div>
+
+                {debtType === 'INSTALLMENT' && (
+                  <div>
+                    <label className="input-label">Kỳ hạn (tháng)</label>
+                    <input
+                      type="number"
+                      {...register('termMonths', { valueAsNumber: true })}
+                      className={inputCls(errors.termMonths)}
+                      placeholder="12"
+                    />
+                    {errors.termMonths && (
+                      <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1">
+                        <AlertTriangle size={12} /> {errors.termMonths.message}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div>
+                  <label className="input-label">
+                    {debtType === 'CREDIT_CARD' ? 'Ngày chốt sao kê' : 'Ngày thanh toán hàng tháng'}
+                  </label>
+                  <input
+                    type="number"
+                    {...register('dueDay', { valueAsNumber: true })}
+                    className={inputCls(errors.dueDay)}
+                    placeholder="VD: 15"
+                  />
+                  {errors.dueDay && (
+                    <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1">
+                      <AlertTriangle size={12} /> {errors.dueDay.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {debtType === 'INSTALLMENT' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="input-label">Số kỳ đã trả</label>
+                    <input
+                      type="number"
+                      value={(formValues.termMonths || 0) - (formValues.remainingTerms || 0)}
+                      onChange={(e) => {
+                        const paid = Number(e.target.value);
+                        setValue('remainingTerms', Math.max(0, (formValues.termMonths || 0) - paid));
+                      }}
+                      className="input-field"
+                    />
+                  </div>
+                  <div className="flex items-center px-4 py-3 bg-white/[0.02] border border-white/[0.06] rounded-xl text-slate-500 text-sm italic">
+                    <Info size={16} className="mr-2 text-slate-600" />
+                    Kỳ còn lại: {formValues.remainingTerms || 0} tháng
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -560,76 +635,6 @@ export default function EditDebtPage() {
                       />
                     )}
                   />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {debtType === 'INSTALLMENT' ? (
-                  <>
-                    <div>
-                      <label className="input-label">Tổng kỳ hạn (tháng)</label>
-                      <input
-                        type="number"
-                        {...register('termMonths', { valueAsNumber: true })}
-                        className={inputCls(errors.termMonths)}
-                      />
-                    </div>
-                    <div>
-                      <label className="input-label">Số kỳ đã trả</label>
-                      <input
-                        type="number"
-                        value={(formValues.termMonths || 0) - (formValues.remainingTerms || 0)}
-                        onChange={(e) => {
-                          const paid = Number(e.target.value);
-                          setValue('remainingTerms', Math.max(0, (formValues.termMonths || 0) - paid));
-                        }}
-                        className="input-field"
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <div className="md:col-span-2 flex items-center px-4 py-3 bg-white/[0.02] border border-white/[0.06] rounded-xl text-slate-500 text-sm italic">
-                    <Info size={16} className="mr-2 text-slate-600" /> Thẻ tín dụng không có kỳ hạn cố định.
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="input-label">Ngày vay</label>
-                  <input
-                    type="date"
-                    {...register('startDate')}
-                    className={inputCls(errors.startDate)}
-                    max={new Date().toISOString().split('T')[0]}
-                  />
-                  {errors.startDate && (
-                    <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1">
-                      <AlertTriangle size={12} /> {errors.startDate.message}
-                    </p>
-                  )}
-                  {formValues.startDate &&
-                    new Date(formValues.startDate) < new Date(new Date().setFullYear(new Date().getFullYear() - 1)) && (
-                      <p className="mt-1 text-[10px] text-amber-400 flex items-center gap-1">
-                        <Info size={10} /> Ngày vay cách đây hơn 1 năm? Hãy kiểm tra lại.
-                      </p>
-                    )}
-                </div>
-                <div>
-                  <label className="input-label">
-                    {debtType === 'CREDIT_CARD' ? 'Ngày chốt sao kê' : 'Ngày thanh toán hàng tháng'}
-                  </label>
-                  <input
-                    type="number"
-                    {...register('dueDay', { valueAsNumber: true })}
-                    className={inputCls(errors.dueDay)}
-                    placeholder="VD: 15"
-                  />
-                  {errors.dueDay && (
-                    <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
-                      <AlertTriangle size={12} /> {errors.dueDay.message}
-                    </p>
-                  )}
                 </div>
               </div>
 
