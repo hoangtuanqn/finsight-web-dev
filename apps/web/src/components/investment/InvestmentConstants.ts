@@ -1,4 +1,10 @@
-import { Building2, FileText, Globe, TrendingUp, Trophy, Zap } from 'lucide-react';
+import {
+  Building2,
+  TrendingUp,
+  FileText,
+  Zap,
+  Trophy,
+} from 'lucide-react';
 
 export const COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#f97316'];
 
@@ -6,27 +12,24 @@ export const ASSET_LABELS = {
   savings: 'Tiết kiệm',
   gold: 'Vàng',
   stocks: 'Cổ phiếu VN',
-  stocks_us: 'Cổ phiếu Mỹ',
   bonds: 'Trái phiếu',
-  crypto: 'Crypto',
+  crypto: 'Crypto'
 };
 
 export const ASSET_ICONS = {
   savings: Building2,
   gold: Trophy,
   stocks: TrendingUp,
-  stocks_us: Globe,
   bonds: FileText,
-  crypto: Zap,
+  crypto: Zap
 };
 
 export const ASSET_NATURE = {
   savings: 'phòng thủ',
   gold: 'phòng thủ',
   stocks: 'tăng trưởng',
-  stocks_us: 'tăng trưởng mạnh',
   bonds: 'thu nhập',
-  crypto: 'đầu cơ',
+  crypto: 'đầu cơ'
 };
 
 export const TOOLTIP_STYLE = {
@@ -265,47 +268,6 @@ export const INVESTMENT_SUGGESTIONS = {
         badgeColor: 'emerald',
       },
     ],
-    tips: [
-      'BTC + ETH nên chiếm >70% danh mục crypto',
-      'Không để crypto trên sàn - rút về ví cứng Ledger/Trezor',
-      'Dollar-cost averaging (DCA) hàng tháng giảm rủi ro timing',
-    ],
-  },
-  stocks_us: {
-    label: 'Cổ phiếu Mỹ',
-    icon: Globe,
-    color: '#ef4444',
-    intro: 'Đầu tư vào thị trường lớn nhất thế giới qua ETF để tiếp cận công nghệ toàn cầu.',
-    items: [
-      {
-        name: 'S&P 500 ETF (SPY)',
-        tag: 'ETF',
-        rate: 'Theo S&P 500',
-        note: '500 công ty lớn nhất Mỹ, rủi ro thấp nhất trong nhóm',
-        badge: 'Khuyên dùng',
-        badgeColor: 'amber',
-      },
-      {
-        name: 'Nasdaq 100 (QQQ)',
-        tag: 'Công nghệ',
-        rate: 'Theo Tech',
-        note: 'Tập trung Big Tech (Apple, MSFT, NVIDIA), tăng trưởng cao',
-        badge: 'Tăng trưởng',
-        badgeColor: 'emerald',
-      },
-      {
-        name: 'Apple (AAPL)',
-        tag: 'Tech',
-        rate: 'Big Tech',
-        note: 'Vốn hóa siêu lớn, ổn định và có cổ tức',
-        badge: 'An toàn',
-        badgeColor: 'blue',
-      },
-    ],
-    tips: [
-      'Sử dụng ETF giúp đa dạng hóa ngay lập tức',
-      'Đầu tư Mỹ mang lại lợi thế về tỷ giá USD/VND',
-      'Nên xác định đầu tư dài hạn (trên 3 năm) để vượt qua biến động tỷ giá',
-    ],
+    tips: [],
   },
 };

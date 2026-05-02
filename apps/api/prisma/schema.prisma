@@ -151,7 +151,6 @@ model Allocation {
   savings        Float
   gold           Float
   stocks         Float
-  stocks_us      Float    @default(0)
   bonds          Float
   crypto         Float
   recommendation String
@@ -322,7 +321,6 @@ model AIStrategy {
   savings        Float
   gold           Float
   stocks         Float
-  stocks_us      Float    @default(0)
   bonds          Float
   crypto         Float
   recommendation String   @db.Text
@@ -342,9 +340,8 @@ model UserPortfolio {
   savings          Float
   gold             Float
   stocks           Float
-  stocks_us        Float    @default(0)
   bonds            Float
-  crypto         Float
+  crypto           Float
   notes            String?  @db.Text
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt

@@ -11,12 +11,11 @@ const SENTIMENT_LABEL_VI: Record<string, string> = {
 };
 
 const FIELDS = [
-  { key: 'savings', label: 'Tiết kiệm', color: '#10b981' },
-  { key: 'gold', label: 'Vàng', color: '#f59e0b' },
-  { key: 'stocks', label: 'Cổ phiếu VN', color: '#3b82f6' },
-  { key: 'stocks_us', label: 'Cổ phiếu Mỹ', color: '#ef4444' },
-  { key: 'bonds', label: 'Trái phiếu', color: '#8b5cf6' },
-  { key: 'crypto', label: 'Crypto', color: '#f97316' },
+  { key: "savings",  label: "Tiết kiệm",    color: "#10b981" },
+  { key: "gold",     label: "Vàng",          color: "#f59e0b" },
+  { key: "stocks",   label: "Cổ phiếu VN",   color: "#3b82f6" },
+  { key: "bonds",    label: "Trái phiếu",    color: "#8b5cf6" },
+  { key: "crypto",   label: "Crypto",        color: "#f97316" },
 ];
 
 interface ApplyStrategyModalProps {
@@ -27,12 +26,11 @@ interface ApplyStrategyModalProps {
 
 export default function ApplyStrategyModal({ strategy, onClose, onSave }: ApplyStrategyModalProps) {
   const [values, setValues] = useState<any>({
-    savings: strategy.savings,
-    gold: strategy.gold,
-    stocks: strategy.stocks,
-    stocks_us: strategy.stocks_us || 0,
-    bonds: strategy.bonds,
-    crypto: strategy.crypto,
+    savings:   strategy.savings,
+    gold:      strategy.gold,
+    stocks:    strategy.stocks,
+    bonds:     strategy.bonds,
+    crypto:    strategy.crypto,
   });
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
