@@ -1,11 +1,17 @@
-interface BankData {
-  id: string;
-  name: string;
-  tier: 'big4' | 'mid' | 'small';
-  online: Record<string, number>;
-  counter: Record<string, number>;
-  note: string;
-}
+/**
+ * Savings (Tiền gửi Tiết kiệm) Service
+ *
+ * Fetches real-time bank interest rates from CafeF/Mediacdn.
+ * Source: https://cafefnew.mediacdn.vn/Images/Uploaded/DuLieuDownload/Liveboard/all_banks_interest_rates.json
+ *
+ * Cache: 1h TTL (rates don't change hourly).
+ */
+
+import https from 'node:https';
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 export interface SavingsItem {
   id: string;
@@ -18,7 +24,7 @@ export interface SavingsItem {
   note: string;
   badge: string;
   badgeColor: string;
-  tier: string;
+  tier: 'big4' | 'mid' | 'small';
   allRates: Record<string, number>;
 }
 
@@ -29,158 +35,190 @@ export interface SavingsServiceResult {
   riskLevel: string;
 }
 
-const SAVINGS_DATA: { updatedAt: string; banks: BankData[] } = {
-  updatedAt: '2026-04-23',
-  banks: [
-    {
-      id: 'acb',
-      name: 'ACB',
-      tier: 'mid',
-      online: { t1: 3.1, t3: 3.5, t6: 4.6, t9: 4.7, t12: 5.5, t18: 5.5, t24: 5.5 },
-      counter: { t1: 2.9, t3: 3.3, t6: 4.4, t9: 4.5, t12: 5.3, t18: 5.3, t24: 5.3 },
-      note: 'Lãi suất ổn định, uy tín cao, hệ thống rộng khắp',
-    },
-    {
-      id: 'tcb',
-      name: 'Techcombank',
-      tier: 'mid',
-      online: { t1: 3.0, t3: 3.4, t6: 4.5, t9: 4.6, t12: 5.2, t18: 5.2, t24: 5.2 },
-      counter: { t1: 2.8, t3: 3.2, t6: 4.3, t9: 4.4, t12: 5.0, t18: 5.0, t24: 5.0 },
-      note: 'Online banking tốt, gửi/rút linh hoạt qua app',
-    },
-    {
-      id: 'vpb',
-      name: 'VPBank',
-      tier: 'mid',
-      online: { t1: 3.2, t3: 3.7, t6: 4.8, t9: 4.9, t12: 5.8, t18: 5.8, t24: 5.8 },
-      counter: { t1: 3.0, t3: 3.5, t6: 4.6, t9: 4.7, t12: 5.6, t18: 5.6, t24: 5.6 },
-      note: 'Lãi suất cạnh tranh top đầu, nhiều ưu đãi online',
-    },
-    {
-      id: 'msb',
-      name: 'MSB',
-      tier: 'mid',
-      online: { t1: 3.3, t3: 3.8, t6: 4.9, t9: 5.0, t12: 6.0, t18: 6.0, t24: 6.1 },
-      counter: { t1: 3.1, t3: 3.6, t6: 4.7, t9: 4.8, t12: 5.8, t18: 5.8, t24: 5.9 },
-      note: 'Kỳ hạn 13/24 tháng hấp dẫn, app dễ dùng',
-    },
-    {
-      id: 'hdb',
-      name: 'HDBank',
-      tier: 'mid',
-      online: { t1: 3.4, t3: 3.9, t6: 4.9, t9: 5.0, t12: 5.7, t18: 5.7, t24: 5.8 },
-      counter: { t1: 3.2, t3: 3.7, t6: 4.7, t9: 4.8, t12: 5.5, t18: 5.5, t24: 5.6 },
-      note: 'Gửi online cao hơn quầy, ưu đãi cho khách VIP',
-    },
-    {
-      id: 'ocb',
-      name: 'OCB',
-      tier: 'small',
-      online: { t1: 3.5, t3: 4.0, t6: 5.0, t9: 5.1, t12: 6.0, t18: 6.1, t24: 6.2 },
-      counter: { t1: 3.3, t3: 3.8, t6: 4.8, t9: 4.9, t12: 5.8, t18: 5.9, t24: 6.0 },
-      note: 'Lãi suất cao hơn trung bình, cần cân nhắc quy mô',
-    },
-    {
-      id: 'vcb',
-      name: 'Vietcombank',
-      tier: 'big4',
-      online: { t1: 2.0, t3: 2.5, t6: 3.0, t9: 3.4, t12: 4.7, t18: 4.7, t24: 4.7 },
-      counter: { t1: 1.7, t3: 2.1, t6: 2.9, t9: 3.2, t12: 4.6, t18: 4.6, t24: 4.6 },
-      note: 'Lãi thấp hơn nhưng uy tín Nhà nước, bảo hiểm tốt nhất',
-    },
-  ],
-};
+interface RawRate {
+  time: string; // "1T", "3T", etc.
+  deposit: number; // month count
+  value: number | null;
+}
 
-const TENOR_MAP: Record<string, string[]> = {
-  LOW: ['t24', 't18', 't12'],
-  MEDIUM: ['t12', 't6', 't9'],
-  HIGH: ['t3', 't1', 't6'],
-};
+interface RawBank {
+  id: string;
+  name: string;
+  symbol: string;
+  icon: string;
+  interestRates: RawRate[];
+}
 
+interface CacheEntry {
+  data: RawBank[];
+  fetchedAt: number;
+}
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const FETCH_URL = 'https://cafefnew.mediacdn.vn/Images/Uploaded/DuLieuDownload/Liveboard/all_banks_interest_rates.json';
+const CACHE_TTL_MS = 60 * 60 * 1000; // 1h
+const FETCH_TIMEOUT_MS = 8000;
+
+const TENOR_KEYS = ['t12', 't18', 't24'];
 const TENOR_LABEL: Record<string, string> = {
-  t1: '1 tháng',
-  t3: '3 tháng',
-  t6: '6 tháng',
-  t9: '9 tháng',
   t12: '12 tháng',
   t18: '18 tháng',
   t24: '24 tháng',
 };
 
-const TIER_BADGE: Record<string, { label: string; color: string }> = {
-  big4: { label: 'Big4', color: 'purple' },
-  mid: { label: 'Uy tín', color: 'blue' },
-  small: { label: 'Lãi cao', color: 'emerald' },
+const RISK_TENOR_PREF: Record<string, string[]> = {
+  LOW: ['t24', 't18', 't12'],
+  MEDIUM: ['t12', 't18', 't24'],
+  HIGH: ['t12', 't18', 't24'],
 };
 
-function buildSavingsItems(riskLevel: string): SavingsItem[] {
-  const preferTenors = TENOR_MAP[riskLevel] || TENOR_MAP.MEDIUM;
-  const primaryTenor = preferTenors[0];
+const BIG4_SYMBOLS = new Set(['VCB', 'BID', 'AGB', 'VTB', 'CTG']);
+const MID_SYMBOLS = new Set(['ACB', 'TCB', 'VPB', 'MBB', 'HDB', 'VIB', 'TPB', 'MSB', 'LPB', 'SHB', 'STB']);
 
-  const sorted = [...SAVINGS_DATA.banks].sort((a, b) => {
-    const ra = a.online[primaryTenor] || 0;
-    const rb = b.online[primaryTenor] || 0;
-    if (riskLevel === 'LOW') {
-      const tierScore = (t: string) => (t === 'big4' ? 0.3 : t === 'mid' ? 0 : -0.2);
-      return rb + tierScore(b.tier) - (ra + tierScore(a.tier));
-    }
-    return rb - ra;
-  });
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
 
-  return sorted.slice(0, 6).map((bank, i) => {
-    const rate = bank.online[primaryTenor];
-    const rateCtr = bank.counter[primaryTenor];
-    const tb = TIER_BADGE[bank.tier];
-    const otherTenors = preferTenors
-      .slice(1)
-      .map((t) => `${TENOR_LABEL[t]}: ${bank.online[t]}%`)
-      .join(' · ');
+let cache: CacheEntry | null = null;
 
-    return {
-      id: bank.id,
-      name: bank.name,
-      tag: `Online ${TENOR_LABEL[primaryTenor]}`,
-      rate,
-      rateLabel: `${rate}%/năm`,
-      rateCounter: rateCtr,
-      rateCounterLabel: `${rateCtr}%/năm (quầy)`,
-      note: `${bank.note} · ${otherTenors}`,
-      badge: i === 0 ? 'Tốt nhất' : tb.label,
-      badgeColor: i === 0 ? 'amber' : tb.color,
-      tier: bank.tier,
-      allRates: bank.online,
-    };
+// ---------------------------------------------------------------------------
+// Logic
+// ---------------------------------------------------------------------------
+
+async function fetchRawData(): Promise<RawBank[]> {
+  const now = Date.now();
+  if (cache && now - cache.fetchedAt < CACHE_TTL_MS) {
+    return cache.data;
+  }
+
+  return new Promise((resolve, reject) => {
+    https
+      .get(FETCH_URL, { timeout: FETCH_TIMEOUT_MS }, (res) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (c) => chunks.push(c));
+        res.on('end', () => {
+          try {
+            const body = Buffer.concat(chunks).toString('utf8');
+            const json = JSON.parse(body);
+            const data = json.Data || [];
+            cache = { data, fetchedAt: now };
+            resolve(data);
+          } catch (e) {
+            reject(new Error('Failed to parse savings JSON'));
+          }
+        });
+      })
+      .on('error', (e) => {
+        if (cache) {
+          console.warn('[savings.service] fetch failed, using stale cache');
+          resolve(cache.data);
+        } else {
+          reject(e);
+        }
+      })
+      .on('timeout', () => {
+        if (cache) {
+          console.warn('[savings.service] timeout, using stale cache');
+          resolve(cache.data);
+        } else {
+          reject(new Error('Savings fetch timeout'));
+        }
+      });
   });
 }
 
-export function getSavingsRatesData(riskLevel: string): SavingsServiceResult {
-  const items = buildSavingsItems(riskLevel);
+function mapRawBankToRates(raw: RawBank): Record<string, number> {
+  const rates: Record<string, number> = {};
+  for (const r of raw.interestRates) {
+    const key = `t${r.deposit}`;
+    if (TENOR_KEYS.includes(key) && r.value) {
+      rates[key] = r.value;
+    }
+  }
+  return rates;
+}
 
-  const tenorAdvice: Record<string, string> = {
-    LOW: 'kỳ hạn 18–24 tháng',
-    MEDIUM: 'kỳ hạn 6–12 tháng',
-    HIGH: 'kỳ hạn 1–3 tháng (giữ linh hoạt)',
-  };
+function getBankTier(symbol: string): 'big4' | 'mid' | 'small' {
+  if (BIG4_SYMBOLS.has(symbol)) return 'big4';
+  if (MID_SYMBOLS.has(symbol)) return 'mid';
+  return 'small';
+}
 
-  const primaryTenorMap: Record<string, string> = { LOW: 't24', MEDIUM: 't12', HIGH: 't3' };
-  const primaryTenor = primaryTenorMap[riskLevel] || 't12';
-  const maxRate = Math.max(...SAVINGS_DATA.banks.map((b) => b.online[primaryTenor] || 0));
+function getBankNote(name: string, tier: string): string {
+  if (tier === 'big4') return `${name} là ngân hàng Nhà nước, an toàn tuyệt đối, phù hợp gửi số tiền lớn.`;
+  if (tier === 'mid') return `${name} là ngân hàng thương mại uy tín, dịch vụ online tốt, lãi suất cân bằng.`;
+  return `${name} thường có lãi suất cạnh tranh cao hơn mặt bằng chung, phù hợp tối ưu lợi nhuận.`;
+}
+
+export async function getSavingsRatesData(riskLevel: string): Promise<SavingsServiceResult> {
+  const rawBanks = await fetchRawData();
+  const preferTenors = RISK_TENOR_PREF[riskLevel] || RISK_TENOR_PREF.MEDIUM;
+  const primaryTenor = preferTenors[0];
+
+  const processed = rawBanks
+    .map((rb) => {
+      const rates = mapRawBankToRates(rb);
+      const tier = getBankTier(rb.symbol);
+      return {
+        rb,
+        rates,
+        tier,
+        primaryRate: rates[primaryTenor] || 0,
+      };
+    })
+    .filter((p) => p.primaryRate > 0);
+
+  // Sorting logic based on risk
+  const sorted = [...processed].sort((a, b) => {
+    if (riskLevel === 'LOW') {
+      // For LOW risk, Big4 and Mid-tier are preferred even if rate is slightly lower
+      const tierScore = (t: string) => (t === 'big4' ? 0.5 : t === 'mid' ? 0.2 : 0);
+      return b.primaryRate + tierScore(b.tier) - (a.primaryRate + tierScore(a.tier));
+    }
+    // For MEDIUM/HIGH, prioritize absolute rate
+    return b.primaryRate - a.primaryRate;
+  });
+
+  const items: SavingsItem[] = sorted.slice(0, 6).map((p, i) => {
+    const otherRates = preferTenors
+      .slice(1)
+      .map((t) => (p.rates[t] ? `${TENOR_LABEL[t]}: ${p.rates[t].toFixed(1)}%` : null))
+      .filter(Boolean)
+      .join(' · ');
+
+    const note = getBankNote(p.rb.name, p.tier) + (otherRates ? ` · ${otherRates}` : '');
+
+    return {
+      id: p.rb.symbol.toLowerCase(),
+      name: p.rb.name,
+      tag: `Online ${TENOR_LABEL[primaryTenor]}`,
+      rate: p.primaryRate,
+      rateLabel: `${p.primaryRate.toFixed(2)}%/năm`,
+      rateCounter: p.primaryRate - 0.2, // Rough estimate as API usually shows online
+      rateCounterLabel: `${(p.primaryRate - 0.2).toFixed(2)}%/năm (tại quầy)`,
+      note,
+      badge: i === 0 ? 'Tốt nhất' : p.tier === 'big4' ? 'Big4' : p.tier === 'mid' ? 'Uy tín' : 'Lãi cao',
+      badgeColor: i === 0 ? 'amber' : p.tier === 'big4' ? 'purple' : p.tier === 'mid' ? 'blue' : 'emerald',
+      tier: p.tier,
+      allRates: p.rates,
+    };
+  });
+
+  const maxRate = items.length > 0 ? items[0].rate : 0;
   const riskLabel = riskLevel === 'LOW' ? 'thấp' : riskLevel === 'MEDIUM' ? 'trung bình' : 'cao';
+  const tenorAdvice = riskLevel === 'LOW' ? '18–24 tháng' : riskLevel === 'MEDIUM' ? '6–12 tháng' : '1–3 tháng';
 
   const intro =
-    `Lãi suất tiết kiệm online tốt nhất hiện tại lên tới **${maxRate}%/năm**. ` +
-    `Với khẩu vị ${riskLabel}, ` +
-    `nên chọn ${tenorAdvice[riskLevel] || tenorAdvice.MEDIUM} — ` +
-    (riskLevel === 'LOW'
-      ? 'chốt lãi dài hạn khi lãi suất còn cao.'
-      : riskLevel === 'MEDIUM'
-        ? 'cân bằng thanh khoản và lãi suất.'
-        : 'giữ tiền mặt linh hoạt để chớp cơ hội đầu tư.');
+    `Lãi suất tiết kiệm online tốt nhất hiện tại lên tới **${maxRate.toFixed(2)}%/năm**. ` +
+    `Bạn có thể chọn xem nhanh các kỳ hạn **12, 18 và 24 tháng** để tối ưu hóa lợi nhuận dài hạn.`;
 
   return {
     savingsItems: items,
     intro,
-    updatedAt: SAVINGS_DATA.updatedAt,
+    updatedAt: new Date(cache?.fetchedAt || Date.now()).toISOString().slice(0, 10),
     riskLevel,
   };
 }
