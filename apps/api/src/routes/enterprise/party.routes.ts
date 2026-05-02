@@ -4,6 +4,7 @@ import {
   getAuditLogs,
   getParties,
   getParty,
+  getUsers,
   toggleStatus,
   updateParty,
 } from '../../controllers/enterprise/party.controller';
@@ -13,6 +14,7 @@ const router = Router();
 
 router.use(authenticate);
 
+router.get('/users', getUsers);
 router.post('/', createParty);
 router.get('/', getParties);
 router.get('/:id', getParty);

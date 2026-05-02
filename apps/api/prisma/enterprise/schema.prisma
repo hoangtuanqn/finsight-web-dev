@@ -41,6 +41,7 @@ model User {
   organization     Organization @relation(fields: [organizationId], references: [id])
 
   managedParties   Party[]      @relation("PersonInCharge")
+  auditLogs        AuditLog[]
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -120,6 +121,7 @@ model AuditLog {
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
   userId         String
+  user           User         @relation(fields: [userId], references: [id])
   action         String   // CREATE, UPDATE, DELETE, TOGGLE_STATUS
   entityType     String   // PARTY, CONTACT, BANK_ACCOUNT
   entityId       String

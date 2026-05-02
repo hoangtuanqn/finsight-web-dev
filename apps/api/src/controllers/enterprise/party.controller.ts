@@ -207,8 +207,34 @@ export const updateParty = async (req: Request, res: Response) => {
       where: { id },
       data: {
         ...updateData,
-        // Update nested relations if provided (simplified: replace all for now or skip)
-        // In a real app, you'd handle granular updates for contacts/bank accounts
+        ...(contacts !== undefined && {
+          contacts: {
+            deleteMany: {},
+            create: contacts.map((c: any) => ({
+              name: c.name,
+              position: c.position,
+              email: c.email,
+              phone: c.phone,
+              isPrimary: !!c.isPrimary,
+            })),
+          },
+        }),
+        ...(bankAccounts !== undefined && {
+          bankAccounts: {
+            deleteMany: {},
+            create: bankAccounts.map((b: any) => ({
+              bankName: b.bankName,
+              accountNumber: b.accountNumber,
+              accountHolder: b.accountHolder,
+              branch: b.branch,
+            })),
+          },
+        }),
+      },
+      include: {
+        contacts: true,
+        bankAccounts: true,
+        personInCharge: { select: { id: true, fullName: true, email: true } },
       },
     });
 
@@ -289,6 +315,20 @@ export const getAuditLogs = async (req: Request, res: Response) => {
     });
 
     res.status(200).json({ success: true, data: logs });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const getUsers = async (req: Request, res: Response) => {
+  try {
+    const orgId = (req as any).organizationId;
+    const users = await (enterpriseDb as any).user.findMany({
+      where: { organizationId: orgId },
+      select: { id: true, fullName: true, email: true, roleTitle: true },
+      orderBy: { fullName: 'asc' },
+    });
+    res.status(200).json({ success: true, data: users });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
