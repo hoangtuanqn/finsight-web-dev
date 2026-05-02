@@ -22,7 +22,6 @@ import GenerateStrategyPopup from '../components/investment/GenerateStrategyPopu
 import IncompleteProfile from '../components/investment/IncompleteProfile';
 import NoStrategyPopup from '../components/investment/NoStrategyPopup';
 import SentimentGauge from '../components/investment/SentimentGauge';
-import StrategyRecommendation from '../components/investment/StrategyRecommendation';
 
 import { ASSET_LABELS } from '../components/investment/InvestmentConstants';
 import { calcFV } from '../components/investment/InvestmentUtils';
@@ -66,11 +65,6 @@ function buildRenderData(allocation: any, profile: any) {
     { asset: 'Tiết kiệm', percentage: allocation.savings, amount: (capital * allocation.savings) / 100 },
     { asset: 'Vàng', percentage: allocation.gold, amount: (capital * allocation.gold) / 100 },
     { asset: 'Cổ phiếu VN', percentage: allocation.stocks, amount: (capital * allocation.stocks) / 100 },
-    {
-      asset: 'Cổ phiếu Mỹ',
-      percentage: allocation.stocks_us || 0,
-      amount: (capital * (allocation.stocks_us || 0)) / 100,
-    },
     { asset: 'Trái phiếu', percentage: allocation.bonds, amount: (capital * allocation.bonds) / 100 },
     { asset: 'Crypto', percentage: allocation.crypto, amount: (capital * allocation.crypto) / 100 },
   ];
@@ -417,7 +411,7 @@ export default function InvestmentPage() {
 
         {/* ── Tài sản trong chiến lược hiện tại (read-only) ── */}
         {(() => {
-          const EXCLUDABLE = ['gold', 'stocks', 'stocks_us', 'bonds', 'crypto'] as const;
+          const EXCLUDABLE = ['gold', 'stocks', 'bonds', 'crypto'] as const;
           const lockedExcluded =
             strategies.length > 0 ? EXCLUDABLE.filter((a) => !(activeAllocation[a] > 0)) : excludedAssets; // fallback khi chưa có chiến lược
           return (
@@ -474,11 +468,6 @@ export default function InvestmentPage() {
                   />
                 </div>
               </div>
-
-              <StrategyRecommendation
-                recommendation={viewModel?.recommendation || ''}
-                views={viewModel?.marketViews || activeStrategy?.marketViews || []}
-              />
 
               {(advisorLoading || advisorError) && activeStrategyIndex === 0 && (
                 <div

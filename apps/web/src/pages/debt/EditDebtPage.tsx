@@ -10,21 +10,55 @@ import FormattedInput from '../../components/common/FormattedInput';
 import { useDebt, useDebtMutations } from '../../hooks/useDebtQuery';
 import { calcAPY, calcEAR, formatPercent } from '../../utils/calculations';
 
+const preprocessNumber = (schema: z.ZodTypeAny) =>
+  z.preprocess(
+    (v) => (v === '' || v === null || (typeof v === 'number' && isNaN(v)) ? undefined : v),
+    schema,
+  ) as unknown as z.ZodNumber;
+
 const debtSchema = z
   .object({
     name: z.string().min(1, 'Vui lòng nhập tên khoản vay.'),
     platform: z.string().default('CUSTOM'),
-    originalAmount: z.number().min(0, 'Số tiền gốc không được âm.'),
-    balance: z.number().min(0, 'Dư nợ không được âm'),
-    apr: z.number().min(0).max(100, 'Lãi suất APR không hợp lệ.'),
+    originalAmount: preprocessNumber(
+      z.number({ message: 'Vui lòng nhập số tiền gốc/hạn mức.' }).min(0, 'Số tiền gốc không được âm.'),
+    ),
+    balance: preprocessNumber(z.number({ message: 'Vui lòng nhập dư nợ hiện tại.' }).min(0, 'Dư nợ không được âm')),
+    apr: preprocessNumber(
+      z.number({ message: 'Vui lòng nhập lãi suất.' }).min(0).max(100, 'Lãi suất APR không hợp lệ.'),
+    ),
     rateType: z.enum(['FLAT', 'REDUCING']).default('FLAT'),
-    feeProcessing: z.number().min(0).max(20, 'Phí xử lý không nên vượt quá 20%').default(0),
-    feeInsurance: z.number().min(0).max(10, 'Phí bảo hiểm không nên vượt quá 10%').default(0),
-    feeManagement: z.number().min(0).max(5, 'Phí quản lý không nên vượt quá 5%').default(0),
-    minPayment: z.number().min(0, 'Số tiền trả tối thiểu không được âm.'),
-    termMonths: z.number().int().min(0, 'Kỳ hạn không được âm.').max(360, 'Kỳ hạn tối đa là 360 tháng (30 năm)'),
-    remainingTerms: z.number().int().min(0),
-    dueDay: z.number().int().min(1).max(31, 'Ngày đáo hạn từ 1 đến 31.'),
+    feeProcessing: preprocessNumber(
+      z.number({ message: 'Vui lòng nhập phí xử lý.' }).min(0).max(20, 'Phí xử lý không nên vượt quá 20%').default(0),
+    ),
+    feeInsurance: preprocessNumber(
+      z
+        .number({ message: 'Vui lòng nhập phí bảo hiểm.' })
+        .min(0)
+        .max(10, 'Phí bảo hiểm không nên vượt quá 10%')
+        .default(0),
+    ),
+    feeManagement: preprocessNumber(
+      z.number({ message: 'Vui lòng nhập phí quản lý.' }).min(0).max(5, 'Phí quản lý không nên vượt quá 5%').default(0),
+    ),
+    minPayment: preprocessNumber(
+      z.number({ message: 'Vui lòng nhập khoản trả tối thiểu.' }).min(0, 'Số tiền trả tối thiểu không được âm.'),
+    ),
+    termMonths: preprocessNumber(
+      z
+        .number({ message: 'Vui lòng nhập kỳ hạn.' })
+        .int()
+        .min(0, 'Kỳ hạn không được âm.')
+        .max(360, 'Kỳ hạn tối đa là 360 tháng (30 năm)'),
+    ),
+    remainingTerms: preprocessNumber(z.number({ message: 'Vui lòng nhập số kỳ còn lại.' }).int().min(0)),
+    dueDay: preprocessNumber(
+      z
+        .number({ message: 'Vui lòng nhập ngày (1-31).' })
+        .int()
+        .min(1, 'Ngày từ 1 đến 31.')
+        .max(31, 'Ngày từ 1 đến 31.'),
+    ),
     startDate: z.string().optional(),
   })
   .refine((data) => data.minPayment <= data.balance || data.balance === 0, {
@@ -34,71 +68,77 @@ const debtSchema = z
   .refine((data) => data.balance <= data.originalAmount || data.originalAmount === 0, {
     message: 'Dư nợ hiện tại không được lớn hơn số tiền gốc/hạn mức ban đầu.',
     path: ['balance'],
+  })
+  .refine((data) => data.balance === 0 || data.minPayment > 0, {
+    message: 'Khoản trả tối thiểu phải lớn hơn 0 khi có dư nợ.',
+    path: ['minPayment'],
   });
 
 const PLATFORM_PRESETS = {
+  // Installment Platforms
   SPAYLATER: {
     name: 'SPayLater',
+    type: 'INSTALLMENT',
     apr: 18,
     rateType: 'FLAT',
     feeProcessing: 0,
     feeInsurance: 0,
     feeManagement: 0,
-    type: 'INSTALLMENT',
   },
   LAZPAYLATER: {
     name: 'LazPayLater',
+    type: 'INSTALLMENT',
     apr: 18,
     rateType: 'FLAT',
     feeProcessing: 0,
     feeInsurance: 0,
     feeManagement: 0,
-    type: 'INSTALLMENT',
-  },
-  CREDIT_CARD: {
-    name: 'Thẻ tín dụng',
-    apr: 36,
-    rateType: 'REDUCING',
-    feeProcessing: 0,
-    feeInsurance: 0,
-    feeManagement: 0.5,
-    type: 'CREDIT_CARD',
   },
   HOME_CREDIT: {
     name: 'Home Credit',
+    type: 'INSTALLMENT',
     apr: 30,
     rateType: 'FLAT',
     feeProcessing: 1,
     feeInsurance: 0.5,
     feeManagement: 0,
-    type: 'INSTALLMENT',
   },
   FE_CREDIT: {
     name: 'FE Credit',
+    type: 'INSTALLMENT',
     apr: 48,
     rateType: 'FLAT',
     feeProcessing: 5,
     feeInsurance: 1,
     feeManagement: 0.5,
-    type: 'INSTALLMENT',
   },
   CUSTOM: {
     name: 'Tự nhập',
+    type: 'INSTALLMENT',
     apr: 0,
     rateType: 'FLAT',
     feeProcessing: 0,
     feeInsurance: 0,
     feeManagement: 0,
-    type: 'INSTALLMENT',
+  },
+  // Credit Card Platforms
+  CREDIT_CARD: {
+    name: 'Thẻ tín dụng',
+    type: 'CREDIT_CARD',
+    apr: 36,
+    rateType: 'REDUCING',
+    feeProcessing: 0,
+    feeInsurance: 0,
+    feeManagement: 0.5,
   },
   CUSTOM_CARD: {
     name: 'Tự nhập thẻ',
+    type: 'CREDIT_CARD',
     apr: 0,
     rateType: 'REDUCING',
     feeProcessing: 0,
     feeInsurance: 0,
     feeManagement: 0,
-    type: 'CREDIT_CARD',
   },
 } as const;
 
@@ -238,34 +278,37 @@ export default function EditDebtPage() {
           </h1>
           <p className="text-slate-500 text-sm mt-1">Cập nhật thông tin chi tiết về khoản nợ của bạn</p>
         </div>
-
-        <div className="flex bg-white/[0.03] p-1 rounded-xl border border-white/[0.06]">
-          <button
-            type="button"
-            onClick={() => {
-              setDebtType('INSTALLMENT');
-              if (formValues.termMonths === 0) setValue('termMonths', 12);
-            }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-              debtType === 'INSTALLMENT' ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Calendar size={16} /> Vay Trả Góp
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setDebtType('CREDIT_CARD');
-              setValue('termMonths', 0);
-              setValue('remainingTerms', 0);
-              setValue('rateType', 'REDUCING');
-            }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-              debtType === 'CREDIT_CARD' ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <CreditCard size={16} /> Thẻ Tín Dụng
-          </button>
+        <div className="flex flex-col">
+          <div className="flex bg-white/[0.03] p-1.5 rounded-2xl border border-white/[0.06] relative">
+            <div
+              className="absolute h-[calc(100%-12px)] top-1.5 transition-all duration-300 rounded-xl bg-blue-500 shadow-lg"
+              style={{
+                width: 'calc(50% - 9px)',
+                left: debtType === 'INSTALLMENT' ? '6px' : 'calc(50% + 3px)',
+              }}
+            />
+            <button
+              type="button"
+              className={`flex-1 px-4 py-2 rounded-xl text-[13px] font-black transition-all flex items-center justify-center gap-2 z-10 ${
+                debtType === 'INSTALLMENT' ? 'text-white' : 'text-slate-500 opacity-50 cursor-not-allowed'
+              }`}
+              title="Không thể đổi loại nợ sau khi đã tạo"
+            >
+              <Calendar size={15} /> Vay Trả Góp
+            </button>
+            <button
+              type="button"
+              className={`flex-1 px-4 py-2 rounded-xl text-[13px] font-black transition-all flex items-center justify-center gap-2 z-10 ${
+                debtType === 'CREDIT_CARD' ? 'text-white' : 'text-slate-500 opacity-50 cursor-not-allowed'
+              }`}
+              title="Không thể đổi loại nợ sau khi đã tạo"
+            >
+              <CreditCard size={15} /> Thẻ Tín Dụng
+            </button>
+          </div>
+          <p className="text-[10px] text-amber-400/70 font-medium flex items-center gap-1 mt-2 ml-1">
+            <Info size={10} /> Loại nợ đã được cố định sau khi tạo.
+          </p>
         </div>
       </div>
 
@@ -358,6 +401,26 @@ export default function EditDebtPage() {
                               <Info size={10} /> Dư nợ thấp hơn gốc? Bạn đã trả một phần rồi?
                             </p>
                           )}
+                        {debtType === 'CREDIT_CARD' &&
+                          formValues.originalAmount > 0 &&
+                          (() => {
+                            const usage = (formValues.balance / formValues.originalAmount) * 100;
+                            if (usage > 85)
+                              return (
+                                <p className="mt-1 text-[10px] text-rose-400 flex items-center gap-1 font-bold">
+                                  <AlertTriangle size={10} /> Báo động: Bạn đã dùng {usage.toFixed(0)}% hạn mức. Cần
+                                  kiểm soát chi tiêu!
+                                </p>
+                              );
+                            if (usage > 70)
+                              return (
+                                <p className="mt-1 text-[10px] text-amber-400 flex items-center gap-1 font-medium">
+                                  <Info size={10} /> Bạn đã dùng {usage.toFixed(0)}% hạn mức. Tỷ lệ cao có thể ảnh hưởng
+                                  điểm tín dụng.
+                                </p>
+                              );
+                            return null;
+                          })()}
                       </div>
                     )}
                   />

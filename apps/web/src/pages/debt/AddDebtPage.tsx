@@ -9,21 +9,55 @@ import FormattedInput from '../../components/common/FormattedInput';
 import { useDebtMutations } from '../../hooks/useDebtQuery';
 import { calcAPY, calcEAR, formatPercent } from '../../utils/calculations';
 
+const preprocessNumber = (schema: z.ZodTypeAny) =>
+  z.preprocess(
+    (v) => (v === '' || v === null || (typeof v === 'number' && isNaN(v)) ? undefined : v),
+    schema,
+  ) as unknown as z.ZodNumber;
+
 const debtSchema = z
   .object({
     name: z.string().min(1, 'Vui lòng nhập tên khoản vay.'),
     platform: z.string().default('SPAYLATER'),
-    originalAmount: z.number().min(0, 'Số tiền gốc không được âm.'),
-    balance: z.number().min(0, 'Dư nợ không được âm'),
-    apr: z.number().min(0).max(100, 'Lãi suất APR không hợp lệ.'),
+    originalAmount: preprocessNumber(
+      z.number({ message: 'Vui lòng nhập số tiền gốc.' }).min(0, 'Số tiền gốc không được âm.'),
+    ),
+    balance: preprocessNumber(z.number({ message: 'Vui lòng nhập dư nợ hiện tại.' }).min(0, 'Dư nợ không được âm')),
+    apr: preprocessNumber(
+      z.number({ message: 'Vui lòng nhập lãi suất.' }).min(0).max(100, 'Lãi suất APR không hợp lệ.'),
+    ),
     rateType: z.enum(['FLAT', 'REDUCING']).default('FLAT'),
-    feeProcessing: z.number().min(0).max(20, 'Phí xử lý không nên vượt quá 20%').default(0),
-    feeInsurance: z.number().min(0).max(10, 'Phí bảo hiểm không nên vượt quá 10%').default(0),
-    feeManagement: z.number().min(0).max(5, 'Phí quản lý không nên vượt quá 5%').default(0),
-    feePenaltyPerDay: z.number().min(0).default(0.05),
-    minPayment: z.number().min(0, 'Số tiền trả tối thiểu không được âm.'),
-    dueDay: z.number().int().min(1).max(31, 'Ngày đáo hạn từ 1 đến 31.'),
-    termMonths: z.number().int().min(0, 'Kỳ hạn không được âm.').max(360, 'Kỳ hạn tối đa là 360 tháng (30 năm)'),
+    feeProcessing: preprocessNumber(
+      z.number({ message: 'Vui lòng nhập phí xử lý.' }).min(0).max(20, 'Phí xử lý không nên vượt quá 20%').default(0),
+    ),
+    feeInsurance: preprocessNumber(
+      z
+        .number({ message: 'Vui lòng nhập phí bảo hiểm.' })
+        .min(0)
+        .max(10, 'Phí bảo hiểm không nên vượt quá 10%')
+        .default(0),
+    ),
+    feeManagement: preprocessNumber(
+      z.number({ message: 'Vui lòng nhập phí quản lý.' }).min(0).max(5, 'Phí quản lý không nên vượt quá 5%').default(0),
+    ),
+    feePenaltyPerDay: preprocessNumber(z.number({ message: 'Vui lòng nhập phí phạt.' }).min(0).default(0.05)),
+    minPayment: preprocessNumber(
+      z.number({ message: 'Vui lòng nhập khoản trả tối thiểu.' }).min(0, 'Số tiền trả tối thiểu không được âm.'),
+    ),
+    dueDay: preprocessNumber(
+      z
+        .number({ message: 'Vui lòng nhập ngày (1-31).' })
+        .int()
+        .min(1, 'Ngày từ 1 đến 31.')
+        .max(31, 'Ngày từ 1 đến 31.'),
+    ),
+    termMonths: preprocessNumber(
+      z
+        .number({ message: 'Vui lòng nhập kỳ hạn.' })
+        .int()
+        .min(0, 'Kỳ hạn không được âm.')
+        .max(360, 'Kỳ hạn tối đa là 360 tháng (30 năm)'),
+    ),
     startDate: z.string().min(1, 'Vui lòng chọn ngày vay.'),
   })
   .refine((data) => data.minPayment <= data.balance || data.balance === 0, {
@@ -33,6 +67,10 @@ const debtSchema = z
   .refine((data) => data.balance <= data.originalAmount || data.originalAmount === 0, {
     message: 'Dư nợ hiện tại không được lớn hơn số tiền gốc/hạn mức ban đầu.',
     path: ['balance'],
+  })
+  .refine((data) => data.balance === 0 || data.minPayment > 0, {
+    message: 'Khoản trả tối thiểu phải lớn hơn 0 khi có dư nợ.',
+    path: ['minPayment'],
   });
 
 const PLATFORM_PRESETS = {
@@ -73,7 +111,7 @@ const PLATFORM_PRESETS = {
     feeInsurance: 1,
     feeManagement: 0.5,
   },
-  CUSTOM_INSTALLMENT: {
+  CUSTOM: {
     name: 'Tự nhập',
     type: 'INSTALLMENT',
     apr: 0,
@@ -92,7 +130,7 @@ const PLATFORM_PRESETS = {
     feeInsurance: 0,
     feeManagement: 0.5,
   },
-  CUSTOM_CREDIT: {
+  CUSTOM_CARD: {
     name: 'Tự nhập thẻ',
     type: 'CREDIT_CARD',
     apr: 0,
@@ -302,36 +340,46 @@ export default function AddDebtPage() {
                     )}
                   </div>
 
-                  {debtType === 'INSTALLMENT' ? (
-                    <div>
-                      <label className="input-label">Số tiền gốc ban đầu</label>
-                      <Controller
-                        name="originalAmount"
-                        control={control}
-                        render={({ field }) => (
-                          <FormattedInput
-                            kind="integer"
-                            value={field.value}
-                            onValueChange={(value) => field.onChange(toNumberValue(value))}
-                            className={inputCls(errors.originalAmount)}
-                            placeholder="0"
-                            suffix="đ"
-                          />
-                        )}
-                      />
-                      {errors.originalAmount && (
-                        <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
-                          <AlertTriangle size={11} /> {errors.originalAmount.message as string}
-                        </p>
+                  <div>
+                    <label className="input-label">
+                      {debtType === 'INSTALLMENT' ? 'Số tiền gốc ban đầu' : 'Hạn mức thẻ'}
+                    </label>
+                    <Controller
+                      name="originalAmount"
+                      control={control}
+                      render={({ field }) => (
+                        <FormattedInput
+                          kind="integer"
+                          value={field.value}
+                          onValueChange={(value) => field.onChange(toNumberValue(value))}
+                          className={inputCls(errors.originalAmount)}
+                          placeholder="0"
+                          suffix="đ"
+                        />
                       )}
-                    </div>
-                  ) : (
-                    <div>
-                      <label className="input-label">Dư nợ hiện tại</label>
-                      <Controller
-                        name="balance"
-                        control={control}
-                        render={({ field }) => (
+                    />
+                    {errors.originalAmount && (
+                      <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
+                        <AlertTriangle size={11} /> {errors.originalAmount.message as string}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Dư nợ và Lãi suất */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="input-label">
+                      Dư nợ hiện tại
+                      <span className="text-[10px] text-blue-400 font-normal ml-2 tracking-normal lowercase">
+                        (Số tiền đang nợ)
+                      </span>
+                    </label>
+                    <Controller
+                      name="balance"
+                      control={control}
+                      render={({ field }) => (
+                        <div className="relative">
                           <FormattedInput
                             kind="integer"
                             value={field.value}
@@ -343,84 +391,43 @@ export default function AddDebtPage() {
                             placeholder="0"
                             suffix="đ"
                           />
-                        )}
-                      />
-                      {errors.balance && (
-                        <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
-                          <AlertTriangle size={11} /> {errors.balance.message as string}
-                        </p>
+                          {debtType === 'INSTALLMENT' &&
+                            !isAutoCalcBalance &&
+                            formValues.originalAmount > 0 &&
+                            formValues.balance < formValues.originalAmount && (
+                              <p className="mt-1 text-[10px] text-amber-400 flex items-center gap-1">
+                                <Info size={10} /> Dư nợ thấp hơn gốc? Bạn đã trả một phần rồi?
+                              </p>
+                            )}
+                          {debtType === 'CREDIT_CARD' &&
+                            formValues.originalAmount > 0 &&
+                            (() => {
+                              const usage = (formValues.balance / formValues.originalAmount) * 100;
+                              if (usage > 85)
+                                return (
+                                  <p className="mt-1 text-[10px] text-rose-400 flex items-center gap-1 font-bold">
+                                    <AlertTriangle size={10} /> Báo động: Bạn đã dùng {usage.toFixed(0)}% hạn mức. Cần
+                                    kiểm soát chi tiêu!
+                                  </p>
+                                );
+                              if (usage > 70)
+                                return (
+                                  <p className="mt-1 text-[10px] text-amber-400 flex items-center gap-1 font-medium">
+                                    <Info size={10} /> Bạn đã dùng {usage.toFixed(0)}% hạn mức. Tỷ lệ cao có thể ảnh
+                                    hưởng điểm tín dụng.
+                                  </p>
+                                );
+                              return null;
+                            })()}
+                        </div>
                       )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Dư nợ và Lãi suất */}
-                <div className="grid grid-cols-2 gap-4">
-                  {debtType === 'INSTALLMENT' ? (
-                    <div>
-                      <label className="input-label">
-                        Dư nợ hiện tại
-                        <span className="text-[10px] text-blue-400 font-normal ml-2 tracking-normal lowercase">
-                          (Đã bao gồm phí ẩn)
-                        </span>
-                      </label>
-                      <Controller
-                        name="balance"
-                        control={control}
-                        render={({ field }) => (
-                          <div className="relative">
-                            <FormattedInput
-                              kind="integer"
-                              value={field.value}
-                              onValueChange={(value) => {
-                                field.onChange(toNumberValue(value));
-                                setIsAutoCalcBalance(false); // Ngắt auto-calc nếu user tự nhập tay
-                              }}
-                              className={inputCls(errors.balance)}
-                              placeholder="0"
-                              suffix="đ"
-                            />
-                            {debtType === 'INSTALLMENT' &&
-                              !isAutoCalcBalance &&
-                              formValues.originalAmount > 0 &&
-                              formValues.balance < formValues.originalAmount && (
-                                <p className="mt-1 text-[10px] text-amber-400 flex items-center gap-1">
-                                  <Info size={10} /> Dư nợ thấp hơn gốc? Bạn đã trả một phần rồi?
-                                </p>
-                              )}
-                          </div>
-                        )}
-                      />
-                      {errors.balance && (
-                        <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
-                          <AlertTriangle size={11} /> {errors.balance.message as string}
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <div>
-                      <label className="input-label">Khoản trả tối thiểu/tháng</label>
-                      <Controller
-                        name="minPayment"
-                        control={control}
-                        render={({ field }) => (
-                          <FormattedInput
-                            kind="integer"
-                            value={field.value}
-                            onValueChange={(value) => field.onChange(toNumberValue(value))}
-                            className={inputCls(errors.minPayment)}
-                            placeholder="0"
-                            suffix="đ"
-                          />
-                        )}
-                      />
-                      {errors.minPayment && (
-                        <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
-                          <AlertTriangle size={11} /> {errors.minPayment.message as string}
-                        </p>
-                      )}
-                    </div>
-                  )}
+                    />
+                    {errors.balance && (
+                      <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
+                        <AlertTriangle size={11} /> {errors.balance.message as string}
+                      </p>
+                    )}
+                  </div>
 
                   <div>
                     <label className="input-label">Lãi suất APR (%/năm)</label>
@@ -446,46 +453,44 @@ export default function AddDebtPage() {
                   </div>
                 </div>
 
-                {/* Hình thức tính lãi & Trả tối thiểu (cho Installment) */}
+                {/* Trả tối thiểu và Hình thức lãi */}
                 <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="input-label">Khoản trả tối thiểu/tháng</label>
+                    <Controller
+                      name="minPayment"
+                      control={control}
+                      render={({ field }) => (
+                        <FormattedInput
+                          kind="integer"
+                          value={field.value}
+                          onValueChange={(value) => field.onChange(toNumberValue(value))}
+                          className={inputCls(errors.minPayment)}
+                          placeholder="0"
+                          suffix="đ"
+                        />
+                      )}
+                    />
+                    {errors.minPayment && (
+                      <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
+                        <AlertTriangle size={11} /> {errors.minPayment.message as string}
+                      </p>
+                    )}
+                  </div>
+
                   <div>
                     <label className="input-label">Hình thức tính lãi</label>
                     {debtType === 'CREDIT_CARD' ? (
-                      <div className="input-field bg-white/[0.02] text-slate-400 cursor-not-allowed">
+                      <div className="px-4 py-2.5 rounded-xl border border-[var(--color-border)] bg-white/[0.02] text-sm text-[var(--color-text-secondary)]">
                         Reducing (Dư nợ giảm dần)
                       </div>
                     ) : (
-                      <select {...register('rateType')} className="input-field">
+                      <select {...register('rateType')} className={inputCls(errors.rateType)}>
                         <option value="FLAT">Flat (Lãi trên gốc ban đầu)</option>
                         <option value="REDUCING">Reducing (Dư nợ giảm dần)</option>
                       </select>
                     )}
                   </div>
-
-                  {debtType === 'INSTALLMENT' && (
-                    <div>
-                      <label className="input-label">Góp đều hàng tháng</label>
-                      <Controller
-                        name="minPayment"
-                        control={control}
-                        render={({ field }) => (
-                          <FormattedInput
-                            kind="integer"
-                            value={field.value}
-                            onValueChange={(value) => field.onChange(toNumberValue(value))}
-                            className={inputCls(errors.minPayment)}
-                            placeholder="0"
-                            suffix="đ"
-                          />
-                        )}
-                      />
-                      {errors.minPayment && (
-                        <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
-                          <AlertTriangle size={11} /> {errors.minPayment.message as string}
-                        </p>
-                      )}
-                    </div>
-                  )}
                 </div>
 
                 {/* Phí ẩn */}

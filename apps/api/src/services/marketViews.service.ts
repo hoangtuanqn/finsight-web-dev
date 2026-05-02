@@ -16,9 +16,9 @@ export async function generateMarketViews(sentimentValue: number, newsApiKey?: s
   if (sentimentValue >= 75) {
     views.push({
       id: 'sentiment_extreme_greed',
-      assets: ['crypto', 'stocks_us'],
-      weights: [1, 0], // Crypto absolute view (not relative)
-      expectedReturn: 0.15, // Expect crypto to grow 15%
+      assets: ['crypto', 'stocks'],
+      weights: [1, 0],
+      expectedReturn: 0.15,
       confidence: 0.6,
       description: 'Thị trường hưng phấn tột độ, dòng tiền rủi ro cao đổ mạnh vào Crypto.',
     });
@@ -33,11 +33,11 @@ export async function generateMarketViews(sentimentValue: number, newsApiKey?: s
   } else if (sentimentValue >= 60) {
     views.push({
       id: 'sentiment_greed_stocks',
-      assets: ['stocks_us', 'gold'],
+      assets: ['stocks', 'gold'],
       weights: [1, -1],
       expectedReturn: 0.03,
       confidence: 0.65,
-      description: 'Tâm lý thị trường lạc quan, Cổ phiếu Mỹ được đánh giá cao hơn Vàng.',
+      description: 'Tâm lý thị trường lạc quan, Cổ phiếu VN được đánh giá cao hơn Vàng.',
     });
   } else if (sentimentValue <= 20) {
     views.push({

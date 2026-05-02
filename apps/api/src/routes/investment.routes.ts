@@ -6,7 +6,6 @@ import {
   getGoldPrices,
   getSavingsRates,
   getStockPrices,
-  getStocksUsPrices,
 } from '../controllers/assetGuide.controller';
 import { getAssetHistory } from '../controllers/assetHistory.controller';
 import { createInvestorProfile, getInvestorProfile, updateInvestorProfile } from '../controllers/profile.controller';
@@ -68,11 +67,6 @@ router.get(
   '/crypto-prices',
   cache((req) => `investment:crypto-prices:${req.query.riskLevel || 'MEDIUM'}`, TTL_10M),
   getCryptoPrices,
-);
-router.get(
-  '/stocks-us-prices',
-  cache((req) => `investment:stocks-us-prices:${req.query.riskLevel || 'MEDIUM'}`, TTL_10M),
-  getStocksUsPrices,
 );
 
 router.get(

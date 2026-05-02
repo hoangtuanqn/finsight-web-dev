@@ -5,7 +5,6 @@ import { fetchFearGreedIndex } from '../services/market.service';
 import { buildBackwardCompatibleProjection, generateProjectionTable } from '../services/monteCarloSimulation.service';
 import { getOptimalAllocation } from '../services/portfolioOptimizer.service';
 import { buildRiskMetrics } from '../services/riskMetrics.service';
-import { runStressTests } from '../services/stressTest.service';
 import { AuthenticatedRequest } from '../types';
 import { error, success } from '../utils/apiResponse';
 
@@ -36,7 +35,7 @@ export async function getAllocationRecommendation(req: AuthenticatedRequest, res
       sentimentValue = sentiment.value;
     }
 
-    const EXCLUDABLE_ASSETS = ['gold', 'stocks', 'stocks_us', 'bonds', 'crypto'];
+    const EXCLUDABLE_ASSETS = ['gold', 'stocks', 'bonds', 'crypto'];
     const rawExcluded = req.query.excludedAssets as string | undefined;
     const excludedAssets = rawExcluded
       ? rawExcluded
@@ -55,7 +54,6 @@ export async function getAllocationRecommendation(req: AuthenticatedRequest, res
         savings: allocation.savings,
         gold: allocation.gold,
         stocks: allocation.stocks,
-        stocks_us: allocation.stocks_us || 0,
         bonds: allocation.bonds,
         crypto: allocation.crypto,
         recommendation: allocation.recommendation,
@@ -66,11 +64,6 @@ export async function getAllocationRecommendation(req: AuthenticatedRequest, res
       { asset: 'Tiết kiệm', percentage: allocation.savings, amount: (profile.capital * allocation.savings) / 100 },
       { asset: 'Vàng', percentage: allocation.gold, amount: (profile.capital * allocation.gold) / 100 },
       { asset: 'Cổ phiếu VN', percentage: allocation.stocks, amount: (profile.capital * allocation.stocks) / 100 },
-      {
-        asset: 'Cổ phiếu Mỹ',
-        percentage: allocation.stocks_us || 0,
-        amount: (profile.capital * (allocation.stocks_us || 0)) / 100,
-      },
       { asset: 'Trái phiếu', percentage: allocation.bonds, amount: (profile.capital * allocation.bonds) / 100 },
       { asset: 'Crypto', percentage: allocation.crypto, amount: (profile.capital * allocation.crypto) / 100 },
     ];
@@ -96,8 +89,6 @@ export async function getAllocationRecommendation(req: AuthenticatedRequest, res
       projectionTable,
     });
 
-    const stressTests = runStressTests(allocation.weights, profile.capital ?? 0);
-
     console.info(
       `[InvestmentAdvisor] allocation:complete user=${shortUserId(req.userId)} sentiment=${sentimentValue} method=${allocation.optimizationMethod} dataQuality=${allocation.optimization?.marketDataQuality || 'unknown'} riskGrade=${riskMetrics.riskGrade} durationMs=${Date.now() - startedAt}`,
     );
@@ -107,7 +98,6 @@ export async function getAllocationRecommendation(req: AuthenticatedRequest, res
         savings: allocation.savings,
         gold: allocation.gold,
         stocks: allocation.stocks,
-        stocks_us: allocation.stocks_us || 0,
         bonds: allocation.bonds,
         crypto: allocation.crypto,
       },
@@ -120,7 +110,6 @@ export async function getAllocationRecommendation(req: AuthenticatedRequest, res
       portfolioBreakdown,
       projection,
       riskMetrics,
-      stressTests,
       optimizationMethod: allocation.optimizationMethod,
       optimization: allocation.optimization,
       allocationMetrics: allocation.metrics,

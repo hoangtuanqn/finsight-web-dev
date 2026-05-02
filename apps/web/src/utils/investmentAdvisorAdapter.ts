@@ -1,10 +1,9 @@
-const ASSET_KEYS = ['savings', 'gold', 'stocks', 'stocks_us', 'bonds', 'crypto'];
+const ASSET_KEYS = ['savings', 'gold', 'stocks', 'bonds', 'crypto'];
 
 const ASSET_LABELS: Record<string, string> = {
   savings: 'Tiết kiệm',
   gold: 'Vàng',
   stocks: 'Cổ phiếu VN',
-  stocks_us: 'Cổ phiếu Mỹ',
   bonds: 'Trái phiếu',
   crypto: 'Crypto',
 };
@@ -209,7 +208,6 @@ function buildViewModel({
   optimizationMethod = null,
   allocationMetrics = null,
   cryptoWarning = null,
-  stressTests = null,
   marketViews = null,
 }: any) {
   const selectedProjection = chooseProjection(projection, allocation, profile);
@@ -222,7 +220,6 @@ function buildViewModel({
     projectionData: buildProjectionData(selectedProjection, profile),
     monteCarloData: buildMonteCarloData(selectedProjection, profile),
     riskMetrics,
-    stressTests,
     optimization,
     optimizationMethod,
     allocationMetrics,
@@ -251,7 +248,6 @@ export function normalizeAllocationAnalysis(apiData: any = {}, profile: any = {}
     optimizationMethod: apiData.optimizationMethod,
     allocationMetrics: apiData.allocationMetrics,
     cryptoWarning: apiData.cryptoWarning,
-    stressTests: apiData.stressTests,
     marketViews: apiData.marketViews,
   });
 }

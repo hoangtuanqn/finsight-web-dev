@@ -61,7 +61,7 @@ export async function generateStrategy(req: AuthenticatedRequest, res: Response)
     const sentiment = await fetchFearGreedIndex();
     const sentimentValue = sentiment.value ?? 50;
 
-    const EXCLUDABLE_ASSETS = ['gold', 'stocks', 'stocks_us', 'bonds', 'crypto'];
+    const EXCLUDABLE_ASSETS = ['gold', 'stocks', 'bonds', 'crypto'];
     const rawExcluded: string[] = Array.isArray(req.body.excludedAssets) ? req.body.excludedAssets : [];
     const excludedAssets = rawExcluded.filter((a) => EXCLUDABLE_ASSETS.includes(a));
 
@@ -76,7 +76,6 @@ export async function generateStrategy(req: AuthenticatedRequest, res: Response)
         savings: result.savings,
         gold: result.gold,
         stocks: result.stocks,
-        stocks_us: result.stocks_us || 0,
         bonds: result.bonds,
         crypto: result.crypto,
         recommendation: result.recommendation,
@@ -128,14 +127,14 @@ export async function getMyPortfolio(req: AuthenticatedRequest, res: Response) {
 
 export async function upsertPortfolio(req: AuthenticatedRequest, res: Response) {
   try {
-    const { savings, gold, stocks, stocks_us, bonds, crypto, notes, sourceStrategyId } = req.body;
+    const { savings, gold, stocks, bonds, crypto, notes, sourceStrategyId } = req.body;
 
-    const total = (savings || 0) + (gold || 0) + (stocks || 0) + (stocks_us || 0) + (bonds || 0) + (crypto || 0);
+    const total = (savings || 0) + (gold || 0) + (stocks || 0) + (bonds || 0) + (crypto || 0);
     if (Math.abs(total - 100) > 0.5) {
       return error(res, `Tổng phân bổ phải bằng 100% (hiện tại: ${total.toFixed(1)}%)`, 400);
     }
 
-    if ([savings, gold, stocks, stocks_us, bonds, crypto].some((v) => v < 0)) {
+    if ([savings, gold, stocks, bonds, crypto].some((v) => v < 0)) {
       return error(res, 'Phân bổ không được âm', 400);
     }
 
@@ -145,7 +144,6 @@ export async function upsertPortfolio(req: AuthenticatedRequest, res: Response) 
         savings,
         gold,
         stocks,
-        stocks_us: stocks_us || 0,
         bonds,
         crypto,
         notes: notes ?? null,
@@ -157,7 +155,6 @@ export async function upsertPortfolio(req: AuthenticatedRequest, res: Response) 
         savings,
         gold,
         stocks,
-        stocks_us: stocks_us || 0,
         bonds,
         crypto,
         notes: notes ?? null,
@@ -180,16 +177,15 @@ export async function updatePortfolio(req: AuthenticatedRequest, res: Response) 
       return error(res, 'Bạn chưa có danh mục đầu tư. Hãy tạo mới trước.', 404);
     }
 
-    const { savings, gold, stocks, stocks_us, bonds, crypto, notes } = req.body;
+    const { savings, gold, stocks, bonds, crypto, notes } = req.body;
 
     const newSavings = savings ?? existing.savings;
     const newGold = gold ?? existing.gold;
     const newStocks = stocks ?? existing.stocks;
-    const newStocksUs = stocks_us ?? existing.stocks_us;
     const newBonds = bonds ?? existing.bonds;
     const newCrypto = crypto ?? existing.crypto;
 
-    const total = newSavings + newGold + newStocks + newStocksUs + newBonds + newCrypto;
+    const total = newSavings + newGold + newStocks + newBonds + newCrypto;
     if (Math.abs(total - 100) > 0.5) {
       return error(res, `Tổng phân bổ phải bằng 100% (hiện tại: ${total.toFixed(1)}%)`, 400);
     }
@@ -200,7 +196,6 @@ export async function updatePortfolio(req: AuthenticatedRequest, res: Response) 
         savings: newSavings,
         gold: newGold,
         stocks: newStocks,
-        stocks_us: newStocksUs,
         bonds: newBonds,
         crypto: newCrypto,
         notes: notes !== undefined ? notes : existing.notes,
