@@ -14,6 +14,7 @@ export function authenticate(req: AuthenticatedRequest, res: Response, next: Nex
     const decoded = jwt.verify(token, (process.env.JWT_SECRET as string).trim()) as any;
     req.userId = decoded.userId;
     req.userEmail = decoded.email;
+    (req as any).organizationId = decoded.organizationId;
     (req as any).role = decoded.role;
     next();
   } catch (err: any) {
