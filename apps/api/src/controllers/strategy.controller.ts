@@ -1,6 +1,11 @@
 import { Response } from 'express';
 import prisma from '../lib/prisma.js';
 import { invalidateCache } from '../middleware/cache.middleware.js';
+import { getBondsRatesData } from '../services/assetGuide/bonds.service.js';
+import { getCryptoPricesData } from '../services/assetGuide/crypto.service.js';
+import { getGoldPricesData } from '../services/assetGuide/gold.service.js';
+import { getSavingsRatesData } from '../services/assetGuide/savings.service.js';
+import { getStockPricesData } from '../services/assetGuide/stocks.service.js';
 import { fetchFearGreedIndex } from '../services/market.service.js';
 import { getOptimalAllocation } from '../services/portfolioOptimizer.service.js';
 import { AuthenticatedRequest } from '../types/index.js';
@@ -67,6 +72,42 @@ export async function generateStrategy(req: AuthenticatedRequest, res: Response)
 
     const result = await getOptimalAllocation(user.investorProfile, sentimentValue, null, excludedAssets);
 
+    const allocation = {
+      savings: result.savings,
+      gold: result.gold,
+      stocks: result.stocks,
+      bonds: result.bonds,
+      crypto: result.crypto,
+    };
+
+    // Lấy snapshot tài sản song song — fire & forget nếu lỗi
+    let assetSnapshot: Record<string, any> = {};
+    try {
+      const riskLevel = user.investorProfile.riskLevel;
+      const snapshotResults = await Promise.allSettled([
+        allocation.crypto > 0 ? getCryptoPricesData(riskLevel) : null,
+        allocation.gold > 0 ? getGoldPricesData() : null,
+        allocation.stocks > 0 ? getStockPricesData(riskLevel) : null,
+        allocation.savings > 0 ? getSavingsRatesData(riskLevel) : null,
+        allocation.bonds > 0 ? getBondsRatesData(riskLevel) : null,
+      ]);
+      const [cryptoRes, goldRes, stocksRes, savingsRes, bondsRes] = snapshotResults;
+      if (allocation.crypto > 0 && cryptoRes.status === 'fulfilled' && cryptoRes.value)
+        assetSnapshot.crypto = { items: cryptoRes.value.coins?.slice(0, 8) };
+      if (allocation.gold > 0 && goldRes.status === 'fulfilled' && goldRes.value)
+        assetSnapshot.gold = { items: goldRes.value.goldItems?.slice(0, 8), metrics: goldRes.value.metrics };
+      if (allocation.stocks > 0 && stocksRes.status === 'fulfilled' && stocksRes.value)
+        assetSnapshot.stocks = { items: stocksRes.value.stocks?.slice(0, 8) };
+      if (allocation.savings > 0 && savingsRes.status === 'fulfilled' && savingsRes.value)
+        assetSnapshot.savings = { items: savingsRes.value.savingsItems?.slice(0, 8) };
+      if (allocation.bonds > 0 && bondsRes.status === 'fulfilled' && bondsRes.value)
+        assetSnapshot.bonds = { items: bondsRes.value.bondItems?.slice(0, 8) };
+    } catch (snapshotErr: any) {
+      console.warn(
+        `[InvestmentAdvisor] asset-snapshot:failed user=${shortUserId(req.userId)} err=${snapshotErr.message}`,
+      );
+    }
+
     const strategy = await (prisma as any).aIStrategy.create({
       data: {
         userId: req.userId,
@@ -80,6 +121,7 @@ export async function generateStrategy(req: AuthenticatedRequest, res: Response)
         crypto: result.crypto,
         recommendation: result.recommendation,
         marketViews: result.marketViews,
+        assetSnapshot: Object.keys(assetSnapshot).length > 0 ? assetSnapshot : undefined,
       },
     });
 
