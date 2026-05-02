@@ -23,24 +23,15 @@ export default function GenerateStrategyPopup({
 }: GenerateStrategyPopupProps) {
   const [excludedAssets, setExcludedAssets] = useState<string[]>(() => {
     try {
-<<<<<<< HEAD
       const saved = JSON.parse(localStorage.getItem("finsight_excluded_assets") || "[]");
       return saved.filter((a: string) => VALID_ASSETS.includes(a));
-=======
-      return JSON.parse(localStorage.getItem('finsight_excluded_assets') || '[]');
->>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
     } catch {
       return [];
     }
   });
 
   const handleGenerate = () => {
-<<<<<<< HEAD
     localStorage.setItem("finsight_excluded_assets", JSON.stringify(excludedAssets));
-=======
-    // Persist selection before generating
-    localStorage.setItem('finsight_excluded_assets', JSON.stringify(excludedAssets));
->>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
     onGenerate(excludedAssets);
   };
 
