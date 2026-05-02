@@ -1,20 +1,18 @@
+import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { createReactAgent } from '@langchain/langgraph/prebuilt';
+import { checkIsOffTopicGuard, MAX_LENGTH_REPLY, OFF_TOPIC_REPLY } from './guard';
 import { getChatModel } from './llm-provider';
-import { getToolsByIntent, createBoundTools } from './tools/index';
+import { getCompactHistory, getOrCreateSession, saveMessage, updateSessionTitle } from './memory';
+import { DISCLAIMER_TEXT, FINSIGHT_PERSONA, TOOL_LABELS } from './prompts';
 import { routeIntent } from './router';
-import { checkIsOffTopicGuard, OFF_TOPIC_REPLY, MAX_LENGTH_REPLY } from './guard';
-import { getOrCreateSession, getCompactHistory, saveMessage, updateSessionTitle } from './memory';
-import { FINSIGHT_PERSONA, DISCLAIMER_TEXT, TOOL_LABELS } from './prompts';
-import { SystemMessage, HumanMessage } from '@langchain/core/messages';
-import { createReactAgent } from "@langchain/langgraph/prebuilt";
+import { createBoundTools, getToolsByIntent } from './tools/index';
 
 const AGENT_TIMEOUT_MS = 30_000;
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
     promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error('AGENT_TIMEOUT')), ms)
-    ),
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('AGENT_TIMEOUT')), ms)),
   ]);
 }
 
@@ -33,7 +31,7 @@ export const runAgenticChat = async (
   sessionId: string | null,
   onTokenStream: (token: string) => void,
   onToolStatus: (status: string | null) => void,
-  isAborted: (() => boolean) | null = null
+  isAborted: (() => boolean) | null = null,
 ) => {
   const startTime = Date.now();
   const elapsed = () => `${Date.now() - startTime}ms`;
@@ -87,8 +85,8 @@ export const runAgenticChat = async (
     messages: [sysMsg, ...compactHistory, new HumanMessage(query)],
   };
 
-  let fullResponse = "";
-  let actionTypeResponse = "text_response";
+  let fullResponse = '';
+  let actionTypeResponse = 'text_response';
   let triggerPayload: any = null;
   let iterationCount = 0;
   let tokenCount = 0;
@@ -98,7 +96,7 @@ export const runAgenticChat = async (
     if (onToolStatus) onToolStatus('🤔 Đang suy nghĩ...');
 
     const streamPromise = (async () => {
-      const stream = await agent.streamEvents(inputs, { version: "v2" });
+      const stream = await agent.streamEvents(inputs, { version: 'v2' });
 
       for await (const event of stream) {
         if (isAborted && isAborted()) {
@@ -106,7 +104,7 @@ export const runAgenticChat = async (
           break;
         }
 
-        if (event.event === "on_chat_model_stream") {
+        if (event.event === 'on_chat_model_stream') {
           if (event.data.chunk.content) {
             tokenCount++;
             fullResponse += event.data.chunk.content;
@@ -117,7 +115,7 @@ export const runAgenticChat = async (
           }
         }
 
-        if (event.event === "on_tool_start") {
+        if (event.event === 'on_tool_start') {
           iterationCount++;
           if (iterationCount > MAX_ITERATIONS) {
             throw new Error('MAX_ITERATIONS_EXCEEDED');
@@ -127,14 +125,15 @@ export const runAgenticChat = async (
           if (onToolStatus) onToolStatus(label);
         }
 
-        if (event.event === "on_tool_end" && event.name === "parse_debt_from_text") {
+        if (event.event === 'on_tool_end' && event.name === 'parse_debt_from_text') {
           try {
-            const raw = typeof event.data.output === 'string'
-              ? event.data.output
-              : (event.data.output?.content || JSON.stringify(event.data.output));
+            const raw =
+              typeof event.data.output === 'string'
+                ? event.data.output
+                : event.data.output?.content || JSON.stringify(event.data.output);
             const parsed = JSON.parse(raw);
-            if (parsed.action === "FORM_POPULATION_REQUIRED") {
-              actionTypeResponse = "form_population";
+            if (parsed.action === 'FORM_POPULATION_REQUIRED') {
+              actionTypeResponse = 'form_population';
               triggerPayload = parsed;
             }
           } catch (e: any) {
@@ -145,18 +144,17 @@ export const runAgenticChat = async (
     })();
 
     await withTimeout(streamPromise, AGENT_TIMEOUT_MS);
-
   } catch (err: any) {
     if (onToolStatus) onToolStatus(null);
     let errorMsg;
     if (err.message === 'AGENT_TIMEOUT') {
-      errorMsg = "⏰ Xin lỗi, hệ thống mất quá nhiều thời gian để xử lý. Vui lòng thử lại với câu hỏi ngắn gọn hơn.";
+      errorMsg = '⏰ Xin lỗi, hệ thống mất quá nhiều thời gian để xử lý. Vui lòng thử lại với câu hỏi ngắn gọn hơn.';
     } else if (err.message === 'MAX_ITERATIONS_EXCEEDED') {
-      errorMsg = "⚠️ Câu hỏi này cần xử lý quá nhiều bước. Vui lòng chia nhỏ câu hỏi để tôi hỗ trợ tốt hơn.";
-    } else if (err.message?.includes("429") || err.message?.includes("rate")) {
-      errorMsg = "🔄 Hệ thống AI đang quá tải, vui lòng thử lại sau 30 giây.";
+      errorMsg = '⚠️ Câu hỏi này cần xử lý quá nhiều bước. Vui lòng chia nhỏ câu hỏi để tôi hỗ trợ tốt hơn.';
+    } else if (err.message?.includes('429') || err.message?.includes('rate')) {
+      errorMsg = '🔄 Hệ thống AI đang quá tải, vui lòng thử lại sau 30 giây.';
     } else {
-      errorMsg = "❌ Hệ thống tư vấn đang gặp sự cố, vui lòng thử lại sau.";
+      errorMsg = '❌ Hệ thống tư vấn đang gặp sự cố, vui lòng thử lại sau.';
     }
 
     if (fullResponse.length > 0) {
@@ -169,15 +167,17 @@ export const runAgenticChat = async (
   }
 
   if (!fullResponse || fullResponse.trim().length === 0) {
-    fullResponse = "Xin lỗi, tôi chưa thể xử lý yêu cầu này. Vui lòng thử lại hoặc diễn đạt khác.";
+    fullResponse = 'Xin lỗi, tôi chưa thể xử lý yêu cầu này. Vui lòng thử lại hoặc diễn đạt khác.';
     if (onTokenStream) onTokenStream(fullResponse);
   }
 
   if (intent === 'DATA_ENTRY' && iterationCount === 0 && actionTypeResponse === 'text_response') {
-    const isCannedCopy = (fullResponse.includes('trích xuất thông tin khoản nợ') && fullResponse.includes('Xác nhận'))
-      || fullResponse.includes('Để tôi hỗ trợ khai báo khoản nợ, vui lòng cung cấp');
+    const isCannedCopy =
+      (fullResponse.includes('trích xuất thông tin khoản nợ') && fullResponse.includes('Xác nhận')) ||
+      fullResponse.includes('Để tôi hỗ trợ khai báo khoản nợ, vui lòng cung cấp');
     if (isCannedCopy) {
-      fullResponse = "Xin lỗi, tôi gặp sự cố khi xử lý khoản nợ này. Vui lòng thử lại bằng cách gửi lại thông tin khoản vay của bạn.";
+      fullResponse =
+        'Xin lỗi, tôi gặp sự cố khi xử lý khoản nợ này. Vui lòng thử lại bằng cách gửi lại thông tin khoản vay của bạn.';
       if (onTokenStream) onTokenStream(fullResponse);
     }
   }
@@ -197,6 +197,6 @@ export const runAgenticChat = async (
     response: fullResponse,
     sessionId: session.id,
     actionType: actionTypeResponse,
-    triggerPayload
+    triggerPayload,
   };
 };

@@ -1,10 +1,15 @@
 import { Response } from 'express';
 import prisma from '../lib/prisma.js';
-import { success, error } from '../utils/apiResponse.js';
-import { getOptimalAllocation } from '../services/portfolioOptimizer.service.js';
-import { fetchFearGreedIndex } from '../services/market.service.js';
 import { invalidateCache } from '../middleware/cache.middleware.js';
+import { getBondsRatesData } from '../services/assetGuide/bonds.service.js';
+import { getCryptoPricesData } from '../services/assetGuide/crypto.service.js';
+import { getGoldPricesData } from '../services/assetGuide/gold.service.js';
+import { getSavingsRatesData } from '../services/assetGuide/savings.service.js';
+import { getStockPricesData } from '../services/assetGuide/stocks.service.js';
+import { fetchFearGreedIndex } from '../services/market.service.js';
+import { getOptimalAllocation } from '../services/portfolioOptimizer.service.js';
 import { AuthenticatedRequest } from '../types/index.js';
+import { error, success } from '../utils/apiResponse.js';
 async function warmHistoricalDataCache(profile: any, userId: string) {
   try {
     // Pre-run optimizer in background to warm Redis hist:* keys from Yahoo Finance.
@@ -55,32 +60,68 @@ export async function generateStrategy(req: AuthenticatedRequest, res: Response)
     }
 
     console.info(
-      `[InvestmentAdvisor] strategy-generate:start user=${shortUserId(req.userId)} risk=${user.investorProfile.riskLevel} quotaBefore=${user.strategyQuota}`
+      `[InvestmentAdvisor] strategy-generate:start user=${shortUserId(req.userId)} risk=${user.investorProfile.riskLevel} quotaBefore=${user.strategyQuota}`,
     );
 
     const sentiment = await fetchFearGreedIndex();
     const sentimentValue = sentiment.value ?? 50;
 
-    const EXCLUDABLE_ASSETS = ['gold', 'stocks', 'stocks_us', 'bonds', 'crypto'];
+    const EXCLUDABLE_ASSETS = ['gold', 'stocks', 'bonds', 'crypto'];
     const rawExcluded: string[] = Array.isArray(req.body.excludedAssets) ? req.body.excludedAssets : [];
-    const excludedAssets = rawExcluded.filter(a => EXCLUDABLE_ASSETS.includes(a));
+    const excludedAssets = rawExcluded.filter((a) => EXCLUDABLE_ASSETS.includes(a));
 
     const result = await getOptimalAllocation(user.investorProfile, sentimentValue, null, excludedAssets);
 
+    const allocation = {
+      savings: result.savings,
+      gold: result.gold,
+      stocks: result.stocks,
+      bonds: result.bonds,
+      crypto: result.crypto,
+    };
+
+    // Lấy snapshot tài sản song song — fire & forget nếu lỗi
+    let assetSnapshot: Record<string, any> = {};
+    try {
+      const riskLevel = user.investorProfile.riskLevel;
+      const snapshotResults = await Promise.allSettled([
+        allocation.crypto > 0 ? getCryptoPricesData(riskLevel) : null,
+        allocation.gold > 0 ? getGoldPricesData() : null,
+        allocation.stocks > 0 ? getStockPricesData(riskLevel) : null,
+        allocation.savings > 0 ? getSavingsRatesData(riskLevel) : null,
+        allocation.bonds > 0 ? getBondsRatesData(riskLevel) : null,
+      ]);
+      const [cryptoRes, goldRes, stocksRes, savingsRes, bondsRes] = snapshotResults;
+      if (allocation.crypto > 0 && cryptoRes.status === 'fulfilled' && cryptoRes.value)
+        assetSnapshot.crypto = { items: cryptoRes.value.coins?.slice(0, 8) };
+      if (allocation.gold > 0 && goldRes.status === 'fulfilled' && goldRes.value)
+        assetSnapshot.gold = { items: goldRes.value.goldItems?.slice(0, 8), metrics: goldRes.value.metrics };
+      if (allocation.stocks > 0 && stocksRes.status === 'fulfilled' && stocksRes.value)
+        assetSnapshot.stocks = { items: stocksRes.value.stocks?.slice(0, 8) };
+      if (allocation.savings > 0 && savingsRes.status === 'fulfilled' && savingsRes.value)
+        assetSnapshot.savings = { items: savingsRes.value.savingsItems?.slice(0, 8) };
+      if (allocation.bonds > 0 && bondsRes.status === 'fulfilled' && bondsRes.value)
+        assetSnapshot.bonds = { items: bondsRes.value.bondItems?.slice(0, 8) };
+    } catch (snapshotErr: any) {
+      console.warn(
+        `[InvestmentAdvisor] asset-snapshot:failed user=${shortUserId(req.userId)} err=${snapshotErr.message}`,
+      );
+    }
+
     const strategy = await (prisma as any).aIStrategy.create({
       data: {
-        userId:        req.userId,
+        userId: req.userId,
         sentimentValue,
         sentimentLabel: result.sentimentLabel,
-        riskLevel:     user.investorProfile.riskLevel,
-        savings:       result.savings,
-        gold:          result.gold,
-        stocks:        result.stocks,
-        stocks_us:     result.stocks_us || 0,
-        bonds:         result.bonds,
-        crypto:        result.crypto,
+        riskLevel: user.investorProfile.riskLevel,
+        savings: result.savings,
+        gold: result.gold,
+        stocks: result.stocks,
+        bonds: result.bonds,
+        crypto: result.crypto,
         recommendation: result.recommendation,
-        marketViews:   result.marketViews,
+        marketViews: result.marketViews,
+        assetSnapshot: Object.keys(assetSnapshot).length > 0 ? assetSnapshot : undefined,
       },
     });
 
@@ -91,7 +132,7 @@ export async function generateStrategy(req: AuthenticatedRequest, res: Response)
     });
 
     console.info(
-      `[InvestmentAdvisor] strategy-generate:complete user=${shortUserId(req.userId)} strategy=${strategy.id} sentiment=${sentimentValue} dataQuality=${result.optimization?.marketDataQuality || 'unknown'} quotaAfter=${updatedUser.strategyQuota} durationMs=${Date.now() - startedAt}`
+      `[InvestmentAdvisor] strategy-generate:complete user=${shortUserId(req.userId)} strategy=${strategy.id} sentiment=${sentimentValue} dataQuality=${result.optimization?.marketDataQuality || 'unknown'} quotaAfter=${updatedUser.strategyQuota} durationMs=${Date.now() - startedAt}`,
     );
 
     invalidateCache([`investment:allocation:${req.userId}:*`]);
@@ -99,10 +140,14 @@ export async function generateStrategy(req: AuthenticatedRequest, res: Response)
     // Fire-and-forget: pre-warm hist:* Redis keys so next GET /allocation is fast
     warmHistoricalDataCache(user.investorProfile, req.userId!);
 
-    return success(res, {
-      strategy,
-      remainingQuota: updatedUser.strategyQuota,
-    }, 201);
+    return success(
+      res,
+      {
+        strategy,
+        remainingQuota: updatedUser.strategyQuota,
+      },
+      201,
+    );
   } catch (err) {
     console.error('generateStrategy error:', err);
     return error(res, 'Internal server error');
@@ -124,14 +169,14 @@ export async function getMyPortfolio(req: AuthenticatedRequest, res: Response) {
 
 export async function upsertPortfolio(req: AuthenticatedRequest, res: Response) {
   try {
-    const { savings, gold, stocks, stocks_us, bonds, crypto, notes, sourceStrategyId } = req.body;
+    const { savings, gold, stocks, bonds, crypto, notes, sourceStrategyId } = req.body;
 
-    const total = (savings || 0) + (gold || 0) + (stocks || 0) + (stocks_us || 0) + (bonds || 0) + (crypto || 0);
+    const total = (savings || 0) + (gold || 0) + (stocks || 0) + (bonds || 0) + (crypto || 0);
     if (Math.abs(total - 100) > 0.5) {
       return error(res, `Tổng phân bổ phải bằng 100% (hiện tại: ${total.toFixed(1)}%)`, 400);
     }
 
-    if ([savings, gold, stocks, stocks_us, bonds, crypto].some(v => v < 0)) {
+    if ([savings, gold, stocks, bonds, crypto].some((v) => v < 0)) {
       return error(res, 'Phân bổ không được âm', 400);
     }
 
@@ -141,22 +186,20 @@ export async function upsertPortfolio(req: AuthenticatedRequest, res: Response) 
         savings,
         gold,
         stocks,
-        stocks_us: stocks_us || 0,
         bonds,
         crypto,
-        notes:            notes ?? null,
+        notes: notes ?? null,
         sourceStrategyId: sourceStrategyId ?? null,
-        updatedAt:        new Date(),
+        updatedAt: new Date(),
       },
       create: {
-        userId:           req.userId,
+        userId: req.userId,
         savings,
         gold,
         stocks,
-        stocks_us: stocks_us || 0,
         bonds,
         crypto,
-        notes:            notes ?? null,
+        notes: notes ?? null,
         sourceStrategyId: sourceStrategyId ?? null,
       },
       include: { sourceStrategy: true },
@@ -176,16 +219,15 @@ export async function updatePortfolio(req: AuthenticatedRequest, res: Response) 
       return error(res, 'Bạn chưa có danh mục đầu tư. Hãy tạo mới trước.', 404);
     }
 
-    const { savings, gold, stocks, stocks_us, bonds, crypto, notes } = req.body;
+    const { savings, gold, stocks, bonds, crypto, notes } = req.body;
 
-    const newSavings  = savings   ?? existing.savings;
-    const newGold     = gold      ?? existing.gold;
-    const newStocks   = stocks    ?? existing.stocks;
-    const newStocksUs = stocks_us ?? existing.stocks_us;
-    const newBonds    = bonds     ?? existing.bonds;
-    const newCrypto   = crypto    ?? existing.crypto;
+    const newSavings = savings ?? existing.savings;
+    const newGold = gold ?? existing.gold;
+    const newStocks = stocks ?? existing.stocks;
+    const newBonds = bonds ?? existing.bonds;
+    const newCrypto = crypto ?? existing.crypto;
 
-    const total = newSavings + newGold + newStocks + newStocksUs + newBonds + newCrypto;
+    const total = newSavings + newGold + newStocks + newBonds + newCrypto;
     if (Math.abs(total - 100) > 0.5) {
       return error(res, `Tổng phân bổ phải bằng 100% (hiện tại: ${total.toFixed(1)}%)`, 400);
     }
@@ -194,12 +236,11 @@ export async function updatePortfolio(req: AuthenticatedRequest, res: Response) 
       where: { userId: req.userId },
       data: {
         savings: newSavings,
-        gold:    newGold,
-        stocks:  newStocks,
-        stocks_us: newStocksUs,
-        bonds:   newBonds,
-        crypto:  newCrypto,
-        notes:   notes !== undefined ? notes : existing.notes,
+        gold: newGold,
+        stocks: newStocks,
+        bonds: newBonds,
+        crypto: newCrypto,
+        notes: notes !== undefined ? notes : existing.notes,
       },
       include: { sourceStrategy: true },
     });

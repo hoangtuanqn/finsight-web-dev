@@ -1,9 +1,18 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Users, MousePointerClick, Gift, Copy, CheckCircle2,
-  Clock, Share2, Sparkles, Target, TrendingUp, Banknote,
+  Banknote,
+  CheckCircle2,
+  Clock,
+  Copy,
+  Gift,
+  MousePointerClick,
+  Share2,
+  Sparkles,
+  Target,
+  TrendingUp,
+  Users,
 } from 'lucide-react';
+import { useState } from 'react';
 import { useAffiliateQuery } from '../../hooks/useAffiliateQuery';
 import CommissionTab from './components/CommissionTab';
 import WithdrawalTab from './components/WithdrawalTab';
@@ -35,10 +44,7 @@ const SUMMARY_CARDS = (stats: any) => [
   },
   {
     label: 'Tỷ lệ chuyển đổi',
-    value:
-      stats?.clicks > 0
-        ? ((stats.totalReferrals / stats.clicks) * 100).toFixed(1) + '%'
-        : '0%',
+    value: stats?.clicks > 0 ? ((stats.totalReferrals / stats.clicks) * 100).toFixed(1) + '%' : '0%',
     icon: Target,
     color: '#f59e0b',
     gradient: 'from-amber-500 to-orange-400',
@@ -47,12 +53,12 @@ const SUMMARY_CARDS = (stats: any) => [
 ];
 
 const TABS = [
-  { id: 'overview',    label: 'Tổng quan',   icon: Share2,     color: '#3b82f6' },
-  { id: 'commissions', label: 'Hoa hồng',    icon: TrendingUp, color: '#10b981' },
-  { id: 'withdrawal',  label: 'Rút tiền',    icon: Banknote,   color: '#f59e0b' },
+  { id: 'overview', label: 'Tổng quan', icon: Share2, color: '#3b82f6' },
+  { id: 'commissions', label: 'Hoa hồng', icon: TrendingUp, color: '#10b981' },
+  { id: 'withdrawal', label: 'Rút tiền', icon: Banknote, color: '#f59e0b' },
 ] as const;
 
-type TabId = typeof TABS[number]['id'];
+type TabId = (typeof TABS)[number]['id'];
 
 export default function AffiliatePage() {
   const { data, isLoading } = useAffiliateQuery();
@@ -78,7 +84,6 @@ export default function AffiliatePage() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-8 space-y-8">
-
       <div className="pt-2">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-blue-500/20 bg-blue-500/10 text-blue-400 text-xs font-bold uppercase tracking-widest mb-4">
           <Sparkles size={14} /> Hệ thống Affiliate
@@ -87,7 +92,11 @@ export default function AffiliatePage() {
           Giới thiệu bạn bè
         </h1>
         <p className="text-[var(--color-text-secondary)] text-base mt-2">
-          Nhận <strong className="text-emerald-500">{parseFloat(import.meta.env.VITE_COMMISSION_RATE || '10')}% hoa hồng vĩnh viễn</strong> mỗi lần người được giới thiệu nâng cấp gói.
+          Nhận{' '}
+          <strong className="text-emerald-500">
+            {parseFloat(import.meta.env.VITE_COMMISSION_RATE || '10')}% hoa hồng vĩnh viễn
+          </strong>{' '}
+          mỗi lần người được giới thiệu nâng cấp gói.
         </p>
       </div>
 
@@ -99,15 +108,27 @@ export default function AffiliatePage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.07 }}
             className="relative rounded-3xl p-6 border overflow-hidden hover:shadow-xl transition-all duration-300"
-            style={{ background: 'var(--color-bg-card)', borderColor: `${item.color}25`, boxShadow: `0 4px 24px ${item.color}08` }}
+            style={{
+              background: 'var(--color-bg-card)',
+              borderColor: `${item.color}25`,
+              boxShadow: `0 4px 24px ${item.color}08`,
+            }}
           >
-            <div className="absolute top-0 left-6 right-6 h-px" style={{ background: `linear-gradient(90deg,transparent,${item.color}60,transparent)` }} />
-            <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full blur-3xl opacity-20" style={{ background: item.color }} />
+            <div
+              className="absolute top-0 left-6 right-6 h-px"
+              style={{ background: `linear-gradient(90deg,transparent,${item.color}60,transparent)` }}
+            />
+            <div
+              className="absolute -top-8 -right-8 w-24 h-24 rounded-full blur-3xl opacity-20"
+              style={{ background: item.color }}
+            />
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider">{item.label}</p>
               <item.icon size={16} style={{ color: item.color }} />
             </div>
-            <p className={`text-2xl md:text-3xl font-black bg-gradient-to-r ${item.gradient} bg-clip-text text-transparent leading-tight`}>
+            <p
+              className={`text-2xl md:text-3xl font-black bg-gradient-to-r ${item.gradient} bg-clip-text text-transparent leading-tight`}
+            >
               {item.value}
             </p>
             <p className="text-[10px] mt-2 font-semibold text-[var(--color-text-muted)] italic">{item.desc}</p>
@@ -153,7 +174,9 @@ export default function AffiliatePage() {
             <div className="bg-[var(--color-bg-card)] p-7 rounded-[32px] border border-[var(--color-border)] shadow-sm relative overflow-hidden">
               <div className="absolute top-0 left-0 w-1 h-full bg-blue-500" />
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 bg-blue-500/10 rounded-xl"><Share2 className="w-5 h-5 text-blue-500" /></div>
+                <div className="p-2 bg-blue-500/10 rounded-xl">
+                  <Share2 className="w-5 h-5 text-blue-500" />
+                </div>
                 <h2 className="text-lg font-black text-[var(--color-text-primary)]">Link giới thiệu cá nhân</h2>
               </div>
               <div className="flex flex-col md:flex-row gap-4">
@@ -170,11 +193,14 @@ export default function AffiliatePage() {
               </div>
 
               <div className="mt-6 p-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/15 flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0"><TrendingUp size={20} /></div>
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
+                  <TrendingUp size={20} />
+                </div>
                 <div>
                   <p className="font-black text-sm text-[var(--color-text-primary)]">Hoa hồng vĩnh viễn 10%</p>
                   <p className="text-xs text-[var(--color-text-muted)] mt-1 font-medium leading-relaxed">
-                    Mỗi khi người bạn giới thiệu nâng cấp hoặc gia hạn gói PRO / Pro Max, bạn sẽ nhận ngay 10% giá trị giao dịch. Không giới hạn số lần, vĩnh viễn.
+                    Mỗi khi người bạn giới thiệu nâng cấp hoặc gia hạn gói PRO / Pro Max, bạn sẽ nhận ngay 10% giá trị
+                    giao dịch. Không giới hạn số lần, vĩnh viễn.
                   </p>
                 </div>
               </div>
@@ -191,9 +217,15 @@ export default function AffiliatePage() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-[var(--color-bg-secondary)]/50 border-b border-[var(--color-border)]">
-                      <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest">Người dùng</th>
-                      <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest text-center">Hoạt động</th>
-                      <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest text-right">Trạng thái</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest">
+                        Người dùng
+                      </th>
+                      <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest text-center">
+                        Hoạt động
+                      </th>
+                      <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest text-right">
+                        Trạng thái
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--color-border)]">
@@ -201,7 +233,9 @@ export default function AffiliatePage() {
                       <tr>
                         <td colSpan={3} className="px-6 py-16 text-center">
                           <Users className="w-10 h-10 text-[var(--color-text-muted)] opacity-20 mx-auto mb-3" />
-                          <p className="text-[var(--color-text-muted)] font-bold text-sm italic">Bạn chưa mời ai tham gia.</p>
+                          <p className="text-[var(--color-text-muted)] font-bold text-sm italic">
+                            Bạn chưa mời ai tham gia.
+                          </p>
                         </td>
                       </tr>
                     ) : (
@@ -214,7 +248,9 @@ export default function AffiliatePage() {
                               </div>
                               <div>
                                 <span className="font-black text-sm text-[var(--color-text-primary)]">{ref.name}</span>
-                                <p className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase tracking-wider">{ref.email}</p>
+                                <p className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase tracking-wider">
+                                  {ref.email}
+                                </p>
                               </div>
                             </div>
                           </td>
@@ -222,7 +258,9 @@ export default function AffiliatePage() {
                             <div className="flex flex-col items-center gap-1.5 min-w-[130px] mx-auto">
                               <div className="flex justify-between w-full text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-wider">
                                 <span>Tích lũy</span>
-                                <span className={ref.activeDays >= 3 ? 'text-emerald-500' : 'text-blue-500'}>{ref.activeDays}/3 ngày</span>
+                                <span className={ref.activeDays >= 3 ? 'text-emerald-500' : 'text-blue-500'}>
+                                  {ref.activeDays}/3 ngày
+                                </span>
                               </div>
                               <div className="w-full h-1.5 bg-[var(--color-bg-secondary)] rounded-full overflow-hidden">
                                 <div
@@ -238,7 +276,9 @@ export default function AffiliatePage() {
                                 <Gift className="w-3.5 h-3.5" /> Đã nhận quà
                               </span>
                             ) : (
-                              <span className="text-[10px] font-bold text-[var(--color-text-muted)] italic">Chờ đủ điều kiện</span>
+                              <span className="text-[10px] font-bold text-[var(--color-text-muted)] italic">
+                                Chờ đủ điều kiện
+                              </span>
                             )}
                           </td>
                         </tr>
@@ -261,9 +301,14 @@ export default function AffiliatePage() {
                   { plan: 'PRO', price: '49.000đ', commission: '4.900đ', color: '#3b82f6' },
                   { plan: 'Pro Max', price: '99.000đ', commission: '9.900đ', color: '#f59e0b' },
                 ].map((item) => (
-                  <div key={item.plan} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10">
+                  <div
+                    key={item.plan}
+                    className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/10"
+                  >
                     <div>
-                      <p className="text-sm font-black" style={{ color: item.color }}>{item.plan}</p>
+                      <p className="text-sm font-black" style={{ color: item.color }}>
+                        {item.plan}
+                      </p>
                       <p className="text-[11px] text-slate-400">{item.price} / tháng</p>
                     </div>
                     <div className="text-right">
@@ -274,19 +319,25 @@ export default function AffiliatePage() {
                 ))}
               </div>
               <p className="text-[11px] text-slate-400 mt-4 leading-relaxed font-medium">
-                Hoa hồng được cộng <strong className="text-white">vĩnh viễn</strong> sau mỗi lần người được giới thiệu thanh toán, kể cả khi gia hạn.
+                Hoa hồng được cộng <strong className="text-white">vĩnh viễn</strong> sau mỗi lần người được giới thiệu
+                thanh toán, kể cả khi gia hạn.
               </p>
             </div>
 
             <div className="bg-[var(--color-bg-card)] p-6 rounded-[24px] border border-[var(--color-border)]">
-              <h3 className="font-black text-sm text-[var(--color-text-primary)] mb-4">Điều kiện nhận thưởng (lượt AI)</h3>
+              <h3 className="font-black text-sm text-[var(--color-text-primary)] mb-4">
+                Điều kiện nhận thưởng (lượt AI)
+              </h3>
               <ul className="space-y-2.5">
                 {[
                   'Người được mời dùng link của bạn',
                   'Hoạt động ít nhất 3 ngày khác nhau',
                   'Hệ thống tự động quét mỗi 5 phút',
                 ].map((text, i) => (
-                  <li key={i} className="flex items-start gap-2.5 text-sm text-[var(--color-text-secondary)] font-medium">
+                  <li
+                    key={i}
+                    className="flex items-start gap-2.5 text-sm text-[var(--color-text-secondary)] font-medium"
+                  >
                     <CheckCircle2 size={15} className="text-emerald-500 shrink-0 mt-0.5" />
                     {text}
                   </li>

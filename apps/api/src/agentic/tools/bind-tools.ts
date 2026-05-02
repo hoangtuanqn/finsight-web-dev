@@ -1,7 +1,7 @@
-import { tool } from "@langchain/core/tools";
+import { tool } from '@langchain/core/tools';
 
 export function createBoundTools(tools: any[], userId: string) {
-  return tools.map(t => {
+  return tools.map((t) => {
     const hasUserIdField = t.schema?.shape?.userId;
 
     if (hasUserIdField) {
@@ -13,7 +13,7 @@ export function createBoundTools(tools: any[], userId: string) {
           name: t.name,
           description: t.description,
           schema: t.schema,
-        }
+        },
       );
     }
 

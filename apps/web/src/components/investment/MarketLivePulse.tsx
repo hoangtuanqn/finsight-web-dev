@@ -1,37 +1,30 @@
-import React from "react";
-import { BarChart2, TrendingUp, TrendingDown, Zap } from "lucide-react";
+import { BarChart2, TrendingDown, TrendingUp, Zap } from 'lucide-react';
 
 export default function MarketLivePulse({ prices = {} }) {
   const items = [
     {
-      label: "Bitcoin",
-      value: prices.bitcoin?.price
-        ? `$${prices.bitcoin.price.toLocaleString()}`
-        : "-",
+      label: 'Bitcoin',
+      value: prices.bitcoin?.price ? `$${prices.bitcoin.price.toLocaleString()}` : '-',
       change: prices.bitcoin?.change24h,
       icon: Zap,
-      color: "text-amber-500",
-      bg: "bg-amber-500/10",
+      color: 'text-amber-500',
+      bg: 'bg-amber-500/10',
     },
     {
-      label: "Ethereum",
-      value: prices.ethereum?.price
-        ? `$${prices.ethereum.price.toLocaleString()}`
-        : "-",
+      label: 'Ethereum',
+      value: prices.ethereum?.price ? `$${prices.ethereum.price.toLocaleString()}` : '-',
       change: prices.ethereum?.change24h,
       icon: Zap,
-      color: "text-blue-400",
-      bg: "bg-blue-400/10",
+      color: 'text-blue-400',
+      bg: 'bg-blue-400/10',
     },
     {
-      label: "Vàng SJC",
-      value: prices.gold?.sell
-        ? `${prices.gold.sell.toLocaleString("vi-VN")} đ`
-        : "-",
-      extra: prices.gold?.unit || "",
+      label: 'Vàng SJC',
+      value: prices.gold?.sell ? `${prices.gold.sell.toLocaleString('vi-VN')} đ` : '-',
+      extra: prices.gold?.unit || '',
       icon: BarChart2,
-      color: "text-emerald-500",
-      bg: "bg-emerald-500/10",
+      color: 'text-emerald-500',
+      bg: 'bg-emerald-500/10',
     },
   ];
 
@@ -50,9 +43,7 @@ export default function MarketLivePulse({ prices = {} }) {
         </h3>
         <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wide">
-            Live
-          </span>
+          <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wide">Live</span>
         </div>
       </div>
 
@@ -66,28 +57,16 @@ export default function MarketLivePulse({ prices = {} }) {
               <item.icon size={20} className={item.color} />
             </div>
             <div>
-              <p className="text-xs font-medium text-slate-400 mb-1">
-                {item.label}
-              </p>
+              <p className="text-xs font-medium text-slate-400 mb-1">{item.label}</p>
               <div className="flex items-baseline gap-2">
-                <span className="text-xl font-bold text-white tracking-tight">
-                  {item.value}
-                </span>
-                {item.extra && (
-                  <span className="text-[10px] font-medium text-slate-500">
-                    {item.extra}
-                  </span>
-                )}
+                <span className="text-xl font-bold text-white tracking-tight">{item.value}</span>
+                {item.extra && <span className="text-[10px] font-medium text-slate-500">{item.extra}</span>}
               </div>
               {item.change !== undefined && (
                 <div
-                  className={`flex items-center gap-1 mt-0.5 text-xs font-semibold ${item.change >= 0 ? "text-emerald-400" : "text-red-400"}`}
+                  className={`flex items-center gap-1 mt-0.5 text-xs font-semibold ${item.change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}
                 >
-                  {item.change >= 0 ? (
-                    <TrendingUp size={12} />
-                  ) : (
-                    <TrendingDown size={12} />
-                  )}
+                  {item.change >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
                   {Math.abs(item.change).toFixed(2)}%
                 </div>
               )}

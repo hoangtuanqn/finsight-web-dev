@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { FileText, ExternalLink, Clock, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, ExternalLink, FileText, TrendingUp } from 'lucide-react';
+import { useState } from 'react';
 
 const PAGE_SIZE = 8;
 
@@ -14,9 +14,9 @@ function timeAgo(dateStr: string): string {
 }
 
 const SOURCE_COLORS: Record<string, string> = {
-  'VnExpress': 'bg-blue-500/10 border-blue-500/20 text-blue-400',
-  'CafeF':     'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
-  'VnEconomy': 'bg-amber-500/10 border-amber-500/20 text-amber-400',
+  VnExpress: 'bg-blue-500/10 border-blue-500/20 text-blue-400',
+  CafeF: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
+  VnEconomy: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
 };
 
 export default function EconomicNewsFeed({ news = [] }: { news: any[] }) {
@@ -59,7 +59,9 @@ export default function EconomicNewsFeed({ news = [] }: { news: any[] }) {
             >
               {/* Source + time */}
               <div className="flex items-center justify-between gap-2 mb-3">
-                <span className={`text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 border rounded-full ${sourceStyle}`}>
+                <span
+                  className={`text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 border rounded-full ${sourceStyle}`}
+                >
                   {article.source}
                 </span>
                 <div className="flex items-center gap-1 text-[11px] font-medium text-slate-500">
@@ -94,7 +96,7 @@ export default function EconomicNewsFeed({ news = [] }: { news: any[] }) {
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-6 pt-5 border-t border-white/5 relative z-10">
           <button
-            onClick={() => setPage(p => Math.max(0, p - 1))}
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={page === 0}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-semibold text-slate-400 bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
           >
@@ -119,7 +121,7 @@ export default function EconomicNewsFeed({ news = [] }: { news: any[] }) {
           </div>
 
           <button
-            onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
             disabled={page === totalPages - 1}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-semibold text-slate-400 bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
           >

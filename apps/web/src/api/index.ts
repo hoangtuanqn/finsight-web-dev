@@ -11,7 +11,7 @@ const api = axios.create({
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = localStorage.getItem('finsight_token');
   const trustToken = localStorage.getItem('finsight_trust_token');
-  
+
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -23,38 +23,50 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // AUTH
 export const authAPI = {
-  register: (data: any) => api.post('/auth/register', data),
-  login: (data: any) => api.post('/auth/login', data),
-  googleLogin: (data: any) => api.post('/auth/google', data),
+  register: (data: Record<string, unknown>) => api.post('/auth/register', data),
+  login: (data: Record<string, unknown>) => api.post('/auth/login', data),
+  googleLogin: (data: Record<string, unknown>) => api.post('/auth/google', data),
   getGoogleConfig: () => api.get('/auth/google-config'),
-  facebookLogin: (data: any) => api.post('/auth/facebook', data),
+  facebookLogin: (data: Record<string, unknown>) => api.post('/auth/facebook', data),
   getFacebookConfig: () => api.get('/auth/facebook-config'),
+  setSocialPassword: (data: { tempToken: string; password: string }) => api.post('/auth/set-social-password', data),
   me: () => api.get('/auth/me'),
   logout: () => api.post('/auth/logout'),
+  verifyPassword: (data: { password: string }) => api.post('/auth/verify-password', data),
   // 2FA
   setup2FA: () => api.get('/auth/2fa/setup'),
   enable2FA: (data: { token: string }) => api.post('/auth/2fa/enable', data),
   disable2FA: (data: { token: string }) => api.post('/auth/2fa/disable', data),
-  verify2FA: (data: { tempToken: string; otpCode: string; trustDevice?: boolean }) => api.post('/auth/2fa/verify', data),
+  verify2FA: (data: { tempToken: string; otpCode: string; trustDevice?: boolean }) =>
+    api.post('/auth/2fa/verify', data),
   trustDevice: () => api.post('/auth/2fa/trust'),
 };
 
 export const qrAPI = {
   generate: () => api.get('/auth/qr/generate'),
   checkStatus: (token: string) => api.get(`/auth/qr/status/${token}`),
-  markScanned: (data: any) => api.post('/auth/qr/scanned', data),
-  confirm: (data: any) => api.post('/auth/qr/confirm', data),
+  markScanned: (data: Record<string, unknown>) => api.post('/auth/qr/scanned', data),
+  confirm: (data: Record<string, unknown>) => api.post('/auth/qr/confirm', data),
+};
+
+// FACE LOGIN
+export const faceAPI = {
+  getStatus: () => api.get('/face/status'),
+  register: (descriptor: number[]) => api.post('/face/register', { descriptor }),
+  login: (descriptor: number[]) => api.post('/face/login', { descriptor }),
+  selectAccount: (userId: string, descriptor: number[]) => api.post('/face/select-account', { userId, descriptor }),
+  remove: () => api.delete('/face/remove'),
 };
 
 // USER
 export const userAPI = {
   getProfile: () => api.get('/users/profile'),
-  updateProfile: (data: any) => api.put('/users/profile', data),
+  updateProfile: (data: Record<string, unknown>) => api.put('/users/profile', data),
   getNotifications: () => api.get('/users/notifications'),
   markRead: (id: string | number) => api.put(`/users/notifications/${id}/read`),
   markAllRead: () => api.delete('/users/notifications/read-all'),
@@ -73,14 +85,14 @@ export const kycAPI = {
 // DEBTS
 export const debtAPI = {
   getAllByStatus: (status: string) => api.get('/debts', { params: { status } }),
-  getAll: (params?: any) => api.get('/debts', { params }),
-  create: (data: any) => api.post('/debts', data),
+  getAll: (params?: Record<string, unknown>) => api.get('/debts', { params }),
+  create: (data: Record<string, unknown>) => api.post('/debts', data),
   getById: (id: string | number) => api.get(`/debts/${id}`),
-  update: (id: string | number, data: any) => api.put(`/debts/${id}`, data),
-  delete: (id: string | number, data?: any) => api.delete(`/debts/${id}`, { data }),
+  update: (id: string | number, data: Record<string, unknown>) => api.put(`/debts/${id}`, data),
+  delete: (id: string | number, data?: Record<string, unknown>) => api.delete(`/debts/${id}`, { data }),
   restore: (id: string | number) => api.post(`/debts/${id}/restore`),
-  logPayment: (id: string | number, data: any) => api.post(`/debts/${id}/payments`, data),
-  getRepaymentPlan: (params: any) => api.get('/debts/repayment-plan', { params }),
+  logPayment: (id: string | number, data: Record<string, unknown>) => api.post(`/debts/${id}/payments`, data),
+  getRepaymentPlan: (params: Record<string, unknown>) => api.get('/debts/repayment-plan', { params }),
   getEarAnalysis: () => api.get('/debts/ear-analysis'),
   getDtiAnalysis: () => api.get('/debts/dti'),
 };
@@ -88,40 +100,42 @@ export const debtAPI = {
 // DEBT GOAL
 export const debtGoalAPI = {
   get: () => api.get('/debts/goal'),
-  upsert: (data: any) => api.post('/debts/goal', data),
+  upsert: (data: Record<string, unknown>) => api.post('/debts/goal', data),
   delete: () => api.delete('/debts/goal'),
 };
 
 // REPAYMENT PLANS
 export const repaymentPlanAPI = {
   getAll: () => api.get('/repayment-plans'),
-  create: (data: any) => api.post('/repayment-plans', data),
+  create: (data: Record<string, unknown>) => api.post('/repayment-plans', data),
   getById: (id: string | number) => api.get(`/repayment-plans/${id}`),
-  update: (id: string | number, data: any) => api.put(`/repayment-plans/${id}`, data),
+  update: (id: string | number, data: Record<string, unknown>) => api.put(`/repayment-plans/${id}`, data),
   delete: (id: string | number) => api.delete(`/repayment-plans/${id}`),
-  simulate: (data: any) => api.post('/repayment-plans/simulate', data),
+  simulate: (data: Record<string, unknown>) => api.post('/repayment-plans/simulate', data),
 };
 
 // INVESTMENT
 export const investmentAPI = {
   getProfile: () => api.get('/investment/profile'),
-  createProfile: (data: any) => api.post('/investment/profile', data),
-  updateProfile: (data: any) => api.put('/investment/profile', data),
-  getAllocation: (params?: { mockSentiment?: number; excludedAssets?: string }) => api.get('/investment/allocation', { params }),
+  createProfile: (data: Record<string, unknown>) => api.post('/investment/profile', data),
+  updateProfile: (data: Record<string, unknown>) => api.put('/investment/profile', data),
+  getAllocation: (params?: { mockSentiment?: number; excludedAssets?: string }) =>
+    api.get('/investment/allocation', { params }),
   getHistory: () => api.get('/investment/history'),
-  submitRiskAssessment: (data: any) => api.post('/investment/risk-assessment', data),
+  submitRiskAssessment: (data: Record<string, unknown>) => api.post('/investment/risk-assessment', data),
   getCryptoPrices: () => api.get('/investment/crypto-prices'),
-  getStockPrices: (params: any) => api.get('/investment/stock-prices', { params }),
-  getAssetHistory: (params: any) => api.get('/investment/asset-history', { params }),
+  getStockPrices: (params: Record<string, unknown>) => api.get('/investment/stock-prices', { params }),
+  getAssetHistory: (params: Record<string, unknown>) => api.get('/investment/asset-history', { params }),
   getGoldPrices: () => api.get('/investment/gold-prices'),
-  getSavingsRates: (params: any) => api.get('/investment/savings-rates', { params }),
-  getBondsRates: (params: any) => api.get('/investment/bonds-rates', { params }),
+  getSavingsRates: (params: Record<string, unknown>) => api.get('/investment/savings-rates', { params }),
+  getBondsRates: (params: Record<string, unknown>) => api.get('/investment/bonds-rates', { params }),
   // ── AI Strategy & User Portfolio ──
   getStrategies: () => api.get('/investment/strategies'),
-  generateStrategy: (excludedAssets?: string[]) => api.post('/investment/strategies/generate', { excludedAssets: excludedAssets ?? [] }),
+  generateStrategy: (excludedAssets?: string[]) =>
+    api.post('/investment/strategies/generate', { excludedAssets: excludedAssets ?? [] }),
   getPortfolio: () => api.get('/investment/portfolio'),
-  upsertPortfolio: (data: any) => api.post('/investment/portfolio', data),
-  updatePortfolio: (data: any) => api.put('/investment/portfolio', data),
+  upsertPortfolio: (data: Record<string, unknown>) => api.post('/investment/portfolio', data),
+  updatePortfolio: (data: Record<string, unknown>) => api.put('/investment/portfolio', data),
 };
 
 // MARKET
@@ -143,23 +157,24 @@ export const agenticAPI = {
 
 // REPORTS
 export const reportAPI = {
-  exportReport: (params: { 
-    format: string; 
-    timeRange?: string; 
-    debtId?: string; 
-    startDate?: string; 
-    endDate?: string 
-  }) => api.get('/reports/export', {
-    params,
-    responseType: 'blob'
-  }),
+  exportReport: (params: {
+    format: string;
+    timeRange?: string;
+    debtId?: string;
+    startDate?: string;
+    endDate?: string;
+  }) =>
+    api.get('/reports/export', {
+      params,
+      responseType: 'blob',
+    }),
 };
 
 // SUBSCRIPTION
 export const subscriptionAPI = {
   getMyPlan: () => api.get('/subscription/me'),
   getPlans: () => api.get('/subscription/plans'),
-  createInvoice: (plan: any) => api.post('/subscription/invoice', { plan }),
+  createInvoice: (plan: Record<string, unknown>) => api.post('/subscription/invoice', { plan }),
   getInvoice: (id: string | number) => api.get(`/subscription/invoice/${id}`),
   checkStatus: (id: string | number) => api.get(`/subscription/invoice/${id}/status`),
   getTransactions: () => api.get('/subscription/transactions'),
@@ -169,18 +184,20 @@ export const subscriptionAPI = {
 
 export const articleAPI = {
   getArticles: () => api.get('/articles'),
-  seedArticles: () => api.post('/articles/seed'),
+  createArticle: (data: Record<string, unknown>) => api.post('/articles', data),
+  updateArticle: (id: string, data: Record<string, unknown>) => api.patch(`/articles/${id}`, data),
+  deleteArticle: (id: string) => api.delete(`/articles/${id}`),
 };
 
 // EXPENSES
 export const expenseAPI = {
-  getAll: (params?: any) => api.get('/expenses', { params }),
-  create: (data: any) => api.post('/expenses', data),
-  update: (id: string, data: any) => api.patch(`/expenses/${id}`, data),
+  getAll: (params?: Record<string, unknown>) => api.get('/expenses', { params }),
+  create: (data: Record<string, unknown>) => api.post('/expenses', data),
+  update: (id: string, data: Record<string, unknown>) => api.patch(`/expenses/${id}`, data),
   delete: (id: string) => api.delete(`/expenses/${id}`),
-  getStats: (params?: any) => api.get('/expenses/stats', { params }),
+  getStats: (params?: Record<string, unknown>) => api.get('/expenses/stats', { params }),
   getCategories: () => api.get('/expenses/categories'),
-  createCategory: (data: any) => api.post('/expenses/categories', data),
+  createCategory: (data: Record<string, unknown>) => api.post('/expenses/categories', data),
 };
 
 // WALLETS
@@ -188,16 +205,16 @@ export const walletAPI = {
   getAll: () => api.get('/wallets'),
   getBalance: () => api.get('/wallets/balance'),
   getById: (id: string) => api.get(`/wallets/${id}`),
-  create: (data: any) => api.post('/wallets', data),
-  update: (id: string, data: any) => api.patch(`/wallets/${id}`, data),
+  create: (data: Record<string, unknown>) => api.post('/wallets', data),
+  update: (id: string, data: Record<string, unknown>) => api.patch(`/wallets/${id}`, data),
   delete: (id: string) => api.delete(`/wallets/${id}`),
 };
 
 // BANK SYNC
 export const bankSyncAPI = {
-  getPending: (params?: any) => api.get('/bank-sync/pending', { params }),
+  getPending: (params?: Record<string, unknown>) => api.get('/bank-sync/pending', { params }),
   fetch: (walletId: string) => api.post(`/bank-sync/fetch/${walletId}`),
-  approve: (id: string, data: any) => api.post(`/bank-sync/approve/${id}`, data),
+  approve: (id: string, data: Record<string, unknown>) => api.post(`/bank-sync/approve/${id}`, data),
   reject: (id: string) => api.post(`/bank-sync/reject/${id}`),
   clear: () => api.delete('/bank-sync/clear'),
 };
@@ -213,8 +230,7 @@ export const referralAPI = {
     api.post('/referral/bank-accounts', data),
   setDefaultBankAccount: (id: string) => api.patch(`/referral/bank-accounts/${id}/default`),
   deleteBankAccount: (id: string) => api.delete(`/referral/bank-accounts/${id}`),
-  requestWithdrawal: (data: { bankAccountId: string; amount: number }) =>
-    api.post('/referral/withdraw', data),
+  requestWithdrawal: (data: { bankAccountId: string; amount: number }) => api.post('/referral/withdraw', data),
   getWithdrawalHistory: () => api.get('/referral/withdrawals'),
 };
 

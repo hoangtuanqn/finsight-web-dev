@@ -1,7 +1,15 @@
 import { Router } from 'express';
 import {
-  getAllDebts, createDebt, getDebtById, updateDebt, deleteDebt, restoreDebt,
-  logPayment, getRepaymentPlan, getEarAnalysis, getDtiAnalysis,
+  createDebt,
+  deleteDebt,
+  getAllDebts,
+  getDebtById,
+  getDtiAnalysis,
+  getEarAnalysis,
+  getRepaymentPlan,
+  logPayment,
+  restoreDebt,
+  updateDebt,
 } from '../controllers/debt.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { validate } from '../middleware/validate.middleware';

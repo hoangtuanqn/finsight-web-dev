@@ -10,15 +10,15 @@ class EmailService {
       secure: false,
       auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
+        pass: process.env.EMAIL_PASS,
+      },
     });
   }
 
   async sendDebtAlert(to: string, userName: string, debtName: string, dueDay: number, diffDays: number) {
     const isUrgent = diffDays <= 1;
-    const subject = isUrgent 
-      ? `🚨 KHẨN CẤP: Khoản nợ ${debtName} của bạn sắp đáo hạn!` 
+    const subject = isUrgent
+      ? `🚨 KHẨN CẤP: Khoản nợ ${debtName} của bạn sắp đáo hạn!`
       : `📅 Nhắc nhở: Lịch thanh toán nợ ${debtName}`;
 
     const html = `
@@ -275,16 +275,41 @@ class EmailService {
 
   async sendMilestoneCongrats(to: string, userName: string, percent: number, totalPaid: number, totalOriginal: number) {
     const milestoneConfig: Record<number, any> = {
-      25:  { emoji: '🎯', color: '#f59e0b', title: 'Đã trả được 1/4 tổng nợ!',              message: 'Bước khởi đầu tuyệt vời — bạn đã đi được 25% chặng đường thoát nợ.' },
-      50:  { emoji: '🔥', color: '#3b82f6', title: 'Nửa đường rồi!',                         message: 'Ấn tượng! Bạn đã xóa được một nửa tổng nợ. Đà tốt, hãy tiếp tục!' },
-      75:  { emoji: '⚡', color: '#8b5cf6', title: 'Chỉ còn 25% nữa là xong!',               message: 'Gần về đích rồi! 75% tổng nợ đã được thanh toán — đừng dừng lại nhé.' },
-      100: { emoji: '🏆', color: '#22c55e', title: 'TRẮNG TAY NỢ — Tự do tài chính!',        message: 'Bạn đã làm được điều phi thường: trả hết 100% nợ! Đây là khoảnh khắc đáng tự hào.' },
+      25: {
+        emoji: '🎯',
+        color: '#f59e0b',
+        title: 'Đã trả được 1/4 tổng nợ!',
+        message: 'Bước khởi đầu tuyệt vời — bạn đã đi được 25% chặng đường thoát nợ.',
+      },
+      50: {
+        emoji: '🔥',
+        color: '#3b82f6',
+        title: 'Nửa đường rồi!',
+        message: 'Ấn tượng! Bạn đã xóa được một nửa tổng nợ. Đà tốt, hãy tiếp tục!',
+      },
+      75: {
+        emoji: '⚡',
+        color: '#8b5cf6',
+        title: 'Chỉ còn 25% nữa là xong!',
+        message: 'Gần về đích rồi! 75% tổng nợ đã được thanh toán — đừng dừng lại nhé.',
+      },
+      100: {
+        emoji: '🏆',
+        color: '#22c55e',
+        title: 'TRẮNG TAY NỢ — Tự do tài chính!',
+        message: 'Bạn đã làm được điều phi thường: trả hết 100% nợ! Đây là khoảnh khắc đáng tự hào.',
+      },
     };
 
-    const cfg       = milestoneConfig[percent] || { emoji: '🎉', color: '#10b981', title: `Đạt cột mốc ${percent}%!`, message: `Bạn đã trả được ${percent}% tổng nợ.` };
-    const fmt       = (n: number) => new Intl.NumberFormat('vi-VN').format(Math.round(n));
+    const cfg = milestoneConfig[percent] || {
+      emoji: '🎉',
+      color: '#10b981',
+      title: `Đạt cột mốc ${percent}%!`,
+      message: `Bạn đã trả được ${percent}% tổng nợ.`,
+    };
+    const fmt = (n: number) => new Intl.NumberFormat('vi-VN').format(Math.round(n));
     const remaining = Math.max(0, totalOriginal - totalPaid);
-    const barW      = Math.min(100, percent);
+    const barW = Math.min(100, percent);
 
     const subject = `${cfg.emoji} FinSight: ${cfg.title}`;
     const html = `<!DOCTYPE html>
@@ -381,7 +406,7 @@ class EmailService {
         from: process.env.EMAIL_FROM || `"FinSight AI Advisor" <${process.env.EMAIL_USER}>`,
         to,
         subject,
-        html
+        html,
       });
       console.log(`[Email Sent] Thành công tới: ${to}`);
       return true;

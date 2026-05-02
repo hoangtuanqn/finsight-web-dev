@@ -37,7 +37,15 @@ export async function fetchFearGreedIndex(): Promise<FearGreedData> {
     if (redis) await redis.setex('market:fear_greed', 1800, JSON.stringify(result));
     return result;
   } catch {
-    return { value: 50, label: 'Neutral', labelVi: 'Trung lập', previousValue: 50, trend: 'STABLE', updatedAt: new Date().toISOString(), error: 'API unavailable' };
+    return {
+      value: 50,
+      label: 'Neutral',
+      labelVi: 'Trung lập',
+      previousValue: 50,
+      trend: 'STABLE',
+      updatedAt: new Date().toISOString(),
+      error: 'API unavailable',
+    };
   }
 }
 
@@ -55,7 +63,7 @@ export async function fetchCryptoPrices(): Promise<CryptoPrices> {
   try {
     const response = await axios.get(
       'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true',
-      { timeout: 5000 }
+      { timeout: 5000 },
     );
     const data = response.data;
 
@@ -103,7 +111,13 @@ function parseRssXml(xml: string, source: string): NewsArticle[] {
     const publishedAt = get('pubDate');
     const description = get('description');
     if (title && url) {
-      items.push({ title, description, url, publishedAt: publishedAt ? new Date(publishedAt).toISOString() : new Date().toISOString(), source });
+      items.push({
+        title,
+        description,
+        url,
+        publishedAt: publishedAt ? new Date(publishedAt).toISOString() : new Date().toISOString(),
+        source,
+      });
     }
   }
   return items;
@@ -117,14 +131,15 @@ export async function fetchNews(_apiKey?: string): Promise<{ articles: NewsArtic
 
   try {
     const results = await Promise.allSettled(
-      RSS_FEEDS.map(feed =>
-        axios.get(feed.url, { timeout: 5000, headers: { 'User-Agent': 'Mozilla/5.0' } })
-          .then(res => parseRssXml(res.data, feed.source))
-      )
+      RSS_FEEDS.map((feed) =>
+        axios
+          .get(feed.url, { timeout: 5000, headers: { 'User-Agent': 'Mozilla/5.0' } })
+          .then((res) => parseRssXml(res.data, feed.source)),
+      ),
     );
 
     const articles: NewsArticle[] = results
-      .flatMap(r => r.status === 'fulfilled' ? r.value : [])
+      .flatMap((r) => (r.status === 'fulfilled' ? r.value : []))
       .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
       .slice(0, 20);
 
@@ -154,10 +169,9 @@ export async function fetchGoldPrice(): Promise<GoldPrice> {
   }
 
   try {
-    const response = await axios.get(
-      'https://btmc.vn/api/BTMCAPI/getpricebtmc?key=3kd8ub1llcg9t45hnoh8hmn7t5kc2v',
-      { timeout: 5000 }
-    );
+    const response = await axios.get('https://btmc.vn/api/BTMCAPI/getpricebtmc?key=3kd8ub1llcg9t45hnoh8hmn7t5kc2v', {
+      timeout: 5000,
+    });
     const rows = response.data?.DataList?.Data || [];
 
     let sjcRow: { buy: string; sell: string } | null = null;
@@ -181,6 +195,13 @@ export async function fetchGoldPrice(): Promise<GoldPrice> {
     if (redis) await redis.setex('market:gold', 3600, JSON.stringify(result));
     return result;
   } catch {
-    return { buy: 0, sell: 0, unit: 'VND/chỉ', source: 'SJC', updatedAt: new Date().toISOString(), error: 'Scrape unavailable' };
+    return {
+      buy: 0,
+      sell: 0,
+      unit: 'VND/chỉ',
+      source: 'SJC',
+      updatedAt: new Date().toISOString(),
+      error: 'Scrape unavailable',
+    };
   }
 }
