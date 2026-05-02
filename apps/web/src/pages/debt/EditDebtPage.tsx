@@ -13,31 +13,35 @@ import FormattedInput from '../../components/common/FormattedInput';
 const debtSchema = z.object({
   name: z.string().min(1, 'Vui lòng nhập tên khoản vay.'),
   platform: z.string().default('CUSTOM'),
-  originalAmount: z.number().positive('Số tiền gốc phải lớn hơn 0.'),
+  originalAmount: z.number().min(0, 'Số tiền gốc không được âm.'),
   balance: z.number().min(0, 'Dư nợ không được âm'),
   apr: z.number().min(0).max(100, 'Lãi suất APR không hợp lệ.'),
   rateType: z.enum(['FLAT', 'REDUCING']).default('FLAT'),
-  feeProcessing: z.number().min(0).default(0),
-  feeInsurance: z.number().min(0).default(0),
-  feeManagement: z.number().min(0).default(0),
+  feeProcessing: z.number().min(0).max(20, 'Phí xử lý không nên vượt quá 20%').default(0),
+  feeInsurance: z.number().min(0).max(10, 'Phí bảo hiểm không nên vượt quá 10%').default(0),
+  feeManagement: z.number().min(0).max(5, 'Phí quản lý không nên vượt quá 5%').default(0),
   minPayment: z.number().min(0, 'Số tiền trả tối thiểu không được âm.'),
-  termMonths: z.number().int().min(0, 'Kỳ hạn không được âm.'),
+  termMonths: z.number().int().min(0, 'Kỳ hạn không được âm.').max(360, 'Kỳ hạn tối đa là 360 tháng (30 năm)'),
   remainingTerms: z.number().int().min(0),
   dueDay: z.number().int().min(1).max(31, 'Ngày đáo hạn từ 1 đến 31.'),
   startDate: z.string().optional(),
 }).refine(data => data.minPayment <= data.balance || data.balance === 0, {
   message: 'Số tiền trả tối thiểu không được lớn hơn dư nợ hiện tại.',
   path: ['minPayment']
+}).refine(data => data.balance <= data.originalAmount || data.originalAmount === 0, {
+  message: 'Dư nợ hiện tại không được lớn hơn số tiền gốc/hạn mức ban đầu.',
+  path: ['balance']
 });
 
 const PLATFORM_PRESETS = {
-  SPAYLATER: { name: 'SPayLater', apr: 18, rateType: 'FLAT', feeProcessing: 0, feeInsurance: 0, feeManagement: 0 },
-  LAZPAYLATER: { name: 'LazPayLater', apr: 18, rateType: 'FLAT', feeProcessing: 0, feeInsurance: 0, feeManagement: 0 },
-  CREDIT_CARD: { name: 'Thẻ tín dụng', apr: 36, rateType: 'REDUCING', feeProcessing: 0, feeInsurance: 0, feeManagement: 0.5 },
-  HOME_CREDIT: { name: 'Home Credit', apr: 30, rateType: 'FLAT', feeProcessing: 1, feeInsurance: 0.5, feeManagement: 0 },
-  FE_CREDIT: { name: 'FE Credit', apr: 48, rateType: 'FLAT', feeProcessing: 5, feeInsurance: 1,   feeManagement: 0.5 },
-  CUSTOM: { name: '', apr: 0, rateType: 'FLAT', feeProcessing: 0, feeInsurance: 0, feeManagement: 0 },
-};
+  SPAYLATER: { name: 'SPayLater', apr: 18, rateType: 'FLAT', feeProcessing: 0, feeInsurance: 0, feeManagement: 0, type: 'INSTALLMENT' },
+  LAZPAYLATER: { name: 'LazPayLater', apr: 18, rateType: 'FLAT', feeProcessing: 0, feeInsurance: 0, feeManagement: 0, type: 'INSTALLMENT' },
+  CREDIT_CARD: { name: 'Thẻ tín dụng', apr: 36, rateType: 'REDUCING', feeProcessing: 0, feeInsurance: 0, feeManagement: 0.5, type: 'CREDIT_CARD' },
+  HOME_CREDIT: { name: 'Home Credit', apr: 30, rateType: 'FLAT', feeProcessing: 1, feeInsurance: 0.5, feeManagement: 0, type: 'INSTALLMENT' },
+  FE_CREDIT: { name: 'FE Credit', apr: 48, rateType: 'FLAT', feeProcessing: 5, feeInsurance: 1,   feeManagement: 0.5, type: 'INSTALLMENT' },
+  CUSTOM: { name: 'Tự nhập', apr: 0, rateType: 'FLAT', feeProcessing: 0, feeInsurance: 0, feeManagement: 0, type: 'INSTALLMENT' },
+  CUSTOM_CARD: { name: 'Tự nhập thẻ', apr: 0, rateType: 'REDUCING', feeProcessing: 0, feeInsurance: 0, feeManagement: 0, type: 'CREDIT_CARD' },
+} as const;
 
 export default function EditDebtPage() {
   const navigate = useNavigate();
@@ -55,7 +59,7 @@ export default function EditDebtPage() {
 
   useEffect(() => {
     if (data?.debt) {
-      const type = (data.debt.platform === 'CREDIT_CARD' || data.debt.termMonths === 0) ? 'CREDIT_CARD' : 'INSTALLMENT';
+      const type = data.debt.debtType || ((data.debt.platform === 'CREDIT_CARD' || data.debt.termMonths === 0) ? 'CREDIT_CARD' : 'INSTALLMENT');
       setDebtType(type);
       
       reset({
@@ -86,11 +90,11 @@ export default function EditDebtPage() {
     setValue('feeInsurance', preset.feeInsurance);
     setValue('feeManagement', preset.feeManagement);
     
-    if (platform === 'CREDIT_CARD') {
+    if (preset.type === 'CREDIT_CARD') {
       setDebtType('CREDIT_CARD');
       setValue('termMonths', 0);
       setValue('remainingTerms', 0);
-    } else if (platform !== 'CUSTOM') {
+    } else {
       setDebtType('INSTALLMENT');
       if (formValues.termMonths === 0) setValue('termMonths', 12);
     }
@@ -109,6 +113,7 @@ export default function EditDebtPage() {
     try {
       const payload = {
         ...formData,
+        debtType,
         dueDay: Math.round(formData.dueDay),
         termMonths: debtType === 'CREDIT_CARD' ? 0 : Math.round(formData.termMonths),
         remainingTerms: debtType === 'CREDIT_CARD' ? 0 : Math.round(formData.remainingTerms),
@@ -134,6 +139,12 @@ export default function EditDebtPage() {
       </div>
     );
   }
+
+  const getEarColorClass = (earValue: number) => {
+    if (earValue <= 20) return "text-emerald-400";
+    if (earValue <= 40) return "text-yellow-400";
+    return "text-red-400";
+  };
 
   const inputCls = (hasError: any) => `input-field ${hasError ? 'border-red-500/60 focus:border-red-500' : ''}`;
 
@@ -191,7 +202,7 @@ export default function EditDebtPage() {
             <div className="mb-8">
               <label className="input-label mb-3 block">Chọn nhanh mẫu nền tảng</label>
               <div className="flex flex-wrap gap-2">
-                {Object.entries(PLATFORM_PRESETS).map(([key, val]) => (
+                {Object.entries(PLATFORM_PRESETS).filter(([, val]) => val.type === debtType).map(([key, val]) => (
                   <button
                     key={key}
                     type="button"
@@ -211,7 +222,7 @@ export default function EditDebtPage() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="input-label">Tên khoản vay</label>
+                  <label className="input-label">Tên khoản nợ</label>
                   <input {...register('name')} className={inputCls(errors.name)} placeholder="VD: Vay mua xe, Thẻ VPBank..." />
                   {errors.name && <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={12} /> {errors.name.message}</p>}
                 </div>
@@ -235,7 +246,14 @@ export default function EditDebtPage() {
                     name="balance"
                     control={control}
                     render={({ field }) => (
-                      <FormattedInput kind="integer" value={field.value} onValueChange={(v) => field.onChange(toNumberValue(v))} className={inputCls(errors.balance)} placeholder="0" suffix="đ" />
+                      <div className="relative">
+                        <FormattedInput kind="integer" value={field.value} onValueChange={(v) => field.onChange(toNumberValue(v))} className={inputCls(errors.balance)} placeholder="0" suffix="đ" />
+                        {debtType === "INSTALLMENT" && formValues.originalAmount > 0 && formValues.balance < formValues.originalAmount && (
+                          <p className="mt-1 text-[10px] text-amber-400 flex items-center gap-1">
+                            <Info size={10} /> Dư nợ thấp hơn gốc? Bạn đã trả một phần rồi?
+                          </p>
+                        )}
+                      </div>
                     )}
                   />
                   {errors.balance && <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={12} /> {errors.balance.message}</p>}
@@ -321,7 +339,7 @@ export default function EditDebtPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {debtType === 'INSTALLMENT' ? (
                   <>
                     <div>
@@ -346,6 +364,19 @@ export default function EditDebtPage() {
                     <Info size={16} className="mr-2 text-slate-600" /> Thẻ tín dụng không có kỳ hạn cố định.
                   </div>
                 )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="input-label">Ngày vay</label>
+                  <input type="date" {...register('startDate')} className={inputCls(errors.startDate)} max={new Date().toISOString().split('T')[0]} />
+                  {errors.startDate && <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={12} /> {errors.startDate.message}</p>}
+                  {formValues.startDate && new Date(formValues.startDate) < new Date(new Date().setFullYear(new Date().getFullYear() - 1)) && (
+                    <p className="mt-1 text-[10px] text-amber-400 flex items-center gap-1">
+                      <Info size={10} /> Ngày vay cách đây hơn 1 năm? Hãy kiểm tra lại.
+                    </p>
+                  )}
+                </div>
                 <div>
                   <label className="input-label">{debtType === 'CREDIT_CARD' ? 'Ngày chốt sao kê' : 'Ngày thanh toán hàng tháng'}</label>
                   <input type="number" {...register('dueDay', { valueAsNumber: true })} className={inputCls(errors.dueDay)} placeholder="VD: 15" />
@@ -389,7 +420,7 @@ export default function EditDebtPage() {
               <div className="p-5 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-2xl border border-blue-500/20">
                 <span className="text-xs text-slate-400 font-bold uppercase tracking-widest block mb-1">Lãi suất thực tế (EAR)</span>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-black text-white">{formatPercent(ear)}</span>
+                  <span className={`text-3xl font-black ${getEarColorClass(ear)}`}>{formatPercent(ear)}</span>
                   <span className="text-xs text-slate-500 font-medium italic">/năm</span>
                 </div>
               </div>
@@ -407,6 +438,30 @@ export default function EditDebtPage() {
                   </div>
                 </div>
               )}
+              
+              <div className="h-px bg-white/[0.06] my-4" />
+              <div className="space-y-2">
+                <span className="text-[12px] text-[var(--color-text-muted)] font-bold uppercase tracking-wider block mb-2">Ước tính trả nợ</span>
+                {debtType === "INSTALLMENT" ? (
+                   <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3">
+                     <p className="text-[11px] text-blue-300/80 mb-1">Tổng chi phí dự kiến (Gốc + Lãi + Phí)</p>
+                     <p className="text-[14px] font-black text-blue-400">
+                       {formValues.minPayment && formValues.termMonths 
+                         ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(formValues.minPayment * formValues.termMonths) 
+                         : "Chưa đủ dữ liệu"}
+                     </p>
+                   </div>
+                ) : (
+                   <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3">
+                     <p className="text-[11px] text-yellow-300/80 mb-1 flex items-center gap-1">
+                       <AlertTriangle size={11} /> Thẻ tín dụng
+                     </p>
+                     <p className="text-[12px] font-medium text-yellow-400">
+                       Lãi suất kép được tính dựa trên dư nợ hiện tại. Chỉ trả mức tối thiểu sẽ kéo dài thời gian trả nợ rất lâu.
+                     </p>
+                   </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
