@@ -194,7 +194,19 @@ function getSourceTypeLabel(sourceType) {
   return 'Nguồn';
 }
 
-function HistoryRangeToggle({ value, onChange, color, options, unitLabel }) {
+function HistoryRangeToggle({
+  value,
+  onChange,
+  color,
+  options,
+  unitLabel,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  color: string;
+  options: number[];
+  unitLabel: string;
+}) {
   return (
     <div className="grid grid-cols-3 gap-1 bg-white/[0.02] p-1 rounded-full border border-white/5 w-full sm:w-[260px]">
       {options.map((range) => {
@@ -229,7 +241,17 @@ function HistoryRangeToggle({ value, onChange, color, options, unitLabel }) {
   );
 }
 
-function MonthlyHistoryTooltip({ active, payload, label, metric }) {
+function MonthlyHistoryTooltip({
+  active,
+  payload,
+  label,
+  metric,
+}: {
+  active?: boolean;
+  payload?: any[];
+  label?: string;
+  metric: any;
+}) {
   if (!active || !payload?.length) return null;
 
   const point = payload[0].payload;
@@ -247,7 +269,7 @@ function MonthlyHistoryTooltip({ active, payload, label, metric }) {
   );
 }
 
-function MonthlyHistoryChart({ data, color, metric }) {
+function MonthlyHistoryChart({ data, color, metric }: { data: any[]; color: string; metric: any }) {
   if (!data?.length) {
     return (
       <div className="h-48 rounded-2xl bg-white/[0.015] border border-white/5 flex items-center justify-center text-xs font-semibold text-slate-500">
@@ -312,6 +334,7 @@ function MonthlyHistoryChart({ data, color, metric }) {
 
 export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
   const [openTab, setOpenTab] = useState(null);
+  const [savingsTenor, setSavingsTenor] = useState('t12');
   const [modalItem, setModalItem] = useState(null);
   const queryClient = useQueryClient();
   const goldQuery = useGoldPrices();
@@ -539,9 +562,33 @@ export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
                   );
                 })()
               ) : (
-                <p className="text-sm font-medium text-slate-200 leading-relaxed">
-                  {activeData.intro || suggestion.intro}
-                </p>
+                <>
+                  {active === 'savings' && (
+                    <div className="flex flex-wrap gap-2 mb-4 bg-white/[0.02] p-1 rounded-2xl border border-white/5 w-fit">
+                      {['t12', 't18', 't24'].map((t) => {
+                        const isActive = savingsTenor === t;
+                        const label = t === 't12' ? '12 tháng' : t === 't18' ? '18 tháng' : '24 tháng';
+                        return (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => setSavingsTenor(t)}
+                            className={`px-4 py-1.5 rounded-xl text-[11px] font-black transition-all duration-300 ${
+                              isActive
+                                ? 'bg-white/10 text-white shadow-sm shadow-black/20 border border-white/10'
+                                : 'text-slate-500 hover:text-slate-300'
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <p className="text-sm font-medium text-slate-200 leading-relaxed">
+                    {activeData.intro || suggestion.intro}
+                  </p>
+                </>
               )}
             </div>
 
@@ -562,10 +609,22 @@ export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
                 <>
                   {(activeData.items.length > 0 ? activeData.items : suggestion.items).map((item, i) => {
                     const cardKey = getAssetCardKey(item, active, i);
+                    let displayItem = item;
+                    if (active === 'savings' && item.allRates) {
+                      const tenorRate = item.allRates[savingsTenor];
+                      if (tenorRate) {
+                        displayItem = {
+                          ...item,
+                          rate: tenorRate,
+                          rateLabel: `${tenorRate.toFixed(2)}%/năm`,
+                          tag: `Online ${savingsTenor === 't12' ? '12 tháng' : savingsTenor === 't18' ? '18 tháng' : '24 tháng'}`,
+                        };
+                      }
+                    }
                     return (
                       <AssetCard
                         key={cardKey}
-                        item={item}
+                        item={displayItem}
                         color={suggestion.color}
                         type={active}
                         rank={i + 1}
@@ -619,7 +678,17 @@ export default function SmartAssetGuide({ allocation, riskLevel = 'MEDIUM' }) {
   );
 }
 
-function AssetDetailModal({ item, color, type, onClose }) {
+function AssetDetailModal({
+  item,
+  color,
+  type,
+  onClose,
+}: {
+  item: any;
+  color: string;
+  type: string | null;
+  onClose: () => void;
+}) {
   const historyRequest = getHistoryRequest(item, type);
   const canShowHistory = Boolean(historyRequest);
   const rangeConfig = getHistoryRangeConfig(historyRequest);
@@ -681,13 +750,15 @@ function AssetDetailModal({ item, color, type, onClose }) {
                 {badge && (
                   <span
                     className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${
-                      badgeColor === 'emerald'
+                      badgeColor === 'emerald' || badgeColor === 'green'
                         ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                        : badgeColor === 'amber'
+                        : badgeColor === 'amber' || badgeColor === 'orange'
                           ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                           : badgeColor === 'purple'
                             ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
-                            : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                            : badgeColor === 'red'
+                              ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                              : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
                     }`}
                   >
                     {badge}
@@ -807,7 +878,19 @@ function AssetDetailModal({ item, color, type, onClose }) {
   );
 }
 
-function AssetCard({ item, color, type, rank, onOpenModal }) {
+function AssetCard({
+  item,
+  color,
+  type,
+  rank,
+  onOpenModal,
+}: {
+  item: any;
+  color: string;
+  type: string | null;
+  rank: number;
+  onOpenModal: (item: any) => void;
+}) {
   const name = item.name;
   const tag = item.tag;
   const rate = formatCardMetric(item);
@@ -863,13 +946,15 @@ function AssetCard({ item, color, type, rank, onOpenModal }) {
             {badge && (
               <span
                 className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${
-                  badgeColor === 'emerald'
+                  badgeColor === 'emerald' || badgeColor === 'green'
                     ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                    : badgeColor === 'amber'
+                    : badgeColor === 'amber' || badgeColor === 'orange'
                       ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                       : badgeColor === 'purple'
                         ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
-                        : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                        : badgeColor === 'red'
+                          ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                          : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
                 }`}
               >
                 {badge}

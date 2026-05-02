@@ -1,25 +1,25 @@
 import { Request, Router } from 'express';
-import { getAllocationHistory, getAllocationRecommendation } from '../controllers/allocation.controller';
+import { getAllocationHistory, getAllocationRecommendation } from '../controllers/allocation.controller.js';
 import {
   getBondsRates,
   getCryptoPrices,
   getGoldPrices,
   getSavingsRates,
   getStockPrices,
-} from '../controllers/assetGuide.controller';
-import { getAssetHistory } from '../controllers/assetHistory.controller';
-import { createInvestorProfile, getInvestorProfile, updateInvestorProfile } from '../controllers/profile.controller';
-import { submitRiskAssessment } from '../controllers/riskAssessment.controller';
+} from '../controllers/assetGuide.controller.js';
+import { getAssetHistory } from '../controllers/assetHistory.controller.js';
+import { createInvestorProfile, getInvestorProfile, updateInvestorProfile } from '../controllers/profile.controller.js';
+import { submitRiskAssessment } from '../controllers/riskAssessment.controller.js';
 import {
   generateStrategy,
   getMyPortfolio,
   getMyStrategies,
   updatePortfolio,
   upsertPortfolio,
-} from '../controllers/strategy.controller';
-import { authenticate } from '../middleware/auth.middleware';
-import { cache } from '../middleware/cache.middleware';
-import { AuthenticatedRequest } from '../types';
+} from '../controllers/strategy.controller.js';
+import { authenticate } from '../middleware/auth.middleware.js';
+import { cache } from '../middleware/cache.middleware.js';
+import { AuthenticatedRequest } from '../types/index.js';
 
 const TTL_10M = 10 * 60;
 
