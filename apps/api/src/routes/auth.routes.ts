@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { login, logout, me, register } from '../controllers/auth.controller';
+import { login, logout, me, register, verifyPassword } from '../controllers/auth.controller';
 import { facebookLogin, getFacebookConfig } from '../controllers/facebookAuth.controller';
 import { getGoogleConfig, googleLogin } from '../controllers/googleAuth.controller';
 import { checkQRStatus, confirmQRLogin, generateQR, markQRScanned } from '../controllers/qrAuth.controller';
@@ -14,6 +14,7 @@ router.post('/register', validate(authSchemas.register), register);
 router.post('/login', validate(authSchemas.login), login);
 router.get('/me', authenticate, me);
 router.post('/logout', authenticate, logout);
+router.post('/verify-password', authenticate, verifyPassword);
 
 // Two-Factor Authentication
 router.get('/2fa/setup', authenticate, setup2FA);
