@@ -238,34 +238,37 @@ export default function EditDebtPage() {
           </h1>
           <p className="text-slate-500 text-sm mt-1">Cập nhật thông tin chi tiết về khoản nợ của bạn</p>
         </div>
-
-        <div className="flex bg-white/[0.03] p-1 rounded-xl border border-white/[0.06]">
-          <button
-            type="button"
-            onClick={() => {
-              setDebtType('INSTALLMENT');
-              if (formValues.termMonths === 0) setValue('termMonths', 12);
-            }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-              debtType === 'INSTALLMENT' ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Calendar size={16} /> Vay Trả Góp
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setDebtType('CREDIT_CARD');
-              setValue('termMonths', 0);
-              setValue('remainingTerms', 0);
-              setValue('rateType', 'REDUCING');
-            }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-              debtType === 'CREDIT_CARD' ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <CreditCard size={16} /> Thẻ Tín Dụng
-          </button>
+        <div className="flex flex-col">
+          <div className="flex bg-white/[0.03] p-1.5 rounded-2xl border border-white/[0.06] relative">
+            <div
+              className="absolute h-[calc(100%-12px)] top-1.5 transition-all duration-300 rounded-xl bg-blue-500 shadow-lg"
+              style={{
+                width: 'calc(50% - 9px)',
+                left: debtType === 'INSTALLMENT' ? '6px' : 'calc(50% + 3px)',
+              }}
+            />
+            <button
+              type="button"
+              className={`flex-1 px-4 py-2 rounded-xl text-[13px] font-black transition-all flex items-center justify-center gap-2 z-10 ${
+                debtType === 'INSTALLMENT' ? 'text-white' : 'text-slate-500 opacity-50 cursor-not-allowed'
+              }`}
+              title="Không thể đổi loại nợ sau khi đã tạo"
+            >
+              <Calendar size={15} /> Vay Trả Góp
+            </button>
+            <button
+              type="button"
+              className={`flex-1 px-4 py-2 rounded-xl text-[13px] font-black transition-all flex items-center justify-center gap-2 z-10 ${
+                debtType === 'CREDIT_CARD' ? 'text-white' : 'text-slate-500 opacity-50 cursor-not-allowed'
+              }`}
+              title="Không thể đổi loại nợ sau khi đã tạo"
+            >
+              <CreditCard size={15} /> Thẻ Tín Dụng
+            </button>
+          </div>
+          <p className="text-[10px] text-amber-400/70 font-medium flex items-center gap-1 mt-2 ml-1">
+            <Info size={10} /> Loại nợ đã được cố định sau khi tạo.
+          </p>
         </div>
       </div>
 
