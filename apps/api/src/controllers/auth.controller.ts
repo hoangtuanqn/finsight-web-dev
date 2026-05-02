@@ -1,10 +1,10 @@
-import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import { Request, Response } from 'express';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import prisma from '../lib/prisma';
-import { success, error } from '../utils/apiResponse';
-import { AuthenticatedRequest } from '../types';
 import { ReferralService } from '../services/referral.service';
+import { AuthenticatedRequest } from '../types';
+import { error, success } from '../utils/apiResponse';
 import { handleUserLoginResponse } from '../utils/auth';
 
 export async function register(req: Request, res: Response) {
@@ -18,29 +18,27 @@ export async function register(req: Request, res: Response) {
 
     const hashedPassword = await bcrypt.hash(password, 12);
     const user = await (prisma as any).user.create({
-      data: { 
-        email, 
-        password: hashedPassword, 
+      data: {
+        email,
+        password: hashedPassword,
         fullName,
-        referralCode: `temp_${Date.now()}` // Sẽ được cập nhật ngay sau đây
+        referralCode: `temp_${Date.now()}`, // Sẽ được cập nhật ngay sau đây
       },
       select: { id: true, email: true, fullName: true, monthlyIncome: true, extraBudget: true, createdAt: true },
     });
 
     // Tạo mã giới thiệu chính thức cho user mới
     const finalCode = await ReferralService.getOrCreateReferralCode(user.id);
-    
+
     // Xử lý nếu user này được giới thiệu bởi người khác
     const { referralCode } = req.body;
     if (referralCode) {
       await ReferralService.processReferral(user.id, referralCode);
     }
 
-    const token = jwt.sign(
-      { userId: user.id, email: user.email },
-      (process.env.JWT_SECRET as string).trim(),
-      { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'] }
-    );
+    const token = jwt.sign({ userId: user.id, email: user.email }, (process.env.JWT_SECRET as string).trim(), {
+      expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'],
+    });
 
     return success(res, { user, token }, 201);
   } catch (err) {

@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { register, login, me, logout } from '../controllers/auth.controller';
-import { generateQR, checkQRStatus, markQRScanned, confirmQRLogin } from '../controllers/qrAuth.controller';
-import { googleLogin, getGoogleConfig } from '../controllers/googleAuth.controller';
+import { login, logout, me, register } from '../controllers/auth.controller';
 import { facebookLogin, getFacebookConfig } from '../controllers/facebookAuth.controller';
+import { getGoogleConfig, googleLogin } from '../controllers/googleAuth.controller';
+import { checkQRStatus, confirmQRLogin, generateQR, markQRScanned } from '../controllers/qrAuth.controller';
+import { disable2FA, enable2FA, setup2FA, trustDevice, verify2FALogin } from '../controllers/twoFactor.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { validate } from '../middleware/validate.middleware';
 import { authSchemas } from '../utils/validationSchemas';
-import { setup2FA, enable2FA, disable2FA, verify2FALogin, trustDevice } from '../controllers/twoFactor.controller';
 
 const router = Router();
 

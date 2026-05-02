@@ -1,14 +1,23 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  CreditCard, Plus, Trash2, Star, Loader2, 
-  Banknote, AlertCircle, CheckCircle2, Clock, X, Search
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  AlertCircle,
+  Banknote,
+  CheckCircle2,
+  Clock,
+  CreditCard,
+  Loader2,
+  Plus,
+  Search,
+  Star,
+  Trash2,
+  X,
 } from 'lucide-react';
-import { referralAPI } from '../../../api';
-import { toast } from 'sonner';
-import { useKycStatus } from '../../../hooks/useKycQuery';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
+import { referralAPI } from '../../../api';
+import { useKycStatus } from '../../../hooks/useKycQuery';
 
 function formatVND(amount: number) {
   return amount.toLocaleString('vi-VN') + 'đ';
@@ -16,13 +25,19 @@ function formatVND(amount: number) {
 
 function WithdrawalStatusBadge({ status }: { status: string }) {
   const config: Record<string, { label: string; icon: any; className: string }> = {
-    PENDING:  { label: 'Chờ xử lý',  icon: Clock,        className: 'bg-amber-500/10 text-amber-500 border-amber-500/20' },
-    APPROVED: { label: 'Đã duyệt',   icon: CheckCircle2, className: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' },
-    REJECTED: { label: 'Bị từ chối', icon: X,            className: 'bg-rose-500/10 text-rose-500 border-rose-500/20' },
+    PENDING: { label: 'Chờ xử lý', icon: Clock, className: 'bg-amber-500/10 text-amber-500 border-amber-500/20' },
+    APPROVED: {
+      label: 'Đã duyệt',
+      icon: CheckCircle2,
+      className: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+    },
+    REJECTED: { label: 'Bị từ chối', icon: X, className: 'bg-rose-500/10 text-rose-500 border-rose-500/20' },
   };
   const c = config[status] || config['PENDING'];
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${c.className}`}>
+    <span
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${c.className}`}
+    >
       <c.icon size={11} /> {c.label}
     </span>
   );
@@ -121,9 +136,10 @@ export default function WithdrawalTab({ stats }: WithdrawalTabProps) {
     },
   });
 
-  const filteredBanks = (banksData || []).filter((b: any) =>
-    b.shortName.toLowerCase().includes(bankSearch.toLowerCase()) ||
-    b.code.toLowerCase().includes(bankSearch.toLowerCase())
+  const filteredBanks = (banksData || []).filter(
+    (b: any) =>
+      b.shortName.toLowerCase().includes(bankSearch.toLowerCase()) ||
+      b.code.toLowerCase().includes(bankSearch.toLowerCase()),
   );
 
   const selectedBank = (banksData || []).find((b: any) => b.code === selectedBankCode);
@@ -145,7 +161,7 @@ export default function WithdrawalTab({ stats }: WithdrawalTabProps) {
               </p>
             </div>
           </div>
-          <Link 
+          <Link
             to="/kyc"
             className="px-4 py-2 bg-amber-500 text-white text-sm font-bold rounded-xl whitespace-nowrap hover:bg-amber-600 transition-colors"
           >
@@ -154,11 +170,19 @@ export default function WithdrawalTab({ stats }: WithdrawalTabProps) {
         </div>
       )}
 
-      <div className="relative rounded-3xl p-6 border overflow-hidden" style={{ background: 'var(--color-bg-card)', borderColor: '#3b82f620' }}>
-        <div className="absolute top-0 left-6 right-6 h-px" style={{ background: 'linear-gradient(90deg,transparent,#3b82f660,transparent)' }} />
+      <div
+        className="relative rounded-3xl p-6 border overflow-hidden"
+        style={{ background: 'var(--color-bg-card)', borderColor: '#3b82f620' }}
+      >
+        <div
+          className="absolute top-0 left-6 right-6 h-px"
+          style={{ background: 'linear-gradient(90deg,transparent,#3b82f660,transparent)' }}
+        />
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <p className="text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-1">Số dư khả dụng</p>
+            <p className="text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-1">
+              Số dư khả dụng
+            </p>
             <p className="text-4xl font-black text-blue-500">{formatVND(availableBalance)}</p>
             {(stats?.pendingWithdrawalAmount || 0) > 0 && (
               <p className="text-[12px] text-amber-500 font-bold mt-1 flex items-center gap-1">
@@ -208,46 +232,70 @@ export default function WithdrawalTab({ stats }: WithdrawalTabProps) {
                 <h4 className="font-black text-sm text-[var(--color-text-primary)]">Thêm tài khoản ngân hàng mới</h4>
 
                 <div>
-                  <label className="text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-2 block">Chọn ngân hàng</label>
+                  <label className="text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-2 block">
+                    Chọn ngân hàng
+                  </label>
                   <div className="relative mb-2">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+                    <Search
+                      size={14}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
+                    />
                     <input
                       type="text"
                       value={bankSearch}
                       onFocus={() => setIsBankFocused(true)}
                       onBlur={() => setTimeout(() => setIsBankFocused(false), 200)}
-                      onChange={e => setBankSearch(e.target.value)}
+                      onChange={(e) => setBankSearch(e.target.value)}
                       placeholder="Chọn hoặc tìm ngân hàng..."
                       className=" w-full pl-9 pr-10 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-sm text-[var(--color-text-primary)] outline-none focus:border-blue-500 transition-colors"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--color-text-muted)]">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="m6 9 6 6 6-6" />
+                      </svg>
                     </div>
                   </div>
-                  
+
                   {/* Bank dropdown list - Show when focused and no bank selected */}
-                  {(isBankFocused && !selectedBankCode) && (
+                  {isBankFocused && !selectedBankCode && (
                     <div className="max-h-60 overflow-y-auto rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] shadow-xl divide-y divide-[var(--color-border)] z-10 relative">
                       {filteredBanks.map((bank: any) => (
                         <button
                           key={bank.code}
-                          onClick={() => { 
-                            setSelectedBankCode(bank.code); 
-                            setBankSearch(bank.shortName); 
+                          onClick={() => {
+                            setSelectedBankCode(bank.code);
+                            setBankSearch(bank.shortName);
                           }}
                           className="w-full flex items-center gap-3 px-4 py-3 hover:bg-blue-500/5 transition-colors text-left group"
                         >
                           <div className="w-10 h-10 bg-white rounded-lg p-1 border border-[var(--color-border)] group-hover:border-blue-500/30 transition-all shrink-0 flex items-center justify-center">
-                            <img src={bank.logo} alt={bank.shortName} className="max-w-full max-h-full object-contain" />
+                            <img
+                              src={bank.logo}
+                              alt={bank.shortName}
+                              className="max-w-full max-h-full object-contain"
+                            />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-black text-[var(--color-text-primary)] truncate">{bank.shortName}</p>
+                            <p className="text-sm font-black text-[var(--color-text-primary)] truncate">
+                              {bank.shortName}
+                            </p>
                             <p className="text-[10px] text-[var(--color-text-muted)] truncate">{bank.name}</p>
                           </div>
                         </button>
                       ))}
                       {filteredBanks.length === 0 && (
-                        <p className="px-4 py-6 text-sm text-[var(--color-text-muted)] text-center italic font-medium">Không tìm thấy ngân hàng</p>
+                        <p className="px-4 py-6 text-sm text-[var(--color-text-muted)] text-center italic font-medium">
+                          Không tìm thấy ngân hàng
+                        </p>
                       )}
                     </div>
                   )}
@@ -255,14 +303,21 @@ export default function WithdrawalTab({ stats }: WithdrawalTabProps) {
                   {selectedBank && (
                     <div className="flex items-center gap-3 mt-2 px-4 py-3 rounded-2xl bg-blue-500/10 border border-blue-500/25 animate-in fade-in slide-in-from-top-1 duration-300">
                       <div className="w-10 h-10 bg-white rounded-lg p-1 border border-blue-500/20 shrink-0 flex items-center justify-center">
-                        <img src={selectedBank.logo} alt={selectedBank.shortName} className="max-w-full max-h-full object-contain" />
+                        <img
+                          src={selectedBank.logo}
+                          alt={selectedBank.shortName}
+                          className="max-w-full max-h-full object-contain"
+                        />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-black text-blue-500 truncate">{selectedBank.shortName}</p>
                         <p className="text-[10px] text-[var(--color-text-muted)] truncate">{selectedBank.name}</p>
                       </div>
-                      <button 
-                        onClick={() => { setSelectedBankCode(''); setBankSearch(''); }} 
+                      <button
+                        onClick={() => {
+                          setSelectedBankCode('');
+                          setBankSearch('');
+                        }}
                         className="p-2 rounded-lg text-[var(--color-text-muted)] hover:text-rose-500 hover:bg-rose-500/10 transition-all"
                       >
                         <X size={18} />
@@ -273,17 +328,21 @@ export default function WithdrawalTab({ stats }: WithdrawalTabProps) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-2 block">Số tài khoản</label>
+                    <label className="text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-2 block">
+                      Số tài khoản
+                    </label>
                     <input
                       type="text"
                       value={accountNumber}
-                      onChange={e => setAccountNumber(e.target.value)}
+                      onChange={(e) => setAccountNumber(e.target.value)}
                       placeholder="VD: 1234567890"
                       className="w-full px-4 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-sm font-mono text-[var(--color-text-primary)] outline-none focus:border-blue-500 transition-colors"
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-2 block">Tên chủ tài khoản</label>
+                    <label className="text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-2 block">
+                      Tên chủ tài khoản
+                    </label>
                     <input
                       type="text"
                       value={kyc?.kycName || ''}
@@ -296,14 +355,19 @@ export default function WithdrawalTab({ stats }: WithdrawalTabProps) {
 
                 <div className="flex gap-3 pt-2">
                   <button
-                    onClick={() => addBankMutation.mutate({ bankCode: selectedBankCode, accountNumber, accountName: kyc?.kycName })}
+                    onClick={() =>
+                      addBankMutation.mutate({ bankCode: selectedBankCode, accountNumber, accountName: kyc?.kycName })
+                    }
                     disabled={!selectedBankCode || !accountNumber || !kyc?.kycName || addBankMutation.isPending}
                     className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-sm hover:bg-blue-500 transition-all disabled:opacity-50"
                   >
                     {addBankMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
                     Lưu tài khoản
                   </button>
-                  <button onClick={() => setShowAddBank(false)} className="px-6 py-2.5 rounded-xl border border-[var(--color-border)] text-sm font-bold text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] transition-all">
+                  <button
+                    onClick={() => setShowAddBank(false)}
+                    className="px-6 py-2.5 rounded-xl border border-[var(--color-border)] text-sm font-bold text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] transition-all"
+                  >
                     Hủy
                   </button>
                 </div>
@@ -313,11 +377,15 @@ export default function WithdrawalTab({ stats }: WithdrawalTabProps) {
         </AnimatePresence>
 
         {loadingAccounts ? (
-          <div className="flex justify-center py-8"><Loader2 className="animate-spin text-blue-500" /></div>
+          <div className="flex justify-center py-8">
+            <Loader2 className="animate-spin text-blue-500" />
+          </div>
         ) : bankAccounts.length === 0 ? (
           <div className="text-center py-10 bg-[var(--color-bg-card)] rounded-2xl border border-[var(--color-border)]">
             <CreditCard className="w-10 h-10 text-[var(--color-text-muted)] opacity-20 mx-auto mb-3" />
-            <p className="text-[var(--color-text-muted)] font-bold text-sm">Chưa có tài khoản ngân hàng nào. Thêm để có thể rút tiền!</p>
+            <p className="text-[var(--color-text-muted)] font-bold text-sm">
+              Chưa có tài khoản ngân hàng nào. Thêm để có thể rút tiền!
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -333,7 +401,11 @@ export default function WithdrawalTab({ stats }: WithdrawalTabProps) {
                 }`}
               >
                 {acc.bankLogo && (
-                  <img src={acc.bankLogo} alt={acc.bankShortName} className="w-10 h-10 object-contain rounded-xl shrink-0" />
+                  <img
+                    src={acc.bankLogo}
+                    alt={acc.bankShortName}
+                    className="w-10 h-10 object-contain rounded-xl shrink-0"
+                  />
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -388,17 +460,22 @@ export default function WithdrawalTab({ stats }: WithdrawalTabProps) {
             >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-black text-[var(--color-text-primary)]">Yêu cầu rút tiền</h3>
-                <button onClick={() => setShowWithdrawForm(false)} className="p-2 rounded-xl hover:bg-[var(--color-bg-secondary)] transition-all">
+                <button
+                  onClick={() => setShowWithdrawForm(false)}
+                  className="p-2 rounded-xl hover:bg-[var(--color-bg-secondary)] transition-all"
+                >
                   <X size={20} />
                 </button>
               </div>
 
               <div className="space-y-5">
                 <div>
-                  <label className="text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-2 block">Tài khoản nhận</label>
+                  <label className="text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-2 block">
+                    Tài khoản nhận
+                  </label>
                   <select
                     value={selectedBankAccountId}
-                    onChange={e => setSelectedBankAccountId(e.target.value)}
+                    onChange={(e) => setSelectedBankAccountId(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-sm font-bold text-[var(--color-text-primary)] outline-none focus:border-blue-500 transition-colors"
                   >
                     <option value="">-- Chọn tài khoản --</option>
@@ -417,7 +494,7 @@ export default function WithdrawalTab({ stats }: WithdrawalTabProps) {
                   <input
                     type="number"
                     value={withdrawAmount}
-                    onChange={e => setWithdrawAmount(e.target.value)}
+                    onChange={(e) => setWithdrawAmount(e.target.value)}
                     placeholder="Tối thiểu 50.000đ"
                     min={50000}
                     max={availableBalance}
@@ -430,8 +507,18 @@ export default function WithdrawalTab({ stats }: WithdrawalTabProps) {
                 </div>
 
                 <button
-                  onClick={() => withdrawMutation.mutate({ bankAccountId: selectedBankAccountId, amount: parseFloat(withdrawAmount) })}
-                  disabled={!selectedBankAccountId || !withdrawAmount || parseFloat(withdrawAmount) < 50000 || withdrawMutation.isPending}
+                  onClick={() =>
+                    withdrawMutation.mutate({
+                      bankAccountId: selectedBankAccountId,
+                      amount: parseFloat(withdrawAmount),
+                    })
+                  }
+                  disabled={
+                    !selectedBankAccountId ||
+                    !withdrawAmount ||
+                    parseFloat(withdrawAmount) < 50000 ||
+                    withdrawMutation.isPending
+                  }
                   className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-600/25 active:scale-95 transition-all disabled:opacity-50"
                 >
                   {withdrawMutation.isPending ? <Loader2 size={18} className="animate-spin" /> : <Banknote size={18} />}
@@ -448,7 +535,9 @@ export default function WithdrawalTab({ stats }: WithdrawalTabProps) {
           <Banknote size={18} className="text-blue-500" /> Lịch sử rút tiền
         </h3>
         {loadingWithdrawals ? (
-          <div className="flex justify-center py-8"><Loader2 className="animate-spin text-blue-500" /></div>
+          <div className="flex justify-center py-8">
+            <Loader2 className="animate-spin text-blue-500" />
+          </div>
         ) : withdrawals.length === 0 ? (
           <div className="text-center py-10 bg-[var(--color-bg-card)] rounded-2xl border border-[var(--color-border)]">
             <Banknote className="w-10 h-10 text-[var(--color-text-muted)] opacity-20 mx-auto mb-3" />
@@ -459,10 +548,18 @@ export default function WithdrawalTab({ stats }: WithdrawalTabProps) {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-[var(--color-bg-secondary)]/50 border-b border-[var(--color-border)]">
-                  <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest">Ngân hàng</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest text-right">Số tiền</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest text-center">Trạng thái</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest text-right">Ngày gửi</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest">
+                    Ngân hàng
+                  </th>
+                  <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest text-right">
+                    Số tiền
+                  </th>
+                  <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest text-center">
+                    Trạng thái
+                  </th>
+                  <th className="px-6 py-4 text-[10px] font-black text-[var(--color-text-muted)] uppercase tracking-widest text-right">
+                    Ngày gửi
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--color-border)]">
@@ -474,15 +571,21 @@ export default function WithdrawalTab({ stats }: WithdrawalTabProps) {
                           <img src={w.bankAccount.bankLogo} alt="" className="w-8 h-8 object-contain rounded" />
                         )}
                         <div>
-                          <p className="text-sm font-bold text-[var(--color-text-primary)]">{w.bankAccount?.bankShortName}</p>
-                          <p className="text-[11px] font-mono text-[var(--color-text-muted)]">{w.bankAccount?.accountNumber}</p>
+                          <p className="text-sm font-bold text-[var(--color-text-primary)]">
+                            {w.bankAccount?.bankShortName}
+                          </p>
+                          <p className="text-[11px] font-mono text-[var(--color-text-muted)]">
+                            {w.bankAccount?.accountNumber}
+                          </p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right font-black text-[var(--color-text-primary)]">
                       {formatVND(w.amount)}
                     </td>
-                    <td className="px-6 py-4 text-center"><WithdrawalStatusBadge status={w.status} /></td>
+                    <td className="px-6 py-4 text-center">
+                      <WithdrawalStatusBadge status={w.status} />
+                    </td>
                     <td className="px-6 py-4 text-right text-[11px] text-[var(--color-text-muted)] font-medium">
                       {new Date(w.createdAt).toLocaleDateString('vi-VN')}
                     </td>

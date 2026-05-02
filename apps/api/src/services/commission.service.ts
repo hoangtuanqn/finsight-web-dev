@@ -4,7 +4,7 @@ function getCommissionRate(): number {
   const rate = parseFloat(process.env.AFFILIATE_COMMISSION_RATE || '0.10');
   if (isNaN(rate) || rate < 0 || rate > 1) {
     console.warn('[Commission] AFFILIATE_COMMISSION_RATE không hợp lệ, dùng mặc định 10%');
-    return 0.10;
+    return 0.1;
   }
   return rate;
 }
@@ -54,8 +54,8 @@ export async function processReferralCommission(
 
     console.log(
       `[Commission] ✅ +${commissionAmount.toLocaleString('vi-VN')}đ cho user ${referrerId}` +
-      ` | ${(commissionRate * 100).toFixed(0)}% của ${amount.toLocaleString('vi-VN')}đ (${plan})` +
-      ` | payer: ${payerId} | tx: ${transactionId}`
+        ` | ${(commissionRate * 100).toFixed(0)}% của ${amount.toLocaleString('vi-VN')}đ (${plan})` +
+        ` | payer: ${payerId} | tx: ${transactionId}`,
     );
   } catch (err: any) {
     console.error(`[Commission] ❌ Lỗi khi xử lý hoa hồng cho payer ${payerId}:`, err.message);

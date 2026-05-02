@@ -1,10 +1,12 @@
-import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Trash2, MessageSquare } from 'lucide-react';
+import { MessageSquare, Trash2 } from 'lucide-react';
 
 export default function ChatHistory({ sessions, onSelect, onDelete, onNew, currentSessionId }) {
   return (
-    <div className="flex flex-col h-full" style={{ background: 'var(--color-bg-secondary)', borderRight: '1px solid var(--color-border)' }}>
+    <div
+      className="flex flex-col h-full"
+      style={{ background: 'var(--color-bg-secondary)', borderRight: '1px solid var(--color-border)' }}
+    >
       {/* New Chat Button */}
       <div className="p-3">
         <button
@@ -23,7 +25,7 @@ export default function ChatHistory({ sessions, onSelect, onDelete, onNew, curre
             Chưa có cuộc trò chuyện nào
           </p>
         )}
-        
+
         {sessions.map((s) => (
           <motion.div
             key={s.id}
@@ -44,7 +46,10 @@ export default function ChatHistory({ sessions, onSelect, onDelete, onNew, curre
               <p className="text-[10px] opacity-40 mt-0.5">{s._count?.messages || 0} tin nhắn</p>
             </div>
             <button
-              onClick={(e) => { e.stopPropagation(); onDelete(s.id); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(s.id);
+              }}
               className="opacity-0 group-hover:opacity-70 hover:!opacity-100 p-1 rounded-lg hover:bg-rose-500/10 transition-all"
               style={{ color: 'var(--color-text-secondary)' }}
               title="Xóa"

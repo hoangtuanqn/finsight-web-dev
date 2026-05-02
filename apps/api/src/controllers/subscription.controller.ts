@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
-import prisma from '../lib/prisma';
-import { success, error } from '../utils/apiResponse';
 import { checkSepayPayments } from '../cron/jobs/payment.job';
+import prisma from '../lib/prisma';
 import { AuthenticatedRequest } from '../types';
+import { error, success } from '../utils/apiResponse';
 
 const PLAN_PRICES: Record<string, number> = {
   PRO: 49000,
@@ -16,7 +16,7 @@ const INVOICE_EXPIRY_HOURS = 24;
 const LEVEL_RANKS: Record<string, number> = {
   BASIC: 0,
   PRO: 1,
-  PROMAX: 2
+  PROMAX: 2,
 };
 
 function generateQrUrl(plan: string, amount: number, transferCode: string) {
@@ -51,7 +51,7 @@ export async function createInvoice(req: AuthenticatedRequest, res: Response) {
 
     const user = await (prisma as any).user.findUnique({
       where: { id: req.userId },
-      select: { level: true }
+      select: { level: true },
     });
 
     if (user && LEVEL_RANKS[plan] <= LEVEL_RANKS[user.level]) {

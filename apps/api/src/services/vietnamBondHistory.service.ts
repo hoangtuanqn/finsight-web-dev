@@ -25,34 +25,38 @@ let vbmaAuctionCache: CacheData = { data: null, fetchedAt: 0, months: 0 };
 
 function fetchVbmaHtml(url: string, redirectsLeft: number = 2): Promise<{ status: number; body: string }> {
   return new Promise((resolve, reject) => {
-    const request = https.get(url, {
-      rejectUnauthorized: false,
-      timeout: VBMA_FETCH_TIMEOUT_MS,
-      headers: {
-        'User-Agent': 'Mozilla/5.0',
-        Accept: 'text/html',
-        'Accept-Encoding': 'identity',
+    const request = https.get(
+      url,
+      {
+        rejectUnauthorized: false,
+        timeout: VBMA_FETCH_TIMEOUT_MS,
+        headers: {
+          'User-Agent': 'Mozilla/5.0',
+          Accept: 'text/html',
+          'Accept-Encoding': 'identity',
+        },
       },
-    }, (response) => {
-      const status = response.statusCode || 0;
-      const location = response.headers.location;
+      (response) => {
+        const status = response.statusCode || 0;
+        const location = response.headers.location;
 
-      if (status >= 300 && status < 400 && location && redirectsLeft > 0) {
-        response.resume();
-        const redirectedUrl = new URL(location, url).toString();
-        resolve(fetchVbmaHtml(redirectedUrl, redirectsLeft - 1));
-        return;
-      }
+        if (status >= 300 && status < 400 && location && redirectsLeft > 0) {
+          response.resume();
+          const redirectedUrl = new URL(location, url).toString();
+          resolve(fetchVbmaHtml(redirectedUrl, redirectsLeft - 1));
+          return;
+        }
 
-      let body = '';
-      response.setEncoding('utf8');
-      response.on('data', (chunk) => {
-        body += chunk;
-      });
-      response.on('end', () => {
-        resolve({ status, body });
-      });
-    });
+        let body = '';
+        response.setEncoding('utf8');
+        response.on('data', (chunk) => {
+          body += chunk;
+        });
+        response.on('end', () => {
+          resolve({ status, body });
+        });
+      },
+    );
 
     request.on('timeout', () => {
       request.destroy(new Error('VBMA request timed out'));
@@ -90,12 +94,9 @@ function buildDateSlugVariants(date: Date): string[] {
   const dd = String(day).padStart(2, '0');
   const mm = String(month).padStart(2, '0');
 
-  return [...new Set([
-    `${day}-${month}-${year}`,
-    `${dd}-${month}-${year}`,
-    `${day}-${mm}-${year}`,
-    `${dd}-${mm}-${year}`,
-  ])];
+  return [
+    ...new Set([`${day}-${month}-${year}`, `${dd}-${month}-${year}`, `${day}-${mm}-${year}`, `${dd}-${mm}-${year}`]),
+  ];
 }
 
 function buildVbmaAuctionUrls(date: Date): string[] {
@@ -194,12 +195,13 @@ async function mapLimit<T, R>(items: T[], limit: number, mapper: (item: T, index
 }
 
 function aggregateMonthlyAuctions(auctionRows: any[]): Record<string, any[]> {
-  const byTenor: Record<number, Map<string, any>> = Object.fromEntries(VBMA_TARGET_TENORS.map((tenor) => [tenor, new Map()]));
+  const byTenor: Record<number, Map<string, any>> = Object.fromEntries(
+    VBMA_TARGET_TENORS.map((tenor) => [tenor, new Map()]),
+  );
 
-  const sortedRows: BondYieldRow[] = (auctionRows
-    .filter(Boolean)
-    .flatMap((yields) => Object.values(yields)) as BondYieldRow[])
-    .sort((a: any, b: any) => a.date.localeCompare(b.date));
+  const sortedRows: BondYieldRow[] = (
+    auctionRows.filter(Boolean).flatMap((yields) => Object.values(yields)) as BondYieldRow[]
+  ).sort((a: any, b: any) => a.date.localeCompare(b.date));
 
   for (const row of sortedRows) {
     byTenor[row.tenor].set(row.month, {
@@ -210,9 +212,7 @@ function aggregateMonthlyAuctions(auctionRows: any[]): Record<string, any[]> {
     });
   }
 
-  return Object.fromEntries(
-    VBMA_TARGET_TENORS.map((tenor) => [String(tenor), [...byTenor[tenor].values()]])
-  );
+  return Object.fromEntries(VBMA_TARGET_TENORS.map((tenor) => [String(tenor), [...byTenor[tenor].values()]]));
 }
 
 export function getLatestVietnamGovBondYields(history: any) {
@@ -222,16 +222,16 @@ export function getLatestVietnamGovBondYields(history: any) {
       const series = seriesByTenor[String(tenor)] || [];
       const latest = series.at(-1);
       return [tenor, latest?.value ?? null];
-    })
+    }),
   );
 }
 
 export async function fetchVietnamGovBondAuctionHistory(months: number = 18) {
   const now = Date.now();
   if (
-    vbmaAuctionCache.data
-    && vbmaAuctionCache.months >= months
-    && now - vbmaAuctionCache.fetchedAt < VBMA_CACHE_TTL_MS
+    vbmaAuctionCache.data &&
+    vbmaAuctionCache.months >= months &&
+    now - vbmaAuctionCache.fetchedAt < VBMA_CACHE_TTL_MS
   ) {
     return { ...vbmaAuctionCache.data, cached: true };
   }

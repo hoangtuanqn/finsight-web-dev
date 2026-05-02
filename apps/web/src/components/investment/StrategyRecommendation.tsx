@@ -1,5 +1,4 @@
-import React from 'react';
-import { Bot, TrendingUp, AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Bot, TrendingUp } from 'lucide-react';
 
 interface MarketView {
   id: string;
@@ -20,7 +19,7 @@ export default function StrategyRecommendation({ recommendation, views }: Props)
 
   // Chỉ giữ view từ tin tức vĩ mô (macro_*) — view sentiment_* đã được tóm tắt trong câu khuyến nghị
   const macroViews = Array.isArray(views)
-    ? views.filter(v => v?.description && String(v.id).startsWith('macro_'))
+    ? views.filter((v) => v?.description && String(v.id).startsWith('macro_'))
     : [];
 
   return (
@@ -50,14 +49,13 @@ export default function StrategyRecommendation({ recommendation, views }: Props)
               return (
                 <div key={view.id} className="flex items-start gap-3">
                   <div className="mt-0.5 p-1.5 rounded-lg bg-white/5 shrink-0">
-                    {isPositive
-                      ? <TrendingUp size={13} className="text-emerald-400" />
-                      : <AlertTriangle size={13} className="text-amber-400" />
-                    }
+                    {isPositive ? (
+                      <TrendingUp size={13} className="text-emerald-400" />
+                    ) : (
+                      <AlertTriangle size={13} className="text-amber-400" />
+                    )}
                   </div>
-                  <p className="text-sm text-slate-300 leading-relaxed">
-                    {view.description}
-                  </p>
+                  <p className="text-sm text-slate-300 leading-relaxed">{view.description}</p>
                 </div>
               );
             })}

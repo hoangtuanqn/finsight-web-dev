@@ -6,7 +6,7 @@ function getToken() {
 
 function authHeaders() {
   return {
-    'Authorization': `Bearer ${getToken()}`,
+    Authorization: `Bearer ${getToken()}`,
     'Content-Type': 'application/json',
   };
 }
@@ -68,7 +68,9 @@ export async function streamChat(message, sessionId, onToken, onDone, onError, o
           } else if (json.error) {
             onError?.(json.error);
           }
-        } catch { /* skip malformed JSON */ }
+        } catch {
+          /* skip malformed JSON */
+        }
       }
     }
   } catch (err) {

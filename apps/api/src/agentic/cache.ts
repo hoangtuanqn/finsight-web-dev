@@ -6,7 +6,10 @@ const memoryCache = new Map<string, { response: string; timestamp: number }>();
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 const normalizeQuery = (query: string): string => {
-  return query.toLowerCase().replace(/[.,!?]/g, '').trim();
+  return query
+    .toLowerCase()
+    .replace(/[.,!?]/g, '')
+    .trim();
 };
 
 const hashQuery = (text: string): string => {

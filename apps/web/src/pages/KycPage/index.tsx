@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Shield } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { useKycStatus } from '../../hooks/useKycQuery';
+import KycResultScreen from './components/KycResultScreen';
 import KycStepper from './components/KycStepper';
 import Step1_IdCapture from './components/Step1_IdCapture';
 import Step2_LivenessCapture from './components/Step2_LivenessCapture';
 import Step3_Review from './components/Step3_Review';
-import KycResultScreen from './components/KycResultScreen';
-import { useAuth } from '../../context/AuthContext';
 
 export default function KycPage() {
   const navigate = useNavigate();
@@ -52,7 +52,6 @@ export default function KycPage() {
 
   return (
     <div className="flex-1 p-4 lg:p-8 max-w-4xl mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
-      
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-[var(--color-text-primary)] flex items-center gap-3">
@@ -69,19 +68,19 @@ export default function KycPage() {
 
         <div className="mt-10">
           {step === 1 && (
-            <Step1_IdCapture 
+            <Step1_IdCapture
               initialFront={frontImage}
               initialBack={backImage}
               onNext={(front, back) => {
                 setFrontImage(front);
                 setBackImage(back);
                 setStep(2);
-              }} 
+              }}
             />
           )}
 
           {step === 2 && (
-            <Step2_LivenessCapture 
+            <Step2_LivenessCapture
               initialVideo={videoFile}
               onBack={() => setStep(1)}
               onNext={(video) => {
@@ -92,7 +91,7 @@ export default function KycPage() {
           )}
 
           {step === 3 && frontImage && backImage && videoFile && (
-            <Step3_Review 
+            <Step3_Review
               frontImage={frontImage}
               backImage={backImage}
               videoFile={videoFile}
@@ -102,7 +101,6 @@ export default function KycPage() {
           )}
         </div>
       </div>
-
     </div>
   );
 }

@@ -1,15 +1,15 @@
-import { useRef, useCallback, useEffect } from "react";
-import type { FaceChallenge } from "../pages/KycPage/components/FaceGuide3D";
+import { useCallback, useEffect, useRef } from 'react';
+import type { FaceChallenge } from '../pages/KycPage/components/FaceGuide3D';
 
 // ─── Audio file mapping ───────────────────────────────────────────────────────
 // Files live in apps/web/public/voices/
 const CHALLENGE_SOUNDS: Partial<Record<FaceChallenge, string>> = {
-  look_up:       '/voices/on.mp3',
-  look_down:     '/voices/below.mp3',
-  look_left:     '/voices/left.mp3',
-  look_right:    '/voices/right.mp3',
-  look_straight: '/voices/straight.mp3',   // ← new
-  open_mouth:    '/voices/open-mouth.mp3', // ← new
+  look_up: '/voices/on.mp3',
+  look_down: '/voices/below.mp3',
+  look_left: '/voices/left.mp3',
+  look_right: '/voices/right.mp3',
+  look_straight: '/voices/straight.mp3', // ← new
+  open_mouth: '/voices/open-mouth.mp3', // ← new
 };
 
 const SOUND_HOLD = '/voices/keep-the-same.mp3';
@@ -34,12 +34,7 @@ export function useVoiceGuide() {
   const play = useCallback(
     (src: string) => {
       // Avoid restarting the same sound if it's already playing
-      if (
-        playingRef.current === src &&
-        audioRef.current &&
-        !audioRef.current.paused
-      )
-        return;
+      if (playingRef.current === src && audioRef.current && !audioRef.current.paused) return;
 
       stop();
 
@@ -56,7 +51,7 @@ export function useVoiceGuide() {
 
       // Browsers may block autoplay — catch silently
       audio.play().catch(() => {
-        console.warn("[VoiceGuide] Autoplay blocked for:", src);
+        console.warn('[VoiceGuide] Autoplay blocked for:', src);
       });
     },
     [stop],

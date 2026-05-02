@@ -1,7 +1,7 @@
 import prisma from '../../lib/prisma';
-import { getIO } from '../../utils/socket';
-import { fetchSepayTransactions } from '../../services/sepay.service';
 import { processReferralCommission } from '../../services/commission.service';
+import { fetchSepayTransactions } from '../../services/sepay.service';
+import { getIO } from '../../utils/socket';
 
 export async function checkSepayPayments() {
   const apiToken = process.env.SEPAY_API_TOKEN;
@@ -32,8 +32,8 @@ export async function checkSepayPayments() {
       if (alreadyProcessed) continue;
 
       const amountIn = parseFloat(tx.amount_in || '0');
-      const invoice = pendingInvoices.find((inv: any) =>
-        content.includes(inv.transferCode.toUpperCase()) && amountIn >= inv.amount,
+      const invoice = pendingInvoices.find(
+        (inv: any) => content.includes(inv.transferCode.toUpperCase()) && amountIn >= inv.amount,
       );
 
       if (!invoice) continue;
@@ -53,7 +53,7 @@ export async function checkSepayPayments() {
         }),
         (prisma as any).referral.updateMany({
           where: { referredId: invoice.userId, status: 'PENDING' },
-          data: { hasToppedUp: true }
+          data: { hasToppedUp: true },
         }),
         (prisma as any).notification.create({
           data: {
@@ -68,12 +68,7 @@ export async function checkSepayPayments() {
 
       console.log(`[Payment] ✅ Activated ${invoice.plan} for user ${invoice.userId} (ref: ${sepayRefId})`);
 
-      await processReferralCommission(
-        invoice.userId,
-        invoice.amount,
-        invoice.plan,
-        invoice.id,
-      );
+      await processReferralCommission(invoice.userId, invoice.amount, invoice.plan, invoice.id);
 
       try {
         const io = getIO();
@@ -83,7 +78,7 @@ export async function checkSepayPayments() {
             message: `Tài khoản đã được nâng cấp lên gói ${invoice.plan}.`,
           });
         }
-      } catch { }
+      } catch {}
     }
   } catch (err: any) {
     if (err.response?.status === 429) {

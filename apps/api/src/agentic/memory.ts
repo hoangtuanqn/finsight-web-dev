@@ -1,6 +1,6 @@
-import prisma from "../lib/prisma";
-import { HumanMessage, AIMessage, SystemMessage, BaseMessage } from "@langchain/core/messages";
-import { getChatModel } from "./llm-provider";
+import { AIMessage, BaseMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
+import prisma from '../lib/prisma';
+import { getChatModel } from './llm-provider';
 
 export const getOrCreateSession = async (userId: string, sessionId: string | null = null) => {
   if (sessionId) {
@@ -11,19 +11,25 @@ export const getOrCreateSession = async (userId: string, sessionId: string | nul
   }
 
   return (prisma as any).chatSession.create({
-    data: { userId, title: "Cuộc trò chuyện mới" },
+    data: { userId, title: 'Cuộc trò chuyện mới' },
   });
 };
 
-export const saveMessage = async (sessionId: string, role: string, content: string, actionType: string | null = null, payload: any = null) => {
+export const saveMessage = async (
+  sessionId: string,
+  role: string,
+  content: string,
+  actionType: string | null = null,
+  payload: any = null,
+) => {
   return (prisma as any).chatMessage.create({
     data: {
       sessionId,
       role,
       content,
       actionType,
-      payload
-    }
+      payload,
+    },
   });
 };
 
@@ -31,19 +37,19 @@ async function summarizeOldHistory(oldMessages: any[]): Promise<string> {
   try {
     const model = getChatModel({ temperature: 0.1, streaming: false, maxTokens: 256 });
 
-    const transcript = oldMessages.map(m => {
-      const role = m.role === 'user' ? 'Người dùng' : 'AI';
-      const content = m.content.length > 200
-        ? m.content.substring(0, 200) + '...'
-        : m.content;
-      return `${role}: ${content}`;
-    }).join('\n');
+    const transcript = oldMessages
+      .map((m) => {
+        const role = m.role === 'user' ? 'Người dùng' : 'AI';
+        const content = m.content.length > 200 ? m.content.substring(0, 200) + '...' : m.content;
+        return `${role}: ${content}`;
+      })
+      .join('\n');
 
     const response = await model.invoke([
       new SystemMessage(
         `Bạn là trợ lý tóm tắt. Hãy tóm tắt cuộc hội thoại sau thành 2-3 câu ngắn gọn bằng tiếng Việt. 
 Tập trung vào: thông tin khoản nợ đã khai báo, số liệu quan trọng, và các quyết định đã thực hiện.
-CHỈ trả về bản tóm tắt, không thêm lời giải thích.`
+CHỈ trả về bản tóm tắt, không thêm lời giải thích.`,
       ),
       new HumanMessage(transcript),
     ]);
@@ -51,14 +57,20 @@ CHỈ trả về bản tóm tắt, không thêm lời giải thích.`
     return (response.content as string).trim();
   } catch (err: any) {
     console.error('[Memory] Summarization failed:', err.message);
-    return oldMessages.map(m => {
-      const role = m.role === 'user' ? '[User]' : '[AI]';
-      return `${role}: ${m.content.substring(0, 80)}...`;
-    }).join('\n');
+    return oldMessages
+      .map((m) => {
+        const role = m.role === 'user' ? '[User]' : '[AI]';
+        return `${role}: ${m.content.substring(0, 80)}...`;
+      })
+      .join('\n');
   }
 }
 
-export const getSessionHistory = async (sessionId: string, limit: number = 10, summarize: boolean = true): Promise<BaseMessage[]> => {
+export const getSessionHistory = async (
+  sessionId: string,
+  limit: number = 10,
+  summarize: boolean = true,
+): Promise<BaseMessage[]> => {
   const messages = await (prisma as any).chatMessage.findMany({
     where: { sessionId },
     orderBy: { createdAt: 'desc' },
@@ -76,15 +88,15 @@ export const getSessionHistory = async (sessionId: string, limit: number = 10, s
 
     return [
       new SystemMessage(`[Tóm tắt hội thoại trước đó]:\n${summary}`),
-      ...recentMessages.map(m => mapDbMessageToLangChain(m)),
+      ...recentMessages.map((m) => mapDbMessageToLangChain(m)),
     ];
   }
 
   return messages.map((m: any) => mapDbMessageToLangChain(m));
 };
 
-const WINDOW_SIZE = 8;       
-const DB_FETCH_LIMIT = 16;   
+const WINDOW_SIZE = 8;
+const DB_FETCH_LIMIT = 16;
 
 function sanitizeAIContent(msg: any): string {
   const content = msg.content || '';
@@ -107,9 +119,7 @@ function sanitizeAIContent(msg: any): string {
   }
 
   const firstSentence = content.split(/[.\n]/)[0].trim();
-  const truncated = firstSentence.length > 80
-    ? firstSentence.substring(0, 77) + '...'
-    : firstSentence;
+  const truncated = firstSentence.length > 80 ? firstSentence.substring(0, 77) + '...' : firstSentence;
   return `(Trợ lý đã trả lời: ${truncated})`;
 }
 
@@ -134,24 +144,26 @@ export const getCompactHistory = async (sessionId: string): Promise<BaseMessage[
     summaryPart = await summarizeOldHistory(oldPart);
   }
 
-  const lines = detailMessages.map((m: any) => {
-    if (m.role === 'user') {
-      let content = m.content;
-      if (content.length > 300) {
-        const ocrMatch = content.match(/Yêu cầu của tôi:\s*(.+)/s);
-        if (ocrMatch) {
-          content = `(ảnh đính kèm) ${ocrMatch[1].trim().substring(0, 200)}`;
-        } else {
-          content = content.substring(0, 300) + '...';
+  const lines = detailMessages
+    .map((m: any) => {
+      if (m.role === 'user') {
+        let content = m.content;
+        if (content.length > 300) {
+          const ocrMatch = content.match(/Yêu cầu của tôi:\s*(.+)/s);
+          if (ocrMatch) {
+            content = `(ảnh đính kèm) ${ocrMatch[1].trim().substring(0, 200)}`;
+          } else {
+            content = content.substring(0, 300) + '...';
+          }
         }
+        return `- Người dùng: ${content}`;
       }
-      return `- Người dùng: ${content}`;
-    }
-    if (m.role === 'assistant') {
-      return `- Hệ thống: ${sanitizeAIContent(m)}`;
-    }
-    return null;
-  }).filter(Boolean);
+      if (m.role === 'assistant') {
+        return `- Hệ thống: ${sanitizeAIContent(m)}`;
+      }
+      return null;
+    })
+    .filter(Boolean);
 
   let contextBlock = '=== NGỮ CẢNH HỘI THOẠI (chỉ để tham khảo, KHÔNG sao chép) ===\n';
 
@@ -175,7 +187,7 @@ function mapDbMessageToLangChain(m: any): BaseMessage {
     return msg;
   }
   if (m.role === 'system') return new SystemMessage(m.content);
-  return new HumanMessage(m.content); 
+  return new HumanMessage(m.content);
 }
 
 export const updateSessionTitle = async (sessionId: string, title: string) => {

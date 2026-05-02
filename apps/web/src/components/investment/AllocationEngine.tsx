@@ -1,9 +1,8 @@
-import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { PieChart as PieIcon, Layers } from 'lucide-react';
-import { COLORS, ASSET_LABELS, TOOLTIP_STYLE } from './InvestmentConstants';
-import { DeltaChip } from './InvestmentUtils';
+import { Layers, PieChart as PieIcon } from 'lucide-react';
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { formatVND } from '../../utils/calculations';
+import { ASSET_LABELS, COLORS, TOOLTIP_STYLE } from './InvestmentConstants';
+import { DeltaChip } from './InvestmentUtils';
 
 export default function AllocationEngine({ pieData, portfolioBreakdown, history = [] }) {
   const prev = history?.[1] || null;
@@ -51,7 +50,7 @@ export default function AllocationEngine({ pieData, portfolioBreakdown, history 
                 ))}
               </Pie>
               <Tooltip
-                contentStyle={{...TOOLTIP_STYLE, borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)'}}
+                contentStyle={{ ...TOOLTIP_STYLE, borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}
                 itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: '600' }}
               />
             </PieChart>
@@ -66,42 +65,32 @@ export default function AllocationEngine({ pieData, portfolioBreakdown, history 
 
         {/* Breakdown List Side */}
         <div className="space-y-2">
-          {portfolioBreakdown.filter(p => p.percentage > 0).map((p, i) => {
-            const assetKey = Object.entries(ASSET_LABELS).find(([, v]) => v === p.asset)?.[0];
-            return (
-              <div
-                key={i}
-                className="group flex items-center justify-between px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all duration-300"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-1 h-7 rounded-full shrink-0"
-                    style={{ background: COLORS[i % COLORS.length] }}
-                  />
-                  <div>
-                    <span className="text-[11px] font-semibold text-slate-400 block mb-0.5">
-                      {p.asset}
-                    </span>
-                    <span className="text-sm font-bold text-white leading-none">
-                      {formatVND(p.amount)}
-                    </span>
+          {portfolioBreakdown
+            .filter((p) => p.percentage > 0)
+            .map((p, i) => {
+              const assetKey = Object.entries(ASSET_LABELS).find(([, v]) => v === p.asset)?.[0];
+              return (
+                <div
+                  key={i}
+                  className="group flex items-center justify-between px-3 py-2.5 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all duration-300"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-1 h-7 rounded-full shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
+                    <div>
+                      <span className="text-[11px] font-semibold text-slate-400 block mb-0.5">{p.asset}</span>
+                      <span className="text-sm font-bold text-white leading-none">{formatVND(p.amount)}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    {assetKey && curr && prev && (
+                      <DeltaChip current={curr[assetKey] ?? p.percentage} previous={prev[assetKey] ?? null} />
+                    )}
+                    <span className="text-base font-bold text-white min-w-[2.5rem] text-right">{p.percentage}%</span>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-3">
-                  {assetKey && curr && prev && (
-                    <DeltaChip
-                      current={curr[assetKey] ?? p.percentage}
-                      previous={prev[assetKey] ?? null}
-                    />
-                  )}
-                  <span className="text-base font-bold text-white min-w-[2.5rem] text-right">
-                    {p.percentage}%
-                  </span>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
         </div>
       </div>
     </div>
