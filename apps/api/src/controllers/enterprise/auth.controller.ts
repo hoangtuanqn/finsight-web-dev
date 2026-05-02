@@ -83,3 +83,86 @@ export const register = async (req: Request, res: Response) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const login = async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      res.status(400).json({ error: 'Thiếu email hoặc mật khẩu' });
+      return;
+    }
+
+    const user = await enterpriseDb.user.findUnique({
+      where: { email },
+      include: { organization: true },
+    });
+
+    if (!user) {
+      res.status(401).json({ error: 'Email hoặc mật khẩu không chính xác' });
+      return;
+    }
+
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isMatch) {
+      res.status(401).json({ error: 'Email hoặc mật khẩu không chính xác' });
+      return;
+    }
+
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, organizationId: user.organizationId, role: 'enterprise' },
+      process.env.JWT_SECRET || 'fallback_secret',
+      { expiresIn: '7d' },
+    );
+
+    res.json({
+      success: true,
+      data: {
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          organizationId: user.organizationId,
+          organization: user.organization,
+        },
+      },
+    });
+  } catch (error: any) {
+    console.error('Enterprise Login Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const me = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const user = await enterpriseDb.user.findUnique({
+      where: { id: userId },
+      include: { organization: true },
+    });
+
+    if (!user) {
+      res.status(404).json({ success: false, error: 'User not found' });
+      return;
+    }
+
+    res.json({
+      success: true,
+      data: {
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          roleTitle: user.roleTitle,
+          phoneNumber: user.phoneNumber,
+          organizationId: user.organizationId,
+          organization: user.organization,
+        },
+      },
+    });
+  } catch (error: any) {
+    console.error('Enterprise Me Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
