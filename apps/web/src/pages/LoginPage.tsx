@@ -108,8 +108,13 @@ export default function LoginPage() {
         transition={{ duration: 0.5 }}
         className="max-w-[1000px] w-full flex bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden relative"
       >
-        {/* LEFT COLUMN - AUTH FORM */}
-        <div className="flex-1 p-8 sm:p-12 lg:p-14 relative z-20 flex flex-col items-center justify-center bg-white dark:bg-slate-900 overflow-hidden">
+        {/* LEFT COLUMN - AUTH FORM (Slides from Right) */}
+        <motion.div 
+          initial={{ x: 500, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="flex-1 p-8 sm:p-12 lg:p-14 relative z-20 flex flex-col items-center justify-center bg-white dark:bg-slate-900 overflow-hidden"
+        >
           
           {/* Aesthetic Soft Blobs */}
           <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-indigo-100/50 dark:bg-indigo-900/20 rounded-full blur-3xl pointer-events-none" />
@@ -148,7 +153,7 @@ export default function LoginPage() {
                       <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-indigo-500 transition-colors duration-300" />
                       <input
                         {...register('email')}
-                        className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.email ? 'border-rose-500' : 'border-transparent'} focus:border-indigo-500/50 rounded-xl pl-11 pr-4 py-3.5 text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all dark:text-white`}
+                        className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.email ? 'border-rose-500' : 'border-transparent'} focus:border-indigo-500/50 rounded-xl pl-11 pr-4 py-3.5 text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all dark:text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#f8fafc] dark:[&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#1e293b] dark:[&:-webkit-autofill]:-webkit-text-fill-color-white`}
                         placeholder="Nhập tên tài khoản"
                       />
                     </div>
@@ -162,7 +167,7 @@ export default function LoginPage() {
                       <input
                         {...register('password')}
                         type={showPassword ? 'text' : 'password'}
-                        className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.password ? 'border-rose-500' : 'border-transparent'} focus:border-indigo-500/50 rounded-xl pl-11 pr-12 py-3.5 text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all dark:text-white`}
+                        className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.password ? 'border-rose-500' : 'border-transparent'} focus:border-indigo-500/50 rounded-xl pl-11 pr-12 py-3.5 text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all dark:text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#f8fafc] dark:[&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#1e293b] dark:[&:-webkit-autofill]:-webkit-text-fill-color-white`}
                         placeholder="Nhập mật khẩu"
                       />
                       <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
@@ -242,10 +247,15 @@ export default function LoginPage() {
             )}
 
           </div>
-        </div>
+        </motion.div>
 
-        {/* RIGHT COLUMN - PROMO */}
-        <div className="hidden lg:flex w-[48%] bg-gradient-to-br from-[#6b4de0] to-[#7c5ff4] relative flex-col items-center justify-center p-14 text-center">
+        {/* RIGHT COLUMN - PROMO (Slides from Left) */}
+        <motion.div 
+          initial={{ x: -500, zIndex: 30 }}
+          animate={{ x: 0 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="hidden lg:flex w-[48%] bg-gradient-to-br from-[#6b4de0] to-[#7c5ff4] relative flex-col items-center justify-center p-14 text-center z-30"
+        >
 
           {/* Subtle Plus Pattern Background */}
           <div
@@ -281,7 +291,7 @@ export default function LoginPage() {
             </Link>
           </div>
 
-        </div>
+        </motion.div>
       </motion.div>
     </div>
   );
