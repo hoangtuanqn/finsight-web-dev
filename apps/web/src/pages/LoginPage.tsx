@@ -1,29 +1,37 @@
-import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useAuth } from '../context/AuthContext';
-import { toast } from 'sonner';
-import SocialLoginButtons from '../components/auth/SocialLoginButtons';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
-  AlertTriangle, Mail, Lock, Eye, EyeOff,
-  ArrowRight, Sparkles, ShieldCheck, Zap,
-  ChevronRight, QrCode, Monitor, Globe, Cpu,
-  User,
+  AlertTriangle,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Lock,
   LogIn,
+  QrCode,
+  ScanFace,
+  ShieldCheck,
+  User,
   UserPlus,
-  Users
+  Users,
 } from 'lucide-react';
-import { ToggleMode } from '../components/layout/components/ToggleMode';
-import { useDarkMode } from '../hooks/useDarkMode';
-import QRCodeLogin from '../components/auth/QRCodeLogin';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
+import { z } from 'zod';
+import { faceAPI } from '../api';
 import OTPInput from '../components/auth/OTPInput';
+import QRCodeLogin from '../components/auth/QRCodeLogin';
+import SetSocialPasswordModal from '../components/auth/SetSocialPasswordModal';
+import SocialLoginButtons from '../components/auth/SocialLoginButtons';
+import { FaceCamera } from '../components/face/FaceCamera';
+import { ToggleMode } from '../components/layout/components/ToggleMode';
+import { useAuth } from '../context/AuthContext';
+import { useDarkMode } from '../hooks/useDarkMode';
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Email không được để trống').email('Email không hợp lệ'),
-  password: z.string().min(1, 'Mật khẩu không được để trống')
+  password: z.string().min(1, 'Mật khẩu không được để trống'),
 });
 
 interface LoginFormValues {
@@ -35,18 +43,32 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [requirePasswordAuth, setRequirePasswordAuth] = useState(false);
+  const [socialEmail, setSocialEmail] = useState('');
   const [is2FARequired, setIs2FARequired] = useState(false);
   const [tempToken, setTempToken] = useState('');
   const { login, setUser, verify2FALogin } = useAuth()!;
   const navigate = useNavigate();
   const [dark, setDark] = useDarkMode() as [boolean, (val: boolean) => void];
-  const [loginMode, setLoginMode] = useState<'email' | 'qr'>('email');
+  const [loginMode, setLoginMode] = useState<'email' | 'qr' | 'face'>('email');
+  // Face login state
+  const [faceAccounts, setFaceAccounts] = useState<
+    { userId: string; username: string; avatar: string | null; distance: string }[]
+  >([]);
+  const [faceDescriptor, setFaceDescriptor] = useState<number[]>([]);
+  const [faceLoading, setFaceLoading] = useState(false);
   const [searchParams] = useSearchParams();
-  const redirect = searchParams.get('redirect') || '/home';
+  const redirect = searchParams.get('redirect') || '/';
+  const location = useLocation();
+  const isFromAuth = location.state?.fromAuth;
 
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '' }
+    defaultValues: { email: '', password: '' },
   });
 
   const onSubmit = async (data: LoginFormValues) => {
@@ -89,12 +111,65 @@ export default function LoginPage() {
     setTimeout(() => navigate(redirect), 1500);
   };
 
+  const handleFaceDescriptor = async (descriptor: number[]) => {
+    setFaceDescriptor(descriptor);
+    setFaceLoading(true);
+    setServerError('');
+    try {
+      const res = await faceAPI.login(descriptor);
+      const data = res.data.data;
+
+      if (data.type === 'multiple') {
+        setFaceAccounts(data.accounts);
+      } else if (data.type === 'not_found') {
+        setServerError('Không nhận diện được khuôn mặt. Hãy thử lại hoặc dùng email.');
+      } else if (data.require2FA) {
+        setIs2FARequired(true);
+        setTempToken(data.tempToken);
+      } else if (data.token && data.user) {
+        localStorage.setItem('finsight_token', data.token);
+        setUser(data.user);
+        toast.success('Đăng nhập bằng khuôn mặt thành công!');
+        navigate(redirect);
+      } else {
+        setServerError('Lỗi phản hồi từ server');
+      }
+    } catch (err: any) {
+      setServerError(err.response?.data?.error || 'Đăng nhập bằng khuôn mặt thất bại.');
+    } finally {
+      setFaceLoading(false);
+    }
+  };
+
+  const handleSelectAccount = async (userId: string) => {
+    setFaceLoading(true);
+    try {
+      const res = await faceAPI.selectAccount(userId, faceDescriptor);
+      const data = res.data.data;
+
+      if (data.require2FA) {
+        setIs2FARequired(true);
+        setTempToken(data.tempToken);
+      } else if (data.token && data.user) {
+        localStorage.setItem('finsight_token', data.token);
+        setUser(data.user);
+        toast.success('Đăng nhập thành công!');
+        navigate(redirect);
+      } else {
+        setServerError('Lỗi xác thực khuôn mặt');
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Xác thực thất bại. Hãy thử lại.');
+    } finally {
+      setFaceLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-[#0f172a] flex items-center justify-center p-4 sm:p-8 font-sans relative overflow-hidden">
-
       {/* Decorative Outer Icon */}
       <div className="absolute bottom-16 left-16 opacity-[0.03] dark:opacity-[0.05] pointer-events-none">
-         <Users size={120} className="text-slate-800 dark:text-slate-200" />
+        <Users size={120} className="text-slate-800 dark:text-slate-200" />
       </div>
 
       {/* Floating Toggle */}
@@ -102,33 +177,51 @@ export default function LoginPage() {
         <ToggleMode dark={dark} setDark={setDark} />
       </div>
 
+      {requirePasswordAuth && (
+        <SetSocialPasswordModal
+          tempToken={tempToken}
+          email={socialEmail}
+          onComplete={() => {
+            setRequirePasswordAuth(false);
+            navigate(redirect);
+          }}
+          onCancel={() => setRequirePasswordAuth(false)}
+        />
+      )}
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="max-w-[1000px] w-full flex bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] overflow-hidden relative"
       >
-        {/* LEFT COLUMN - AUTH FORM (Slides from Right) */}
-        <motion.div 
-          initial={{ x: 500, opacity: 0 }}
+        {/* LEFT COLUMN - AUTH FORM (Slides from Right only if from Auth) */}
+        <motion.div
+          initial={isFromAuth ? { x: 500, opacity: 0 } : { opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
           className="flex-1 p-8 sm:p-12 lg:p-14 relative z-20 flex flex-col items-center justify-center bg-white dark:bg-slate-900 overflow-hidden"
         >
-          
           {/* Aesthetic Soft Blobs */}
           <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-indigo-100/50 dark:bg-indigo-900/20 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute bottom-[-10%] right-[-10%] w-64 h-64 bg-violet-100/50 dark:bg-violet-900/20 rounded-full blur-3xl pointer-events-none" />
 
           <div className="w-full max-w-[340px] relative z-10 flex flex-col items-center">
+            {/* Brand Logo */}
+            <Link to="/" className="mb-10 transition-transform hover:scale-105 active:scale-95">
+              <img
+                src="https://i.ibb.co/84xLmWTK/LOGO.png"
+                alt="FinSight Logo"
+                className="h-14 w-auto drop-shadow-sm"
+              />
+            </Link>
 
-            {/* Top Icon */}
-            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-2xl flex items-center justify-center mb-5 shadow-[0_8px_20px_-6px_rgba(99,102,241,0.5)]">
-              <User size={30} className="text-white" />
-            </div>
-
-            <h2 className="text-[28px] font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 mb-2">Đăng nhập</h2>
-            <p className="text-slate-500 dark:text-slate-400 text-[13px] mb-8 font-medium">Chào mừng bạn quay trở lại!</p>
+            <h2 className="text-[28px] font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 mb-2">
+              Đăng nhập
+            </h2>
+            <p className="text-slate-500 dark:text-slate-400 text-[13px] mb-8 font-medium">
+              Chào mừng bạn quay trở lại!
+            </p>
 
             {serverError && (
               <div className="w-full bg-rose-50 dark:bg-rose-900/20 text-rose-500 text-xs font-bold p-3 rounded-xl mb-6 flex items-center gap-2">
@@ -138,19 +231,40 @@ export default function LoginPage() {
 
             <AnimatePresence mode="wait">
               {is2FARequired ? (
-                <motion.div key="2fa" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full">
+                <motion.div
+                  key="2fa"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="w-full"
+                >
                   <OTPInput onComplete={handle2FAVerify} />
-                  <button type="button" onClick={() => setIs2FARequired(false)} className="mt-6 text-sm text-slate-500 hover:text-indigo-500 w-full text-center font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setIs2FARequired(false)}
+                    className="mt-6 text-sm text-slate-500 hover:text-indigo-500 w-full text-center font-bold"
+                  >
                     Quay lại
                   </button>
                 </motion.div>
               ) : loginMode === 'email' ? (
-                <motion.form key="email" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onSubmit={handleSubmit(onSubmit)} className="w-full space-y-5">
-
+                <motion.form
+                  key="email"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onSubmit={handleSubmit(onSubmit)}
+                  className="w-full space-y-5"
+                >
                   <div className="space-y-1.5">
-                    <label className="text-[12px] font-bold text-slate-800 dark:text-slate-200">Username hoặc Email</label>
+                    <label className="text-[12px] font-bold text-slate-800 dark:text-slate-200">
+                      Username hoặc Email
+                    </label>
                     <div className="relative group/input">
-                      <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-indigo-500 transition-colors duration-300" />
+                      <User
+                        size={18}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-indigo-500 transition-colors duration-300"
+                      />
                       <input
                         {...register('email')}
                         className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.email ? 'border-rose-500' : 'border-transparent'} focus:border-indigo-500/50 rounded-xl pl-11 pr-4 py-3.5 text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all dark:text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#f8fafc] dark:[&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#1e293b] dark:[&:-webkit-autofill]:-webkit-text-fill-color-white`}
@@ -163,18 +277,27 @@ export default function LoginPage() {
                   <div className="space-y-1.5">
                     <label className="text-[12px] font-bold text-slate-800 dark:text-slate-200">Mật khẩu</label>
                     <div className="relative group/input">
-                      <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-indigo-500 transition-colors duration-300" />
+                      <Lock
+                        size={18}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-indigo-500 transition-colors duration-300"
+                      />
                       <input
                         {...register('password')}
                         type={showPassword ? 'text' : 'password'}
                         className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.password ? 'border-rose-500' : 'border-transparent'} focus:border-indigo-500/50 rounded-xl pl-11 pr-12 py-3.5 text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all dark:text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#f8fafc] dark:[&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#1e293b] dark:[&:-webkit-autofill]:-webkit-text-fill-color-white`}
                         placeholder="Nhập mật khẩu"
                       />
-                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                      >
                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
-                    {errors.password && <p className="text-[10px] text-rose-500 font-bold">{errors.password.message}</p>}
+                    {errors.password && (
+                      <p className="text-[10px] text-rose-500 font-bold">{errors.password.message}</p>
+                    )}
                   </div>
 
                   <motion.button
@@ -184,7 +307,13 @@ export default function LoginPage() {
                     disabled={loading}
                     className="w-full bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-white rounded-xl py-3.5 flex items-center justify-center gap-2 font-bold transition-all shadow-[0_8px_20px_-6px_rgba(99,102,241,0.5)] hover:shadow-[0_12px_25px_-6px_rgba(99,102,241,0.6)] mt-4"
                   >
-                    {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><LogIn size={18} /> Đăng nhập</>}
+                    {loading ? (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <LogIn size={18} /> Đăng nhập
+                      </>
+                    )}
                   </motion.button>
 
                   <div className="flex items-center gap-4 my-6 opacity-80">
@@ -198,7 +327,11 @@ export default function LoginPage() {
                     <SocialLoginButtons
                       setError={setServerError}
                       onSuccess={(result) => {
-                        if (result && result.require2FA) {
+                        if (result && result.requirePassword) {
+                          setTempToken(result.tempToken);
+                          setSocialEmail(result.email);
+                          setRequirePasswordAuth(true);
+                        } else if (result && result.require2FA) {
                           setIs2FARequired(true);
                           setTempToken(result.tempToken);
                         } else {
@@ -207,16 +340,97 @@ export default function LoginPage() {
                       }}
                     />
                   </div>
-
                 </motion.form>
-              ) : (
-                <motion.div key="qr" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full flex flex-col items-center">
+              ) : loginMode === 'qr' ? (
+                <motion.div
+                  key="qr"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="w-full flex flex-col items-center"
+                >
                   <div className="p-4 bg-[#f8fafc] dark:bg-slate-800 rounded-3xl mb-6">
                     <QRCodeLogin onLoginSuccess={onQRSuccess} />
                   </div>
-                  <button onClick={() => setLoginMode('email')} className="text-[13px] font-bold text-slate-500 hover:text-indigo-500">
+                  <button
+                    onClick={() => setLoginMode('email')}
+                    className="text-[13px] font-bold text-slate-500 hover:text-indigo-500"
+                  >
                     Quay lại đăng nhập bằng Email
                   </button>
+                </motion.div>
+              ) : (
+                /* ── FACE LOGIN MODE ── */
+                <motion.div
+                  key="face"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="w-full flex flex-col items-center gap-4"
+                >
+                  {faceAccounts.length > 0 ? (
+                    /* Account picker — multiple matches */
+                    <div className="w-full space-y-3">
+                      <p className="text-xs text-slate-400 font-medium text-center mb-4">
+                        Tìm thấy <span className="text-white font-bold">{faceAccounts.length}</span> tài khoản phù hợp.
+                        Hãy chọn tài khoản của bạn:
+                      </p>
+                      {faceAccounts.map((acc) => (
+                        <motion.button
+                          key={acc.userId}
+                          whileHover={{ scale: 1.02, x: 4 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => handleSelectAccount(acc.userId)}
+                          disabled={faceLoading}
+                          className="w-full flex items-center gap-4 p-4 rounded-2xl bg-[#f8fafc] dark:bg-slate-800/80 border border-transparent hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all group"
+                        >
+                          <div className="w-11 h-11 rounded-full overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center flex-shrink-0 shadow-md">
+                            {acc.avatar ? (
+                              <img src={acc.avatar} alt={acc.username} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-white font-black text-lg">
+                                {acc.username.charAt(0).toUpperCase()}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex-1 text-left">
+                            <p className="text-sm font-bold text-slate-800 dark:text-white">{acc.username}</p>
+                            <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                              Độ khớp: {(1 - parseFloat(acc.distance)).toFixed(0)}%
+                            </p>
+                          </div>
+                          <ChevronRight
+                            size={16}
+                            className="text-slate-400 group-hover:text-emerald-500 transition-colors"
+                          />
+                        </motion.button>
+                      ))}
+                      <button
+                        onClick={() => {
+                          setFaceAccounts([]);
+                          setFaceDescriptor([]);
+                        }}
+                        className="w-full mt-2 text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+                      >
+                        Thử lại nhận diện khuôn mặt
+                      </button>
+                    </div>
+                  ) : (
+                    <FaceCamera
+                      mode="login"
+                      onDescriptor={handleFaceDescriptor}
+                      onCancel={() => setLoginMode('email')}
+                    />
+                  )}
+
+                  {faceAccounts.length === 0 && (
+                    <button
+                      onClick={() => setLoginMode('email')}
+                      className="text-[13px] font-bold text-slate-500 hover:text-indigo-500 transition-colors"
+                    >
+                      Quay lại đăng nhập bằng Email
+                    </button>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -233,38 +447,92 @@ export default function LoginPage() {
 
             {/* Mobile Register Link */}
             <p className="mt-8 text-[13px] text-slate-500 font-medium lg:hidden">
-              Chưa có tài khoản? <Link to="/register" className="font-bold text-slate-700 dark:text-white">Đăng ký ngay</Link>
+              Chưa có tài khoản?{' '}
+              <Link to="/register" state={{ fromAuth: true }} className="font-bold text-slate-700 dark:text-white">
+                Đăng ký ngay
+              </Link>
             </p>
 
             {/* Mode Switcher */}
             {loginMode === 'email' && !is2FARequired && (
-              <button
-                onClick={() => setLoginMode('qr')}
-                className="mt-6 flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-indigo-500 transition-colors"
-              >
-                <QrCode size={16} /> Đăng nhập bằng QR Code
-              </button>
+              <div className="mt-6 flex flex-col items-center gap-3">
+                <button
+                  onClick={() => setLoginMode('face')}
+                  className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-emerald-500 transition-colors"
+                >
+                  <ScanFace size={16} /> Đăng nhập bằng khuôn mặt
+                </button>
+                <button
+                  onClick={() => setLoginMode('qr')}
+                  className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-indigo-500 transition-colors"
+                >
+                  <QrCode size={16} /> Đăng nhập bằng QR Code
+                </button>
+              </div>
             )}
-
           </div>
         </motion.div>
 
-        {/* RIGHT COLUMN - PROMO (Slides from Left) */}
-        <motion.div 
-          initial={{ x: -500, zIndex: 30 }}
+        {/* RIGHT COLUMN - PROMO (Slides from Left only if from Auth) */}
+        <motion.div
+          initial={isFromAuth ? { x: -500, zIndex: 30 } : { zIndex: 30 }}
           animate={{ x: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="hidden lg:flex w-[48%] bg-gradient-to-br from-[#6b4de0] to-[#7c5ff4] relative flex-col items-center justify-center p-14 text-center z-30"
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+          className="hidden lg:flex w-[48%] bg-gradient-to-br from-[#6b4de0] via-[#7c5ff4] to-[#8b5cf6] relative flex-col items-center justify-center p-14 text-center z-30 overflow-hidden"
         >
+          {/* Animated Floating Blobs */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <motion.div
+              animate={{
+                x: [0, 40, 0],
+                y: [0, 60, 0],
+                scale: [1, 1.2, 1],
+              }}
+              transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute -top-20 -left-20 w-80 h-80 bg-white/10 rounded-full blur-[80px]"
+            />
+            <motion.div
+              animate={{
+                x: [0, -30, 0],
+                y: [0, -50, 0],
+                scale: [1, 1.1, 1],
+              }}
+              transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+              className="absolute -bottom-20 -right-20 w-96 h-96 bg-indigo-400/20 rounded-full blur-[100px]"
+            />
+          </div>
 
           {/* Subtle Plus Pattern Background */}
           <div
-            className="absolute inset-0 opacity-10"
+            className="absolute inset-0 opacity-[0.07]"
             style={{
               backgroundImage: `url("data:image/svg+xml,%3Csvg width='30' height='30' viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M14 14V6h2v8h8v2h-8v8h-2v-8H6v-2h8z' fill='%23ffffff' fill-opacity='1' fill-rule='evenodd'/%3E%3C/svg%3E")`,
-              backgroundSize: '40px 40px'
+              backgroundSize: '40px 40px',
             }}
           />
+
+          {/* Animated Waves at the bottom */}
+          <div className="absolute bottom-0 left-0 w-full leading-[0] z-10 pointer-events-none opacity-40">
+            <svg className="relative block w-[200%] h-32" viewBox="0 0 1200 120" preserveAspectRatio="none">
+              <motion.path
+                animate={{ x: [0, -600, 0] }}
+                transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+                d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V0C49.1,1.5,95.74,14.27,141.45,28.33,186.27,42.11,232.14,55.6,280.57,58.55,294.09,59.36,307.73,58.6,321.39,56.44Z"
+                fill="#FFFFFF"
+              />
+            </svg>
+          </div>
+
+          <div className="absolute bottom-0 left-0 w-full leading-[0] z-10 pointer-events-none opacity-20">
+            <svg className="relative block w-[200%] h-40" viewBox="0 0 1200 120" preserveAspectRatio="none">
+              <motion.path
+                animate={{ x: [-600, 0, -600] }}
+                transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
+                d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V0C49.1,1.5,95.74,14.27,141.45,28.33,186.27,42.11,232.14,55.6,280.57,58.55,294.09,59.36,307.73,58.6,321.39,56.44Z"
+                fill="#FFFFFF"
+              />
+            </svg>
+          </div>
 
           {/* S-Curve SVG Overlaying Left */}
           <svg
@@ -272,28 +540,45 @@ export default function LoginPage() {
             viewBox="0 0 60 1000"
             preserveAspectRatio="none"
           >
-            {/* Gentle curve that bows inward at the middle and outward at the bottom */}
-            <path d="M 0 0 C 0 300 80 700 0 1000 L -10 1000 L -10 0 Z" />
+            {/* S-Curve with subtle morphing animation */}
+            <motion.path
+              animate={{
+                d: [
+                  'M 0 0 C 0 300 80 700 0 1000 L -10 1000 L -10 0 Z',
+                  'M 0 0 C 0 400 50 600 0 1000 L -10 1000 L -10 0 Z',
+                  'M 0 0 C 0 300 80 700 0 1000 L -10 1000 L -10 0 Z',
+                ],
+              }}
+              transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+            />
           </svg>
 
           <div className="relative z-20 flex flex-col items-center">
-            <div className="w-20 h-20 bg-white/10 backdrop-blur-xl border border-white/20 rounded-[1.5rem] flex items-center justify-center mb-8 shadow-xl">
+            <motion.div
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+              className="w-20 h-20 bg-white/10 backdrop-blur-xl border border-white/20 rounded-[1.5rem] flex items-center justify-center mb-8 shadow-xl"
+            >
               <UserPlus size={36} className="text-white" />
-            </div>
+            </motion.div>
 
-            <h3 className="text-3xl font-black text-white mb-4">Chưa có tài khoản?</h3>
-            <p className="text-indigo-50 text-[15px] mb-10 leading-relaxed px-4 font-medium opacity-90">
-              Đăng ký ngay để trải nghiệm<br/>hệ thống quản lý chuyên nghiệp
+            <h3 className="text-3xl font-black text-white mb-4 drop-shadow-md">Chưa có tài khoản?</h3>
+            <p className="text-indigo-50 text-[15px] mb-10 leading-relaxed px-4 font-medium opacity-90 drop-shadow-sm">
+              Đăng ký ngay để trải nghiệm
+              <br />
+              hệ thống quản lý chuyên nghiệp
             </p>
 
-            <Link to="/register" className="group px-10 py-3.5 rounded-2xl border border-white/40 bg-white/5 backdrop-blur-sm text-white font-bold hover:bg-white hover:text-[#7c5ff4] transition-all flex items-center gap-2 shadow-lg">
-              <UserPlus size={18} className="group-hover:scale-110 transition-transform" /> Đăng ký ngay
+            <Link
+              to="/register"
+              state={{ fromAuth: true }}
+              className="group px-10 py-3.5 rounded-2xl border border-white/40 bg-white/5 backdrop-blur-sm text-white font-bold hover:bg-white hover:text-[#7c5ff4] transition-all flex items-center gap-3 shadow-lg hover:shadow-white/20 active:scale-95"
+            >
+              <UserPlus size={18} className="group-hover:rotate-12 transition-transform" /> Đăng ký ngay
             </Link>
           </div>
-
         </motion.div>
       </motion.div>
     </div>
   );
 }
-

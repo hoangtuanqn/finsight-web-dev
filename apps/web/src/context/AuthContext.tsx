@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { authAPI } from '../api/index';
 
 interface AuthContextType {
@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (fbConfigRes.data?.data?.appId) {
           setFacebookAppId(fbConfigRes.data.data.appId);
         }
-        
+
         const token = localStorage.getItem('finsight_token');
         if (token) {
           const userRes = await (authAPI as any).me();
@@ -69,6 +69,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithGoogle = async (credential: any) => {
     const res = await (authAPI as any).googleLogin({ credential });
+    if (res.data.data.requirePassword) {
+      return { requirePassword: true, tempToken: res.data.data.tempToken, email: res.data.data.email };
+    }
     if (res.data.data.require2FA) {
       return { require2FA: true, tempToken: res.data.data.tempToken };
     }
@@ -80,6 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithFacebook = async (accessToken: any) => {
     const res = await (authAPI as any).facebookLogin({ accessToken });
+    if (res.data.data.requirePassword) {
+      return { requirePassword: true, tempToken: res.data.data.tempToken, email: res.data.data.email };
+    }
     if (res.data.data.require2FA) {
       return { require2FA: true, tempToken: res.data.data.tempToken };
     }
@@ -130,13 +136,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, setUser, refreshUser,
-      login, loginWithGoogle, loginWithFacebook, 
-      verify2FALogin,
-      register, logout, loading, 
-      googleClientId, facebookAppId 
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        setUser,
+        refreshUser,
+        login,
+        loginWithGoogle,
+        loginWithFacebook,
+        verify2FALogin,
+        register,
+        logout,
+        loading,
+        googleClientId,
+        facebookAppId,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

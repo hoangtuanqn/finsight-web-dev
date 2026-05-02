@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Shield, Send, Loader2, Cpu, CheckCircle2, AlertCircle, Lock } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Cpu, Lock, Send, Shield } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useKycSubmit } from '../../../hooks/useKycQuery';
 
 interface Step3Props {
@@ -39,7 +39,7 @@ export default function Step3_Review({ frontImage, backImage, videoFile, onBack,
     formData.append('front', frontImage);
     formData.append('back', backImage);
     formData.append('video', videoFile);
-    
+
     submitKyc.mutate(formData, {
       onSuccess: () => {
         onComplete();
@@ -56,7 +56,7 @@ export default function Step3_Review({ frontImage, backImage, videoFile, onBack,
             }
           }, 100);
         }
-      }
+      },
     });
   };
 
@@ -66,7 +66,6 @@ export default function Step3_Review({ frontImage, backImage, videoFile, onBack,
 
   return (
     <div className="space-y-6">
-      
       <div className="bg-emerald-500/10 p-6 rounded-2xl border border-emerald-500/20 mb-6 flex items-start gap-4">
         <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-600 flex items-center justify-center shrink-0">
           <Shield size={20} />
@@ -82,46 +81,75 @@ export default function Step3_Review({ frontImage, backImage, videoFile, onBack,
       {submitKyc.isError && (
         <div className="bg-red-500/10 p-4 rounded-xl border border-red-500/30 text-red-500 text-sm animate-fade-in flex items-start gap-3">
           <Shield className="shrink-0 mt-0.5" size={18} />
-          <p className="font-semibold mt-0.5">{(submitKyc.error as any)?.response?.data?.error || 'Có lỗi xảy ra khi xác minh'}</p>
+          <p className="font-semibold mt-0.5">
+            {(submitKyc.error as any)?.response?.data?.error || 'Có lỗi xảy ra khi xác minh'}
+          </p>
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
         {/* Images */}
         <div className="space-y-4">
-          <div id="kyc-front" className={`transition-all duration-300 ${errorField === 'front' ? 'animate-[shake_0.5s_ease-in-out]' : ''}`}>
-            <h4 className={`text-sm font-bold mb-2 ${errorField === 'front' ? 'text-red-500' : 'text-[var(--color-text-secondary)]'}`}>Mặt trước CCCD</h4>
-            <div className={`aspect-[1.586/1] rounded-xl border-2 overflow-hidden transition-all duration-300 ${
-              errorField === 'front' ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)]' : 'border-[var(--color-border)]'
-            }`}>
+          <div
+            id="kyc-front"
+            className={`transition-all duration-300 ${errorField === 'front' ? 'animate-[shake_0.5s_ease-in-out]' : ''}`}
+          >
+            <h4
+              className={`text-sm font-bold mb-2 ${errorField === 'front' ? 'text-red-500' : 'text-[var(--color-text-secondary)]'}`}
+            >
+              Mặt trước CCCD
+            </h4>
+            <div
+              className={`aspect-[1.586/1] rounded-xl border-2 overflow-hidden transition-all duration-300 ${
+                errorField === 'front'
+                  ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)]'
+                  : 'border-[var(--color-border)]'
+              }`}
+            >
               <img src={frontUrl} alt="Front" className="w-full h-full object-cover" />
             </div>
           </div>
-          <div id="kyc-back" className={`transition-all duration-300 ${errorField === 'back' ? 'animate-[shake_0.5s_ease-in-out]' : ''}`}>
-            <h4 className={`text-sm font-bold mb-2 ${errorField === 'back' ? 'text-red-500' : 'text-[var(--color-text-secondary)]'}`}>Mặt sau CCCD</h4>
-            <div className={`aspect-[1.586/1] rounded-xl border-2 overflow-hidden transition-all duration-300 ${
-              errorField === 'back' ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)]' : 'border-[var(--color-border)]'
-            }`}>
+          <div
+            id="kyc-back"
+            className={`transition-all duration-300 ${errorField === 'back' ? 'animate-[shake_0.5s_ease-in-out]' : ''}`}
+          >
+            <h4
+              className={`text-sm font-bold mb-2 ${errorField === 'back' ? 'text-red-500' : 'text-[var(--color-text-secondary)]'}`}
+            >
+              Mặt sau CCCD
+            </h4>
+            <div
+              className={`aspect-[1.586/1] rounded-xl border-2 overflow-hidden transition-all duration-300 ${
+                errorField === 'back'
+                  ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)]'
+                  : 'border-[var(--color-border)]'
+              }`}
+            >
               <img src={backUrl} alt="Back" className="w-full h-full object-cover" />
             </div>
           </div>
         </div>
 
         {/* Video */}
-        <div id="kyc-video" className={`transition-all duration-300 ${errorField === 'video' ? 'animate-[shake_0.5s_ease-in-out]' : ''}`}>
-          <h4 className={`text-sm font-bold mb-2 ${errorField === 'video' ? 'text-red-500' : 'text-[var(--color-text-secondary)]'}`}>Video xác thực</h4>
-          <div className={`aspect-[3/4] max-w-sm mx-auto rounded-[2rem] border-4 overflow-hidden bg-black transition-all duration-300 ${
-            errorField === 'video' ? 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.4)]' : 'border-[var(--color-border)] shadow-xl'
-          }`}>
-            <video 
-              src={videoUrl} 
-              controls 
-              className="w-full h-full object-cover"
-            />
+        <div
+          id="kyc-video"
+          className={`transition-all duration-300 ${errorField === 'video' ? 'animate-[shake_0.5s_ease-in-out]' : ''}`}
+        >
+          <h4
+            className={`text-sm font-bold mb-2 ${errorField === 'video' ? 'text-red-500' : 'text-[var(--color-text-secondary)]'}`}
+          >
+            Video xác thực
+          </h4>
+          <div
+            className={`aspect-[3/4] max-w-sm mx-auto rounded-[2rem] border-4 overflow-hidden bg-black transition-all duration-300 ${
+              errorField === 'video'
+                ? 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.4)]'
+                : 'border-[var(--color-border)] shadow-xl'
+            }`}
+          >
+            <video src={videoUrl} controls className="w-full h-full object-cover" />
           </div>
         </div>
-
       </div>
 
       <div className="flex justify-between pt-6 border-t border-[var(--color-border)] mt-8">
@@ -155,7 +183,7 @@ export default function Step3_Review({ frontImage, backImage, videoFile, onBack,
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           {/* Animated Backdrop */}
           <div className="absolute inset-0 bg-black/60 backdrop-blur-2xl animate-fade-in" />
-          
+
           {/* Neon Glow background elements */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-blue-500/20 rounded-full blur-[120px] animate-pulse" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-emerald-500/10 rounded-full blur-[80px] animate-pulse delay-700" />
@@ -172,9 +200,9 @@ export default function Step3_Review({ frontImage, backImage, videoFile, onBack,
             </div>
 
             <h2 className="text-2xl font-black text-white mb-2 tracking-tight">Đang xác thực danh tính</h2>
-            
+
             <div className="h-8 mb-8 overflow-hidden relative">
-              <div 
+              <div
                 className="transition-all duration-700 ease-in-out transform flex flex-col items-center"
                 style={{ transform: `translateY(-${verifyingStep * 32}px)` }}
               >
@@ -194,9 +222,10 @@ export default function Step3_Review({ frontImage, backImage, videoFile, onBack,
                 LƯU Ý QUAN TRỌNG
               </div>
               <p className="text-xs text-amber-500/80 leading-relaxed">
-                Hệ thống AI đang thực hiện kiểm tra an ninh cao cấp. 
-                <br/>
-                <span className="font-bold text-amber-500 uppercase">Vui lòng không đóng trình duyệt</span> hoặc thoát trang trong lúc này để tránh lỗi giao dịch.
+                Hệ thống AI đang thực hiện kiểm tra an ninh cao cấp.
+                <br />
+                <span className="font-bold text-amber-500 uppercase">Vui lòng không đóng trình duyệt</span> hoặc thoát
+                trang trong lúc này để tránh lỗi giao dịch.
               </p>
             </div>
 

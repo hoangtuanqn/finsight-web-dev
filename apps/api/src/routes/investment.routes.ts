@@ -1,16 +1,25 @@
-import { Router, Request } from 'express';
-import { getInvestorProfile, createInvestorProfile, updateInvestorProfile } from '../controllers/profile.controller';
-import { getAllocationRecommendation, getAllocationHistory } from '../controllers/allocation.controller';
-import { submitRiskAssessment } from '../controllers/riskAssessment.controller';
-import { getAssetHistory } from '../controllers/assetHistory.controller';
-import { getCryptoPrices, getStockPrices, getGoldPrices, getSavingsRates, getBondsRates, getStocksUsPrices } from '../controllers/assetGuide.controller';
+import { Request, Router } from 'express';
+import { getAllocationHistory, getAllocationRecommendation } from '../controllers/allocation.controller.js';
 import {
-  getMyStrategies, generateStrategy,
-  getMyPortfolio, upsertPortfolio, updatePortfolio,
-} from '../controllers/strategy.controller';
-import { authenticate } from '../middleware/auth.middleware';
-import { cache } from '../middleware/cache.middleware';
-import { AuthenticatedRequest } from '../types';
+  getBondsRates,
+  getCryptoPrices,
+  getGoldPrices,
+  getSavingsRates,
+  getStockPrices,
+} from '../controllers/assetGuide.controller.js';
+import { getAssetHistory } from '../controllers/assetHistory.controller.js';
+import { createInvestorProfile, getInvestorProfile, updateInvestorProfile } from '../controllers/profile.controller.js';
+import { submitRiskAssessment } from '../controllers/riskAssessment.controller.js';
+import {
+  generateStrategy,
+  getMyPortfolio,
+  getMyStrategies,
+  updatePortfolio,
+  upsertPortfolio,
+} from '../controllers/strategy.controller.js';
+import { authenticate } from '../middleware/auth.middleware.js';
+import { cache } from '../middleware/cache.middleware.js';
+import { AuthenticatedRequest } from '../types/index.js';
 
 const TTL_10M = 10 * 60;
 
@@ -23,7 +32,8 @@ router.post('/profile', createInvestorProfile);
 router.put('/profile', updateInvestorProfile);
 
 // Cache per-user vì kết quả phụ thuộc vào profile + excludedAssets
-router.get('/allocation',
+router.get(
+  '/allocation',
   cache((req: Request) => {
     const r = req as AuthenticatedRequest;
     const excluded = (r.query.excludedAssets as string) || '';
@@ -37,14 +47,30 @@ router.get('/history', getAllocationHistory);
 router.post('/risk-assessment', submitRiskAssessment);
 
 // Cache chung — giá thị trường không phụ thuộc user
-router.get('/gold-prices',    cache('investment:gold-prices',                        TTL_10M), getGoldPrices);
-router.get('/savings-rates',  cache((req) => `investment:savings-rates:${req.query.riskLevel || 'MEDIUM'}`, TTL_10M), getSavingsRates);
-router.get('/bonds-rates',    cache((req) => `investment:bonds-rates:${req.query.riskLevel || 'MEDIUM'}`,   TTL_10M), getBondsRates);
-router.get('/stock-prices',   cache((req) => `investment:stock-prices:${req.query.riskLevel || 'MEDIUM'}`,  TTL_10M), getStockPrices);
-router.get('/crypto-prices',    cache((req) => `investment:crypto-prices:${req.query.riskLevel || 'MEDIUM'}`,    TTL_10M), getCryptoPrices);
-router.get('/stocks-us-prices', cache((req) => `investment:stocks-us-prices:${req.query.riskLevel || 'MEDIUM'}`, TTL_10M), getStocksUsPrices);
+router.get('/gold-prices', cache('investment:gold-prices', TTL_10M), getGoldPrices);
+router.get(
+  '/savings-rates',
+  cache((req) => `investment:savings-rates:${req.query.riskLevel || 'MEDIUM'}`, TTL_10M),
+  getSavingsRates,
+);
+router.get(
+  '/bonds-rates',
+  cache((req) => `investment:bonds-rates:${req.query.riskLevel || 'MEDIUM'}`, TTL_10M),
+  getBondsRates,
+);
+router.get(
+  '/stock-prices',
+  cache((req) => `investment:stock-prices:${req.query.riskLevel || 'MEDIUM'}`, TTL_10M),
+  getStockPrices,
+);
+router.get(
+  '/crypto-prices',
+  cache((req) => `investment:crypto-prices:${req.query.riskLevel || 'MEDIUM'}`, TTL_10M),
+  getCryptoPrices,
+);
 
-router.get('/asset-history',
+router.get(
+  '/asset-history',
   cache((req) => {
     const { asset, source, ticker, months, days } = req.query;
     return `investment:asset-history:${asset}:${source || ticker}:${months || days}`;

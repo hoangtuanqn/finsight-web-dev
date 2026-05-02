@@ -1,7 +1,7 @@
-import { Response, NextFunction } from 'express';
+import { NextFunction, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import { error } from '../utils/apiResponse';
 import { AuthenticatedRequest } from '../types';
+import { error } from '../utils/apiResponse';
 
 export function authenticate(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
@@ -14,6 +14,8 @@ export function authenticate(req: AuthenticatedRequest, res: Response, next: Nex
     const decoded = jwt.verify(token, (process.env.JWT_SECRET as string).trim()) as any;
     req.userId = decoded.userId;
     req.userEmail = decoded.email;
+    (req as any).organizationId = decoded.organizationId;
+    (req as any).role = decoded.role;
     next();
   } catch (err: any) {
     console.error('[AuthMiddleware] Verification failed:', err.message);

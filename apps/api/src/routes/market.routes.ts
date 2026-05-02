@@ -1,5 +1,12 @@
 import { Router } from 'express';
-import { getSentiment, getPrices, getCryptoPricesHandler, getGoldPriceHandler, getNews, getMarketSummary } from '../controllers/market.controller';
+import {
+  getCryptoPricesHandler,
+  getGoldPriceHandler,
+  getMarketSummary,
+  getNews,
+  getPrices,
+  getSentiment,
+} from '../controllers/market.controller';
 import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();

@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/@prisma/enterprise"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["enterprise"]
+}
+
+model Organization {
+  id                  String   @id @default(uuid())
+  taxCode             String   @unique
+  name                String
+  shortName           String?
+  businessType        String
+  headquartersAddress String
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  users               User[]
+  parties             Party[]
+  auditLogs           AuditLog[]
+
+  @@map("enterprise_organizations")
+  @@schema("enterprise")
+}
+
+model User {
+  id               String   @id @default(uuid())
+  email            String   @unique
+  passwordHash     String
+  fullName         String
+  roleTitle        String   
+  phoneNumber      String
+
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id])
+
+  managedParties   Party[]      @relation("PersonInCharge")
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("enterprise_users")
+  @@schema("enterprise")
+}
+
+model Party {
+  id             String   @id @default(uuid())
+  taxCode        String?  
+  name           String
+  shortName      String?
+  internalCode   String   
+  typeTags       String[] // CUSTOMER, SUPPLIER, BANK, STATE, INTERNAL
+  isRelatedParty Boolean  @default(false)
+  creditLimit    Float    @default(0)
+  status         String   @default("ACTIVE") // ACTIVE, INACTIVE, BLACKLIST
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  personInChargeId String?
+  personInCharge   User? @relation("PersonInCharge", fields: [personInChargeId], references: [id])
+
+  parentId       String?
+  parent         Party?   @relation("PartnerGroup", fields: [parentId], references: [id])
+  children       Party[]  @relation("PartnerGroup")
+
+  contacts       Contact[]
+  bankAccounts   BankAccount[]
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, taxCode])
+  @@unique([organizationId, internalCode])
+  @@map("enterprise_parties")
+  @@schema("enterprise")
+}
+
+model Contact {
+  id        String   @id @default(uuid())
+  partyId   String
+  party     Party    @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  name      String
+  position  String?
+  email     String?
+  phone     String?
+  isPrimary Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("enterprise_contacts")
+  @@schema("enterprise")
+}
+
+model BankAccount {
+  id            String   @id @default(uuid())
+  partyId       String
+  party         Party    @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  bankName      String
+  accountNumber String
+  accountHolder String
+  branch        String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("enterprise_bank_accounts")
+  @@schema("enterprise")
+}
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  userId         String
+  action         String   // CREATE, UPDATE, DELETE, TOGGLE_STATUS
+  entityType     String   // PARTY, CONTACT, BANK_ACCOUNT
+  entityId       String
+  oldValues      Json?
+  newValues      Json?
+  reason         String?
+
+  createdAt      DateTime @default(now())
+
+  @@map("enterprise_audit_logs")
+  @@schema("enterprise")
+}

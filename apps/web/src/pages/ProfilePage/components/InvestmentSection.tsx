@@ -1,8 +1,8 @@
-import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
-import { AlertTriangle } from "lucide-react";
-import type { UseFormRegister } from "react-hook-form";
-import { LABEL_CLASSES, SELECT_CLASSES, HORIZON_OPTIONS, RISK_META } from "../constants";
+import { motion } from 'framer-motion';
+import { AlertTriangle } from 'lucide-react';
+import type { UseFormRegister } from 'react-hook-form';
+import { Link } from 'react-router-dom';
+import { HORIZON_OPTIONS, LABEL_CLASSES, RISK_META, SELECT_CLASSES } from '../constants';
 
 interface InvestmentSectionProps {
   register: UseFormRegister<any>;
@@ -11,7 +11,7 @@ interface InvestmentSectionProps {
 }
 
 export default function InvestmentSection({ register, user, hasCompletedQuiz }: InvestmentSectionProps) {
-  const riskLevel = user?.investorProfile?.riskLevel || "MEDIUM";
+  const riskLevel = user?.investorProfile?.riskLevel || 'MEDIUM';
   const riskMeta = RISK_META[riskLevel as keyof typeof RISK_META];
 
   return (
@@ -19,7 +19,7 @@ export default function InvestmentSection({ register, user, hasCompletedQuiz }: 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <div>
           <label className={LABEL_CLASSES}>Mục tiêu tài chính</label>
-          <select className={SELECT_CLASSES} {...register("goal")}>
+          <select className={SELECT_CLASSES} {...register('goal')}>
             <option value="GROWTH">Tăng trưởng tài sản</option>
             <option value="INCOME">Tạo dòng tiền thụ động</option>
             <option value="STABILITY">Bảo toàn vốn</option>
@@ -28,7 +28,7 @@ export default function InvestmentSection({ register, user, hasCompletedQuiz }: 
         </div>
         <div>
           <label className={LABEL_CLASSES}>Thời hạn đầu tư</label>
-          <select className={SELECT_CLASSES} {...register("horizon")}>
+          <select className={SELECT_CLASSES} {...register('horizon')}>
             {HORIZON_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
@@ -38,23 +38,16 @@ export default function InvestmentSection({ register, user, hasCompletedQuiz }: 
         </div>
         <div>
           <label className={LABEL_CLASSES}>
-            Khẩu vị rủi ro{" "}
-            {hasCompletedQuiz && (
-              <span className="normal-case font-medium text-emerald-500 ml-1">
-                (Từ Quiz)
-              </span>
-            )}
+            Khẩu vị rủi ro{' '}
+            {hasCompletedQuiz && <span className="normal-case font-medium text-emerald-500 ml-1">(Từ Quiz)</span>}
           </label>
-          <select className={SELECT_CLASSES} {...register("riskLevel")}>
+          <select className={SELECT_CLASSES} {...register('riskLevel')}>
             <option value="LOW">Thấp - An toàn</option>
             <option value="MEDIUM">Vừa phải - Cân bằng</option>
             <option value="HIGH">Cao - Mạo hiểm</option>
           </select>
           {hasCompletedQuiz && (
-            <p
-              className="text-[10px] mt-2 font-bold tracking-tight uppercase"
-              style={{ color: riskMeta.color }}
-            >
+            <p className="text-[10px] mt-2 font-bold tracking-tight uppercase" style={{ color: riskMeta.color }}>
               AI gợi ý: {riskMeta.label}
             </p>
           )}
@@ -70,7 +63,7 @@ export default function InvestmentSection({ register, user, hasCompletedQuiz }: 
           <div className="space-y-1">
             <p className="text-[13px] text-amber-200 font-bold">Chưa hoàn thành đánh giá rủi ro</p>
             <p className="text-[12px] text-amber-300/80 font-medium">
-              Hãy làm bài kiểm tra 10 câu hỏi để AI thấu hiểu phong cách đầu tư của bạn hơn.{" "}
+              Hãy làm bài kiểm tra 10 câu hỏi để AI thấu hiểu phong cách đầu tư của bạn hơn.{' '}
               <Link
                 to="/risk-assessment"
                 className="font-black text-amber-400 underline decoration-2 underline-offset-4 hover:text-amber-200 transition-all"

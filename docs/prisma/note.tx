@@ -1,0 +1,8 @@
+Personal:
+    bunx prisma studio
+Enterprise:
+bunx prisma studio --schema=prisma/enterprise/schema.prisma --port=5556
+
+
+Generate:
+bunx prisma db push --schema=prisma/enterprise/schema.prisma; bunx prisma generate --schema=prisma/enterprise/schema.prisma

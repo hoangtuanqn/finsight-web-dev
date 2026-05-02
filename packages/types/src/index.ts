@@ -7,5 +7,6 @@ export interface ApiResponse<T> {
 export interface User {
   id: string;
   name: string;
-  email: string;
 }
+
+export * from './enterprise.types';

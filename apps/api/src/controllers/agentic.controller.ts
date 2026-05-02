@@ -1,8 +1,8 @@
 import { Response } from 'express';
-import prisma from '../lib/prisma';
-import { success, error } from '../utils/apiResponse';
 import { runAgenticChat } from '../agentic/agent';
+import prisma from '../lib/prisma';
 import { AuthenticatedRequest } from '../types';
+import { error, success } from '../utils/apiResponse';
 
 export async function chatWithAgent(req: AuthenticatedRequest, res: Response) {
   const { message, sessionId, ocrText } = req.body;
@@ -18,7 +18,7 @@ export async function chatWithAgent(req: AuthenticatedRequest, res: Response) {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
-  res.setHeader('X-Accel-Buffering', 'no'); 
+  res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders();
 
   const heartbeat = setInterval(() => {
@@ -27,7 +27,7 @@ export async function chatWithAgent(req: AuthenticatedRequest, res: Response) {
 
   try {
     let finalMessage = message.trim();
-    
+
     let clientDisconnected = false;
     req.on('close', () => {
       clientDisconnected = true;
@@ -43,36 +43,39 @@ export async function chatWithAgent(req: AuthenticatedRequest, res: Response) {
       req.userId as string,
       finalMessage,
       sessionId || null,
-      
+
       (token: string) => {
-        if (clientDisconnected) return; 
+        if (clientDisconnected) return;
         res.write(`data: ${JSON.stringify({ token })}\n\n`);
       },
-      
+
       (status: string | null) => {
-        if (clientDisconnected || !status) return; 
+        if (clientDisconnected || !status) return;
         res.write(`data: ${JSON.stringify({ status })}\n\n`);
       },
 
-      () => clientDisconnected
+      () => clientDisconnected,
     );
 
-    res.write(`data: ${JSON.stringify({
-      done: true,
-      sessionId: result.sessionId,
-      actionType: result.actionType,
-      triggerPayload: result.triggerPayload || null,
-    })}\n\n`);
-
+    res.write(
+      `data: ${JSON.stringify({
+        done: true,
+        sessionId: result.sessionId,
+        actionType: result.actionType,
+        triggerPayload: result.triggerPayload || null,
+      })}\n\n`,
+    );
   } catch (err) {
     console.error('chatWithAgent error:', err);
-    res.write(`data: ${JSON.stringify({
-      done: true,
-      error: 'Hệ thống gặp sự cố, vui lòng thử lại sau.',
-    })}\n\n`);
+    res.write(
+      `data: ${JSON.stringify({
+        done: true,
+        error: 'Hệ thống gặp sự cố, vui lòng thử lại sau.',
+      })}\n\n`,
+    );
   } finally {
-    clearInterval(heartbeat); 
-    res.end(); 
+    clearInterval(heartbeat);
+    res.end();
   }
 }
 

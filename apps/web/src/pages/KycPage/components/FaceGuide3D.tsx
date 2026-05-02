@@ -1,4 +1,4 @@
-import { useEffect, useRef, memo } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
 export type FaceChallenge =
@@ -17,23 +17,23 @@ interface FaceGuide3DProps {
 
 // Target rotations per challenge
 const TARGET_ROTATIONS: Record<FaceChallenge, { x: number; y: number }> = {
-  idle:          { x: 0,     y: 0 },
-  look_straight: { x: 0,     y: 0 },
-  look_left:     { x: 0,     y: 0.65 },
-  look_right:    { x: 0,     y: -0.65 },
-  look_up:       { x: -0.45, y: 0 },
-  look_down:     { x: 0.45,  y: 0 },
-  open_mouth:    { x: 0,     y: 0 },
+  idle: { x: 0, y: 0 },
+  look_straight: { x: 0, y: 0 },
+  look_left: { x: 0, y: 0.65 },
+  look_right: { x: 0, y: -0.65 },
+  look_up: { x: -0.45, y: 0 },
+  look_down: { x: 0.45, y: 0 },
+  open_mouth: { x: 0, y: 0 },
 };
 
 const CHALLENGE_COLORS: Record<FaceChallenge, number> = {
-  idle:          0x3b82f6,
+  idle: 0x3b82f6,
   look_straight: 0x22c55e,
-  look_left:     0x3b82f6,
-  look_right:    0x3b82f6,
-  look_up:       0x3b82f6,
-  look_down:     0x3b82f6,
-  open_mouth:    0x3b82f6,
+  look_left: 0x3b82f6,
+  look_right: 0x3b82f6,
+  look_up: 0x3b82f6,
+  look_down: 0x3b82f6,
+  open_mouth: 0x3b82f6,
 };
 
 function FaceGuide3D({ challenge, size = 120 }: FaceGuide3DProps) {
@@ -141,7 +141,7 @@ function FaceGuide3D({ challenge, size = 120 }: FaceGuide3DProps) {
       1.4,
       0x22c55e,
       0.35,
-      0.2
+      0.2,
     );
     arrowDir.name = 'arrow';
     arrowDir.visible = false;
@@ -183,9 +183,9 @@ function FaceGuide3D({ challenge, size = 120 }: FaceGuide3DProps) {
         arrow.visible = ch !== 'idle' && ch !== 'look_straight' && ch !== 'open_mouth';
         if (arrow.visible) {
           let dir = new THREE.Vector3(0, 0, 0);
-          if (ch === 'look_left')  dir.set(-1, 0, 0);
+          if (ch === 'look_left') dir.set(-1, 0, 0);
           if (ch === 'look_right') dir.set(1, 0, 0);
-          if (ch === 'look_up')   dir.set(0, 1, 0);
+          if (ch === 'look_up') dir.set(0, 1, 0);
           if (ch === 'look_down') dir.set(0, -1, 0);
           // Arrow in world space offset from head
           arrow.position.set(dir.x * 0.6, dir.y * 0.6, 0);
@@ -211,13 +211,7 @@ function FaceGuide3D({ challenge, size = 120 }: FaceGuide3DProps) {
     };
   }, [size]);
 
-  return (
-    <div
-      ref={mountRef}
-      style={{ width: size, height: size }}
-      className="rounded-full overflow-hidden"
-    />
-  );
+  return <div ref={mountRef} style={{ width: size, height: size }} className="rounded-full overflow-hidden" />;
 }
 
 export default memo(FaceGuide3D);

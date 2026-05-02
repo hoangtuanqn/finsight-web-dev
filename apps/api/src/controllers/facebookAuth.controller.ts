@@ -1,9 +1,9 @@
-import { Request, Response } from 'express';
-import jwt, { SignOptions } from 'jsonwebtoken';
-import prisma from '../lib/prisma';
-import { success, error } from '../utils/apiResponse';
-import { handleUserLoginResponse } from '../utils/auth';
 import axios from 'axios';
+import { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
+import prisma from '../lib/prisma';
+import { error, success } from '../utils/apiResponse';
+import { handleUserLoginResponse } from '../utils/auth';
 
 export async function facebookLogin(req: Request, res: Response) {
   try {
@@ -11,7 +11,7 @@ export async function facebookLogin(req: Request, res: Response) {
     if (!accessToken) return error(res, 'Facebook access token is required', 400);
 
     const fbResponse = await axios.get(
-      `https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`
+      `https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`,
     );
 
     const { id, name, email, picture } = fbResponse.data;
@@ -20,14 +20,14 @@ export async function facebookLogin(req: Request, res: Response) {
     const avatarUrl = picture?.data?.url || null;
 
     let user = await (prisma as any).user.findUnique({ where: { email } });
-    
+
     if (!user) {
       user = await (prisma as any).user.create({
-        data: { 
-          email, 
-          fullName: name || email.split('@')[0], 
-          avatar: avatarUrl, 
-          facebookId: id 
+        data: {
+          email,
+          fullName: name || email.split('@')[0],
+          avatar: avatarUrl,
+          facebookId: id,
         },
       });
     } else {
@@ -37,6 +37,13 @@ export async function facebookLogin(req: Request, res: Response) {
           data: { facebookId: id, avatar: user.avatar || avatarUrl },
         });
       }
+    }
+
+    if (!user.password) {
+      const tempToken = jwt.sign({ userId: user.id, isTemp: true }, (process.env.JWT_SECRET as string).trim(), {
+        expiresIn: '15m',
+      });
+      return success(res, { requirePassword: true, tempToken, email: user.email });
     }
 
     return handleUserLoginResponse(req, res, user);

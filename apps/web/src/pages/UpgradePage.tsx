@@ -1,14 +1,23 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  Check, X, Zap, Crown, Sparkles, 
-  ArrowRight, ShieldCheck, ZapOff, 
-  MessageSquare, BarChart3, Headphones, Loader2
+import {
+  ArrowRight,
+  BarChart3,
+  Check,
+  Crown,
+  Headphones,
+  Loader2,
+  MessageSquare,
+  ShieldCheck,
+  Sparkles,
+  X,
+  Zap,
+  ZapOff,
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { subscriptionAPI } from '../api/index';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { subscriptionAPI } from '../api/index';
+import { useAuth } from '../context/AuthContext';
 
 const PLANS = [
   {
@@ -83,7 +92,7 @@ const PLANS = [
 const LEVEL_RANKS: Record<string, number> = {
   BASIC: 0,
   PRO: 1,
-  PROMAX: 2
+  PROMAX: 2,
 };
 
 export default function UpgradePage() {
@@ -94,13 +103,16 @@ export default function UpgradePage() {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   useEffect(() => {
-    (subscriptionAPI as any).getMyPlan().then((res: any) => {
-      const data = res.data?.data;
-      if (data) {
-        setCurrentLevel(data.level || 'BASIC');
-        setLevelExpiresAt(data.levelExpiresAt);
-      }
-    }).catch(() => {});
+    (subscriptionAPI as any)
+      .getMyPlan()
+      .then((res: any) => {
+        const data = res.data?.data;
+        if (data) {
+          setCurrentLevel(data.level || 'BASIC');
+          setLevelExpiresAt(data.levelExpiresAt);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const handleUpgrade = async (planId: string) => {
@@ -108,7 +120,7 @@ export default function UpgradePage() {
       toast.error('Bạn đã ở cấp độ này hoặc cao hơn.');
       return;
     }
-    
+
     setLoadingPlan(planId);
     try {
       const res = await subscriptionAPI.createInvoice(planId);
@@ -126,19 +138,31 @@ export default function UpgradePage() {
 
   const getButtonConfig = (plan: any) => {
     if (plan.id === currentLevel) {
-      return { text: 'Gói hiện tại', disabled: true, className: 'bg-emerald-500/10 text-emerald-500 cursor-not-allowed border-emerald-500/20' };
+      return {
+        text: 'Gói hiện tại',
+        disabled: true,
+        className: 'bg-emerald-500/10 text-emerald-500 cursor-not-allowed border-emerald-500/20',
+      };
     }
-    
+
     if (LEVEL_RANKS[plan.id] < LEVEL_RANKS[currentLevel]) {
-      return { text: 'Cấp độ thấp hơn', disabled: true, className: 'bg-slate-800/50 text-slate-400 cursor-not-allowed' };
+      return {
+        text: 'Cấp độ thấp hơn',
+        disabled: true,
+        className: 'bg-slate-800/50 text-slate-400 cursor-not-allowed',
+      };
     }
 
     if (plan.id === 'BASIC') {
       return { text: 'Gói miễn phí', disabled: true, className: 'bg-slate-800/50 text-slate-400 cursor-not-allowed' };
     }
-    
+
     if (plan.id === 'PROMAX') {
-      return { text: 'Trải nghiệm tối đa', disabled: false, className: 'btn-primary bg-gradient-to-r from-amber-500 to-orange-600 border-none' };
+      return {
+        text: 'Trải nghiệm tối đa',
+        disabled: false,
+        className: 'btn-primary bg-gradient-to-r from-amber-500 to-orange-600 border-none',
+      };
     }
     return { text: 'Nâng cấp ngay', disabled: false, className: 'btn-primary' };
   };
@@ -161,7 +185,7 @@ export default function UpgradePage() {
             <Sparkles size={14} />
             <span>MỞ KHÓA SỨC MẠNH TÀI CHÍNH</span>
           </motion.div>
-          
+
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -170,15 +194,15 @@ export default function UpgradePage() {
           >
             Chọn gói <span className="text-gradient">phù hợp</span> với bạn
           </motion.h1>
-          
+
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             className="text-[var(--color-text-secondary)] text-lg max-w-2xl mx-auto"
           >
-            Đầu tư vào kiến thức và công cụ là cách ngắn nhất để thoát khỏi gánh nặng nợ nần. 
-            Nâng cấp để nhận được sự hỗ trợ từ trí tuệ nhân tạo.
+            Đầu tư vào kiến thức và công cụ là cách ngắn nhất để thoát khỏi gánh nặng nợ nần. Nâng cấp để nhận được sự
+            hỗ trợ từ trí tuệ nhân tạo.
           </motion.p>
 
           {currentLevel !== 'BASIC' && levelExpiresAt && (
@@ -188,7 +212,9 @@ export default function UpgradePage() {
               className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold"
             >
               <Crown size={14} />
-              <span>Đang dùng {currentLevel} · Hết hạn {new Date(levelExpiresAt).toLocaleDateString('vi-VN')}</span>
+              <span>
+                Đang dùng {currentLevel} · Hết hạn {new Date(levelExpiresAt).toLocaleDateString('vi-VN')}
+              </span>
             </motion.div>
           )}
         </div>
@@ -198,7 +224,7 @@ export default function UpgradePage() {
           {PLANS.map((plan, index) => {
             const btn = getButtonConfig(plan);
             const isLoading = loadingPlan === plan.id;
-            
+
             return (
               <motion.div
                 key={plan.id}
@@ -207,7 +233,11 @@ export default function UpgradePage() {
                 transition={{ delay: 0.1 * (index + 3) }}
                 whileHover={{ y: -8 }}
                 className={`relative glass-card flex flex-col h-full border-2 ${
-                  plan.popular ? 'border-blue-500/40' : plan.id === currentLevel ? 'border-emerald-500/40' : 'border-[var(--color-border)]'
+                  plan.popular
+                    ? 'border-blue-500/40'
+                    : plan.id === currentLevel
+                      ? 'border-emerald-500/40'
+                      : 'border-[var(--color-border)]'
                 }`}
               >
                 {plan.popular && plan.id !== currentLevel && (
@@ -221,7 +251,9 @@ export default function UpgradePage() {
                   </div>
                 )}
 
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${plan.gradient} flex items-center justify-center mb-6`}>
+                <div
+                  className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${plan.gradient} flex items-center justify-center mb-6`}
+                >
                   <plan.icon size={28} style={{ color: plan.color }} />
                 </div>
 
@@ -245,7 +277,9 @@ export default function UpgradePage() {
                       ) : (
                         <X size={18} className="text-rose-500/40 mt-0.5 shrink-0" />
                       )}
-                      <p className={`text-sm ${feature.included ? 'text-[var(--color-text-secondary)]' : 'text-[var(--color-text-muted)] italic'}`}>
+                      <p
+                        className={`text-sm ${feature.included ? 'text-[var(--color-text-secondary)]' : 'text-[var(--color-text-muted)] italic'}`}
+                      >
                         {feature.text}
                         {feature.highlight && (
                           <span className="ml-1.5 px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-400 text-[10px] font-bold">
@@ -257,13 +291,15 @@ export default function UpgradePage() {
                   ))}
                 </div>
 
-                <button 
+                <button
                   className={`w-full py-4 px-6 rounded-xl font-bold transition-all duration-200 flex items-center justify-center gap-2 group ${btn.className}`}
                   disabled={btn.disabled || isLoading}
                   onClick={() => handleUpgrade(plan.id)}
                 >
                   {isLoading ? <Loader2 size={18} className="animate-spin" /> : btn.text}
-                  {!btn.disabled && !isLoading && <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />}
+                  {!btn.disabled && !isLoading && (
+                    <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
+                  )}
                 </button>
               </motion.div>
             );

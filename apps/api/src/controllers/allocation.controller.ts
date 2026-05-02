@@ -1,16 +1,12 @@
 import { Response } from 'express';
-import prisma from '../lib/prisma';
-import { success, error } from '../utils/apiResponse';
-import { getOptimalAllocation } from '../services/portfolioOptimizer.service';
-import {
-  buildBackwardCompatibleProjection,
-  generateProjectionTable,
-} from '../services/monteCarloSimulation.service';
-import { buildRiskMetrics } from '../services/riskMetrics.service';
-import { runStressTests } from '../services/stressTest.service';
-import { fetchFearGreedIndex } from '../services/market.service';
 import { ASSET_CLASSES } from '../constants/investmentConstants';
+import prisma from '../lib/prisma';
+import { fetchFearGreedIndex } from '../services/market.service';
+import { buildBackwardCompatibleProjection, generateProjectionTable } from '../services/monteCarloSimulation.service';
+import { getOptimalAllocation } from '../services/portfolioOptimizer.service';
+import { buildRiskMetrics } from '../services/riskMetrics.service';
 import { AuthenticatedRequest } from '../types';
+import { error, success } from '../utils/apiResponse';
 
 function shortUserId(userId: string | undefined): string {
   return String(userId || 'unknown').slice(0, 8);
@@ -26,7 +22,7 @@ export async function getAllocationRecommendation(req: AuthenticatedRequest, res
     }
 
     console.info(
-      `[InvestmentAdvisor] allocation:start user=${shortUserId(req.userId)} risk=${profile.riskLevel} horizon=${profile.horizon} mockSentiment=${req.query.mockSentiment ?? 'none'}`
+      `[InvestmentAdvisor] allocation:start user=${shortUserId(req.userId)} risk=${profile.riskLevel} horizon=${profile.horizon} mockSentiment=${req.query.mockSentiment ?? 'none'}`,
     );
 
     const mockSentiment = req.query.mockSentiment;
@@ -39,10 +35,13 @@ export async function getAllocationRecommendation(req: AuthenticatedRequest, res
       sentimentValue = sentiment.value;
     }
 
-    const EXCLUDABLE_ASSETS = ['gold', 'stocks', 'stocks_us', 'bonds', 'crypto'];
+    const EXCLUDABLE_ASSETS = ['gold', 'stocks', 'bonds', 'crypto'];
     const rawExcluded = req.query.excludedAssets as string | undefined;
     const excludedAssets = rawExcluded
-      ? rawExcluded.split(',').map(s => s.trim()).filter(s => EXCLUDABLE_ASSETS.includes(s))
+      ? rawExcluded
+          .split(',')
+          .map((s) => s.trim())
+          .filter((s) => EXCLUDABLE_ASSETS.includes(s))
       : [];
 
     const allocation = await getOptimalAllocation(profile, sentimentValue, null, excludedAssets);
@@ -55,7 +54,6 @@ export async function getAllocationRecommendation(req: AuthenticatedRequest, res
         savings: allocation.savings,
         gold: allocation.gold,
         stocks: allocation.stocks,
-        stocks_us: allocation.stocks_us || 0,
         bonds: allocation.bonds,
         crypto: allocation.crypto,
         recommendation: allocation.recommendation,
@@ -63,12 +61,11 @@ export async function getAllocationRecommendation(req: AuthenticatedRequest, res
     });
 
     const portfolioBreakdown = [
-      { asset: 'Tiết kiệm', percentage: allocation.savings, amount: profile.capital * allocation.savings / 100 },
-      { asset: 'Vàng', percentage: allocation.gold, amount: profile.capital * allocation.gold / 100 },
-      { asset: 'Cổ phiếu VN', percentage: allocation.stocks, amount: profile.capital * allocation.stocks / 100 },
-      { asset: 'Cổ phiếu Mỹ', percentage: allocation.stocks_us || 0, amount: profile.capital * (allocation.stocks_us || 0) / 100 },
-      { asset: 'Trái phiếu', percentage: allocation.bonds, amount: profile.capital * allocation.bonds / 100 },
-      { asset: 'Crypto', percentage: allocation.crypto, amount: profile.capital * allocation.crypto / 100 },
+      { asset: 'Tiết kiệm', percentage: allocation.savings, amount: (profile.capital * allocation.savings) / 100 },
+      { asset: 'Vàng', percentage: allocation.gold, amount: (profile.capital * allocation.gold) / 100 },
+      { asset: 'Cổ phiếu VN', percentage: allocation.stocks, amount: (profile.capital * allocation.stocks) / 100 },
+      { asset: 'Trái phiếu', percentage: allocation.bonds, amount: (profile.capital * allocation.bonds) / 100 },
+      { asset: 'Crypto', percentage: allocation.crypto, amount: (profile.capital * allocation.crypto) / 100 },
     ];
 
     const inflationRate = profile.inflationRate !== undefined ? profile.inflationRate / 100 : 0.035;
@@ -92,10 +89,8 @@ export async function getAllocationRecommendation(req: AuthenticatedRequest, res
       projectionTable,
     });
 
-    const stressTests = runStressTests(allocation.weights, profile.capital ?? 0);
-
     console.info(
-      `[InvestmentAdvisor] allocation:complete user=${shortUserId(req.userId)} sentiment=${sentimentValue} method=${allocation.optimizationMethod} dataQuality=${allocation.optimization?.marketDataQuality || 'unknown'} riskGrade=${riskMetrics.riskGrade} durationMs=${Date.now() - startedAt}`
+      `[InvestmentAdvisor] allocation:complete user=${shortUserId(req.userId)} sentiment=${sentimentValue} method=${allocation.optimizationMethod} dataQuality=${allocation.optimization?.marketDataQuality || 'unknown'} riskGrade=${riskMetrics.riskGrade} durationMs=${Date.now() - startedAt}`,
     );
 
     return success(res, {
@@ -103,7 +98,6 @@ export async function getAllocationRecommendation(req: AuthenticatedRequest, res
         savings: allocation.savings,
         gold: allocation.gold,
         stocks: allocation.stocks,
-        stocks_us: allocation.stocks_us || 0,
         bonds: allocation.bonds,
         crypto: allocation.crypto,
       },
@@ -116,13 +110,13 @@ export async function getAllocationRecommendation(req: AuthenticatedRequest, res
       portfolioBreakdown,
       projection,
       riskMetrics,
-      stressTests,
       optimizationMethod: allocation.optimizationMethod,
       optimization: allocation.optimization,
       allocationMetrics: allocation.metrics,
-      cryptoWarning: allocation.crypto > 0
-        ? `Crypto (${allocation.crypto}% danh mục) có thể dao động từ ${ASSET_CLASSES.crypto.bearCase * 100}% đến +${ASSET_CLASSES.crypto.bullCase * 100}% — không có lợi nhuận kỳ vọng ổn định. Chỉ đầu tư phần vốn chấp nhận mất hoàn toàn.`
-        : null,
+      cryptoWarning:
+        allocation.crypto > 0
+          ? `Crypto (${allocation.crypto}% danh mục) có thể dao động từ ${ASSET_CLASSES.crypto.bearCase * 100}% đến +${ASSET_CLASSES.crypto.bullCase * 100}% — không có lợi nhuận kỳ vọng ổn định. Chỉ đầu tư phần vốn chấp nhận mất hoàn toàn.`
+          : null,
     });
   } catch (err) {
     console.error('getAllocationRecommendation error:', err);
@@ -143,7 +137,9 @@ export async function getAllocationHistory(req: AuthenticatedRequest, res: Respo
       orderBy: { createdAt: 'desc' },
       take: 20,
     });
-    console.info(`[InvestmentAdvisor] allocation-history:list user=${shortUserId(req.userId)} count=${allocations.length}`);
+    console.info(
+      `[InvestmentAdvisor] allocation-history:list user=${shortUserId(req.userId)} count=${allocations.length}`,
+    );
     return success(res, { allocations });
   } catch (err) {
     console.error('getAllocationHistory error:', err);

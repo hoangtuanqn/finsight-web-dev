@@ -1,10 +1,10 @@
-import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import { Request, Response } from 'express';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import prisma from '../lib/prisma';
-import { success, error } from '../utils/apiResponse';
-import { AuthenticatedRequest } from '../types';
 import { ReferralService } from '../services/referral.service';
+import { AuthenticatedRequest } from '../types';
+import { error, success } from '../utils/apiResponse';
 import { handleUserLoginResponse } from '../utils/auth';
 
 export async function register(req: Request, res: Response) {
@@ -18,29 +18,27 @@ export async function register(req: Request, res: Response) {
 
     const hashedPassword = await bcrypt.hash(password, 12);
     const user = await (prisma as any).user.create({
-      data: { 
-        email, 
-        password: hashedPassword, 
+      data: {
+        email,
+        password: hashedPassword,
         fullName,
-        referralCode: `temp_${Date.now()}` // Sẽ được cập nhật ngay sau đây
+        referralCode: `temp_${Date.now()}`, // Sẽ được cập nhật ngay sau đây
       },
       select: { id: true, email: true, fullName: true, monthlyIncome: true, extraBudget: true, createdAt: true },
     });
 
     // Tạo mã giới thiệu chính thức cho user mới
     const finalCode = await ReferralService.getOrCreateReferralCode(user.id);
-    
+
     // Xử lý nếu user này được giới thiệu bởi người khác
     const { referralCode } = req.body;
     if (referralCode) {
       await ReferralService.processReferral(user.id, referralCode);
     }
 
-    const token = jwt.sign(
-      { userId: user.id, email: user.email },
-      (process.env.JWT_SECRET as string).trim(),
-      { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'] }
-    );
+    const token = jwt.sign({ userId: user.id, email: user.email }, (process.env.JWT_SECRET as string).trim(), {
+      expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'],
+    });
 
     return success(res, { user, token }, 201);
   } catch (err) {
@@ -92,4 +90,63 @@ export async function me(req: AuthenticatedRequest, res: Response) {
 
 export async function logout(req: Request, res: Response) {
   return success(res, { message: 'Logged out successfully' });
+}
+
+export async function verifyPassword(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { password } = req.body;
+    if (!password) return error(res, 'Vui lòng nhập mật khẩu', 400);
+
+    const user = await (prisma as any).user.findUnique({
+      where: { id: req.userId },
+    });
+    if (!user) return error(res, 'User not found', 404);
+
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) return error(res, 'Mật khẩu không chính xác', 401);
+
+    return success(res, { message: 'Xác thực thành công' });
+  } catch (err) {
+    console.error('Verify password error:', err);
+    return error(res, 'Internal server error');
+  }
+}
+
+export async function setSocialPassword(req: Request, res: Response) {
+  try {
+    const { tempToken, password } = req.body;
+    if (!tempToken || !password) return error(res, 'Missing required fields', 400);
+
+    let decoded: any;
+    try {
+      decoded = jwt.verify(tempToken, (process.env.JWT_SECRET as string).trim());
+    } catch (err) {
+      return error(res, 'Invalid or expired session', 401);
+    }
+
+    if (!decoded.isTemp) {
+      return error(res, 'Invalid session type', 401);
+    }
+
+    const user = await (prisma as any).user.findUnique({
+      where: { id: decoded.userId },
+    });
+
+    if (!user) return error(res, 'User not found', 404);
+
+    if (user.password) {
+      return error(res, 'Tài khoản này đã có mật khẩu', 400);
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const updatedUser = await (prisma as any).user.update({
+      where: { id: user.id },
+      data: { password: hashedPassword },
+    });
+
+    return handleUserLoginResponse(req, res, updatedUser);
+  } catch (err) {
+    console.error('Set social password error:', err);
+    return error(res, 'Internal server error');
+  }
 }
