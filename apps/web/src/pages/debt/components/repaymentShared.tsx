@@ -7,7 +7,6 @@ import {
   HelpCircle,
   Sparkles,
   Target,
-  X,
   XCircle,
   Zap,
 } from 'lucide-react';
@@ -237,13 +236,6 @@ export function StrategyModal({ type, onClose }: { type: StrategyType; onClose: 
                 <p className="text-[12px] text-[var(--color-text-muted)]">{content.tagline}</p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-[var(--color-text-muted)] transition-colors cursor-pointer"
-            >
-              <X size={15} />
-            </button>
           </div>
 
           <p className="text-[13px] text-[var(--color-text-secondary)] leading-relaxed mb-5">{content.description}</p>
