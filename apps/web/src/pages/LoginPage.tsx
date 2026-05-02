@@ -126,11 +126,6 @@ export default function LoginPage() {
               />
             </Link>
 
-            {/* Top Icon */}
-            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-violet-500 rounded-2xl flex items-center justify-center mb-5 shadow-[0_8px_20px_-6px_rgba(99,102,241,0.5)]">
-              <User size={30} className="text-white" />
-            </div>
-
             <h2 className="text-[28px] font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 mb-2">
               Đăng nhập
             </h2>
