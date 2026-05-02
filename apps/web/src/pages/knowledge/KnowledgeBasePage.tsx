@@ -9,35 +9,198 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  Edit3,
+  Filter,
+  LayoutGrid,
   Lightbulb,
+  List,
   Loader2,
+  Plus,
+  Save,
   Search,
   Share2,
   Sparkles,
+  Trash2,
   User,
   X,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import knowledgeData from '../../data/knowledgeBase.json';
-import { useArticles, useSeedArticles } from '../../hooks/useArticleQuery';
+import {
+  useArticles,
+  useCreateArticle,
+  useDeleteArticle,
+  useSeedArticles,
+  useUpdateArticle,
+} from '../../hooks/useArticleQuery';
 
 const ITEMS_PER_PAGE = 10;
+
+type ArticleFormData = {
+  title: string;
+  author: string;
+  date: string;
+  imageUrl: string;
+  excerpt: string;
+  content: string;
+};
+
+type ArticleFilters = {
+  search: string;
+  author: string;
+  dateRange: string;
+  sortBy: string;
+};
+
+const emptyArticleFilters: ArticleFilters = {
+  search: '',
+  author: '',
+  dateRange: '',
+  sortBy: 'newest',
+};
+
+function getTodayValue() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function getEmptyArticleForm(): ArticleFormData {
+  return {
+    title: '',
+    author: 'FinSight Team',
+    date: getTodayValue(),
+    imageUrl: '',
+    excerpt: '',
+    content: '',
+  };
+}
+
+function normalizeText(value: string) {
+  return value.toLowerCase().trim();
+}
+
+function getArticleTime(article: any) {
+  return new Date(article.createdAt || article.updatedAt || article.date || 0).getTime();
+}
 
 export default function KnowledgeBasePage() {
   const [activeTab, setActiveTab] = useState('terms');
   const [selectedArticle, setSelectedArticle] = useState<any>(null);
+  const [editingArticle, setEditingArticle] = useState<any>(null);
+  const [deletingArticle, setDeletingArticle] = useState<any>(null);
+  const [isArticleFormOpen, setIsArticleFormOpen] = useState(false);
+  const [articleForm, setArticleForm] = useState<ArticleFormData>(getEmptyArticleForm);
+  const [articleFilters, setArticleFilters] = useState<ArticleFilters>(emptyArticleFilters);
+  const [tempArticleFilters, setTempArticleFilters] = useState<ArticleFilters>(emptyArticleFilters);
+  const [showArticleFilters, setShowArticleFilters] = useState(false);
+  const [articleViewMode, setArticleViewMode] = useState(() => localStorage.getItem('finsight_article_view') || 'grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
   const { data: articles, isLoading } = useArticles() as { data: any[] | undefined; isLoading: boolean };
   const { mutate: seed, isPending: isSeeding } = useSeedArticles();
+  const { mutate: createArticle, isPending: isCreatingArticle } = useCreateArticle();
+  const { mutate: updateArticle, isPending: isUpdatingArticle } = useUpdateArticle();
+  const { mutate: deleteArticle, isPending: isDeletingArticle } = useDeleteArticle();
+
+  const isSavingArticle = isCreatingArticle || isUpdatingArticle;
+  const articleList = articles || [];
+
+  useEffect(() => {
+    if (showArticleFilters) {
+      setTempArticleFilters(articleFilters);
+    }
+  }, [showArticleFilters, articleFilters]);
+
+  useEffect(() => {
+    localStorage.setItem('finsight_article_view', articleViewMode);
+  }, [articleViewMode]);
 
   const handleSeed = () => {
     seed(null, {
       onSuccess: () => toast.success('Đã nạp dữ liệu bài viết mẫu!'),
       onError: () => toast.error('Lỗi khi nạp dữ liệu.'),
     });
+  };
+
+  const openCreateArticle = () => {
+    setEditingArticle(null);
+    setArticleForm(getEmptyArticleForm());
+    setIsArticleFormOpen(true);
+  };
+
+  const openEditArticle = (article: any) => {
+    setEditingArticle(article);
+    setArticleForm({
+      title: article.title || '',
+      author: article.author || 'FinSight Team',
+      date: article.date || getTodayValue(),
+      imageUrl: article.imageUrl || '',
+      excerpt: article.excerpt || '',
+      content: article.content || '',
+    });
+    setIsArticleFormOpen(true);
+  };
+
+  const closeArticleForm = () => {
+    if (isSavingArticle) return;
+    setIsArticleFormOpen(false);
+    setEditingArticle(null);
+    setArticleForm(getEmptyArticleForm());
+  };
+
+  const updateArticleForm = (field: keyof ArticleFormData, value: string) => {
+    setArticleForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleSaveArticle = (event: FormEvent) => {
+    event.preventDefault();
+
+    const data = {
+      ...articleForm,
+      category: 'STORY',
+    };
+
+    const options = {
+      onSuccess: () => {
+        toast.success(editingArticle ? 'Đã cập nhật bài viết.' : 'Đã thêm bài viết.');
+        closeArticleForm();
+        setSelectedArticle(null);
+      },
+      onError: () => toast.error('Không thể lưu bài viết.'),
+    };
+
+    if (editingArticle) {
+      updateArticle({ id: editingArticle.id, data }, options);
+    } else {
+      createArticle(data, options);
+    }
+  };
+
+  const handleDeleteArticle = () => {
+    if (!deletingArticle) return;
+
+    deleteArticle(deletingArticle.id, {
+      onSuccess: () => {
+        toast.success('Đã xóa bài viết.');
+        setDeletingArticle(null);
+        if (selectedArticle?.id === deletingArticle.id) {
+          setSelectedArticle(null);
+        }
+      },
+      onError: () => toast.error('Không thể xóa bài viết.'),
+    });
+  };
+
+  const handleApplyArticleFilters = () => {
+    setArticleFilters(tempArticleFilters);
+    setShowArticleFilters(false);
+  };
+
+  const handleResetArticleFilters = () => {
+    setArticleFilters(emptyArticleFilters);
+    setTempArticleFilters(emptyArticleFilters);
+    setShowArticleFilters(false);
   };
 
   // Terms Pagination & Filter Logic
@@ -54,6 +217,54 @@ export default function KnowledgeBasePage() {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     return filteredTerms.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [filteredTerms, currentPage]);
+
+  const authorOptions = useMemo(() => {
+    return Array.from(new Set(articleList.map((article) => article.author).filter(Boolean))).sort();
+  }, [articleList]);
+
+  const filteredArticles = useMemo(() => {
+    const now = Date.now();
+    const ranges: Record<string, number> = {
+      '30d': 30 * 24 * 60 * 60 * 1000,
+      '90d': 90 * 24 * 60 * 60 * 1000,
+      '365d': 365 * 24 * 60 * 60 * 1000,
+    };
+
+    const filtered = articleList.filter((article) => {
+      if (articleFilters.search) {
+        const keyword = normalizeText(articleFilters.search);
+        const haystack = normalizeText(`${article.title || ''} ${article.excerpt || ''} ${article.content || ''}`);
+        if (!haystack.includes(keyword)) return false;
+      }
+
+      if (articleFilters.author && article.author !== articleFilters.author) {
+        return false;
+      }
+
+      if (articleFilters.dateRange) {
+        const articleTime = getArticleTime(article);
+        if (!articleTime || now - articleTime > ranges[articleFilters.dateRange]) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    return [...filtered].sort((a, b) => {
+      if (articleFilters.sortBy === 'oldest') {
+        return getArticleTime(a) - getArticleTime(b);
+      }
+      if (articleFilters.sortBy === 'title') {
+        return String(a.title || '').localeCompare(String(b.title || ''), 'vi');
+      }
+      return getArticleTime(b) - getArticleTime(a);
+    });
+  }, [articleFilters, articleList]);
+
+  const hasActiveArticleFilters = Boolean(
+    articleFilters.search || articleFilters.author || articleFilters.dateRange || articleFilters.sortBy !== 'newest',
+  );
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -129,7 +340,7 @@ export default function KnowledgeBasePage() {
           ))}
         </div>
 
-        {activeTab === 'terms' && (
+        {activeTab === 'terms' ? (
           <div className="flex flex-col md:flex-row gap-4 items-center w-full md:w-auto">
             <span className="text-[11px] font-black uppercase tracking-widest text-[var(--color-text-muted)] bg-[var(--color-bg-secondary)] px-4 py-2 rounded-xl border border-[var(--color-border)]">
               Tổng cộng: <span className="text-indigo-400">{filteredTerms.length}</span> thuật ngữ
@@ -147,6 +358,52 @@ export default function KnowledgeBasePage() {
                 className="w-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl py-3 pl-11 pr-4 text-sm focus:border-indigo-500/50 outline-none transition-all"
               />
             </div>
+          </div>
+        ) : (
+          <div className="flex w-full flex-col gap-3 md:w-auto md:flex-row md:items-center">
+            <button
+              onClick={() => setShowArticleFilters(true)}
+              className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-5 py-3 text-sm font-black transition-all active:scale-95 ${
+                hasActiveArticleFilters
+                  ? 'border-indigo-500/50 bg-indigo-500/15 text-indigo-300'
+                  : 'border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+              }`}
+            >
+              <Filter size={16} />
+              Bộ lọc
+              {hasActiveArticleFilters && <span className="h-2 w-2 rounded-full bg-indigo-400" />}
+            </button>
+            <div className="hidden items-center rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] p-1 shadow-sm sm:flex">
+              <button
+                onClick={() => setArticleViewMode('grid')}
+                className={`rounded-xl p-2 transition-colors ${
+                  articleViewMode === 'grid'
+                    ? 'bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] shadow-sm'
+                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                }`}
+                title="Xem nhiều thẻ"
+              >
+                <LayoutGrid size={18} />
+              </button>
+              <button
+                onClick={() => setArticleViewMode('list')}
+                className={`rounded-xl p-2 transition-colors ${
+                  articleViewMode === 'list'
+                    ? 'bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] shadow-sm'
+                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
+                }`}
+                title="Xem theo hàng"
+              >
+                <List size={18} />
+              </button>
+            </div>
+            <button
+              onClick={openCreateArticle}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-500 px-5 py-3 text-sm font-black text-white shadow-xl shadow-indigo-500/20 transition-all hover:scale-[1.02] active:scale-95"
+            >
+              <Plus size={16} />
+              Thêm bài viết
+            </button>
           </div>
         )}
       </div>
@@ -245,19 +502,27 @@ export default function KnowledgeBasePage() {
                 </div>
                 <p className="text-[var(--color-text-muted)] font-bold tracking-tight text-lg">Đang tải tri thức...</p>
               </div>
-            ) : articles && articles.length > 0 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {articles.map((story, index) => (
+            ) : filteredArticles.length > 0 ? (
+              <div
+                className={articleViewMode === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 gap-8' : 'flex flex-col gap-5'}
+              >
+                {filteredArticles.map((story, index) => (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.98 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: index * 0.1 }}
                     key={story.id}
                     onClick={() => setSelectedArticle(story)}
-                    className="group cursor-pointer rounded-[40px] bg-[var(--color-bg-secondary)] border border-[var(--color-border)] overflow-hidden flex flex-col hover:border-indigo-500/30 hover:translate-y-[-4px] transition-all duration-500"
+                    className={`group cursor-pointer bg-[var(--color-bg-secondary)] border border-[var(--color-border)] overflow-hidden hover:border-indigo-500/30 hover:translate-y-[-4px] transition-all duration-500 ${
+                      articleViewMode === 'grid'
+                        ? 'rounded-[40px] flex flex-col'
+                        : 'rounded-[28px] flex flex-col md:flex-row md:items-stretch'
+                    }`}
                     style={{ boxShadow: '0 20px 40px rgba(0,0,0,0.05)' }}
                   >
-                    <div className="h-64 overflow-hidden relative">
+                    <div
+                      className={`${articleViewMode === 'grid' ? 'h-64' : 'h-52 md:h-auto md:w-72 lg:w-80'} overflow-hidden relative shrink-0`}
+                    >
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10 opacity-60 group-hover:opacity-40 transition-opacity" />
                       <img
                         src={story.imageUrl}
@@ -274,17 +539,23 @@ export default function KnowledgeBasePage() {
                       </div>
                     </div>
 
-                    <div className="p-8 flex flex-col flex-1 relative">
+                    <div
+                      className={`${articleViewMode === 'grid' ? 'p-8' : 'p-6 md:p-7'} flex flex-col flex-1 relative`}
+                    >
                       <div className="flex justify-between items-start mb-4">
-                        <h3 className="text-2xl font-black text-[var(--color-text-primary)] leading-tight tracking-tighter group-hover:text-indigo-400 transition-colors flex-1 pr-4">
+                        <h3
+                          className={`${articleViewMode === 'grid' ? 'text-2xl' : 'text-xl md:text-2xl'} font-black text-[var(--color-text-primary)] leading-tight tracking-tighter group-hover:text-indigo-400 transition-colors flex-1 pr-4`}
+                        >
                           {story.title}
                         </h3>
-                        <div className="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-500 opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100">
+                        <div className="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-500 opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 shrink-0">
                           <ArrowRight size={20} />
                         </div>
                       </div>
 
-                      <p className="text-[var(--color-text-secondary)] text-sm leading-relaxed line-clamp-3 mb-6 font-medium">
+                      <p
+                        className={`text-[var(--color-text-secondary)] text-sm leading-relaxed ${articleViewMode === 'grid' ? 'line-clamp-3' : 'line-clamp-2'} mb-6 font-medium`}
+                      >
                         {story.excerpt}
                       </p>
 
@@ -316,6 +587,327 @@ export default function KnowledgeBasePage() {
               </div>
             )}
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Article Filter Drawer */}
+      <AnimatePresence>
+        {showArticleFilters && (
+          <div className="fixed inset-0 z-[105]">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowArticleFilters(false)}
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            />
+            <motion.aside
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+              className="absolute right-0 top-0 flex h-full w-full max-w-lg flex-col border-l border-[var(--color-border)] bg-[var(--color-bg-primary)] shadow-2xl"
+            >
+              <div className="flex items-start justify-between border-b border-[var(--color-border)] p-6">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/15 text-blue-400">
+                    <Filter size={22} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-[var(--color-text-primary)]">Bộ lọc bài viết</h3>
+                    <p className="text-[11px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
+                      Tối ưu danh sách
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowArticleFilters(false)}
+                  className="rounded-full p-2 text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-primary)]"
+                >
+                  <X size={22} />
+                </button>
+              </div>
+
+              <div className="flex-1 space-y-7 overflow-y-auto p-6">
+                <div className="space-y-3">
+                  <label className="text-[11px] font-black uppercase tracking-widest text-blue-400">Tìm kiếm</label>
+                  <div className="relative">
+                    <Search
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
+                      size={16}
+                    />
+                    <input
+                      value={tempArticleFilters.search}
+                      onChange={(event) =>
+                        setTempArticleFilters((current) => ({ ...current, search: event.target.value }))
+                      }
+                      placeholder="Tiêu đề, mô tả, nội dung..."
+                      className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] py-3 pl-11 pr-4 text-sm outline-none transition-all focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[11px] font-black uppercase tracking-widest text-blue-400">Tác giả</label>
+                  <select
+                    value={tempArticleFilters.author}
+                    onChange={(event) =>
+                      setTempArticleFilters((current) => ({ ...current, author: event.target.value }))
+                    }
+                    className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-4 py-3 text-sm font-bold outline-none transition-all focus:border-blue-500"
+                  >
+                    <option value="">Tất cả tác giả</option>
+                    {authorOptions.map((author) => (
+                      <option key={author} value={author}>
+                        {author}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[11px] font-black uppercase tracking-widest text-blue-400">Thời gian</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { id: '', label: 'Mọi thời gian' },
+                      { id: '30d', label: '30 ngày' },
+                      { id: '90d', label: '90 ngày' },
+                      { id: '365d', label: '1 năm' },
+                    ].map((option) => (
+                      <button
+                        key={option.id || 'all'}
+                        type="button"
+                        onClick={() => setTempArticleFilters((current) => ({ ...current, dateRange: option.id }))}
+                        className={`rounded-2xl border px-4 py-3 text-sm font-black transition-all ${
+                          tempArticleFilters.dateRange === option.id
+                            ? 'border-blue-500 bg-blue-600 text-white'
+                            : 'border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[11px] font-black uppercase tracking-widest text-blue-400">Sắp xếp theo</label>
+                  <div className="grid grid-cols-1 gap-3">
+                    {[
+                      { id: 'newest', label: 'Mới nhất trước' },
+                      { id: 'oldest', label: 'Cũ nhất trước' },
+                      { id: 'title', label: 'Tên bài viết A-Z' },
+                    ].map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => setTempArticleFilters((current) => ({ ...current, sortBy: option.id }))}
+                        className={`rounded-2xl border px-4 py-3 text-left text-sm font-black transition-all ${
+                          tempArticleFilters.sortBy === option.id
+                            ? 'border-blue-500 bg-blue-600 text-white'
+                            : 'border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 border-t border-[var(--color-border)] p-6">
+                <button
+                  onClick={handleResetArticleFilters}
+                  className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-5 py-4 text-sm font-black uppercase tracking-widest text-[var(--color-text-muted)] transition-all hover:text-[var(--color-text-primary)]"
+                >
+                  Xóa hết
+                </button>
+                <button
+                  onClick={handleApplyArticleFilters}
+                  className="rounded-2xl bg-blue-600 px-5 py-4 text-sm font-black uppercase tracking-widest text-white transition-all hover:bg-blue-500"
+                >
+                  Áp dụng
+                </button>
+              </div>
+            </motion.aside>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Article Form Modal */}
+      <AnimatePresence>
+        {isArticleFormOpen && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 md:p-8">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={closeArticleForm}
+              className="absolute inset-0 bg-black/75 backdrop-blur-md"
+            />
+
+            <motion.form
+              initial={{ opacity: 0, scale: 0.94, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 20 }}
+              onSubmit={handleSaveArticle}
+              className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[32px] border border-[var(--color-border)] bg-[var(--color-bg-primary)] p-6 md:p-8 shadow-2xl"
+            >
+              <div className="mb-6 flex items-start justify-between gap-4">
+                <div>
+                  <p className="mb-2 text-[11px] font-black uppercase tracking-widest text-indigo-400">
+                    {editingArticle ? 'Chỉnh sửa bài viết' : 'Thêm bài viết'}
+                  </p>
+                  <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
+                    {editingArticle ? 'Cập nhật bài viết thực tế' : 'Tạo bài viết thực tế'}
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeArticleForm}
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)] transition-all hover:text-[var(--color-text-primary)]"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <label className="space-y-2">
+                  <span className="text-[11px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
+                    Tiêu đề
+                  </span>
+                  <input
+                    value={articleForm.title}
+                    onChange={(event) => updateArticleForm('title', event.target.value)}
+                    required
+                    className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-4 py-3 text-sm outline-none transition-all focus:border-indigo-500"
+                  />
+                </label>
+                <label className="space-y-2">
+                  <span className="text-[11px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
+                    Tác giả
+                  </span>
+                  <input
+                    value={articleForm.author}
+                    onChange={(event) => updateArticleForm('author', event.target.value)}
+                    className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-4 py-3 text-sm outline-none transition-all focus:border-indigo-500"
+                  />
+                </label>
+                <label className="space-y-2">
+                  <span className="text-[11px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
+                    Ngày
+                  </span>
+                  <input
+                    value={articleForm.date}
+                    onChange={(event) => updateArticleForm('date', event.target.value)}
+                    className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-4 py-3 text-sm outline-none transition-all focus:border-indigo-500"
+                  />
+                </label>
+                <label className="space-y-2">
+                  <span className="text-[11px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
+                    URL ảnh
+                  </span>
+                  <input
+                    value={articleForm.imageUrl}
+                    onChange={(event) => updateArticleForm('imageUrl', event.target.value)}
+                    required
+                    placeholder="https://..."
+                    className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-4 py-3 text-sm outline-none transition-all focus:border-indigo-500"
+                  />
+                </label>
+              </div>
+
+              <label className="mt-4 block space-y-2">
+                <span className="text-[11px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
+                  Mô tả ngắn
+                </span>
+                <textarea
+                  value={articleForm.excerpt}
+                  onChange={(event) => updateArticleForm('excerpt', event.target.value)}
+                  required
+                  rows={3}
+                  className="w-full resize-none rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-4 py-3 text-sm outline-none transition-all focus:border-indigo-500"
+                />
+              </label>
+
+              <label className="mt-4 block space-y-2">
+                <span className="text-[11px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
+                  Nội dung
+                </span>
+                <textarea
+                  value={articleForm.content}
+                  onChange={(event) => updateArticleForm('content', event.target.value)}
+                  required
+                  rows={10}
+                  className="w-full resize-y rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-4 py-3 text-sm leading-relaxed outline-none transition-all focus:border-indigo-500"
+                />
+              </label>
+
+              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={closeArticleForm}
+                  disabled={isSavingArticle}
+                  className="rounded-2xl bg-[var(--color-bg-secondary)] px-5 py-3 text-sm font-black text-[var(--color-text-secondary)] transition-all hover:text-[var(--color-text-primary)] disabled:opacity-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingArticle}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-500 px-6 py-3 text-sm font-black text-white transition-all hover:scale-[1.02] disabled:opacity-50"
+                >
+                  {isSavingArticle ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                  {editingArticle ? 'Lưu thay đổi' : 'Thêm bài viết'}
+                </button>
+              </div>
+            </motion.form>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete Article Modal */}
+      <AnimatePresence>
+        {deletingArticle && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isDeletingArticle && setDeletingArticle(null)}
+              className="absolute inset-0 bg-black/75 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 16 }}
+              className="relative w-full max-w-lg rounded-[32px] border border-red-500/25 bg-[var(--color-bg-primary)] p-7 shadow-2xl"
+            >
+              <h2 className="text-2xl font-black text-[var(--color-text-primary)]">Xóa bài viết?</h2>
+              <p className="mt-3 text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                Bài viết "{deletingArticle.title}" sẽ bị xóa khỏi danh sách Bài viết thực tế.
+              </p>
+              <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  disabled={isDeletingArticle}
+                  onClick={() => setDeletingArticle(null)}
+                  className="rounded-2xl bg-[var(--color-bg-secondary)] px-5 py-3 text-sm font-black text-[var(--color-text-secondary)] transition-all hover:text-[var(--color-text-primary)] disabled:opacity-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeletingArticle}
+                  onClick={handleDeleteArticle}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 py-3 text-sm font-black text-white transition-all hover:bg-red-500 disabled:opacity-50"
+                >
+                  {isDeletingArticle ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                  Xóa bài viết
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
@@ -384,12 +976,29 @@ export default function KnowledgeBasePage() {
                   </div>
 
                   <div className="pt-10 border-t border-[var(--color-border)] flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div className="flex items-center gap-6">
+                    <div className="flex flex-wrap items-center justify-center gap-3">
                       <button className="flex items-center gap-2 text-[var(--color-text-muted)] hover:text-indigo-400 font-bold text-sm transition-colors">
                         <Share2 size={18} /> Chia sẻ bài viết
                       </button>
                       <button className="flex items-center gap-2 text-[var(--color-text-muted)] hover:text-indigo-400 font-bold text-sm transition-colors">
                         <Bookmark size={18} /> Lưu bài viết
+                      </button>
+                    </div>
+                    <div className="grid w-full grid-cols-1 gap-3 sm:w-auto sm:grid-cols-2">
+                      <button
+                        onClick={() => {
+                          openEditArticle(selectedArticle);
+                          setSelectedArticle(null);
+                        }}
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-600 px-5 py-3 text-sm font-black uppercase tracking-widest text-white transition-all hover:bg-slate-500 active:scale-95 dark:bg-white/10 dark:hover:bg-white/15"
+                      >
+                        <Edit3 size={16} /> Chỉnh sửa
+                      </button>
+                      <button
+                        onClick={() => setDeletingArticle(selectedArticle)}
+                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 py-3 text-sm font-black uppercase tracking-widest text-white transition-all hover:bg-red-500 active:scale-95 dark:bg-red-500/20 dark:hover:bg-red-500/30"
+                      >
+                        <Trash2 size={16} /> Xóa bài viết
                       </button>
                     </div>
                     <button
