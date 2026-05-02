@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 import { error, success } from '../utils/apiResponse';
 import { handleUserLoginResponse } from '../utils/auth';
@@ -36,6 +37,13 @@ export async function facebookLogin(req: Request, res: Response) {
           data: { facebookId: id, avatar: user.avatar || avatarUrl },
         });
       }
+    }
+
+    if (!user.password) {
+      const tempToken = jwt.sign({ userId: user.id, isTemp: true }, (process.env.JWT_SECRET as string).trim(), {
+        expiresIn: '15m',
+      });
+      return success(res, { requirePassword: true, tempToken, email: user.email });
     }
 
     return handleUserLoginResponse(req, res, user);

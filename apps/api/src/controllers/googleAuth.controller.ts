@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { OAuth2Client } from 'google-auth-library';
+import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma';
 import { error, success } from '../utils/apiResponse';
 import { handleUserLoginResponse } from '../utils/auth';
@@ -39,6 +40,13 @@ export async function googleLogin(req: Request, res: Response) {
           data: { googleId: sub, avatar: user.avatar || picture },
         });
       }
+    }
+
+    if (!user.password) {
+      const tempToken = jwt.sign({ userId: user.id, isTemp: true }, (process.env.JWT_SECRET as string).trim(), {
+        expiresIn: '15m',
+      });
+      return success(res, { requirePassword: true, tempToken, email: user.email });
     }
 
     return handleUserLoginResponse(req, res, user);
