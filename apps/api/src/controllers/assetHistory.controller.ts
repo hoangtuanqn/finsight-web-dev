@@ -1,8 +1,8 @@
 import { Response } from 'express';
-import { fetchAssetHistory } from '../services/historicalData.service';
-import { fetchVietnamGovBondAuctionHistory } from '../services/vietnamBondHistory.service';
-import { AuthenticatedRequest } from '../types';
-import { error, success } from '../utils/apiResponse';
+import { fetchAssetHistory } from '../services/historicalData.service.js';
+import { fetchVietnamGovBondAuctionHistory } from '../services/vietnamBondHistory.service.js';
+import { AuthenticatedRequest } from '../types/index.js';
+import { error, success } from '../utils/apiResponse.js';
 
 function shortUserId(userId: string | undefined): string {
   return String(userId || 'unknown').slice(0, 8);
@@ -77,6 +77,28 @@ const ASSET_HISTORY_SOURCES: Record<string, any> = {
     },
   },
   bonds: {
+    vn_gov_2y: {
+      asset: 'bonds',
+      source: 'vn_gov_2y',
+      sourceType: 'officialAuction',
+      provider: 'vbmaAuction',
+      rangeType: 'months',
+      tenor: 2,
+      name: 'TPCP Việt Nam 2 năm',
+      metric: { key: 'yield', unit: '%', changeUnit: 'percentagePoint', decimals: 2 },
+      dataSource: 'VBMA auction result pages',
+    },
+    vn_gov_3y: {
+      asset: 'bonds',
+      source: 'vn_gov_3y',
+      sourceType: 'officialAuction',
+      provider: 'vbmaAuction',
+      rangeType: 'months',
+      tenor: 3,
+      name: 'TPCP Việt Nam 3 năm',
+      metric: { key: 'yield', unit: '%', changeUnit: 'percentagePoint', decimals: 2 },
+      dataSource: 'VBMA auction result pages',
+    },
     vn_gov_5y: {
       asset: 'bonds',
       source: 'vn_gov_5y',
@@ -234,10 +256,6 @@ function buildMonthlyHistoryRows(rawHistory: any, months: number, metric: any) {
 
 function buildDailyHistoryRows(rawHistory: any, days: number, metric: any) {
   const decimals = Number.isInteger(metric?.decimals) ? metric.decimals : 2;
-
-  // giavang.tv timestamps are midnight Vietnam time (UTC+7).
-  // Reading with getUTC* would shift the date back by 7h → wrong day label.
-  // Add 7h offset so the local date matches Vietnam date before extracting parts.
   const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
 
   const rows = rawHistory.timestamps.map((timestamp: number, index: number) => {
@@ -331,15 +349,9 @@ async function fetchGiavangTvHistory(source: any, days: number) {
     const sellData: [number, number][] = json?.sell ?? [];
     if (sellData.length < 2) return null;
 
-    // DEBUG: log first 3 raw entries to inspect timestamp format
-    console.log('[giavangTv] raw sell sample:', sellData.slice(0, 3));
-
-    // sort theo timestamp tăng dần, lấy `days` ngày gần nhất
-    // giavang.tv trả timestamp dạng milliseconds (13 chữ số) → chuẩn hoá về seconds
     const sorted = [...sellData].sort((a, b) => a[0] - b[0]).slice(-days);
     const normalized = sorted.map(([ts, v]) => {
       const tsSeconds = ts > 1_000_000_000_000 ? Math.floor(ts / 1000) : ts;
-      console.log('[giavangTv] ts:', ts, '→ sec:', tsSeconds, '→ date:', new Date(tsSeconds * 1000).toISOString());
       return [tsSeconds, v] as [number, number];
     });
     return {

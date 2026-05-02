@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getBondsRatesData } from '../services/assetGuide/bonds.service';
+import { getBondsRatesData } from '../services/assetGuide/bonds.service.js';
 import {
   BLACKLIST_IDS,
   buildCoinCard,
@@ -7,17 +7,17 @@ import {
   getCryptoPricesData,
   scoreCoin,
   STABLECOIN_IDS,
-} from '../services/assetGuide/crypto.service';
-import { getGoldCache, getGoldPricesData } from '../services/assetGuide/gold.service';
-import { getSavingsRatesData } from '../services/assetGuide/savings.service';
+} from '../services/assetGuide/crypto.service.js';
+import { getGoldCache, getGoldPricesData } from '../services/assetGuide/gold.service.js';
+import { getSavingsRatesData } from '../services/assetGuide/savings.service.js';
 import {
   buildStockCard,
   getStockCacheForFallback,
   getStockPricesData,
   scoreStock,
   STOCK_UNIVERSE,
-} from '../services/assetGuide/stocks.service';
-import { error, success } from '../utils/apiResponse';
+} from '../services/assetGuide/stocks.service.js';
+import { error, success } from '../utils/apiResponse.js';
 
 // ─── Bonds ───────────────────────────────────────────────────────
 
@@ -37,7 +37,7 @@ export async function getBondsRates(req: Request, res: Response) {
 export async function getSavingsRates(req: Request, res: Response) {
   try {
     const riskLevel = (req.query.riskLevel as string) || 'MEDIUM';
-    const data = getSavingsRatesData(riskLevel);
+    const data = await getSavingsRatesData(riskLevel);
     return success(res, data);
   } catch (err: any) {
     console.error('getSavingsRates error:', err.message);
