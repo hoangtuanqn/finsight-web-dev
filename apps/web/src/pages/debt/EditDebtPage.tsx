@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
-import { AlertTriangle, BarChart2, Calendar, CreditCard, Info, Pencil } from 'lucide-react';
+import { AlertTriangle, BarChart2, Calendar, CreditCard, Edit3, Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -270,14 +270,19 @@ export default function EditDebtPage() {
         <span className="text-slate-700">/</span>
         <span className="text-slate-300">Chỉnh sửa</span>
       </div>
+      <div>
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-black tracking-tighter text-[var(--color-text-primary)]">Chỉnh sửa khoản nợ</h1>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-amber-500/20 bg-amber-500/8 text-amber-400 text-[10px] font-black uppercase tracking-widest">
+            <Edit3 size={11} /> {debtType === 'INSTALLMENT' ? 'Vay trả góp' : 'Thẻ tín dụng'}
+          </div>
+        </div>
+        <p className="text-[var(--color-text-secondary)] text-sm mt-1">
+          Cập nhật thông tin chi tiết cho khoản nợ của bạn
+        </p>
+      </div>
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-[24px] font-bold text-white flex items-center gap-2">
-            <Pencil className="text-blue-400" size={24} /> Chỉnh sửa khoản nợ
-          </h1>
-          <p className="text-slate-500 text-sm mt-1">Cập nhật thông tin chi tiết về khoản nợ của bạn</p>
-        </div>
         <div className="flex flex-col">
           <div className="flex bg-white/[0.03] p-1.5 rounded-2xl border border-white/[0.06] relative">
             <div
@@ -340,7 +345,7 @@ export default function EditDebtPage() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="input-label">Tên khoản nợ</label>
+                  <label className="input-label">Tên khoản {debtType === 'INSTALLMENT' ? 'vay' : 'nợ'}</label>
                   <input
                     {...register('name')}
                     className={inputCls(errors.name)}
@@ -377,6 +382,81 @@ export default function EditDebtPage() {
                   )}
                 </div>
               </div>
+
+              {/* Kỳ hạn và Ngày tháng */}
+              <div
+                className={`grid grid-cols-1 md:${debtType === 'INSTALLMENT' ? 'grid-cols-3' : 'grid-cols-2'} gap-6`}
+              >
+                <div>
+                  <label className="input-label">Ngày vay</label>
+                  <input
+                    type="date"
+                    {...register('startDate')}
+                    className={inputCls(errors.startDate)}
+                    max={new Date().toISOString().split('T')[0]}
+                  />
+                  {errors.startDate && (
+                    <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1">
+                      <AlertTriangle size={12} /> {errors.startDate.message}
+                    </p>
+                  )}
+                </div>
+
+                {debtType === 'INSTALLMENT' && (
+                  <div>
+                    <label className="input-label">Kỳ hạn (tháng)</label>
+                    <input
+                      type="number"
+                      {...register('termMonths', { valueAsNumber: true })}
+                      className={inputCls(errors.termMonths)}
+                      placeholder="12"
+                    />
+                    {errors.termMonths && (
+                      <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1">
+                        <AlertTriangle size={12} /> {errors.termMonths.message}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div>
+                  <label className="input-label">
+                    {debtType === 'CREDIT_CARD' ? 'Ngày chốt sao kê' : 'Ngày thanh toán hàng tháng'}
+                  </label>
+                  <input
+                    type="number"
+                    {...register('dueDay', { valueAsNumber: true })}
+                    className={inputCls(errors.dueDay)}
+                    placeholder="VD: 15"
+                  />
+                  {errors.dueDay && (
+                    <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1">
+                      <AlertTriangle size={12} /> {errors.dueDay.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {debtType === 'INSTALLMENT' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="input-label">Số kỳ đã trả</label>
+                    <input
+                      type="number"
+                      value={(formValues.termMonths || 0) - (formValues.remainingTerms || 0)}
+                      onChange={(e) => {
+                        const paid = Number(e.target.value);
+                        setValue('remainingTerms', Math.max(0, (formValues.termMonths || 0) - paid));
+                      }}
+                      className="input-field"
+                    />
+                  </div>
+                  <div className="flex items-center px-4 py-3 bg-white/[0.02] border border-white/[0.06] rounded-xl text-slate-500 text-sm italic">
+                    <Info size={16} className="mr-2 text-slate-600" />
+                    Kỳ còn lại: {formValues.remainingTerms || 0} tháng
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -555,76 +635,6 @@ export default function EditDebtPage() {
                       />
                     )}
                   />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {debtType === 'INSTALLMENT' ? (
-                  <>
-                    <div>
-                      <label className="input-label">Tổng kỳ hạn (tháng)</label>
-                      <input
-                        type="number"
-                        {...register('termMonths', { valueAsNumber: true })}
-                        className={inputCls(errors.termMonths)}
-                      />
-                    </div>
-                    <div>
-                      <label className="input-label">Số kỳ đã trả</label>
-                      <input
-                        type="number"
-                        value={(formValues.termMonths || 0) - (formValues.remainingTerms || 0)}
-                        onChange={(e) => {
-                          const paid = Number(e.target.value);
-                          setValue('remainingTerms', Math.max(0, (formValues.termMonths || 0) - paid));
-                        }}
-                        className="input-field"
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <div className="md:col-span-2 flex items-center px-4 py-3 bg-white/[0.02] border border-white/[0.06] rounded-xl text-slate-500 text-sm italic">
-                    <Info size={16} className="mr-2 text-slate-600" /> Thẻ tín dụng không có kỳ hạn cố định.
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="input-label">Ngày vay</label>
-                  <input
-                    type="date"
-                    {...register('startDate')}
-                    className={inputCls(errors.startDate)}
-                    max={new Date().toISOString().split('T')[0]}
-                  />
-                  {errors.startDate && (
-                    <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1">
-                      <AlertTriangle size={12} /> {errors.startDate.message}
-                    </p>
-                  )}
-                  {formValues.startDate &&
-                    new Date(formValues.startDate) < new Date(new Date().setFullYear(new Date().getFullYear() - 1)) && (
-                      <p className="mt-1 text-[10px] text-amber-400 flex items-center gap-1">
-                        <Info size={10} /> Ngày vay cách đây hơn 1 năm? Hãy kiểm tra lại.
-                      </p>
-                    )}
-                </div>
-                <div>
-                  <label className="input-label">
-                    {debtType === 'CREDIT_CARD' ? 'Ngày chốt sao kê' : 'Ngày thanh toán hàng tháng'}
-                  </label>
-                  <input
-                    type="number"
-                    {...register('dueDay', { valueAsNumber: true })}
-                    className={inputCls(errors.dueDay)}
-                    placeholder="VD: 15"
-                  />
-                  {errors.dueDay && (
-                    <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
-                      <AlertTriangle size={12} /> {errors.dueDay.message}
-                    </p>
-                  )}
                 </div>
               </div>
 
