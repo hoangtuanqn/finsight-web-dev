@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
-import { AlertTriangle, BarChart2, Calendar, CreditCard, Info, Pencil } from 'lucide-react';
+import { AlertTriangle, BarChart2, Calendar, CreditCard, Edit3, Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -270,14 +270,19 @@ export default function EditDebtPage() {
         <span className="text-slate-700">/</span>
         <span className="text-slate-300">Chỉnh sửa</span>
       </div>
+      <div>
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-black tracking-tighter text-[var(--color-text-primary)]">Chỉnh sửa khoản nợ</h1>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-amber-500/20 bg-amber-500/8 text-amber-400 text-[10px] font-black uppercase tracking-widest">
+            <Edit3 size={11} /> {debtType === 'INSTALLMENT' ? 'Vay trả góp' : 'Thẻ tín dụng'}
+          </div>
+        </div>
+        <p className="text-[var(--color-text-secondary)] text-sm mt-1">
+          Cập nhật thông tin chi tiết cho khoản nợ của bạn
+        </p>
+      </div>
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-[24px] font-bold text-white flex items-center gap-2">
-            <Pencil className="text-blue-400" size={24} /> Chỉnh sửa khoản nợ
-          </h1>
-          <p className="text-slate-500 text-sm mt-1">Cập nhật thông tin chi tiết về khoản nợ của bạn</p>
-        </div>
         <div className="flex flex-col">
           <div className="flex bg-white/[0.03] p-1.5 rounded-2xl border border-white/[0.06] relative">
             <div
