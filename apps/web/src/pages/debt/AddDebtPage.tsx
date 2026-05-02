@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
-import { AlertTriangle, BarChart2, Plus } from 'lucide-react';
+import { AlertTriangle, BarChart2, Info, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -17,18 +17,22 @@ const debtSchema = z
     balance: z.number().min(0, 'Dư nợ không được âm'),
     apr: z.number().min(0).max(100, 'Lãi suất APR không hợp lệ.'),
     rateType: z.enum(['FLAT', 'REDUCING']).default('FLAT'),
-    feeProcessing: z.number().min(0).default(0),
-    feeInsurance: z.number().min(0).default(0),
-    feeManagement: z.number().min(0).default(0),
+    feeProcessing: z.number().min(0).max(20, 'Phí xử lý không nên vượt quá 20%').default(0),
+    feeInsurance: z.number().min(0).max(10, 'Phí bảo hiểm không nên vượt quá 10%').default(0),
+    feeManagement: z.number().min(0).max(5, 'Phí quản lý không nên vượt quá 5%').default(0),
     feePenaltyPerDay: z.number().min(0).default(0.05),
     minPayment: z.number().min(0, 'Số tiền trả tối thiểu không được âm.'),
     dueDay: z.number().int().min(1).max(31, 'Ngày đáo hạn từ 1 đến 31.'),
-    termMonths: z.number().int().min(0, 'Kỳ hạn không được âm.'),
+    termMonths: z.number().int().min(0, 'Kỳ hạn không được âm.').max(360, 'Kỳ hạn tối đa là 360 tháng (30 năm)'),
     startDate: z.string().min(1, 'Vui lòng chọn ngày vay.'),
   })
   .refine((data) => data.minPayment <= data.balance || data.balance === 0, {
     message: 'Số tiền trả tối thiểu không được lớn hơn dư nợ hiện tại.',
     path: ['minPayment'],
+  })
+  .refine((data) => data.balance <= data.originalAmount || data.originalAmount === 0, {
+    message: 'Dư nợ hiện tại không được lớn hơn số tiền gốc/hạn mức ban đầu.',
+    path: ['balance'],
   });
 
 const PLATFORM_PRESETS = {
@@ -199,6 +203,7 @@ export default function AddDebtPage() {
     try {
       const payload = {
         ...data,
+        debtType,
         remainingTerms: debtType === 'INSTALLMENT' ? (remaining ?? data.termMonths) : 0,
       };
       await createDebt(payload);
@@ -206,6 +211,12 @@ export default function AddDebtPage() {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const getEarColorClass = (earValue: number) => {
+    if (earValue <= 20) return 'text-emerald-400';
+    if (earValue <= 40) return 'text-yellow-400';
+    return 'text-red-400';
   };
 
   const inputCls = (hasError: any) => `input-field ${hasError ? 'border-red-500/60 focus:border-red-500' : ''}`;
@@ -357,17 +368,27 @@ export default function AddDebtPage() {
                         name="balance"
                         control={control}
                         render={({ field }) => (
-                          <FormattedInput
-                            kind="integer"
-                            value={field.value}
-                            onValueChange={(value) => {
-                              field.onChange(toNumberValue(value));
-                              setIsAutoCalcBalance(false); // Ngắt auto-calc nếu user tự nhập tay
-                            }}
-                            className={inputCls(errors.balance)}
-                            placeholder="0"
-                            suffix="đ"
-                          />
+                          <div className="relative">
+                            <FormattedInput
+                              kind="integer"
+                              value={field.value}
+                              onValueChange={(value) => {
+                                field.onChange(toNumberValue(value));
+                                setIsAutoCalcBalance(false); // Ngắt auto-calc nếu user tự nhập tay
+                              }}
+                              className={inputCls(errors.balance)}
+                              placeholder="0"
+                              suffix="đ"
+                            />
+                            {debtType === 'INSTALLMENT' &&
+                              !isAutoCalcBalance &&
+                              formValues.originalAmount > 0 &&
+                              formValues.balance < formValues.originalAmount && (
+                                <p className="mt-1 text-[10px] text-amber-400 flex items-center gap-1">
+                                  <Info size={10} /> Dư nợ thấp hơn gốc? Bạn đã trả một phần rồi?
+                                </p>
+                              )}
+                          </div>
                         )}
                       />
                       {errors.balance && (
@@ -545,6 +566,13 @@ export default function AddDebtPage() {
                             <AlertTriangle size={11} /> {errors.startDate.message as string}
                           </p>
                         )}
+                        {formValues.startDate &&
+                          new Date(formValues.startDate) <
+                            new Date(new Date().setFullYear(new Date().getFullYear() - 1)) && (
+                            <p className="mt-1 text-[10px] text-amber-400 flex items-center gap-1">
+                              <Info size={10} /> Ngày vay cách đây hơn 1 năm? Hãy kiểm tra lại.
+                            </p>
+                          )}
                       </div>
                       <div>
                         <label className="input-label">Kỳ hạn (tháng)</label>
@@ -654,7 +682,7 @@ export default function AddDebtPage() {
               <div className="h-px" style={{ background: 'var(--color-border)' }} />
               <div className="flex justify-between items-center">
                 <span className="text-[13px] font-black text-[var(--color-text-primary)]">EAR (thực tế)</span>
-                <span className="text-xl font-black text-red-400">{formatPercent(ear)}</span>
+                <span className={`text-xl font-black ${getEarColorClass(ear)}`}>{formatPercent(ear)}</span>
               </div>
               {ear > formValues.apr && (
                 <div className="flex items-start gap-2 px-3 py-2.5 rounded-2xl border border-red-500/20 bg-red-500/6 mt-4">
@@ -665,6 +693,35 @@ export default function AddDebtPage() {
                   </p>
                 </div>
               )}
+
+              <div className="h-px bg-white/[0.06] my-4" />
+              <div className="space-y-2">
+                <span className="text-[12px] text-[var(--color-text-muted)] font-bold uppercase tracking-wider block mb-2">
+                  Ước tính trả nợ
+                </span>
+                {debtType === 'INSTALLMENT' ? (
+                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3">
+                    <p className="text-[11px] text-blue-300/80 mb-1">Tổng chi phí dự kiến (Gốc + Lãi + Phí)</p>
+                    <p className="text-[14px] font-black text-blue-400">
+                      {formValues.minPayment && formValues.termMonths
+                        ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
+                            formValues.minPayment * formValues.termMonths,
+                          )
+                        : 'Chưa đủ dữ liệu'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3">
+                    <p className="text-[11px] text-yellow-300/80 mb-1 flex items-center gap-1">
+                      <AlertTriangle size={11} /> Thẻ tín dụng
+                    </p>
+                    <p className="text-[12px] font-medium text-yellow-400">
+                      Lãi suất kép được tính dựa trên dư nợ hiện tại. Chỉ trả mức tối thiểu sẽ kéo dài thời gian trả nợ
+                      rất lâu.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
