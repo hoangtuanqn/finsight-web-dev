@@ -204,11 +204,6 @@ export default function RegisterPage() {
               />
             </Link>
 
-            {/* Top Icon */}
-            <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center mb-5 shadow-[0_8px_20px_-6px_rgba(16,185,129,0.5)]">
-              <UserPlus size={30} className="text-white" />
-            </div>
-
             <h2 className="text-[28px] font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500 dark:from-emerald-400 dark:to-teal-400 mb-2">
               Tạo tài khoản
             </h2>
