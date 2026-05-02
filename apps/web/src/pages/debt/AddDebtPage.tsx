@@ -392,8 +392,14 @@ export default function AddDebtPage() {
 
   const suggestedMinPayment = useMemo(() => {
     if (debtType === 'CREDIT_CARD') return 0;
+
+    // Calculate financed amount (original + setup fees)
+    // Setup fees like Processing and Insurance are added to the loan balance
+    const setupFees = (formValues.feeProcessing + formValues.feeInsurance) / 100;
+    const financedAmount = Math.round(formValues.originalAmount * (1 + setupFees));
+
     return calculateMonthlyPayment({
-      principal: formValues.originalAmount,
+      principal: financedAmount,
       apr: formValues.apr,
       termMonths: formValues.termMonths,
       rateType: formValues.rateType as 'FLAT' | 'REDUCING',
@@ -405,6 +411,8 @@ export default function AddDebtPage() {
     formValues.termMonths,
     formValues.rateType,
     formValues.feeManagement,
+    formValues.feeProcessing,
+    formValues.feeInsurance,
     debtType,
   ]);
 
