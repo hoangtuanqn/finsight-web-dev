@@ -241,10 +241,6 @@ export async function buildMarketParams(savingsRate: number = 0.05, options: any
   const realAssets = ASSET_ORDER.filter(a => assetReturns[a] !== null && a !== 'savings');
   console.log(`[HistoricalData] buildMarketParams: ASSET_ORDER=${JSON.stringify(ASSET_ORDER)} covSize=${covSize} realAssets=${JSON.stringify(realAssets)}`);
   const covArray = Array.from({ length: covSize }, () => new Array(covSize).fill(0));
-  const covArray = Array.from({ length: covSize }, () => new Array(covSize).fill(0));
-
-  const realAssets = ASSET_ORDER.filter((a) => assetReturns[a] !== null && a !== 'savings');
->>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
 
   if (realAssets.length >= 2) {
     const realReturnsArrays = realAssets.map((a) => assetReturns[a] as number[]);

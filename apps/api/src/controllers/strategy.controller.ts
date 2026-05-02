@@ -78,14 +78,6 @@ export async function generateStrategy(req: AuthenticatedRequest, res: Response)
         stocks:        result.stocks,
         bonds:         result.bonds,
         crypto:        result.crypto,
-        riskLevel: user.investorProfile.riskLevel,
-        savings: result.savings,
-        gold: result.gold,
-        stocks: result.stocks,
-        stocks_us: result.stocks_us || 0,
-        bonds: result.bonds,
-        crypto: result.crypto,
->>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
         recommendation: result.recommendation,
         marketViews: result.marketViews,
       },
@@ -143,8 +135,6 @@ export async function upsertPortfolio(req: AuthenticatedRequest, res: Response) 
     }
 
     if ([savings, gold, stocks, bonds, crypto].some(v => v < 0)) {
-    if ([savings, gold, stocks, stocks_us, bonds, crypto].some((v) => v < 0)) {
->>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
       return error(res, 'Phân bổ không được âm', 400);
     }
 
@@ -194,13 +184,6 @@ export async function updatePortfolio(req: AuthenticatedRequest, res: Response) 
     const newStocks   = stocks    ?? existing.stocks;
     const newBonds    = bonds     ?? existing.bonds;
     const newCrypto   = crypto    ?? existing.crypto;
-    const newSavings = savings ?? existing.savings;
-    const newGold = gold ?? existing.gold;
-    const newStocks = stocks ?? existing.stocks;
-    const newStocksUs = stocks_us ?? existing.stocks_us;
-    const newBonds = bonds ?? existing.bonds;
-    const newCrypto = crypto ?? existing.crypto;
->>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
 
     const total = newSavings + newGold + newStocks + newBonds + newCrypto;
     if (Math.abs(total - 100) > 0.5) {
@@ -216,13 +199,6 @@ export async function updatePortfolio(req: AuthenticatedRequest, res: Response) 
         bonds:   newBonds,
         crypto:  newCrypto,
         notes:   notes !== undefined ? notes : existing.notes,
-        gold: newGold,
-        stocks: newStocks,
-        stocks_us: newStocksUs,
-        bonds: newBonds,
-        crypto: newCrypto,
-        notes: notes !== undefined ? notes : existing.notes,
->>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
       },
       include: { sourceStrategy: true },
     });

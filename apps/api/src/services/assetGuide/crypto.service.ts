@@ -90,10 +90,6 @@ function scoreCoin(coin: any, riskLevel: string = 'MEDIUM'): number {
   // Cap tại 70 để coin rank 5-30 có thể cạnh tranh với BTC/ETH
   const mcapRaw   = Math.min(100, (Math.log10(Math.max(mcap, 1)) / Math.log10(3e12)) * 100);
   const mcapScore = Math.min(70, mcapRaw) - (mcap < 5e9 ? 30 : mcap < 20e9 ? 10 : 0);
-  const mcapScore = Math.min(100, (Math.log10(Math.max(mcap, 1)) / Math.log10(3e12)) * 100);
-  const mcapPenalty = mcap < 5e9 ? 30 : mcap < 20e9 ? 15 : 0;
-  const mcapPenaltyApplied = mcapScore - mcapPenalty;
->>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
 
   // Liquidity: volume/mcap ratio — coin đang được giao dịch tích cực
   const volRatio = mcap > 0 ? volume / mcap : 0;
@@ -165,20 +161,6 @@ function buildCoinCard(coin: any, rank: number): CoinCard {
 
   if (mcFdvRatio >= 0.9)           reason.push(`Hầu hết token đã lưu hành — ít rủi ro bị xả từ token mở khóa`);
   else if (mcFdvRatio < 0.5)       reason.push(`Còn ${((1 - mcFdvRatio) * 100).toFixed(0)}% token chưa unlock — cần theo dõi lịch mở khóa`);
-  const liqLabel =
-    volRatio > 0.15 ? 'thanh khoản rất cao' : volRatio > 0.07 ? 'thanh khoản tốt' : 'thanh khoản trung bình';
-  const trendLabel =
-    change > 5
-      ? '🚀 đang tăng mạnh'
-      : change > 1
-        ? '📈 xu hướng tăng'
-        : change < -5
-          ? '📉 đang giảm mạnh'
-          : change < -1
-            ? '📉 xu hướng giảm'
-            : '➡️ đi ngang';
-  const note = `MCap ${mcapLabel} · ${liqLabel} · ${trendLabel} 24h`;
->>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
 
   let badge = '',
     badgeColor = '';
@@ -235,11 +217,6 @@ export async function getCryptoPricesData(riskLevel: string): Promise<CryptoServ
       + '?vs_currency=usd&order=market_cap_desc&per_page=30&page=1'
       + '&sparkline=false&price_change_percentage=24h'
       + '&include_fully_diluted_valuation=true';
-    const url =
-      'https://api.coingecko.com/api/v3/coins/markets' +
-      '?vs_currency=usd&order=market_cap_desc&per_page=100&page=1' +
-      '&sparkline=false&price_change_percentage=24h';
->>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
     const response = await fetch(url, { headers: { Accept: 'application/json' } });
     if (!response.ok) throw new Error(`CoinGecko ${response.status}`);
     rawCoins = await response.json();
@@ -253,7 +230,6 @@ export async function getCryptoPricesData(riskLevel: string): Promise<CryptoServ
   const scored = filtered.map((c) => ({ coin: c, score: scoreCoin(c, riskLevel) })).sort((a, b) => b.score - a.score);
 
   const top5 = scored.slice(0, 8).map((s, i) => buildCoinCard(s.coin, i));
-  const top5 = scored.slice(0, 5).map((s, i) => buildCoinCard(s.coin, i));
 
   // Stablecoin luôn có trong list (ngoại trừ HIGH risk không cần)
   if (riskLevel !== 'HIGH') {
@@ -271,13 +247,13 @@ export async function getCryptoPricesData(riskLevel: string): Promise<CryptoServ
         marketCapRank: usdc.market_cap_rank,
         tag: 'Stablecoin',
         note: 'Gửi nhận lãi 5–8%/năm trên các nền tảng DeFi · không chịu biến động giá',
+        reason: ['Ổn định giá trị so với USD', 'Thanh khoản cực cao'],
         badge: 'Ít rủi ro',
         badgeColor: 'emerald',
         rate: '$1.00 (Stablecoin)',
       });
     }
   }
->>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
 
   const filteredSlice = filtered.slice(0, 20);
   const avgChange =
@@ -305,11 +281,6 @@ export async function getCryptoPricesData(riskLevel: string): Promise<CryptoServ
     disclaimer: `Xếp hạng dựa trên dữ liệu thị trường (MCap, thanh khoản, MC/FDV). Chưa tính đến team, use case hay tokenomics chi tiết — cần DYOR trước khi đầu tư.`,
     riskLevel,
     cached:     cryptoCache.fetchedAt !== now,
-    coins: top5,
-    intro: introMap[riskLevel] || introMap.MEDIUM,
-    riskLevel,
-    cached: cryptoCache.fetchedAt !== now,
->>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
   };
 }
 
