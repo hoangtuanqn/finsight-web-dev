@@ -1,16 +1,16 @@
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { PieChart as PieChartIcon } from 'lucide-react';
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { CardHeader } from './Card';
 
 const PALETTE = [
   { fill: '#3b82f6', glow: 'rgba(59,130,246,0.4)' },
-  { fill: '#ef4444', glow: 'rgba(239,68,68,0.4)'  },
+  { fill: '#ef4444', glow: 'rgba(239,68,68,0.4)' },
   { fill: '#f59e0b', glow: 'rgba(245,158,11,0.4)' },
   { fill: '#10b981', glow: 'rgba(16,185,129,0.4)' },
   { fill: '#8b5cf6', glow: 'rgba(139,92,246,0.4)' },
 ];
 
-const CustomTooltip = ({ active, payload }: { active?: boolean, payload?: any[] }) => {
+const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: any[] }) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-xl border border-white/10 bg-slate-900/95 backdrop-blur-xl px-3 py-2 shadow-2xl text-[12px]">
@@ -27,9 +27,9 @@ export default function PlatformPie({ platformPieData = [] }: { platformPieData?
     <div
       className="relative rounded-3xl p-6 h-full flex flex-col overflow-hidden border"
       style={{
-        background:  'var(--color-bg-card)',
+        background: 'var(--color-bg-card)',
         borderColor: 'rgba(139,92,246,0.12)',
-        boxShadow:   '0 4px 30px rgba(139,92,246,0.06), 0 1px 0 rgba(139,92,246,0.15) inset',
+        boxShadow: '0 4px 30px rgba(139,92,246,0.06), 0 1px 0 rgba(139,92,246,0.15) inset',
       }}
     >
       <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent" />
@@ -47,16 +47,23 @@ export default function PlatformPie({ platformPieData = [] }: { platformPieData?
                   {PALETTE.map((p, i) => (
                     <filter key={i} id={`glow-${i}`} x="-50%" y="-50%" width="200%" height="200%">
                       <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
-                      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
                     </filter>
                   ))}
                 </defs>
                 <Pie
                   data={platformPieData}
-                  cx="50%" cy="50%"
-                  innerRadius={40} outerRadius={64}
-                  paddingAngle={5} dataKey="value"
-                  startAngle={90} endAngle={-270}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={40}
+                  outerRadius={64}
+                  paddingAngle={5}
+                  dataKey="value"
+                  startAngle={90}
+                  endAngle={-270}
                   strokeWidth={0}
                 >
                   {platformPieData.map((_, i) => (
@@ -71,7 +78,9 @@ export default function PlatformPie({ platformPieData = [] }: { platformPieData?
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="text-center">
                 <div className="text-[22px] font-black text-[var(--color-text-primary)]">{total}</div>
-                <div className="text-[9px] font-black text-[var(--color-text-muted)] uppercase tracking-widest">khoản nợ</div>
+                <div className="text-[9px] font-black text-[var(--color-text-muted)] uppercase tracking-widest">
+                  khoản nợ
+                </div>
               </div>
             </div>
           </div>
@@ -88,7 +97,9 @@ export default function PlatformPie({ platformPieData = [] }: { platformPieData?
                     style={{ background: color, boxShadow: `0 0 6px ${color}` }}
                   />
                   <span className="text-[12px] text-[var(--color-text-secondary)] flex-1 truncate">{p.name}</span>
-                  <span className="text-[11px] font-black" style={{ color }}>{pct}%</span>
+                  <span className="text-[11px] font-black" style={{ color }}>
+                    {pct}%
+                  </span>
                   <div className="w-14 h-1.5 rounded-full bg-white/5 overflow-hidden">
                     <div
                       className="h-full rounded-full"

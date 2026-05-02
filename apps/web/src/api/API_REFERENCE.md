@@ -86,7 +86,7 @@
 ## ⚙️ Cách sử dụng
 
 ```js
-import { authAPI, debtAPI, investmentAPI } from "@/api";
+import { authAPI, debtAPI, investmentAPI } from '@/api';
 
 // Đăng nhập
 const res = await authAPI.login({ email, password });

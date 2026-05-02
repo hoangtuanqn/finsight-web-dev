@@ -1,7 +1,7 @@
-import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ChevronRight, Sparkles, Zap, ArrowRight } from 'lucide-react';
-import { Section, GradientText } from './Shared';
+import { ArrowRight, Zap } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { GradientText, Section } from './Shared';
 
 export default function CTA() {
   return (
@@ -24,22 +24,30 @@ export default function CTA() {
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-black uppercase tracking-[0.2em] mb-8">
               <Zap size={14} /> Ready for the next level?
             </div>
-            
+
             <h2 className="text-5xl md:text-8xl font-black text-white mb-8 tracking-tighter leading-tight">
               Bắt đầu hành trình <br />
-              <GradientText from="from-blue-400" to="to-cyan-300">Tự do Tài chính</GradientText>
+              <GradientText from="from-blue-400" to="to-cyan-300">
+                Tự do Tài chính
+              </GradientText>
             </h2>
-            
+
             <p className="text-xl md:text-2xl text-slate-400 mb-12 font-medium max-w-2xl mx-auto leading-relaxed">
               Gia nhập cộng đồng người dùng thông minh đang tối ưu hóa dòng tiền và xóa nợ mỗi ngày cùng FinSight.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-              <Link to="/register" className="group relative flex items-center gap-3 px-10 py-5 bg-blue-600 text-white font-black rounded-2xl shadow-[0_20px_50px_rgba(37,99,235,0.4)] hover:shadow-[0_20px_80px_rgba(37,99,235,0.6)] transition-all hover:scale-105 active:scale-95">
+              <Link
+                to="/register"
+                className="group relative flex items-center gap-3 px-10 py-5 bg-blue-600 text-white font-black rounded-2xl shadow-[0_20px_50px_rgba(37,99,235,0.4)] hover:shadow-[0_20px_80px_rgba(37,99,235,0.6)] transition-all hover:scale-105 active:scale-95"
+              >
                 Bắt đầu miễn phí <ArrowRight size={22} className="group-hover:translate-x-1 transition-transform" />
                 <div className="absolute inset-0 bg-white/20 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
               </Link>
-              <Link to="/contact" className="flex items-center gap-2 px-10 py-5 bg-white/5 text-white font-black rounded-2xl border border-white/10 backdrop-blur-md hover:bg-white/10 transition-all">
+              <Link
+                to="/contact"
+                className="flex items-center gap-2 px-10 py-5 bg-white/5 text-white font-black rounded-2xl border border-white/10 backdrop-blur-md hover:bg-white/10 transition-all"
+              >
                 Liên hệ tư vấn
               </Link>
             </div>
@@ -48,7 +56,7 @@ export default function CTA() {
               {[
                 { label: 'Uptime', val: '99.9%' },
                 { label: 'Security', val: 'Military' },
-                { label: 'Support', val: '24/7' }
+                { label: 'Support', val: '24/7' },
               ].map((stat, i) => (
                 <div key={i} className="text-center">
                   <div className="text-2xl font-black text-white">{stat.val}</div>

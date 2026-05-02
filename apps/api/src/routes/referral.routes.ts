@@ -1,17 +1,17 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/auth.middleware';
 import {
-  getBanks,
-  getAffiliateStats,
-  getCommissionHistory,
-  getBankAccounts,
   addBankAccount,
-  setDefaultBankAccount,
   deleteBankAccount,
-  requestWithdrawal,
+  getAffiliateStats,
+  getBankAccounts,
+  getBanks,
+  getCommissionHistory,
   getWithdrawalHistory,
+  requestWithdrawal,
+  setDefaultBankAccount,
 } from '../controllers/affiliate.controller';
 import { ReferralController } from '../controllers/referral.controller';
+import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
 

@@ -50,7 +50,7 @@ export class WalletService {
         isDefault: data.isDefault,
         bankName: data.bankName !== undefined ? data.bankName : undefined,
         bankAccountNumber: data.bankAccountNumber !== undefined ? data.bankAccountNumber : undefined,
-        sepayToken: data.sepayToken !== undefined ? (data.sepayToken || null) : undefined,
+        sepayToken: data.sepayToken !== undefined ? data.sepayToken || null : undefined,
         // Reset thời điểm liên kết nếu token mới được thêm
         ...(isNewToken && { sepayLinkedAt: new Date() }),
         // Xóa liên kết nếu token bị remove

@@ -1,8 +1,8 @@
-import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Flame } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { formatPercent, formatVND } from '../../../utils/calculations';
 import { CardHeader } from './Card';
-import { formatVND, formatPercent } from '../../../utils/calculations';
 
 const RANK_GRADIENTS = [
   'from-amber-500 to-yellow-400',
@@ -21,9 +21,9 @@ export default function TopDebts({ debts = [] }: { debts?: any[] }) {
     <div
       className="relative rounded-3xl p-6 h-full flex flex-col overflow-hidden border"
       style={{
-        background:  'var(--color-bg-card)',
+        background: 'var(--color-bg-card)',
         borderColor: 'rgba(239,68,68,0.12)',
-        boxShadow:   '0 4px 30px rgba(239,68,68,0.06), 0 1px 0 rgba(239,68,68,0.15) inset',
+        boxShadow: '0 4px 30px rgba(239,68,68,0.06), 0 1px 0 rgba(239,68,68,0.15) inset',
       }}
     >
       {/* Accents */}

@@ -1,9 +1,6 @@
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowDownLeft, ArrowUpRight, Building2, Calendar, Check, X } from 'lucide-react';
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Check, X, Building2, Calendar, 
-  ArrowUpRight, ArrowDownLeft, Info, Search
-} from 'lucide-react';
 import { useBankSyncMutations } from '../../../hooks/useBankSyncQuery';
 import { CategoryPicker } from './CategoryPicker';
 
@@ -15,12 +12,12 @@ interface PendingTransactionListProps {
   onClearFilter?: () => void;
 }
 
-export function PendingTransactionList({ 
-  transactions, 
-  categories, 
-  loading, 
-  walletId, 
-  onClearFilter 
+export function PendingTransactionList({
+  transactions,
+  categories,
+  loading,
+  walletId,
+  onClearFilter,
 }: PendingTransactionListProps) {
   const { approve, reject } = useBankSyncMutations();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -28,16 +25,15 @@ export function PendingTransactionList({
   const [description, setDescription] = useState('');
   const [localType, setLocalType] = useState<'EXPENSE' | 'INCOME'>('EXPENSE');
 
-  const fmt = (n: number) =>
-    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
+  const fmt = (n: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
 
   const handleApprove = (tx: any) => {
     if (!categoryId) return;
-    approve.mutate({ 
-      id: tx.id, 
-      categoryId, 
+    approve.mutate({
+      id: tx.id,
+      categoryId,
       description: description || tx.description,
-      type: localType
+      type: localType,
     });
     setSelectedId(null);
     setCategoryId('');
@@ -47,8 +43,11 @@ export function PendingTransactionList({
   if (loading) {
     return (
       <div className="space-y-3">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="h-24 w-full bg-[var(--color-bg-card)] animate-pulse rounded-3xl border border-[var(--color-border)]" />
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="h-24 w-full bg-[var(--color-bg-card)] animate-pulse rounded-3xl border border-[var(--color-border)]"
+          />
         ))}
       </div>
     );
@@ -76,13 +75,12 @@ export function PendingTransactionList({
             {walletId ? 'Giao dịch mới của ví' : 'Giao dịch chờ duyệt'}
           </h2>
           <p className="text-sm font-bold text-[var(--color-text-muted)] mt-1">
-            {walletId 
+            {walletId
               ? `Đang hiển thị ${transactions.length} giao dịch cần xử lý của ví này`
-              : `Cần xử lý ${transactions.length} giao dịch từ ngân hàng`
-            }
+              : `Cần xử lý ${transactions.length} giao dịch từ ngân hàng`}
           </p>
         </div>
-        
+
         {walletId && (
           <button
             onClick={onClearFilter}
@@ -101,20 +99,24 @@ export function PendingTransactionList({
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             className={`group relative overflow-hidden rounded-3xl border transition-all ${
-              selectedId === tx.id 
-                ? 'border-blue-500/50 bg-[var(--color-bg-secondary)] ring-4 ring-blue-500/5 shadow-xl' 
+              selectedId === tx.id
+                ? 'border-blue-500/50 bg-[var(--color-bg-secondary)] ring-4 ring-blue-500/5 shadow-xl'
                 : 'border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-blue-500/30'
             }`}
           >
             {/* Top indicator bar */}
-            <div className={`absolute top-0 left-0 right-0 h-1 ${tx.type === 'INCOME' ? 'bg-emerald-500/40' : 'bg-red-500/40'}`} />
+            <div
+              className={`absolute top-0 left-0 right-0 h-1 ${tx.type === 'INCOME' ? 'bg-emerald-500/40' : 'bg-red-500/40'}`}
+            />
 
             <div className="p-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-4">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
-                    tx.type === 'INCOME' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
-                  }`}>
+                  <div
+                    className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
+                      tx.type === 'INCOME' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
+                    }`}
+                  >
                     {tx.type === 'INCOME' ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}
                   </div>
                   <div>
@@ -126,9 +128,7 @@ export function PendingTransactionList({
                         <Calendar size={10} /> {new Date(tx.transactionDate).toLocaleString('vi-VN')}
                       </span>
                     </div>
-                    <p className="font-bold text-[var(--color-text-primary)] leading-snug">
-                      {tx.description}
-                    </p>
+                    <p className="font-bold text-[var(--color-text-primary)] leading-snug">{tx.description}</p>
                     <div className="flex items-center gap-2 mt-1.5 text-[11px] text-[var(--color-text-muted)]">
                       <Building2 size={11} /> {tx.bankBrandName} • {tx.accountNumber}
                     </div>
@@ -137,12 +137,13 @@ export function PendingTransactionList({
 
                 <div className="text-right">
                   <p className={`text-lg font-black ${tx.type === 'INCOME' ? 'text-emerald-500' : 'text-red-500'}`}>
-                    {tx.type === 'INCOME' ? '+' : '-'}{fmt(tx.amount)}
+                    {tx.type === 'INCOME' ? '+' : '-'}
+                    {fmt(tx.amount)}
                   </p>
-                  
+
                   {selectedId !== tx.id && (
                     <div className="flex items-center justify-end gap-2 mt-3">
-                      <button 
+                      <button
                         onClick={() => {
                           setSelectedId(tx.id);
                           setDescription(tx.description);
@@ -153,7 +154,7 @@ export function PendingTransactionList({
                       >
                         <Check size={18} />
                       </button>
-                      <button 
+                      <button
                         onClick={() => {
                           if (confirm('Bạn có chắc muốn bỏ qua giao dịch này?')) {
                             reject.mutate(tx.id);
@@ -181,10 +182,14 @@ export function PendingTransactionList({
                       <div>
                         <div className="flex items-center justify-between mb-3">
                           <label className="text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest flex items-center gap-2">
-                            <div className={`w-1.5 h-1.5 rounded-full ${localType === 'INCOME' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                            <div
+                              className={`w-1.5 h-1.5 rounded-full ${localType === 'INCOME' ? 'bg-emerald-500' : 'bg-red-500'}`}
+                            />
                             Chọn danh mục {localType === 'INCOME' ? 'thu nhập' : 'chi tiêu'}
                           </label>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${localType === 'INCOME' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${localType === 'INCOME' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}
+                          >
                             {localType === 'INCOME' ? 'Tiền cộng vào' : 'Tiền trừ đi'}
                           </span>
                         </div>
@@ -201,10 +206,14 @@ export function PendingTransactionList({
                           onClick={() => handleApprove(tx)}
                           disabled={!categoryId || approve.isPending}
                           className={`flex-1 py-3.5 rounded-2xl text-white font-black text-sm transition-all shadow-lg active:scale-95 disabled:opacity-50 ${
-                            localType === 'INCOME' ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20' : 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/20'
+                            localType === 'INCOME'
+                              ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20'
+                              : 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/20'
                           }`}
                         >
-                          {approve.isPending ? 'Đang duyệt...' : `Duyệt ${localType === 'INCOME' ? 'thu nhập' : 'chi tiêu'}`}
+                          {approve.isPending
+                            ? 'Đang duyệt...'
+                            : `Duyệt ${localType === 'INCOME' ? 'thu nhập' : 'chi tiêu'}`}
                         </button>
                         <button
                           onClick={() => setSelectedId(null)}

@@ -1,4 +1,4 @@
-import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai";
+import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
 
 /**
  * Khởi tạo Chat Model (Bộ não chính của Agent)
@@ -17,7 +17,7 @@ export function getChatModel(options: any = {}) {
       temperature: options.temperature ?? 0.3,
       streaming: options.streaming ?? true,
       maxTokens: options.maxTokens ?? 1024,
-      ...options
+      ...options,
     });
   }
 
@@ -37,7 +37,7 @@ export function getEmbeddingModel() {
       configuration: {
         baseURL: process.env.LLM_BASE_URL || 'https://mkp-api.fptcloud.com',
       },
-      dimensions: 1024
+      dimensions: 1024,
     });
   }
 

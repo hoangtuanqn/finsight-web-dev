@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { BankSyncService } from '../services/bank-sync.service';
-import prisma from '../lib/prisma';
 import { syncWalletTransactions } from '../cron/jobs/wallet-sync.job';
+import prisma from '../lib/prisma';
+import { BankSyncService } from '../services/bank-sync.service';
 
 export class BankSyncController {
   static async getPending(req: Request, res: Response) {
@@ -9,10 +9,10 @@ export class BankSyncController {
       const userId = (req as any).userId;
       const { walletId } = req.query;
       console.log(`[API] Fetching pending txs for user: ${userId}, wallet: ${walletId || 'ALL'}`);
-      
+
       const transactions = await BankSyncService.getPendingTransactions(userId, walletId as string);
       console.log(`[API] Found ${transactions.length} pending transactions`);
-      
+
       res.json({ success: true, data: transactions });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -51,9 +51,9 @@ export class BankSyncController {
     try {
       const userId = (req as any).userId;
       const { walletId } = req.params;
-      
+
       const wallet = await (prisma as any).wallet.findUnique({
-        where: { id: walletId, userId }
+        where: { id: walletId, userId },
       });
 
       if (!wallet || !wallet.sepayToken) {

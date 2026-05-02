@@ -1,17 +1,24 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
-  Plus, PieChart as PieChartIcon, List, ChevronLeft, ChevronRight,
-  Wallet, TrendingUp, TrendingDown, BarChart2
+  BarChart2,
+  BellRing,
+  ChevronLeft,
+  ChevronRight,
+  List,
+  PieChart as PieChartIcon,
+  Plus,
+  TrendingDown,
+  TrendingUp,
+  Wallet,
 } from 'lucide-react';
-import { useExpenseQuery, useExpenseStats, useExpenseCategories } from '../../hooks/useExpenseQuery';
+import { useState } from 'react';
+import { useBankSyncQuery } from '../../hooks/useBankSyncQuery';
+import { useExpenseCategories, useExpenseQuery, useExpenseStats } from '../../hooks/useExpenseQuery';
 import { ExpenseForm } from './components/ExpenseForm';
 import { ExpenseStats } from './components/ExpenseStats';
+import { PendingTransactionList } from './components/PendingTransactionList';
 import { TransactionList } from './components/TransactionList';
 import { WalletSection } from './components/WalletSection';
-import { PendingTransactionList } from './components/PendingTransactionList';
-import { useBankSyncQuery } from '../../hooks/useBankSyncQuery';
-import { BellRing } from 'lucide-react';
 
 export default function ExpensePage() {
   const [activeTab, setActiveTab] = useState<'TRANSACTIONS' | 'REPORTS' | 'PENDING'>('TRANSACTIONS');
@@ -40,19 +47,31 @@ export default function ExpensePage() {
 
   const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-  const isCurrentMonth = currentDate.getMonth() === new Date().getMonth() && currentDate.getFullYear() === new Date().getFullYear();
+  const isCurrentMonth =
+    currentDate.getMonth() === new Date().getMonth() && currentDate.getFullYear() === new Date().getFullYear();
 
-  const handleEdit = (expense: any) => { setEditingExpense(expense); setIsFormOpen(true); };
-  const closeForm = () => { setIsFormOpen(false); setEditingExpense(null); };
+  const handleEdit = (expense: any) => {
+    setEditingExpense(expense);
+    setIsFormOpen(true);
+  };
+  const closeForm = () => {
+    setIsFormOpen(false);
+    setEditingExpense(null);
+  };
 
   const formatCompact = (n: number) => {
     if (n < 1000000) {
       return new Intl.NumberFormat('vi-VN').format(n) + 'đ';
     }
-    return new Intl.NumberFormat('vi-VN', { 
-      notation: 'compact', 
-      maximumFractionDigits: 1 
-    }).format(n).replace('tr', ' Tr').replace('tỷ', ' Tỷ') + 'đ';
+    return (
+      new Intl.NumberFormat('vi-VN', {
+        notation: 'compact',
+        maximumFractionDigits: 1,
+      })
+        .format(n)
+        .replace('tr', ' Tr')
+        .replace('tỷ', ' Tỷ') + 'đ'
+    );
   };
 
   const summaryCards = [
@@ -84,7 +103,6 @@ export default function ExpensePage() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-12 space-y-8">
-
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 pt-2">
         <div>
@@ -124,14 +142,24 @@ export default function ExpensePage() {
               boxShadow: `0 4px 24px ${item.color}08`,
             }}
           >
-            <div className="absolute top-0 left-6 right-6 h-px" style={{ background: `linear-gradient(90deg,transparent,${item.color}60,transparent)` }} />
-            <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full blur-3xl opacity-20" style={{ background: item.color }} />
+            <div
+              className="absolute top-0 left-6 right-6 h-px"
+              style={{ background: `linear-gradient(90deg,transparent,${item.color}60,transparent)` }}
+            />
+            <div
+              className="absolute -top-8 -right-8 w-24 h-24 rounded-full blur-3xl opacity-20"
+              style={{ background: item.color }}
+            />
 
-            <p className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-3">{item.label}</p>
+            <p className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-3">
+              {item.label}
+            </p>
             {loadingStats ? (
               <div className="h-8 w-24 bg-[var(--color-bg-secondary)] animate-pulse rounded-xl" />
             ) : (
-              <p className={`text-2xl md:text-3xl font-black bg-gradient-to-r ${item.gradient} bg-clip-text text-transparent leading-tight`}>
+              <p
+                className={`text-2xl md:text-3xl font-black bg-gradient-to-r ${item.gradient} bg-clip-text text-transparent leading-tight`}
+              >
                 {item.value}
               </p>
             )}
@@ -143,7 +171,10 @@ export default function ExpensePage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         {/* Month Nav */}
         <div className="flex items-center gap-1 bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-2xl p-1">
-          <button onClick={handlePrevMonth} className="p-2 hover:bg-[var(--color-bg-secondary)] rounded-xl transition-colors">
+          <button
+            onClick={handlePrevMonth}
+            className="p-2 hover:bg-[var(--color-bg-secondary)] rounded-xl transition-colors"
+          >
             <ChevronLeft size={16} className="text-[var(--color-text-muted)]" />
           </button>
           <button
@@ -157,7 +188,10 @@ export default function ExpensePage() {
               </span>
             )}
           </button>
-          <button onClick={handleNextMonth} className="p-2 hover:bg-[var(--color-bg-secondary)] rounded-xl transition-colors">
+          <button
+            onClick={handleNextMonth}
+            className="p-2 hover:bg-[var(--color-bg-secondary)] rounded-xl transition-colors"
+          >
             <ChevronRight size={16} className="text-[var(--color-text-muted)]" />
           </button>
         </div>
@@ -167,13 +201,13 @@ export default function ExpensePage() {
           {[
             { id: 'TRANSACTIONS', label: 'Giao dịch', icon: List },
             { id: 'REPORTS', label: 'Báo cáo', icon: PieChartIcon },
-            { 
-              id: 'PENDING', 
-              label: selectedWalletId ? 'Chi tiết GD ví' : 'Chờ duyệt', 
+            {
+              id: 'PENDING',
+              label: selectedWalletId ? 'Chi tiết GD ví' : 'Chờ duyệt',
               icon: BellRing,
-              badge: pendingTxs?.length > 0 ? pendingTxs.length : null
+              badge: pendingTxs?.length > 0 ? pendingTxs.length : null,
             },
-          ].map(tab => (
+          ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => {
@@ -204,7 +238,7 @@ export default function ExpensePage() {
             { value: 'ALL', label: 'Tất cả' },
             { value: 'EXPENSE', label: '💸 Chi phí' },
             { value: 'INCOME', label: '💰 Thu nhập' },
-          ].map(t => (
+          ].map((t) => (
             <button
               key={t.value}
               onClick={() => setTypeFilter(t.value as any)}
@@ -229,11 +263,7 @@ export default function ExpensePage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
           >
-            <TransactionList
-              expenses={expenses || []}
-              loading={loadingExpenses}
-              onEdit={handleEdit}
-            />
+            <TransactionList expenses={expenses || []} loading={loadingExpenses} onEdit={handleEdit} />
           </motion.div>
         ) : activeTab === 'PENDING' ? (
           <motion.div
@@ -264,13 +294,7 @@ export default function ExpensePage() {
 
       {/* Form Modal */}
       <AnimatePresence>
-        {isFormOpen && (
-          <ExpenseForm
-            onClose={closeForm}
-            expense={editingExpense}
-            categories={categories || []}
-          />
-        )}
+        {isFormOpen && <ExpenseForm onClose={closeForm} expense={editingExpense} categories={categories || []} />}
       </AnimatePresence>
     </motion.div>
   );

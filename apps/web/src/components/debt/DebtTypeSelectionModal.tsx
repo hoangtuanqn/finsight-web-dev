@@ -1,7 +1,7 @@
-import { motion, AnimatePresence } from 'framer-motion';
-import { CreditCard, Landmark, X, ArrowRight, ShieldCheck } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowRight, CreditCard, Landmark, ShieldCheck, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 
 interface DebtTypeSelectionModalProps {
   isOpen: boolean;
@@ -57,14 +57,13 @@ export default function DebtTypeSelectionModal({ isOpen, onClose }: DebtTypeSele
 
               {/* Options */}
               <div className="p-6 sm:p-8 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                
                 {/* Option 1: Installment */}
                 <button
                   onClick={() => handleSelect('INSTALLMENT')}
                   className="group relative flex flex-col items-start p-6 rounded-3xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] hover:bg-blue-500/5 hover:border-blue-500/30 transition-all text-left overflow-hidden cursor-pointer"
                 >
                   <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl group-hover:bg-blue-500/20 transition-colors" />
-                  
+
                   <div className="w-14 h-14 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
                     <Landmark size={28} />
                   </div>
@@ -72,9 +71,10 @@ export default function DebtTypeSelectionModal({ isOpen, onClose }: DebtTypeSele
                     Vay Trả Góp
                   </h3>
                   <p className="text-sm text-[var(--color-text-muted)] mb-6 flex-1">
-                    Mua điện thoại, mua xe, vay tiền mặt FE Credit, Home Credit, trả góp SPayLater... Có thời hạn rõ ràng.
+                    Mua điện thoại, mua xe, vay tiền mặt FE Credit, Home Credit, trả góp SPayLater... Có thời hạn rõ
+                    ràng.
                   </p>
-                  
+
                   <div className="flex items-center gap-2 text-sm font-bold text-blue-400 mt-auto">
                     Chọn loại này <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </div>
@@ -86,7 +86,7 @@ export default function DebtTypeSelectionModal({ isOpen, onClose }: DebtTypeSele
                   className="group relative flex flex-col items-start p-6 rounded-3xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] hover:bg-purple-500/5 hover:border-purple-500/30 transition-all text-left overflow-hidden cursor-pointer"
                 >
                   <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl group-hover:bg-purple-500/20 transition-colors" />
-                  
+
                   <div className="w-14 h-14 rounded-2xl bg-purple-500/10 text-purple-400 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
                     <CreditCard size={28} />
                   </div>
@@ -96,12 +96,11 @@ export default function DebtTypeSelectionModal({ isOpen, onClose }: DebtTypeSele
                   <p className="text-sm text-[var(--color-text-muted)] mb-6 flex-1">
                     Thẻ Visa/Mastercard ngân hàng, hạn mức chi tiêu trước trả sau, nợ xoay vòng không kỳ hạn.
                   </p>
-                  
+
                   <div className="flex items-center gap-2 text-sm font-bold text-purple-400 mt-auto">
                     Chọn loại này <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </div>
                 </button>
-
               </div>
             </motion.div>
           </div>

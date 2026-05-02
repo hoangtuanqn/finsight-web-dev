@@ -39,9 +39,7 @@ export interface FetchTransactionsResult {
  * Fetch danh sách giao dịch từ SePay API.
  * Hàm này là pure-function, không ghi gì xuống DB — caller tự quyết định.
  */
-export async function fetchSepayTransactions(
-  opts: FetchTransactionsOptions,
-): Promise<FetchTransactionsResult> {
+export async function fetchSepayTransactions(opts: FetchTransactionsOptions): Promise<FetchTransactionsResult> {
   const params: Record<string, string | number> = {
     limit: opts.limit ?? 5000,
   };
@@ -54,17 +52,14 @@ export async function fetchSepayTransactions(
   if (opts.amountIn !== undefined) params.amount_in = opts.amountIn;
   if (opts.amountOut !== undefined) params.amount_out = opts.amountOut;
 
-  const response = await axios.get<{ transactions: SepayTransaction[] }>(
-    `${SEPAY_BASE_URL}/transactions/list`,
-    {
-      headers: {
-        Authorization: `Bearer ${opts.token}`,
-        'Content-Type': 'application/json',
-      },
-      params,
-      timeout: 15_000,
+  const response = await axios.get<{ transactions: SepayTransaction[] }>(`${SEPAY_BASE_URL}/transactions/list`, {
+    headers: {
+      Authorization: `Bearer ${opts.token}`,
+      'Content-Type': 'application/json',
     },
-  );
+    params,
+    timeout: 15_000,
+  });
 
   const transactions: SepayTransaction[] = response.data?.transactions ?? [];
 

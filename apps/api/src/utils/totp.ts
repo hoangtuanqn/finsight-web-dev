@@ -16,7 +16,7 @@ export class TOTPService {
     return generateURI({
       secret,
       label: email,
-      issuer
+      issuer,
     });
   }
 

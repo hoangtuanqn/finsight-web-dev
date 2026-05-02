@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { X, Sparkles, Zap } from "lucide-react";
-import AssetFilterPanel from "./AssetFilterPanel";
+import { motion } from 'framer-motion';
+import { Sparkles, X, Zap } from 'lucide-react';
+import { useState } from 'react';
+import AssetFilterPanel from './AssetFilterPanel';
 
 const VALID_ASSETS = ["savings", "gold", "stocks", "bonds", "crypto"];
 const TOTAL_ASSETS = VALID_ASSETS.length;
@@ -23,15 +23,24 @@ export default function GenerateStrategyPopup({
 }: GenerateStrategyPopupProps) {
   const [excludedAssets, setExcludedAssets] = useState<string[]>(() => {
     try {
+<<<<<<< HEAD
       const saved = JSON.parse(localStorage.getItem("finsight_excluded_assets") || "[]");
       return saved.filter((a: string) => VALID_ASSETS.includes(a));
+=======
+      return JSON.parse(localStorage.getItem('finsight_excluded_assets') || '[]');
+>>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
     } catch {
       return [];
     }
   });
 
   const handleGenerate = () => {
+<<<<<<< HEAD
     localStorage.setItem("finsight_excluded_assets", JSON.stringify(excludedAssets));
+=======
+    // Persist selection before generating
+    localStorage.setItem('finsight_excluded_assets', JSON.stringify(excludedAssets));
+>>>>>>> fe84c7e365e1a74416dcfbaf57225cc3c55bac85
     onGenerate(excludedAssets);
   };
 
@@ -46,7 +55,7 @@ export default function GenerateStrategyPopup({
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        transition={{ type: "spring", duration: 0.35 }}
+        transition={{ type: 'spring', duration: 0.35 }}
         className="relative w-full max-w-lg bg-slate-900 border border-white/10 rounded-3xl p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
@@ -69,9 +78,7 @@ export default function GenerateStrategyPopup({
             </div>
             <div>
               <h2 className="text-base font-black text-white">Tạo chiến lược đầu tư mới</h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Chọn các kênh bạn muốn tối ưu trong chiến lược này
-              </p>
+              <p className="text-xs text-slate-400 mt-0.5">Chọn các kênh bạn muốn tối ưu trong chiến lược này</p>
             </div>
           </div>
 
@@ -91,21 +98,16 @@ export default function GenerateStrategyPopup({
             <p className="text-xs text-slate-300">
               Hệ thống sẽ tối ưu <span className="font-black text-white">{selectedCount} kênh</span> bạn đã chọn
               {excludedAssets.length > 0 && (
-                <span className="text-slate-500">
-                  {" "}(bỏ qua {excludedAssets.length} kênh)
-                </span>
+                <span className="text-slate-500"> (bỏ qua {excludedAssets.length} kênh)</span>
               )}
             </p>
           </div>
 
           {/* Quota badge */}
           <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/8 mb-5">
-            <Zap size={13} className={quota > 3 ? "text-amber-400" : "text-red-400"} />
+            <Zap size={13} className={quota > 3 ? 'text-amber-400' : 'text-red-400'} />
             <span className="text-xs text-slate-300">
-              Bạn còn{" "}
-              <span className={`font-black ${quota > 3 ? "text-amber-400" : "text-red-400"}`}>
-                {quota}
-              </span>{" "}
+              Bạn còn <span className={`font-black ${quota > 3 ? 'text-amber-400' : 'text-red-400'}`}>{quota}</span>{' '}
               lượt tạo chiến lược
             </span>
           </div>
@@ -139,10 +141,10 @@ export default function GenerateStrategyPopup({
 
           {quota <= 0 && (
             <p className="mt-3 text-center text-xs text-red-400">
-              Hết lượt.{" "}
+              Hết lượt.{' '}
               <a href="/upgrade" className="underline text-blue-400">
                 Nâng cấp tài khoản
-              </a>{" "}
+              </a>{' '}
               để nhận thêm lượt.
             </p>
           )}

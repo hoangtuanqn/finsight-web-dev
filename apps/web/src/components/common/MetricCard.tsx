@@ -18,10 +18,10 @@ export default function MetricCard({ icon, label, value, subValue, color = 'blue
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: delay * 0.08 }}
       className="group relative overflow-hidden rounded-2xl border transition-all duration-300 hover:scale-[1.02]"
-      style={{ 
-        background: 'var(--color-bg-card)', 
+      style={{
+        background: 'var(--color-bg-card)',
         borderColor: 'var(--color-border)',
-        boxShadow: 'var(--shadow-card)'
+        boxShadow: 'var(--shadow-card)',
       }}
     >
       {/* Decorative Glow - Subtle in light mode */}
@@ -32,17 +32,20 @@ export default function MetricCard({ icon, label, value, subValue, color = 'blue
 
       <div className="relative z-10 p-5">
         <div className="flex items-center gap-2.5 mb-4">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-sm" style={{ background: c.bg }}>
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-sm"
+            style={{ background: c.bg }}
+          >
             {icon}
           </div>
-          <span className="text-[11px] font-bold text-[var(--color-text-secondary)] uppercase tracking-widest">{label}</span>
+          <span className="text-[11px] font-bold text-[var(--color-text-secondary)] uppercase tracking-widest">
+            {label}
+          </span>
         </div>
-        
+
         <div className="space-y-1">
           <p className="text-2xl font-bold text-[var(--color-text-primary)] tracking-tight">{value}</p>
-          {subValue && (
-            <p className="text-[12px] text-[var(--color-text-muted)] font-medium">{subValue}</p>
-          )}
+          {subValue && <p className="text-[12px] text-[var(--color-text-muted)] font-medium">{subValue}</p>}
         </div>
       </div>
     </motion.div>

@@ -1,8 +1,8 @@
-import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Ruler, ArrowRight } from 'lucide-react';
+import { ArrowRight, Ruler } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { formatPercent, formatVND } from '../../../utils/calculations';
 import { CardHeader } from './Card';
-import { formatVND, formatPercent } from '../../../utils/calculations';
 
 interface DTIMetricsProps {
   dtiRatio: number;
@@ -13,23 +13,40 @@ interface DTIMetricsProps {
   monthlyIncome: number | undefined;
 }
 
-export default function DTIMetrics({ dtiRatio, dtiColor, dtiZoneLabel, dtiLabel, debtSummary, monthlyIncome }: DTIMetricsProps) {
+export default function DTIMetrics({
+  dtiRatio,
+  dtiColor,
+  dtiZoneLabel,
+  dtiLabel,
+  debtSummary,
+  monthlyIncome,
+}: DTIMetricsProps) {
   const circumference = 2 * Math.PI * 48;
   const dash = Math.min(100, dtiRatio) / 100;
 
   const cashflow = [
-    { label: 'Thu nhập / tháng', value: monthlyIncome || 0,                                      gradient: 'from-emerald-500 to-teal-400',   glow: '#10b981' },
-    { label: 'Trả nợ / tháng',   value: debtSummary.totalMinPayment || 0,                        gradient: 'from-red-500 to-rose-400',        glow: '#ef4444' },
-    { label: 'Còn lại / tháng',  value: (monthlyIncome || 0) - (debtSummary.totalMinPayment || 0), gradient: 'from-blue-500 to-cyan-400',    glow: '#3b82f6' },
+    { label: 'Thu nhập / tháng', value: monthlyIncome || 0, gradient: 'from-emerald-500 to-teal-400', glow: '#10b981' },
+    {
+      label: 'Trả nợ / tháng',
+      value: debtSummary.totalMinPayment || 0,
+      gradient: 'from-red-500 to-rose-400',
+      glow: '#ef4444',
+    },
+    {
+      label: 'Còn lại / tháng',
+      value: (monthlyIncome || 0) - (debtSummary.totalMinPayment || 0),
+      gradient: 'from-blue-500 to-cyan-400',
+      glow: '#3b82f6',
+    },
   ];
 
   return (
     <div
       className="relative rounded-3xl p-6 h-full flex flex-col overflow-hidden border"
       style={{
-        background:  'var(--color-bg-card)',
+        background: 'var(--color-bg-card)',
         borderColor: `${dtiColor}20`,
-        boxShadow:   `0 4px 30px ${dtiColor}08, 0 1px 0 ${dtiColor}20 inset`,
+        boxShadow: `0 4px 30px ${dtiColor}08, 0 1px 0 ${dtiColor}20 inset`,
       }}
     >
       <div
@@ -57,7 +74,9 @@ export default function DTIMetrics({ dtiRatio, dtiColor, dtiZoneLabel, dtiLabel,
               <circle cx="55" cy="55" r="48" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8" />
               {/* Animated progress */}
               <motion.circle
-                cx="55" cy="55" r="48"
+                cx="55"
+                cy="55"
+                r="48"
                 fill="none"
                 stroke={dtiColor}
                 strokeWidth="8"
@@ -73,7 +92,9 @@ export default function DTIMetrics({ dtiRatio, dtiColor, dtiZoneLabel, dtiLabel,
               <span className="text-[18px] font-black leading-none" style={{ color: dtiColor }}>
                 {formatPercent(dtiRatio)}
               </span>
-              <span className="text-[9px] text-[var(--color-text-muted)] font-bold uppercase tracking-wider mt-0.5">DTI</span>
+              <span className="text-[9px] text-[var(--color-text-muted)] font-bold uppercase tracking-wider mt-0.5">
+                DTI
+              </span>
             </div>
           </div>
 
@@ -107,9 +128,7 @@ export default function DTIMetrics({ dtiRatio, dtiColor, dtiZoneLabel, dtiLabel,
                 />
                 <span className="text-[12px] text-[var(--color-text-secondary)]">{label}</span>
               </div>
-              <span
-                className={`text-[13px] font-black bg-gradient-to-r ${gradient} bg-clip-text text-transparent`}
-              >
+              <span className={`text-[13px] font-black bg-gradient-to-r ${gradient} bg-clip-text text-transparent`}>
                 {formatVND(value)}
               </span>
             </div>

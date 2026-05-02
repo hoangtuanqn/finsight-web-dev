@@ -14,18 +14,22 @@ export class BankSyncService {
       orderBy: { transactionDate: 'desc' },
       include: {
         wallet: {
-          select: { name: true, icon: true, color: true }
-        }
-      }
+          select: { name: true, icon: true, color: true },
+        },
+      },
     });
   }
 
   /**
    * Duyệt giao dịch: Chuyển từ PENDING sang APPROVED và tạo một bản ghi Expense
    */
-  static async approveTransaction(userId: string, pendingId: string, data: { categoryId: string, description?: string, type?: 'INCOME' | 'EXPENSE' }) {
+  static async approveTransaction(
+    userId: string,
+    pendingId: string,
+    data: { categoryId: string; description?: string; type?: 'INCOME' | 'EXPENSE' },
+  ) {
     const pending = await prisma.bankTransactionPending.findUnique({
-      where: { id: pendingId, userId }
+      where: { id: pendingId, userId },
     });
 
     if (!pending || pending.status !== 'PENDING') {
@@ -43,13 +47,13 @@ export class BankSyncService {
           categoryId: data.categoryId,
           date: pending.transactionDate,
           description: data.description || pending.description || 'Giao dịch ngân hàng',
-        }
+        },
       });
 
       // 2. Cập nhật trạng thái bản ghi chờ
       await tx.bankTransactionPending.update({
         where: { id: pendingId },
-        data: { status: 'APPROVED' }
+        data: { status: 'APPROVED' },
       });
 
       return expense;
@@ -62,7 +66,7 @@ export class BankSyncService {
   static async rejectTransaction(userId: string, pendingId: string) {
     return prisma.bankTransactionPending.update({
       where: { id: pendingId, userId },
-      data: { status: 'REJECTED' }
+      data: { status: 'REJECTED' },
     });
   }
 
@@ -73,8 +77,8 @@ export class BankSyncService {
     return prisma.bankTransactionPending.deleteMany({
       where: {
         userId,
-        status: { in: ['APPROVED', 'REJECTED'] }
-      }
+        status: { in: ['APPROVED', 'REJECTED'] },
+      },
     });
   }
 }

@@ -1,7 +1,7 @@
-import { Response, NextFunction } from 'express';
+import { NextFunction, Response } from 'express';
 import redis from '../lib/redis';
-import { error } from '../utils/apiResponse';
 import { AuthenticatedRequest } from '../types';
+import { error } from '../utils/apiResponse';
 
 /**
  * Redis-based rate limiter for agentic endpoints.
@@ -15,13 +15,14 @@ export function agenticRateLimit(req: AuthenticatedRequest, res: Response, next:
   const LIMIT = 20;
   const WINDOW_SECONDS = 60;
 
-  redis.multi()
+  redis
+    .multi()
     .incr(key)
     .expire(key, WINDOW_SECONDS)
     .exec()
     ?.then((results: any) => {
       const currentCount = results[0][1];
-      
+
       res.setHeader('X-RateLimit-Limit', LIMIT);
       res.setHeader('X-RateLimit-Remaining', Math.max(0, LIMIT - currentCount));
 

@@ -1,5 +1,11 @@
 import { Router } from 'express';
-import { getProfile, updateProfile, getNotifications, markNotificationRead, markAllRead } from '../controllers/user.controller';
+import {
+  getNotifications,
+  getProfile,
+  markAllRead,
+  markNotificationRead,
+  updateProfile,
+} from '../controllers/user.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { validate } from '../middleware/validate.middleware';
 import { authSchemas } from '../utils/validationSchemas';
