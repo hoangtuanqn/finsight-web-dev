@@ -159,31 +159,17 @@ export default function RegisterPage() {
 
             <form onSubmit={handleSubmit(onSubmit)} className="w-full space-y-4">
               
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-[12px] font-bold text-slate-800 dark:text-slate-200">Username</label>
-                  <div className="relative group/input">
-                    <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-emerald-500 transition-colors duration-300" />
-                    <input
-                      {...register('fullName')}
-                      className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.fullName ? 'border-rose-500' : 'border-transparent'} focus:border-emerald-500/50 rounded-xl pl-10 pr-3 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white`}
-                      placeholder="Nguyễn Văn A"
-                    />
-                  </div>
-                  {errors.fullName && <p className="text-[10px] text-rose-500 font-bold">{errors.fullName.message as string}</p>}
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-bold text-slate-800 dark:text-slate-200">Username</label>
+                <div className="relative group/input">
+                  <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-emerald-500 transition-colors duration-300" />
+                  <input
+                    {...register('fullName')}
+                    className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.fullName ? 'border-rose-500' : 'border-transparent'} focus:border-emerald-500/50 rounded-xl pl-10 pr-3 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#f8fafc] dark:[&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#1e293b] dark:[&:-webkit-autofill]:-webkit-text-fill-color-white`}
+                    placeholder="Nguyễn Văn A"
+                  />
                 </div>
-                
-                <div className="space-y-1.5">
-                  <label className="text-[12px] font-bold text-slate-800 dark:text-slate-200">Mã giới thiệu</label>
-                  <div className="relative group/input">
-                    <Sparkles size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-emerald-500 transition-colors duration-300" />
-                    <input
-                      {...register('referralCode')}
-                      className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border border-transparent focus:border-emerald-500/50 rounded-xl pl-10 pr-3 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white`}
-                      placeholder="Tùy chọn"
-                    />
-                  </div>
-                </div>
+                {errors.fullName && <p className="text-[10px] text-rose-500 font-bold">{errors.fullName.message as string}</p>}
               </div>
 
               <div className="space-y-1.5">
@@ -192,7 +178,7 @@ export default function RegisterPage() {
                   <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-emerald-500 transition-colors duration-300" />
                   <input
                     {...register('email')}
-                    className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.email ? 'border-rose-500' : 'border-transparent'} focus:border-emerald-500/50 rounded-xl pl-10 pr-3 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white`}
+                    className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.email ? 'border-rose-500' : 'border-transparent'} focus:border-emerald-500/50 rounded-xl pl-10 pr-3 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#f8fafc] dark:[&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#1e293b] dark:[&:-webkit-autofill]:-webkit-text-fill-color-white`}
                     placeholder="email@example.com"
                   />
                 </div>
@@ -207,7 +193,7 @@ export default function RegisterPage() {
                     <input
                       {...register('password')}
                       type={showPassword ? 'text' : 'password'}
-                      className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.password ? 'border-rose-500' : 'border-transparent'} focus:border-emerald-500/50 rounded-xl pl-10 pr-8 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white`}
+                      className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.password ? 'border-rose-500' : 'border-transparent'} focus:border-emerald-500/50 rounded-xl pl-10 pr-8 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#f8fafc] dark:[&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#1e293b] dark:[&:-webkit-autofill]:-webkit-text-fill-color-white`}
                       placeholder="Tối thiểu 6 ký tự"
                     />
                   </div>
@@ -221,7 +207,7 @@ export default function RegisterPage() {
                     <input
                       {...register('confirmPassword')}
                       type={showPassword ? 'text' : 'password'}
-                      className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.confirmPassword ? 'border-rose-500' : 'border-transparent'} focus:border-emerald-500/50 rounded-xl pl-10 pr-8 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white`}
+                      className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border ${errors.confirmPassword ? 'border-rose-500' : 'border-transparent'} focus:border-emerald-500/50 rounded-xl pl-10 pr-8 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#f8fafc] dark:[&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#1e293b] dark:[&:-webkit-autofill]:-webkit-text-fill-color-white`}
                       placeholder="Nhập lại"
                     />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
@@ -229,6 +215,18 @@ export default function RegisterPage() {
                     </button>
                   </div>
                   {errors.confirmPassword && <p className="text-[10px] text-rose-500 font-bold">{errors.confirmPassword.message as string}</p>}
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[12px] font-bold text-slate-800 dark:text-slate-200">Mã giới thiệu (Tùy chọn)</label>
+                <div className="relative group/input">
+                  <Sparkles size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/input:text-emerald-500 transition-colors duration-300" />
+                  <input
+                    {...register('referralCode')}
+                    className={`w-full bg-[#f8fafc] dark:bg-slate-800/80 border border-transparent focus:border-emerald-500/50 rounded-xl pl-10 pr-3 py-3 text-[13px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all dark:text-white [&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#f8fafc] dark:[&:-webkit-autofill]:shadow-[inset_0_0_0px_1000px_#1e293b] dark:[&:-webkit-autofill]:-webkit-text-fill-color-white`}
+                    placeholder="Nhập mã (nếu có)"
+                  />
                 </div>
               </div>
 
