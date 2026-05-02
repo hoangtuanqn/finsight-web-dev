@@ -348,7 +348,15 @@ export async function logPayment(req: AuthenticatedRequest, res: Response) {
     });
 
     const newBalance = Math.max(0, debt.balance - amount);
-    const newRemaining = newBalance <= 0 ? 0 : debt.remainingTerms;
+
+    // Decrement remainingTerms by 1 if payment covers at least one full installment
+    let newRemaining = debt.remainingTerms;
+    if (newBalance <= 0) {
+      newRemaining = 0; // Fully paid off
+    } else if (debt.debtType === 'INSTALLMENT' && amount >= debt.minPayment && debt.remainingTerms > 0) {
+      newRemaining = debt.remainingTerms - 1; // One term paid
+    }
+
     const updatedDebt = await (prisma as any).debt.update({
       where: { id: debt.id },
       data: {
