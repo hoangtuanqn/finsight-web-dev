@@ -3,7 +3,7 @@ import { Sparkles, X, Zap } from 'lucide-react';
 import { useState } from 'react';
 import AssetFilterPanel from './AssetFilterPanel';
 
-const VALID_ASSETS = ["savings", "gold", "stocks", "bonds", "crypto"];
+const VALID_ASSETS = ['savings', 'gold', 'stocks', 'bonds', 'crypto'];
 const TOTAL_ASSETS = VALID_ASSETS.length;
 
 interface GenerateStrategyPopupProps {
@@ -23,7 +23,7 @@ export default function GenerateStrategyPopup({
 }: GenerateStrategyPopupProps) {
   const [excludedAssets, setExcludedAssets] = useState<string[]>(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem("finsight_excluded_assets") || "[]");
+      const saved = JSON.parse(localStorage.getItem('finsight_excluded_assets') || '[]');
       return saved.filter((a: string) => VALID_ASSETS.includes(a));
     } catch {
       return [];
@@ -31,7 +31,7 @@ export default function GenerateStrategyPopup({
   });
 
   const handleGenerate = () => {
-    localStorage.setItem("finsight_excluded_assets", JSON.stringify(excludedAssets));
+    localStorage.setItem('finsight_excluded_assets', JSON.stringify(excludedAssets));
     onGenerate(excludedAssets);
   };
 

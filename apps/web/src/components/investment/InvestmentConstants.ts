@@ -1,10 +1,4 @@
-import {
-  Building2,
-  TrendingUp,
-  FileText,
-  Zap,
-  Trophy,
-} from 'lucide-react';
+import { Building2, FileText, TrendingUp, Trophy, Zap } from 'lucide-react';
 
 export const COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#f97316'];
 
@@ -13,7 +7,7 @@ export const ASSET_LABELS = {
   gold: 'Vàng',
   stocks: 'Cổ phiếu VN',
   bonds: 'Trái phiếu',
-  crypto: 'Crypto'
+  crypto: 'Crypto',
 };
 
 export const ASSET_ICONS = {
@@ -21,7 +15,7 @@ export const ASSET_ICONS = {
   gold: Trophy,
   stocks: TrendingUp,
   bonds: FileText,
-  crypto: Zap
+  crypto: Zap,
 };
 
 export const ASSET_NATURE = {
@@ -29,7 +23,7 @@ export const ASSET_NATURE = {
   gold: 'phòng thủ',
   stocks: 'tăng trưởng',
   bonds: 'thu nhập',
-  crypto: 'đầu cơ'
+  crypto: 'đầu cơ',
 };
 
 export const TOOLTIP_STYLE = {

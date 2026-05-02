@@ -61,11 +61,11 @@ export async function getAllocationRecommendation(req: AuthenticatedRequest, res
     });
 
     const portfolioBreakdown = [
-      { asset: 'Tiết kiệm', percentage: allocation.savings, amount: profile.capital * allocation.savings / 100 },
-      { asset: 'Vàng', percentage: allocation.gold, amount: profile.capital * allocation.gold / 100 },
-      { asset: 'Cổ phiếu VN', percentage: allocation.stocks, amount: profile.capital * allocation.stocks / 100 },
-      { asset: 'Trái phiếu', percentage: allocation.bonds, amount: profile.capital * allocation.bonds / 100 },
-      { asset: 'Crypto', percentage: allocation.crypto, amount: profile.capital * allocation.crypto / 100 },
+      { asset: 'Tiết kiệm', percentage: allocation.savings, amount: (profile.capital * allocation.savings) / 100 },
+      { asset: 'Vàng', percentage: allocation.gold, amount: (profile.capital * allocation.gold) / 100 },
+      { asset: 'Cổ phiếu VN', percentage: allocation.stocks, amount: (profile.capital * allocation.stocks) / 100 },
+      { asset: 'Trái phiếu', percentage: allocation.bonds, amount: (profile.capital * allocation.bonds) / 100 },
+      { asset: 'Crypto', percentage: allocation.crypto, amount: (profile.capital * allocation.crypto) / 100 },
     ];
 
     const inflationRate = profile.inflationRate !== undefined ? profile.inflationRate / 100 : 0.035;
