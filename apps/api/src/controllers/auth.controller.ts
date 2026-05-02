@@ -40,7 +40,7 @@ export async function register(req: Request, res: Response) {
       expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'],
     });
 
-    return success(res, { user, token }, 201);
+    return success(res, { user: { ...user, referralCode: finalCode }, token }, 201);
   } catch (err) {
     console.error('Register error:', err);
     return error(res, 'Internal server error');
