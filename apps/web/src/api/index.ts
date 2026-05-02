@@ -36,6 +36,7 @@ export const authAPI = {
   getFacebookConfig: () => api.get('/auth/facebook-config'),
   me: () => api.get('/auth/me'),
   logout: () => api.post('/auth/logout'),
+  verifyPassword: (data: { password: string }) => api.post('/auth/verify-password', data),
   // 2FA
   setup2FA: () => api.get('/auth/2fa/setup'),
   enable2FA: (data: { token: string }) => api.post('/auth/2fa/enable', data),
@@ -50,6 +51,15 @@ export const qrAPI = {
   checkStatus: (token: string) => api.get(`/auth/qr/status/${token}`),
   markScanned: (data: any) => api.post('/auth/qr/scanned', data),
   confirm: (data: any) => api.post('/auth/qr/confirm', data),
+};
+
+// FACE LOGIN
+export const faceAPI = {
+  getStatus: () => api.get('/face/status'),
+  register: (descriptor: number[]) => api.post('/face/register', { descriptor }),
+  login: (descriptor: number[]) => api.post('/face/login', { descriptor }),
+  selectAccount: (userId: string, descriptor: number[]) => api.post('/face/select-account', { userId, descriptor }),
+  remove: () => api.delete('/face/remove'),
 };
 
 // USER
