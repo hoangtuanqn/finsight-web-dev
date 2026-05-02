@@ -77,6 +77,14 @@ export const enterpriseAuthAPI = {
   register: (data: Record<string, unknown>) => api.post('/v1/enterprise/auth/register', data),
   login: (data: Record<string, unknown>) => api.post('/v1/enterprise/auth/login', data),
   me: () => api.get('/v1/enterprise/auth/me'),
+
+  // PARTIES
+  getParties: (params: any) => api.get('/v1/enterprise/parties', { params }),
+  getParty: (id: string) => api.get(`/v1/enterprise/parties/${id}`),
+  createParty: (data: any) => api.post('/v1/enterprise/parties', data),
+  updateParty: (id: string, data: any) => api.patch(`/v1/enterprise/parties/${id}`, data),
+  togglePartyStatus: (id: string, data: any) => api.post(`/v1/enterprise/parties/${id}/status`, data),
+  getAuditLogs: (id: string) => api.get(`/v1/enterprise/parties/${id}/audit`),
 };
 
 export default api;
