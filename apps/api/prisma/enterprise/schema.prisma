@@ -1,11 +1,13 @@
 generator client {
   provider = "prisma-client-js"
   output   = "../../node_modules/@prisma/enterprise"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  schemas  = ["enterprise"]
 }
 
 model Party {
@@ -21,4 +23,42 @@ model Party {
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
+  @@map("enterprise_parties")
+  @@schema("enterprise")
+}
+
+model Organization {
+  id                  String   @id @default(uuid())
+  taxCode             String   @unique
+  name                String
+  shortName           String?
+  businessType        String
+  headquartersAddress String
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  users               User[]
+
+  @@map("enterprise_organizations")
+  @@schema("enterprise")
+}
+
+model User {
+  id               String   @id @default(uuid())
+  email            String   @unique
+  passwordHash     String
+  fullName         String
+  roleTitle        String   
+  phoneNumber      String
+
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id])
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("enterprise_users")
+  @@schema("enterprise")
 }
