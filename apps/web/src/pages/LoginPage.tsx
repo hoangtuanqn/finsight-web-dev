@@ -22,6 +22,7 @@ import { z } from 'zod';
 import { faceAPI } from '../api';
 import OTPInput from '../components/auth/OTPInput';
 import QRCodeLogin from '../components/auth/QRCodeLogin';
+import SetSocialPasswordModal from '../components/auth/SetSocialPasswordModal';
 import SocialLoginButtons from '../components/auth/SocialLoginButtons';
 import { FaceCamera } from '../components/face/FaceCamera';
 import { ToggleMode } from '../components/layout/components/ToggleMode';
@@ -42,6 +43,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [requirePasswordAuth, setRequirePasswordAuth] = useState(false);
+  const [socialEmail, setSocialEmail] = useState('');
   const [is2FARequired, setIs2FARequired] = useState(false);
   const [tempToken, setTempToken] = useState('');
   const { login, setUser, verify2FALogin } = useAuth()!;
@@ -173,6 +176,18 @@ export default function LoginPage() {
       <div className="absolute top-6 right-6 z-50">
         <ToggleMode dark={dark} setDark={setDark} />
       </div>
+
+      {requirePasswordAuth && (
+        <SetSocialPasswordModal
+          tempToken={tempToken}
+          email={socialEmail}
+          onComplete={() => {
+            setRequirePasswordAuth(false);
+            navigate(redirect);
+          }}
+          onCancel={() => setRequirePasswordAuth(false)}
+        />
+      )}
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -312,7 +327,11 @@ export default function LoginPage() {
                     <SocialLoginButtons
                       setError={setServerError}
                       onSuccess={(result) => {
-                        if (result && result.require2FA) {
+                        if (result && result.requirePassword) {
+                          setTempToken(result.tempToken);
+                          setSocialEmail(result.email);
+                          setRequirePasswordAuth(true);
+                        } else if (result && result.require2FA) {
                           setIs2FARequired(true);
                           setTempToken(result.tempToken);
                         } else {
