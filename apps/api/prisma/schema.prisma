@@ -81,6 +81,7 @@ model Debt {
   userId           String
   name             String
   platform         String
+  debtType         String    @default("INSTALLMENT") // "INSTALLMENT" | "CREDIT_CARD"
   originalAmount   Float
   balance          Float
   apr              Float

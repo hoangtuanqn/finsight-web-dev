@@ -47,6 +47,8 @@ interface DebtItem {
   minPayment: number;
   termMonths?: number;
   remainingTerms?: number;
+  debtType?: string;
+  feeManagement?: number;
 }
 
 interface PaymentScheduleItem {
@@ -92,6 +94,8 @@ interface TermBreach {
 }
 
 function getDebtDeadlineMonth(debt: DebtItem): number | undefined {
+  if (debt.debtType === 'CREDIT_CARD') return undefined;
+
   const remainingTerms = Number(debt.remainingTerms);
   const termMonths = Number(debt.termMonths);
 
@@ -133,6 +137,8 @@ export function simulateRepayment(
     apr: d.apr,
     minPayment: d.minPayment,
     deadlineMonth: getDebtDeadlineMonth(d),
+    debtType: d.debtType,
+    feeManagement: d.feeManagement,
   }));
 
   let months = 0;
@@ -190,7 +196,12 @@ export function simulateRepayment(
     // Step 1: Accrue interest
     ds.forEach(d => {
       if (d.balance > 0) {
-        const interest = d.balance * (d.apr / 100) / 12;
+        let interest = d.balance * (d.apr / 100) / 12;
+        
+        if (d.debtType === 'CREDIT_CARD' && d.feeManagement && d.feeManagement > 0) {
+          interest += d.balance * (d.feeManagement / 100) / 12;
+        }
+
         totalInterest += interest;
         monthInterest += interest;
         debtInterest.set(d.id, interest);
