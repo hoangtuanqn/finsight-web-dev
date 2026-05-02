@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, type JSX } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDebts } from '../../hooks/useDebtQuery';
@@ -9,6 +9,7 @@ import {
   CreditCard, BarChart2, ClipboardList, Plus,
   AlertOctagon, AlertTriangle, PartyPopper, FileText, Home, TrendingUp, ChevronRight, LayoutGrid, List, Filter, X
 } from 'lucide-react';
+import { PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
 
 const PLATFORM_ICONS: Record<string, JSX.Element> = {
   SPAYLATER: <span className="text-orange-400 text-base font-black">S</span>,
@@ -86,9 +87,9 @@ export default function DebtOverviewPage() {
   }, [debtsData, filters.search, filters.earRange, data?.debts]);
 
   const hasActiveFilters = !!(
-    filters.platform || 
-    filters.amountRange || 
-    filters.dueInDays || 
+    filters.platform ||
+    filters.amountRange ||
+    filters.dueInDays ||
     filters.status !== 'ACTIVE' ||
     filters.search ||
     filters.earRange
@@ -112,6 +113,39 @@ export default function DebtOverviewPage() {
     setTempFilters(resetState);
     setFilters(resetState);
   };
+
+  const debtMixData = useMemo(() => {
+    return debtsData.map((d: any) => ({ name: d.name.substring(0, 15) + (d.name.length > 15 ? '...' : ''), value: d.balance }));
+  }, [debtsData]);
+
+  const interestVsPrincipalData = useMemo(() => {
+    return debtsData.map((d: any) => {
+      const interest = d.balance * (d.ear / 100 / 12);
+      const principal = d.minPayment - interest;
+      return {
+        name: d.name.substring(0, 10) + (d.name.length > 10 ? '...' : ''),
+        'Lãi phát sinh': interest > 0 ? interest : 0,
+        'Gốc trả được': principal > 0 ? principal : 0
+      };
+    });
+  }, [debtsData]);
+
+  const trendData = useMemo(() => {
+    const data = [];
+    let currentTotal = summary.totalBalance || 0;
+    const totalMinPayment = summary.totalMinPayment || 0;
+    const date = new Date();
+    for (let i = 0; i < 6; i++) {
+      const m = date.getMonth() + 1 + i;
+      data.push({ month: `T${m > 12 ? m - 12 : m}`, 'Dư nợ': Math.max(0, currentTotal) });
+      const estimatedInterest = currentTotal * ((summary.averageEAR || 15) / 100 / 12);
+      const principal = totalMinPayment - estimatedInterest;
+      currentTotal -= (principal > 0 ? principal : 0);
+    }
+    return data;
+  }, [summary]);
+
+  const PIE_COLORS = ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899'];
 
   if (isLoading) return <PageSkeleton />;
 
@@ -205,6 +239,85 @@ export default function DebtOverviewPage() {
         </div>
       )}
 
+      {debtsData.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          {/* Debt Mix Chart */}
+          <div className="bg-[var(--color-bg-card)] rounded-3xl p-6 border border-[var(--color-border)] shadow-sm">
+            <h3 className="text-sm font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-4">Cơ cấu nợ</h3>
+            <div className="h-[220px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={debtMixData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {debtMixData.map((entry: any, index: number) => (
+                      <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} stroke="transparent" />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value: number) => formatVND(value)}
+                    contentStyle={{ backgroundColor: 'var(--color-bg-primary)', border: '1px solid var(--color-border)', borderRadius: '12px', fontSize: '13px', fontWeight: 'bold' }}
+                    itemStyle={{ color: 'var(--color-text-primary)' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Balance Trend Area Chart */}
+          <div className="bg-[var(--color-bg-card)] rounded-3xl p-6 border border-[var(--color-border)] shadow-sm">
+            <h3 className="text-sm font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-4">Xu hướng dự kiến (6 tháng)</h3>
+            <div className="h-[220px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.5} />
+                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }} tickFormatter={(val) => `${(val / 1000000).toFixed(0)}M`} width={45} />
+                  <Tooltip
+                    formatter={(value: number) => formatVND(value)}
+                    contentStyle={{ backgroundColor: 'var(--color-bg-primary)', border: '1px solid var(--color-border)', borderRadius: '12px', fontSize: '13px', fontWeight: 'bold' }}
+                  />
+                  <Area type="monotone" dataKey="Dư nợ" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorBalance)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Interest vs Principal Stacked Bar Chart */}
+          <div className="bg-[var(--color-bg-card)] rounded-3xl p-6 border border-[var(--color-border)] shadow-sm">
+            <h3 className="text-sm font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-4">Lãi suất vs Gốc / Tháng</h3>
+            <div className="h-[220px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={interestVsPrincipalData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.5} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }} tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`} width={45} />
+                  <Tooltip
+                    formatter={(value: number) => formatVND(value)}
+                    contentStyle={{ backgroundColor: 'var(--color-bg-primary)', border: '1px solid var(--color-border)', borderRadius: '12px', fontSize: '13px', fontWeight: 'bold' }}
+                    cursor={{ fill: 'var(--color-border)', opacity: 0.2 }}
+                  />
+                  <Bar dataKey="Gốc trả được" stackId="a" fill="#10b981" radius={[0, 0, 4, 4]} />
+                  <Bar dataKey="Lãi phát sinh" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      )}
+
       {(filteredDebts.length > 0 || hasActiveFilters) && (
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between pt-2 gap-4">
           <div className="flex items-center gap-4">
@@ -214,11 +327,10 @@ export default function DebtOverviewPage() {
                 <button
                   key={tab.id}
                   onClick={() => setFilters((f: any) => ({ ...f, status: tab.id }))}
-                  className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
-                    filters.status === tab.id
+                  className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${filters.status === tab.id
                       ? 'bg-[var(--color-bg-card)] text-blue-500 shadow-sm border border-blue-500/20'
                       : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
-                  }`}
+                    }`}
                 >
                   {tab.label}
                 </button>
@@ -232,11 +344,10 @@ export default function DebtOverviewPage() {
                 <button
                   key={tab.id}
                   onClick={() => setFilters((f: any) => ({ ...f, status: tab.id }))}
-                  className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    filters.status === tab.id
+                  className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-bold transition-all ${filters.status === tab.id
                       ? 'bg-[var(--color-bg-card)] text-blue-500 shadow-sm border border-blue-500/20'
                       : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
-                  }`}
+                    }`}
                 >
                   {tab.label}
                 </button>
@@ -246,11 +357,10 @@ export default function DebtOverviewPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowFilters(true)}
-                className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all font-bold text-sm ${
-                  hasActiveFilters 
-                    ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-500/20' 
+                className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all font-bold text-sm ${hasActiveFilters
+                    ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-500/20'
                     : 'bg-[var(--color-bg-card)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-blue-500/40'
-                }`}
+                  }`}
               >
                 <Filter size={16} />
                 <span>Bộ lọc</span>
@@ -311,7 +421,7 @@ export default function DebtOverviewPage() {
                     <p className="text-xs text-[var(--color-text-muted)] font-bold uppercase tracking-widest">Tối ưu hoá danh sách</p>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => setShowFilters(false)}
                   className="p-2 hover:bg-[var(--color-bg-secondary)] rounded-xl transition-colors text-[var(--color-text-muted)]"
                 >
@@ -326,7 +436,7 @@ export default function DebtOverviewPage() {
                   <label className="text-xs font-black uppercase tracking-widest text-blue-500">Tìm kiếm</label>
                   <div className="relative">
                     <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" size={16} />
-                    <input 
+                    <input
                       type="text"
                       placeholder="Tên khoản nợ, nền tảng..."
                       value={tempFilters.search || ''}
@@ -368,11 +478,10 @@ export default function DebtOverviewPage() {
                       <button
                         key={opt.id}
                         onClick={() => setTempFilters((f: any) => ({ ...f, amountRange: opt.id }))}
-                        className={`px-4 py-3 rounded-2xl text-[13px] font-bold transition-all border ${
-                          tempFilters.amountRange === opt.id
+                        className={`px-4 py-3 rounded-2xl text-[13px] font-bold transition-all border ${tempFilters.amountRange === opt.id
                             ? 'bg-blue-600 text-white border-blue-500 shadow-md'
                             : 'bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-blue-500/40'
-                        }`}
+                          }`}
                       >
                         {opt.label}
                       </button>
@@ -393,11 +502,10 @@ export default function DebtOverviewPage() {
                       <button
                         key={opt.id}
                         onClick={() => setTempFilters((f: any) => ({ ...f, earRange: opt.id }))}
-                        className={`px-4 py-3 rounded-2xl text-[13px] font-bold transition-all border ${
-                          tempFilters.earRange === opt.id
+                        className={`px-4 py-3 rounded-2xl text-[13px] font-bold transition-all border ${tempFilters.earRange === opt.id
                             ? 'bg-red-600 text-white border-red-500 shadow-md'
                             : 'bg-[var(--color-bg-secondary)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-red-500/40'
-                        }`}
+                          }`}
                       >
                         {opt.label}
                       </button>
@@ -441,193 +549,193 @@ export default function DebtOverviewPage() {
         )}
       </AnimatePresence>
 
-          {filteredDebts.length === 0 ? (
-            hasActiveFilters ? (
-              <div className="rounded-3xl border border-[var(--color-border)] p-12 md:p-20 text-center" style={{ background: 'var(--color-bg-card)' }}>
-                <div className="w-20 h-20 rounded-full bg-slate-500/10 border border-slate-500/20 flex items-center justify-center mx-auto mb-6">
-                  <Filter size={36} className="text-slate-400" />
-                </div>
-                <h3 className="text-xl md:text-2xl text-[var(--color-text-primary)] font-bold mb-2">Không tìm thấy khoản nợ phù hợp</h3>
-                <p className="text-[var(--color-text-muted)] text-base mb-8">Thử thay đổi hoặc xóa bộ lọc để xem các khoản nợ khác</p>
-                <button
-                  onClick={() => setFilters({ platform: '', amountRange: '', dueInDays: '', status: 'ACTIVE', search: '', earRange: '' })}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-bold text-base hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/25 cursor-pointer"
+      {filteredDebts.length === 0 ? (
+        hasActiveFilters ? (
+          <div className="rounded-3xl border border-[var(--color-border)] p-12 md:p-20 text-center" style={{ background: 'var(--color-bg-card)' }}>
+            <div className="w-20 h-20 rounded-full bg-slate-500/10 border border-slate-500/20 flex items-center justify-center mx-auto mb-6">
+              <Filter size={36} className="text-slate-400" />
+            </div>
+            <h3 className="text-xl md:text-2xl text-[var(--color-text-primary)] font-bold mb-2">Không tìm thấy khoản nợ phù hợp</h3>
+            <p className="text-[var(--color-text-muted)] text-base mb-8">Thử thay đổi hoặc xóa bộ lọc để xem các khoản nợ khác</p>
+            <button
+              onClick={() => setFilters({ platform: '', amountRange: '', dueInDays: '', status: 'ACTIVE', search: '', earRange: '' })}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-bold text-base hover:bg-blue-500 transition-all shadow-lg shadow-blue-500/25 cursor-pointer"
+            >
+              <X size={18} /> Xóa bộ lọc
+            </button>
+          </div>
+        ) : (
+          <div className="rounded-3xl border border-[var(--color-border)] p-12 md:p-20 text-center" style={{ background: 'var(--color-bg-card)' }}>
+            <div className="w-20 h-20 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto mb-6">
+              <PartyPopper size={36} className="text-blue-400" />
+            </div>
+            <h3 className="text-xl md:text-2xl text-[var(--color-text-primary)] font-bold mb-2">Không có khoản nợ nào cần theo dõi</h3>
+            <p className="text-[var(--color-text-muted)] text-base">Tuyệt vời! Bạn đang quản lý tài chính rất tốt, hãy tiếp tục phát huy nhé.</p>
+          </div>
+        )
+      ) : (
+        <div className={viewMode === 'grid'
+          ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-6"
+          : "flex flex-col gap-4"}>
+          {(filteredDebts as any[]).map((debt, index) => {
+            const progressPercent = ((debt.originalAmount - debt.balance) / debt.originalAmount) * 100;
+            const progressStyle = getProgressStyle(progressPercent);
+
+            return (
+              <motion.div
+                key={debt.id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.06 }}
+                whileHover={{ y: -4 }}
+              >
+                <Link
+                  to={`/debts/${debt.id}`}
+                  className={`block rounded-[24px] border transition-all duration-300 group cursor-pointer relative overflow-hidden ${viewMode === 'grid' ? 'p-6 md:p-7' : 'p-5 md:p-6'}`}
+                  style={{
+                    background: 'var(--color-bg-card)',
+                    borderColor: 'rgba(239,68,68,0.15)',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                  }}
                 >
-                  <X size={18} /> Xóa bộ lọc
-                </button>
-              </div>
-            ) : (
-              <div className="rounded-3xl border border-[var(--color-border)] p-12 md:p-20 text-center" style={{ background: 'var(--color-bg-card)' }}>
-                <div className="w-20 h-20 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto mb-6">
-                  <PartyPopper size={36} className="text-blue-400" />
-                </div>
-                <h3 className="text-xl md:text-2xl text-[var(--color-text-primary)] font-bold mb-2">Không có khoản nợ nào cần theo dõi</h3>
-                <p className="text-[var(--color-text-muted)] text-base">Tuyệt vời! Bạn đang quản lý tài chính rất tốt, hãy tiếp tục phát huy nhé.</p>
-              </div>
-            )
-          ) : (
-            <div className={viewMode === 'grid'
-              ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-6"
-              : "flex flex-col gap-4"}>
-              {(filteredDebts as any[]).map((debt, index) => {
-                const progressPercent = ((debt.originalAmount - debt.balance) / debt.originalAmount) * 100;
-                const progressStyle = getProgressStyle(progressPercent);
+                  <div className="absolute top-0 left-6 right-6 h-[1.5px] bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
+                  <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full blur-3xl opacity-0 group-hover:opacity-15 bg-red-500 transition-opacity duration-500" />
 
-                return (
-                  <motion.div
-                    key={debt.id}
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.06 }}
-                    whileHover={{ y: -4 }}
-                  >
-                    <Link
-                      to={`/debts/${debt.id}`}
-                      className={`block rounded-[24px] border transition-all duration-300 group cursor-pointer relative overflow-hidden ${viewMode === 'grid' ? 'p-6 md:p-7' : 'p-5 md:p-6'}`}
-                      style={{
-                        background: 'var(--color-bg-card)',
-                        borderColor: 'rgba(239,68,68,0.15)',
-                        boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                      }}
-                    >
-                      <div className="absolute top-0 left-6 right-6 h-[1.5px] bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
-                      <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full blur-3xl opacity-0 group-hover:opacity-15 bg-red-500 transition-opacity duration-500" />
+                  {viewMode === 'grid' ? (
+                    <>
+                      <div className="flex items-start justify-between mb-5">
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-11 h-11 rounded-2xl bg-[var(--color-bg-secondary)] flex items-center justify-center shrink-0 text-[var(--color-text-secondary)] shadow-inner">
+                            {PLATFORM_ICONS[debt.platform] || <FileText size={20} />}
+                          </div>
+                          <div>
+                            <p className="font-bold text-base md:text-lg text-[var(--color-text-primary)] group-hover:text-blue-400 transition-colors leading-snug">{debt.name}</p>
+                            <p className="text-xs text-[var(--color-text-muted)] font-medium mt-0.5 uppercase tracking-wide">{debt.platform}</p>
+                          </div>
+                        </div>
+                        <span className={`px-3 py-1 rounded-lg text-xs font-bold shrink-0 ml-2 ${debt.status === 'ACTIVE' ? 'bg-blue-500/15 text-blue-400 border border-blue-500/20' : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'}`}>
+                          {debt.status === 'ACTIVE' ? 'Đang vay' : 'Đã trả'}
+                        </span>
+                      </div>
 
-                      {viewMode === 'grid' ? (
-                        <>
-                          <div className="flex items-start justify-between mb-5">
-                            <div className="flex items-center gap-3.5">
-                              <div className="w-11 h-11 rounded-2xl bg-[var(--color-bg-secondary)] flex items-center justify-center shrink-0 text-[var(--color-text-secondary)] shadow-inner">
-                                {PLATFORM_ICONS[debt.platform] || <FileText size={20} />}
-                              </div>
-                              <div>
-                                <p className="font-bold text-base md:text-lg text-[var(--color-text-primary)] group-hover:text-blue-400 transition-colors leading-snug">{debt.name}</p>
-                                <p className="text-xs text-[var(--color-text-muted)] font-medium mt-0.5 uppercase tracking-wide">{debt.platform}</p>
-                              </div>
-                            </div>
-                            <span className={`px-3 py-1 rounded-lg text-xs font-bold shrink-0 ml-2 ${debt.status === 'ACTIVE' ? 'bg-blue-500/15 text-blue-400 border border-blue-500/20' : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'}`}>
+                      <div className="mb-6">
+                        <p className="text-xs text-[var(--color-text-muted)] font-medium mb-1">Số dư hiện tại</p>
+                        <p className="text-3xl font-black bg-gradient-to-br from-red-400 via-rose-500 to-pink-600 bg-clip-text text-transparent">
+                          {formatVND(debt.balance)}
+                        </p>
+                      </div>
+
+                      <div className="space-y-3 mb-6 bg-[var(--color-bg-secondary)] rounded-2xl p-4 border border-[var(--color-border)]">
+                        {[
+                          { label: 'APR', value: formatPercent(debt.apr), color: 'text-blue-400' },
+                          { label: 'EAR thực tế', value: formatPercent(debt.ear), color: 'text-red-400' },
+                          { label: 'Trả / tháng', value: formatVND(debt.minPayment), color: 'text-[var(--color-text-primary)]' },
+                          { label: 'Đáo hạn', value: `Ngày ${debt.dueDay}`, color: 'text-[var(--color-text-primary)]' },
+                          ...(summary.debtToIncomeRatio > 0 ? [{ label: 'Đóng góp DTI', value: `${((debt.minPayment / (summary.totalMinPayment || 1)) * summary.debtToIncomeRatio).toFixed(1)}%`, color: 'text-amber-400' }] : []),
+                        ].map(({ label, value, color }) => (
+                          <div key={label} className="flex justify-between items-center text-sm">
+                            <span className="text-[var(--color-text-muted)] font-medium">{label}</span>
+                            <span className={`font-bold ${color}`}>{value}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-xs font-semibold text-[var(--color-text-primary)]">Tiến độ trả nợ</p>
+                          <p className={`text-xs font-bold ${progressStyle.text}`}>
+                            {progressPercent.toFixed(0)}%
+                          </p>
+                        </div>
+                        <div className="h-2 rounded-full bg-[var(--color-bg-secondary)] overflow-hidden border border-[var(--color-border)]/50">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.max(2, progressPercent)}%` }}
+                            transition={{ duration: 0.8, delay: index * 0.06 + 0.3 }}
+                            className={`h-full rounded-full bg-gradient-to-r ${progressStyle.bg}`}
+                            style={{ boxShadow: `0 0 10px ${progressStyle.shadow}` }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-5 pt-4 border-t border-[var(--color-border)] flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <span className="text-xs font-semibold text-blue-400">Xem chi tiết khoản nợ</span>
+                        <ChevronRight size={16} className="text-blue-400 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col xl:flex-row xl:items-center gap-5 w-full">
+                      <div className="flex flex-1 items-start xl:items-center gap-4 xl:min-w-[280px]">
+                        <div className="w-12 h-12 rounded-2xl bg-[var(--color-bg-secondary)] flex items-center justify-center shrink-0 shadow-inner text-[var(--color-text-secondary)] border border-[var(--color-border)]/50">
+                          {PLATFORM_ICONS[debt.platform] || <FileText size={22} />}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-bold text-lg text-[var(--color-text-primary)] group-hover:text-blue-400 transition-colors leading-snug">{debt.name}</p>
+                          <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                            <span className="text-xs text-[var(--color-text-muted)] font-bold uppercase tracking-wider">{debt.platform}</span>
+                            <span className={`px-2 py-0.5 rounded-md border text-[10px] font-bold ${debt.status === 'ACTIVE' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
                               {debt.status === 'ACTIVE' ? 'Đang vay' : 'Đã trả'}
                             </span>
                           </div>
+                        </div>
+                      </div>
 
-                          <div className="mb-6">
-                            <p className="text-xs text-[var(--color-text-muted)] font-medium mb-1">Số dư hiện tại</p>
-                            <p className="text-3xl font-black bg-gradient-to-br from-red-400 via-rose-500 to-pink-600 bg-clip-text text-transparent">
-                              {formatVND(debt.balance)}
-                            </p>
-                          </div>
+                      <div className="flex flex-col md:flex-row md:items-center gap-6 xl:gap-8 flex-[2] bg-[var(--color-bg-secondary)]/40 xl:bg-transparent p-4 xl:p-0 rounded-2xl">
+                        <div className="md:w-[200px] shrink-0">
+                          <p className="text-xs text-[var(--color-text-muted)] font-medium mb-1">Số dư hiện tại</p>
+                          <p className="text-2xl md:text-3xl font-black bg-gradient-to-br from-red-400 via-rose-500 to-pink-600 bg-clip-text text-transparent">
+                            {formatVND(debt.balance)}
+                          </p>
+                        </div>
 
-                          <div className="space-y-3 mb-6 bg-[var(--color-bg-secondary)] rounded-2xl p-4 border border-[var(--color-border)]">
-                            {[
-                              { label: 'APR', value: formatPercent(debt.apr), color: 'text-blue-400' },
-                              { label: 'EAR thực tế', value: formatPercent(debt.ear), color: 'text-red-400' },
-                              { label: 'Trả / tháng', value: formatVND(debt.minPayment), color: 'text-[var(--color-text-primary)]' },
-                              { label: 'Đáo hạn', value: `Ngày ${debt.dueDay}`, color: 'text-[var(--color-text-primary)]' },
-                              ...(summary.debtToIncomeRatio > 0 ? [{ label: 'Đóng góp DTI', value: `${((debt.minPayment / (summary.totalMinPayment || 1)) * summary.debtToIncomeRatio).toFixed(1)}%`, color: 'text-amber-400' }] : []),
-                            ].map(({ label, value, color }) => (
-                              <div key={label} className="flex justify-between items-center text-sm">
-                                <span className="text-[var(--color-text-muted)] font-medium">{label}</span>
-                                <span className={`font-bold ${color}`}>{value}</span>
-                              </div>
-                            ))}
-                          </div>
-
+                        <div className="flex-1 flex gap-4 md:gap-8 justify-between xl:justify-start">
                           <div>
-                            <div className="flex items-center justify-between mb-2">
-                              <p className="text-xs font-semibold text-[var(--color-text-primary)]">Tiến độ trả nợ</p>
-                              <p className={`text-xs font-bold ${progressStyle.text}`}>
-                                {progressPercent.toFixed(0)}%
-                              </p>
-                            </div>
-                            <div className="h-2 rounded-full bg-[var(--color-bg-secondary)] overflow-hidden border border-[var(--color-border)]/50">
-                              <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${Math.max(2, progressPercent)}%` }}
-                                transition={{ duration: 0.8, delay: index * 0.06 + 0.3 }}
-                                className={`h-full rounded-full bg-gradient-to-r ${progressStyle.bg}`}
-                                style={{ boxShadow: `0 0 10px ${progressStyle.shadow}` }}
-                              />
-                            </div>
+                            <p className="text-xs text-[var(--color-text-muted)] font-medium mb-1">Trả / tháng</p>
+                            <p className="font-bold text-sm text-[var(--color-text-primary)]">{formatVND(debt.minPayment)}</p>
                           </div>
-
-                          <div className="mt-5 pt-4 border-t border-[var(--color-border)] flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <span className="text-xs font-semibold text-blue-400">Xem chi tiết khoản nợ</span>
-                            <ChevronRight size={16} className="text-blue-400 group-hover:translate-x-1 transition-transform" />
+                          <div>
+                            <p className="text-xs text-[var(--color-text-muted)] font-medium mb-1">EAR thực tế</p>
+                            <p className="font-bold text-sm text-red-400">{formatPercent(debt.ear)}</p>
                           </div>
-                        </>
-                      ) : (
-                        <div className="flex flex-col xl:flex-row xl:items-center gap-5 w-full">
-                          <div className="flex flex-1 items-start xl:items-center gap-4 xl:min-w-[280px]">
-                            <div className="w-12 h-12 rounded-2xl bg-[var(--color-bg-secondary)] flex items-center justify-center shrink-0 shadow-inner text-[var(--color-text-secondary)] border border-[var(--color-border)]/50">
-                              {PLATFORM_ICONS[debt.platform] || <FileText size={22} />}
-                            </div>
-                            <div className="flex-1">
-                              <p className="font-bold text-lg text-[var(--color-text-primary)] group-hover:text-blue-400 transition-colors leading-snug">{debt.name}</p>
-                              <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                                <span className="text-xs text-[var(--color-text-muted)] font-bold uppercase tracking-wider">{debt.platform}</span>
-                                <span className={`px-2 py-0.5 rounded-md border text-[10px] font-bold ${debt.status === 'ACTIVE' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
-                                  {debt.status === 'ACTIVE' ? 'Đang vay' : 'Đã trả'}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col md:flex-row md:items-center gap-6 xl:gap-8 flex-[2] bg-[var(--color-bg-secondary)]/40 xl:bg-transparent p-4 xl:p-0 rounded-2xl">
-                            <div className="md:w-[200px] shrink-0">
-                              <p className="text-xs text-[var(--color-text-muted)] font-medium mb-1">Số dư hiện tại</p>
-                              <p className="text-2xl md:text-3xl font-black bg-gradient-to-br from-red-400 via-rose-500 to-pink-600 bg-clip-text text-transparent">
-                                {formatVND(debt.balance)}
-                              </p>
-                            </div>
-
-                            <div className="flex-1 flex gap-4 md:gap-8 justify-between xl:justify-start">
-                              <div>
-                                <p className="text-xs text-[var(--color-text-muted)] font-medium mb-1">Trả / tháng</p>
-                                <p className="font-bold text-sm text-[var(--color-text-primary)]">{formatVND(debt.minPayment)}</p>
-                              </div>
-                              <div>
-                                <p className="text-xs text-[var(--color-text-muted)] font-medium mb-1">EAR thực tế</p>
-                                <p className="font-bold text-sm text-red-400">{formatPercent(debt.ear)}</p>
-                              </div>
-                              <div>
-                                <p className="text-xs text-[var(--color-text-muted)] font-medium mb-1">Đáo hạn</p>
-                                <p className="font-bold text-sm text-[var(--color-text-primary)]">Ngày {debt.dueDay}</p>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="xl:w-[220px] shrink-0">
-                            <div className="flex items-center justify-between mb-2">
-                              <p className="text-xs font-semibold text-[var(--color-text-primary)]">Tiến độ trả nợ</p>
-                              <p className={`text-xs font-bold ${progressStyle.text}`}>{progressPercent.toFixed(0)}%</p>
-                            </div>
-                            <div className="h-2 rounded-full bg-[var(--color-bg-secondary)] overflow-hidden border border-[var(--color-border)]/50">
-                              <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${Math.max(2, progressPercent)}%` }}
-                                transition={{ duration: 0.8, delay: index * 0.06 + 0.3 }}
-                                className={`h-full rounded-full bg-gradient-to-r ${progressStyle.bg}`}
-                                style={{ boxShadow: `0 0 10px ${progressStyle.shadow}` }}
-                              />
-                            </div>
-                          </div>
-
-                          <div className="hidden xl:flex shrink-0 w-8 justify-end border-l border-[var(--color-border)] pl-4">
-                            <ChevronRight size={20} className="text-[var(--color-text-muted)] group-hover:text-blue-400 group-hover:translate-x-1 transition-transform" />
+                          <div>
+                            <p className="text-xs text-[var(--color-text-muted)] font-medium mb-1">Đáo hạn</p>
+                            <p className="font-bold text-sm text-[var(--color-text-primary)]">Ngày {debt.dueDay}</p>
                           </div>
                         </div>
-                      )}
-                    </Link>
-                  </motion.div>
-                );
-              })}
-            </div>
-          )}
+                      </div>
 
-          <ExportReportModal
-            isOpen={isExportModalOpen}
-            onClose={() => setIsExportModalOpen(false)}
-          />
+                      <div className="xl:w-[220px] shrink-0">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-xs font-semibold text-[var(--color-text-primary)]">Tiến độ trả nợ</p>
+                          <p className={`text-xs font-bold ${progressStyle.text}`}>{progressPercent.toFixed(0)}%</p>
+                        </div>
+                        <div className="h-2 rounded-full bg-[var(--color-bg-secondary)] overflow-hidden border border-[var(--color-border)]/50">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${Math.max(2, progressPercent)}%` }}
+                            transition={{ duration: 0.8, delay: index * 0.06 + 0.3 }}
+                            className={`h-full rounded-full bg-gradient-to-r ${progressStyle.bg}`}
+                            style={{ boxShadow: `0 0 10px ${progressStyle.shadow}` }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="hidden xl:flex shrink-0 w-8 justify-end border-l border-[var(--color-border)] pl-4">
+                        <ChevronRight size={20} className="text-[var(--color-text-muted)] group-hover:text-blue-400 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </div>
+                  )}
+                </Link>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
+
+      <ExportReportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+      />
     </motion.div>
   );
 }
