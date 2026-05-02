@@ -1,14 +1,29 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, Eye, EyeOff, Lock, LogIn, QrCode, ShieldCheck, User, UserPlus, Users } from 'lucide-react';
+import {
+  AlertTriangle,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Lock,
+  LogIn,
+  QrCode,
+  ScanFace,
+  ShieldCheck,
+  User,
+  UserPlus,
+  Users,
+} from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { faceAPI } from '../api';
 import OTPInput from '../components/auth/OTPInput';
 import QRCodeLogin from '../components/auth/QRCodeLogin';
 import SocialLoginButtons from '../components/auth/SocialLoginButtons';
+import { FaceCamera } from '../components/face/FaceCamera';
 import { ToggleMode } from '../components/layout/components/ToggleMode';
 import { useAuth } from '../context/AuthContext';
 import { useDarkMode } from '../hooks/useDarkMode';
@@ -32,9 +47,15 @@ export default function LoginPage() {
   const { login, setUser, verify2FALogin } = useAuth()!;
   const navigate = useNavigate();
   const [dark, setDark] = useDarkMode() as [boolean, (val: boolean) => void];
-  const [loginMode, setLoginMode] = useState<'email' | 'qr'>('email');
+  const [loginMode, setLoginMode] = useState<'email' | 'qr' | 'face'>('email');
+  // Face login state
+  const [faceAccounts, setFaceAccounts] = useState<
+    { userId: string; username: string; avatar: string | null; distance: string }[]
+  >([]);
+  const [faceDescriptor, setFaceDescriptor] = useState<number[]>([]);
+  const [faceLoading, setFaceLoading] = useState(false);
   const [searchParams] = useSearchParams();
-  const redirect = searchParams.get('redirect') || '/home';
+  const redirect = searchParams.get('redirect') || '/';
   const location = useLocation();
   const isFromAuth = location.state?.fromAuth;
 
@@ -85,6 +106,60 @@ export default function LoginPage() {
     setUser(data.user);
     toast.success('Đăng nhập thành công qua QR Code!');
     setTimeout(() => navigate(redirect), 1500);
+  };
+
+  const handleFaceDescriptor = async (descriptor: number[]) => {
+    setFaceDescriptor(descriptor);
+    setFaceLoading(true);
+    setServerError('');
+    try {
+      const res = await faceAPI.login(descriptor);
+      const data = res.data.data;
+
+      if (data.type === 'multiple') {
+        setFaceAccounts(data.accounts);
+      } else if (data.type === 'not_found') {
+        setServerError('Không nhận diện được khuôn mặt. Hãy thử lại hoặc dùng email.');
+      } else if (data.require2FA) {
+        setIs2FARequired(true);
+        setTempToken(data.tempToken);
+      } else if (data.token && data.user) {
+        localStorage.setItem('finsight_token', data.token);
+        setUser(data.user);
+        toast.success('Đăng nhập bằng khuôn mặt thành công!');
+        navigate(redirect);
+      } else {
+        setServerError('Lỗi phản hồi từ server');
+      }
+    } catch (err: any) {
+      setServerError(err.response?.data?.error || 'Đăng nhập bằng khuôn mặt thất bại.');
+    } finally {
+      setFaceLoading(false);
+    }
+  };
+
+  const handleSelectAccount = async (userId: string) => {
+    setFaceLoading(true);
+    try {
+      const res = await faceAPI.selectAccount(userId, faceDescriptor);
+      const data = res.data.data;
+
+      if (data.require2FA) {
+        setIs2FARequired(true);
+        setTempToken(data.tempToken);
+      } else if (data.token && data.user) {
+        localStorage.setItem('finsight_token', data.token);
+        setUser(data.user);
+        toast.success('Đăng nhập thành công!');
+        navigate(redirect);
+      } else {
+        setServerError('Lỗi xác thực khuôn mặt');
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Xác thực thất bại. Hãy thử lại.');
+    } finally {
+      setFaceLoading(false);
+    }
   };
 
   return (
@@ -247,7 +322,7 @@ export default function LoginPage() {
                     />
                   </div>
                 </motion.form>
-              ) : (
+              ) : loginMode === 'qr' ? (
                 <motion.div
                   key="qr"
                   initial={{ opacity: 0 }}
@@ -264,6 +339,79 @@ export default function LoginPage() {
                   >
                     Quay lại đăng nhập bằng Email
                   </button>
+                </motion.div>
+              ) : (
+                /* ── FACE LOGIN MODE ── */
+                <motion.div
+                  key="face"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="w-full flex flex-col items-center gap-4"
+                >
+                  {faceAccounts.length > 0 ? (
+                    /* Account picker — multiple matches */
+                    <div className="w-full space-y-3">
+                      <p className="text-xs text-slate-400 font-medium text-center mb-4">
+                        Tìm thấy <span className="text-white font-bold">{faceAccounts.length}</span> tài khoản phù hợp.
+                        Hãy chọn tài khoản của bạn:
+                      </p>
+                      {faceAccounts.map((acc) => (
+                        <motion.button
+                          key={acc.userId}
+                          whileHover={{ scale: 1.02, x: 4 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => handleSelectAccount(acc.userId)}
+                          disabled={faceLoading}
+                          className="w-full flex items-center gap-4 p-4 rounded-2xl bg-[#f8fafc] dark:bg-slate-800/80 border border-transparent hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all group"
+                        >
+                          <div className="w-11 h-11 rounded-full overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center flex-shrink-0 shadow-md">
+                            {acc.avatar ? (
+                              <img src={acc.avatar} alt={acc.username} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-white font-black text-lg">
+                                {acc.username.charAt(0).toUpperCase()}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex-1 text-left">
+                            <p className="text-sm font-bold text-slate-800 dark:text-white">{acc.username}</p>
+                            <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                              Độ khớp: {(1 - parseFloat(acc.distance)).toFixed(0)}%
+                            </p>
+                          </div>
+                          <ChevronRight
+                            size={16}
+                            className="text-slate-400 group-hover:text-emerald-500 transition-colors"
+                          />
+                        </motion.button>
+                      ))}
+                      <button
+                        onClick={() => {
+                          setFaceAccounts([]);
+                          setFaceDescriptor([]);
+                        }}
+                        className="w-full mt-2 text-xs font-bold text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+                      >
+                        Thử lại nhận diện khuôn mặt
+                      </button>
+                    </div>
+                  ) : (
+                    <FaceCamera
+                      mode="login"
+                      onDescriptor={handleFaceDescriptor}
+                      onCancel={() => setLoginMode('email')}
+                    />
+                  )}
+
+                  {faceAccounts.length === 0 && (
+                    <button
+                      onClick={() => setLoginMode('email')}
+                      className="text-[13px] font-bold text-slate-500 hover:text-indigo-500 transition-colors"
+                    >
+                      Quay lại đăng nhập bằng Email
+                    </button>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -288,12 +436,20 @@ export default function LoginPage() {
 
             {/* Mode Switcher */}
             {loginMode === 'email' && !is2FARequired && (
-              <button
-                onClick={() => setLoginMode('qr')}
-                className="mt-6 flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-indigo-500 transition-colors"
-              >
-                <QrCode size={16} /> Đăng nhập bằng QR Code
-              </button>
+              <div className="mt-6 flex flex-col items-center gap-3">
+                <button
+                  onClick={() => setLoginMode('face')}
+                  className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-emerald-500 transition-colors"
+                >
+                  <ScanFace size={16} /> Đăng nhập bằng khuôn mặt
+                </button>
+                <button
+                  onClick={() => setLoginMode('qr')}
+                  className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-indigo-500 transition-colors"
+                >
+                  <QrCode size={16} /> Đăng nhập bằng QR Code
+                </button>
+              </div>
             )}
           </div>
         </motion.div>
