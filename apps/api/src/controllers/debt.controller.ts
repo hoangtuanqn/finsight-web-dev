@@ -129,14 +129,23 @@ export async function getAllDebts(req: AuthenticatedRequest, res: Response) {
 }
 
 export async function createDebt(req: AuthenticatedRequest, res: Response) {
-  const { termMonths, startDate } = req.body;
+  const { termMonths, startDate, debtType } = req.body;
+  const isCreditCard = debtType === 'CREDIT_CARD';
+
+  if (!isCreditCard && (!termMonths || termMonths <= 0)) {
+    return error(res, "Kỳ hạn phải lớn hơn 0 đối với Vay trả góp.", 400);
+  }
+
+  if (req.body.minPayment === 0 && req.body.balance > 0) {
+    return error(res, "Khoản trả tối thiểu phải lớn hơn 0 khi có dư nợ.", 400);
+  }
 
   const start = new Date(startDate);
   const now = new Date();
   const monthsPassed =
     (now.getFullYear() - start.getFullYear()) * 12 +
     (now.getMonth() - start.getMonth());
-  const remainingTerms = Math.max(0, termMonths - monthsPassed);
+  const remainingTerms = isCreditCard ? 0 : Math.max(0, termMonths - monthsPassed);
 
   try {
     const debt = await (prisma as any).debt.create({
@@ -144,17 +153,18 @@ export async function createDebt(req: AuthenticatedRequest, res: Response) {
         userId: req.userId,
         name: String(req.body.name).trim(),
         platform: req.body.platform ?? "CUSTOM",
+        debtType: debtType ?? "INSTALLMENT",
         originalAmount: +req.body.originalAmount,
         balance: +req.body.balance,
         apr: +req.body.apr,
-        rateType: req.body.rateType ?? "FLAT",
+        rateType: isCreditCard ? "REDUCING" : (req.body.rateType ?? "FLAT"),
         feeProcessing: +req.body.feeProcessing || 0,
         feeInsurance: +req.body.feeInsurance || 0,
         feeManagement: +req.body.feeManagement || 0,
         feePenaltyPerDay: +req.body.feePenaltyPerDay || 0,
         minPayment: +req.body.minPayment,
         dueDay: Math.round(+req.body.dueDay),
-        termMonths: Math.round(+req.body.termMonths),
+        termMonths: isCreditCard ? 0 : Math.round(+req.body.termMonths),
         remainingTerms: Math.round(remainingTerms),
         startDate: new Date(startDate),
         notes: req.body.notes ?? null,
@@ -227,11 +237,39 @@ export async function getDebtById(req: AuthenticatedRequest, res: Response) {
 
 export async function updateDebt(req: AuthenticatedRequest, res: Response) {
   try {
+    const allowedFields = [
+      'name', 'platform', 'debtType', 'originalAmount', 'balance',
+      'apr', 'rateType', 'feeProcessing', 'feeInsurance', 'feeManagement',
+      'feePenaltyPerDay', 'minPayment', 'dueDay', 'termMonths', 'remainingTerms',
+      'startDate', 'notes', 'status'
+    ];
+    
+    const dataToUpdate: any = {};
+    for (const field of allowedFields) {
+      if (req.body[field] !== undefined) {
+        dataToUpdate[field] = req.body[field];
+      }
+    }
+
+    if (dataToUpdate.startDate) {
+        dataToUpdate.startDate = new Date(dataToUpdate.startDate);
+    }
+
+    const existing = await (prisma as any).debt.findUnique({ where: { id: req.params.id }});
+    if (!existing) return error(res, "Debt not found", 404);
+    
+    const currentDebtType = dataToUpdate.debtType || existing.debtType;
+    if (currentDebtType === 'CREDIT_CARD') {
+        dataToUpdate.termMonths = 0;
+        dataToUpdate.remainingTerms = 0;
+        dataToUpdate.rateType = "REDUCING";
+    }
+
     const debt = await (prisma as any).debt.updateMany({
       where: { id: req.params.id, userId: req.userId },
-      data: req.body,
+      data: dataToUpdate,
     });
-    if (debt.count === 0) return error(res, "Debt not found", 404);
+    if (debt.count === 0) return error(res, "Debt not found or unauthorized", 404);
     const updated = await (prisma as any).debt.findUnique({
       where: { id: req.params.id },
     });
