@@ -125,9 +125,24 @@ export default function AIChatbotModal() {
       { id: tempAiId, role: 'assistant', content: '' },
     ]);
 
-    const ocrResult = await runOCR(imageInfo.base64, (progress) => {
-      setToolStatus(`📷 Đang quét ảnh... ${progress}%`);
-    });
+    const loadingSteps = [
+      'Đang chuẩn hóa độ nét và khử nhiễu ảnh...',
+      'Đang định vị các khối văn bản và bảng biểu...',
+      'Đang bóc tách các con số và mã giao dịch...',
+      'Sắp xong, đang đối chiếu dữ liệu tài chính...',
+    ];
+
+    let step = 0;
+    const fakeStreamInterval = setInterval(() => {
+      if (step < loadingSteps.length) {
+        setToolStatus(`📷 ${loadingSteps[step]}`);
+        step++;
+      }
+    }, 3000);
+
+    const ocrResult = await runOCR(imageInfo.base64);
+
+    clearInterval(fakeStreamInterval);
 
     if (!ocrResult.success) {
       // OCR failed
