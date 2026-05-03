@@ -48,6 +48,9 @@ export const authSchemas = {
       startDate: z.string().optional(),
       remainingTerms: z.number().int().min(0).optional(),
       platform: z.string().optional(),
+      feePenaltyPerDay: z.number().min(0).optional().default(0),
+      notes: z.string().optional().nullable(),
+      status: z.string().optional(),
     })
     .superRefine((data, ctx) => {
       const isInstallment = data.debtType === 'INSTALLMENT';
