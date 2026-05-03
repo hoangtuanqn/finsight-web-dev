@@ -30,6 +30,9 @@ export const DebtConfirmationDataSchema = z.object({
   balance: z.number().nullable().optional(),
   minPayment: z.number().nullable().optional(),
   dueDay: z.number().nullable().optional(),
+  feeProcessing: z.number().nullable().optional(),
+  feeInsurance: z.number().nullable().optional(),
+  feeManagement: z.number().nullable().optional(),
   notes: z.string().nullable().optional(),
 });
 export type DebtConfirmationData = z.infer<typeof DebtConfirmationDataSchema>;
@@ -59,18 +62,23 @@ export type CardButton = z.infer<typeof CardButtonSchema>;
 
 // ─── Discriminated union: one schema per signal type ────────────────
 
-export const ShowPopupSignalSchema = z.object({
-  type: z.literal(UiSignalType.SHOW_POPUP),
-  action: z.enum([
-    UiSignalAction.DEBT_CONFIRMATION,
-    UiSignalAction.REPAYMENT_CONFIRMATION,
-    UiSignalAction.INVESTMENT_CONFIRMATION,
-  ]),
-  data: z
-    .union([DebtConfirmationDataSchema, RepaymentConfirmationDataSchema, InvestmentConfirmationDataSchema])
-    .nullable()
-    .optional(),
-});
+export const ShowPopupSignalSchema = z.discriminatedUnion('action', [
+  z.object({
+    type: z.literal(UiSignalType.SHOW_POPUP),
+    action: z.literal(UiSignalAction.DEBT_CONFIRMATION),
+    data: DebtConfirmationDataSchema.nullable().optional(),
+  }),
+  z.object({
+    type: z.literal(UiSignalType.SHOW_POPUP),
+    action: z.literal(UiSignalAction.REPAYMENT_CONFIRMATION),
+    data: RepaymentConfirmationDataSchema.nullable().optional(),
+  }),
+  z.object({
+    type: z.literal(UiSignalType.SHOW_POPUP),
+    action: z.literal(UiSignalAction.INVESTMENT_CONFIRMATION),
+    data: InvestmentConfirmationDataSchema.nullable().optional(),
+  }),
+]);
 
 export const ShowInteractiveCardSignalSchema = z.object({
   type: z.literal(UiSignalType.SHOW_INTERACTIVE_CARD),
