@@ -130,8 +130,8 @@ export async function createDebt(req: AuthenticatedRequest, res: Response) {
         rateType: isCreditCard ? 'REDUCING' : (req.body.rateType ?? 'FLAT'),
         feeProcessing: +req.body.feeProcessing || 0,
         feeInsurance: +req.body.feeInsurance || 0,
-        feeManagement: +req.body.feeManagement || 0,
-        feePenaltyPerDay: +req.body.feePenaltyPerDay || 0,
+        feeManagement: Number(req.body.feeManagement) || 0,
+        feePenaltyPerDay: Number(req.body.feePenaltyPerDay) || 0,
         minPayment: +req.body.minPayment,
         dueDay: Math.round(+req.body.dueDay),
         termMonths: isCreditCard ? 0 : Math.round(+req.body.termMonths),
@@ -221,10 +221,28 @@ export async function updateDebt(req: AuthenticatedRequest, res: Response) {
       'status',
     ];
 
+    const numericFields = [
+      'originalAmount',
+      'balance',
+      'apr',
+      'feeProcessing',
+      'feeInsurance',
+      'feeManagement',
+      'feePenaltyPerDay',
+      'minPayment',
+      'dueDay',
+      'termMonths',
+      'remainingTerms',
+    ];
+
     const dataToUpdate: any = {};
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {
-        dataToUpdate[field] = req.body[field];
+        if (numericFields.includes(field)) {
+          dataToUpdate[field] = Number(req.body[field]);
+        } else {
+          dataToUpdate[field] = req.body[field];
+        }
       }
     }
 
