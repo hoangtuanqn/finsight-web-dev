@@ -3,7 +3,8 @@ import { AlertTriangle, BarChart3, CheckCircle2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { userAPI } from '../../api';
+import { useAuth } from '../../context/AuthContext';
+import { useUpdateProfile } from '../../hooks/useAuthQuery';
 
 interface InvestmentConfirmModalProps {
   data: unknown;
@@ -30,6 +31,9 @@ export default function InvestmentConfirmModal({ data, onDismiss, onFeedback }: 
 
   const src: Record<string, any> = typeof data === 'object' && data !== null ? (data as Record<string, any>) : {};
 
+  const { user, setUser } = useAuth() as any;
+  const updateProfile = useUpdateProfile();
+
   const [form, setForm] = useState({
     monthlyIncome: '',
     capital: '',
@@ -43,8 +47,7 @@ export default function InvestmentConfirmModal({ data, onDismiss, onFeedback }: 
       capital: src.capital != null ? String(src.capital) : '',
       riskLevel: (src.riskLevel as RiskLevel) ?? '',
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [src.monthlyIncome, src.capital, src.riskLevel]);
 
   const quota: number | null = src.strategyQuotaRemaining ?? null;
 
@@ -65,14 +68,17 @@ export default function InvestmentConfirmModal({ data, onDismiss, onFeedback }: 
     setLoading(true);
     setError(null);
     try {
-      await userAPI.updateProfile({
+      const res = await updateProfile.mutateAsync({
         monthlyIncome: +form.monthlyIncome,
         capital: +form.capital,
         riskLevel: form.riskLevel,
       });
 
+      // Update global auth state to sync across pages (like ProfilePage)
+      const updatedUser = res.data.data.user || res.data.user || res.data.data;
+      setUser((prev: any) => ({ ...prev, ...updatedUser }));
+
       // Quota is NOT decremented here — that's backend's job when generating.
-      // We just navigate to the investment page so the user can generate a strategy there.
       onFeedback?.('confirmed');
       onDismiss();
       setTimeout(() => {

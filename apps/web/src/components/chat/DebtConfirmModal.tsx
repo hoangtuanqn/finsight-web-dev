@@ -2,8 +2,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { debtAPI } from '../../api/index';
 import FormattedInput from '../../components/common/FormattedInput';
+import { useDebtMutations } from '../../hooks/useDebtQuery';
 
 interface DebtConfirmModalProps {
   data: unknown;
@@ -124,6 +124,8 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss, onFeedbac
     return null;
   };
 
+  const { createDebt } = useDebtMutations();
+
   const handleConfirm = async () => {
     const validationError = validate();
     if (validationError) {
@@ -134,7 +136,7 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss, onFeedbac
     setLoading(true);
     setError(null);
     try {
-      await debtAPI.create({
+      await createDebt({
         name: form.name.trim(),
         originalAmount: +form.originalAmount,
         balance: +form.balance,
@@ -205,7 +207,7 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss, onFeedbac
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full flex items-center justify-center bg-amber-500/10">
-                <AlertTriangle className="w-5 h-5 text-amber-500" />
+                <AlertTriangle className="w-5 h-5 textrp-amber-500" />
               </div>
               <div>
                 <h3 className="font-bold text-base" style={{ color: 'var(--color-text-primary)' }}>
