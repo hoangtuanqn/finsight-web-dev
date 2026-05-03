@@ -217,6 +217,47 @@ export async function checkDueDebtsAndDominoRisk() {
       );
     }
 
+    // Thưởng duy trì kỷ luật: +5 điểm nếu DTI < 30% liên tục 3 tháng
+    if (dtiRatio < 30 && user.monthlyIncome > 0) {
+      const todayDate = new Date();
+      const firstDayOfMonth = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1);
+
+      const existingReward = await (prisma as any).healthScoreHistory.findFirst({
+        where: {
+          userId,
+          reason: { startsWith: 'Duy trì kỷ luật DTI' },
+          createdAt: { gte: firstDayOfMonth },
+        },
+      });
+
+      if (!existingReward) {
+        const ninetyDaysAgo = new Date();
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+        const snapshots = await (prisma as any).debtSnapshot.findMany({
+          where: { userId, createdAt: { gte: ninetyDaysAgo } },
+          select: { debtToIncome: true, createdAt: true },
+        });
+
+        if (snapshots.length > 0) {
+          const isConsistentlyGood = snapshots.every((s: any) => s.debtToIncome < 30);
+
+          if (isConsistentlyGood) {
+            const oldestSnapshot = await (prisma as any).debtSnapshot.findFirst({
+              where: { userId },
+              orderBy: { createdAt: 'asc' },
+            });
+
+            const msIn3Months = 85 * 24 * 60 * 60 * 1000; // Cho phép sai số 5 ngày
+            if (oldestSnapshot && todayDate.getTime() - new Date(oldestSnapshot.createdAt).getTime() >= msIn3Months) {
+              const { HealthScoreService } = await import('../../services/health-score.service');
+              await HealthScoreService.addScore(userId, 5, 'Duy trì kỷ luật DTI < 30% liên tục 3 tháng');
+            }
+          }
+        }
+      }
+    }
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const existingSnapshot = await (prisma as any).debtSnapshot.findFirst({
