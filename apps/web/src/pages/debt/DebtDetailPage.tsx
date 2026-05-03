@@ -260,6 +260,36 @@ export default function DebtDetailPage() {
         </div>
       </div>
 
+      {debt.feePenaltyPerDay > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-4 px-5 py-4 rounded-3xl border border-rose-500/20 bg-rose-500/5 relative overflow-hidden group"
+        >
+          <div className="absolute top-0 left-0 w-1 h-full bg-rose-500" />
+          <div className="w-10 h-10 rounded-2xl bg-rose-500/10 flex items-center justify-center text-rose-400 shrink-0 shadow-lg shadow-rose-500/10">
+            <AlertTriangle size={18} />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-[10px] font-black text-rose-500/60 uppercase tracking-widest">
+                Hệ thống Phạt trễ hạn (Kép)
+              </span>
+              <span className="w-1 h-1 rounded-full bg-rose-500/30" />
+              <span className="text-[10px] font-bold text-rose-400/80 italic">Đang kích hoạt</span>
+            </div>
+            <div className="text-[14px] text-slate-300 leading-relaxed">
+              Nếu không thanh toán trước <span className="text-white font-bold">ngày {debt.dueDay} hàng tháng</span>,
+              khoản nợ sẽ bị cộng thêm{' '}
+              <span className="text-rose-400 font-black underline decoration-rose-500/30 underline-offset-4">
+                {formatVND(debt.feePenaltyPerDay)}
+              </span>{' '}
+              {isCreditCard ? 'vào dư nợ cho mỗi lần vi phạm' : 'vào dư nợ cho mỗi ngày trễ hạn'}.
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-5">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -496,6 +526,17 @@ export default function DebtDetailPage() {
                   vColor: isCreditCard ? '#f43f5e' : '#34d399',
                 },
                 { label: 'Ngày đáo hạn', value: `Ngày ${debt.dueDay} hàng tháng`, vColor: 'var(--color-text-primary)' },
+                ...(debt.feePenaltyPerDay > 0
+                  ? [
+                      {
+                        label: isCreditCard ? 'Phí phạt vi phạm' : 'Phí phạt trễ hạn',
+                        value: isCreditCard
+                          ? `${formatVND(debt.feePenaltyPerDay)}/lần`
+                          : `${formatVND(debt.feePenaltyPerDay)}/ngày`,
+                        vColor: '#fb7185',
+                      },
+                    ]
+                  : []),
               ].map((r) => (
                 <div key={r.label} className="flex justify-between text-[12px]">
                   <span className="text-[var(--color-text-muted)]">{r.label}</span>
