@@ -801,7 +801,7 @@ export default function EditDebtPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="col-span-1 md:col-span-2">
-                  <label className="flex items-center gap-2 cursor-pointer w-fit">
+                  <label className="flex items-center gap-3 cursor-pointer group w-fit">
                     <input
                       type="checkbox"
                       checked={formValues.feePenaltyPerDay > 0}
@@ -809,75 +809,58 @@ export default function EditDebtPage() {
                         if (e.target.checked) {
                           setValue('feePenaltyPerDay', debtType === 'CREDIT_CARD' ? 100000 : 50000, {
                             shouldValidate: true,
+                            shouldDirty: true,
                           });
                         } else {
-                          setValue('feePenaltyPerDay', 0, { shouldValidate: true });
+                          setValue('feePenaltyPerDay', 0, {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                          });
                         }
                       }}
                       className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500/30 focus:ring-offset-slate-900"
                     />
-                    <span className="text-sm text-slate-300 font-medium">Khoản nợ này có áp dụng phí phạt trễ hạn</span>
+                    <span className="text-sm text-slate-300 font-medium group-hover:text-white transition-colors">
+                      Khoản nợ này có áp dụng phí phạt trễ hạn
+                    </span>
                   </label>
                 </div>
 
-                {formValues.feePenaltyPerDay > 0 && (
-                  <div className="col-span-1 md:col-span-2 p-4 rounded-2xl bg-rose-500/5 border border-rose-500/10">
-                    {debtType === 'INSTALLMENT' ? (
-                      <div>
-                        <label className="input-label text-rose-300">Phí phạt cố định mỗi ngày (VND)</label>
-                        <Controller
-                          name="feePenaltyPerDay"
-                          control={control}
-                          render={({ field }) => (
-                            <FormattedInput
-                              kind="integer"
-                              value={field.value}
-                              onValueChange={(value) => field.onChange(toNumberValue(value))}
-                              className={inputCls(errors.feePenaltyPerDay)}
-                              placeholder="VD: 50000"
-                              suffix="đ/ngày"
-                            />
-                          )}
+                <div className={formValues.feePenaltyPerDay > 0 ? 'col-span-1 md:col-span-2 block' : 'hidden'}>
+                  <div className="p-4 rounded-2xl bg-rose-500/5 border border-rose-500/10">
+                    <label className="input-label text-rose-300">
+                      {debtType === 'INSTALLMENT' ? 'Phí phạt cố định mỗi ngày (VND)' : 'Phí phạt trễ hạn 1 lần (VND)'}
+                    </label>
+                    <Controller
+                      name="feePenaltyPerDay"
+                      control={control}
+                      render={({ field }) => (
+                        <FormattedInput
+                          {...field}
+                          kind="integer"
+                          placeholder={debtType === 'INSTALLMENT' ? 'VD: 50.000' : 'VD: 250.000'}
+                          onValueChange={(value) => field.onChange(toNumberValue(value))}
+                          suffix={debtType === 'INSTALLMENT' ? 'đ/ngày' : 'đ/lần'}
+                          className={inputCls(errors.feePenaltyPerDay)}
                         />
-                        {errors.feePenaltyPerDay && (
-                          <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
-                            <AlertTriangle size={11} /> {errors.feePenaltyPerDay.message as string}
-                          </p>
-                        )}
-                        <p className="mt-1.5 text-[10px] text-rose-400/70 flex items-center gap-1 italic">
-                          <Info size={10} /> Phí sẽ được cộng dồn vào dư nợ mỗi ngày nếu quá hạn.
-                        </p>
-                      </div>
-                    ) : (
-                      <div>
-                        <label className="input-label text-rose-300">Phí phạt trễ hạn 1 lần (VND)</label>
-                        <Controller
-                          name="feePenaltyPerDay"
-                          control={control}
-                          render={({ field }) => (
-                            <FormattedInput
-                              kind="integer"
-                              value={field.value}
-                              onValueChange={(value) => field.onChange(toNumberValue(value))}
-                              className={inputCls(errors.feePenaltyPerDay)}
-                              placeholder="VD: 250000"
-                              suffix="đ/lần"
-                            />
-                          )}
-                        />
-                        {errors.feePenaltyPerDay && (
-                          <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
-                            <AlertTriangle size={11} /> {errors.feePenaltyPerDay.message as string}
-                          </p>
-                        )}
-                        <p className="mt-1.5 text-[10px] text-rose-400/70 flex items-center gap-1 italic">
-                          <Info size={10} /> Phí sẽ được cộng 1 lần duy nhất vào ngày đầu tiên quá hạn.
-                        </p>
-                      </div>
+                      )}
+                    />
+                    {errors.feePenaltyPerDay && (
+                      <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
+                        <AlertTriangle size={11} /> {errors.feePenaltyPerDay.message as string}
+                      </p>
                     )}
+                    <p className="mt-1.5 text-[10px] text-rose-400/70 flex items-center gap-1.5 italic">
+                      <Info size={12} />
+                      {debtType === 'INSTALLMENT'
+                        ? 'Phí sẽ được cộng dồn vào dư nợ mỗi ngày nếu quá hạn.'
+                        : 'Phí phạt sẽ được tính một lần ngay khi trễ hạn.'}
+                    </p>
                   </div>
-                )}
+                </div>
               </div>
+
+              <div className="h-px bg-white/[0.06] my-6" />
 
               <div className="flex gap-4 pt-6">
                 <button
