@@ -391,6 +391,20 @@ export async function logPayment(req: AuthenticatedRequest, res: Response) {
       },
     });
 
+    // Thưởng điểm Sức Khoẻ (Health Score Reward)
+    try {
+      const { HealthScoreService } = await import('../services/health-score.service');
+      if (amount >= debt.minPayment || newBalance <= 0) {
+        await HealthScoreService.addScore(req.userId!, 5, `Thanh toán tốt khoản nợ: ${debt.name}`);
+        console.log(`[HealthScore] Cấp 5 điểm thưởng cho User ${req.userId}`);
+      } else if (amount > 0) {
+        await HealthScoreService.addScore(req.userId!, 2, `Thanh toán một phần khoản nợ: ${debt.name}`);
+        console.log(`[HealthScore] Cấp 2 điểm thưởng cho User ${req.userId}`);
+      }
+    } catch (scoreErr) {
+      console.error('Health Score reward error:', scoreErr);
+    }
+
     await invalidateCache([`user:${req.userId}:*`]);
 
     try {
