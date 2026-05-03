@@ -108,6 +108,9 @@ model Debt {
   scheduledPurgeAt DateTime?
   deleteReason     String?
   deleteCommitment Boolean   @default(false)
+  
+  lastPenaltyAppliedAt DateTime? // Ngày cuối cùng bị phạt tiền
+  lastHealthPenaltyAt  DateTime? // Ngày cuối cùng bị trừ điểm sức khoẻ
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   payments Payment[]

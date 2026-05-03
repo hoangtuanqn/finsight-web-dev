@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import {
+  getHealthScoreHistory,
   getNotifications,
   getProfile,
   markAllRead,
@@ -19,5 +20,6 @@ router.put('/profile', validate(authSchemas.profile), updateProfile);
 router.get('/notifications', getNotifications);
 router.put('/notifications/:id/read', markNotificationRead);
 router.delete('/notifications/read-all', markAllRead);
+router.get('/health-score-history', getHealthScoreHistory);
 
 export default router;
