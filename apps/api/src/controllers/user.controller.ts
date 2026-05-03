@@ -127,3 +127,17 @@ export async function markAllRead(req: AuthenticatedRequest, res: Response) {
     return error(res, 'Internal server error');
   }
 }
+
+export async function getHealthScoreHistory(req: AuthenticatedRequest, res: Response) {
+  try {
+    const history = await (prisma as any).healthScoreHistory.findMany({
+      where: { userId: req.userId },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+    return success(res, { history });
+  } catch (err) {
+    console.error('getHealthScoreHistory error:', err);
+    return error(res, 'Internal server error');
+  }
+}

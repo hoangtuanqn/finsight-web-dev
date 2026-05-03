@@ -85,24 +85,56 @@ export async function checkDueDebtsAndDominoRisk() {
         }
 
         if (shouldApplyPenalty) {
-          await (prisma as any).debt.update({
-            where: { id: debt.id },
-            data: {
-              balance: { increment: debt.feePenaltyPerDay },
-              accruedPenalty: { increment: debt.feePenaltyPerDay },
-            },
-          });
-          console.log(`[Cron] 💸 Đã cộng phạt ${debt.feePenaltyPerDay} vào khoản nợ ${debt.name}`);
+          // Idempotency check: Chỉ phạt tối đa 1 lần/ngày
+          const todayStr = new Date().toISOString().split('T')[0];
+          const lastAppliedStr = debt.lastPenaltyAppliedAt
+            ? new Date(debt.lastPenaltyAppliedAt).toISOString().split('T')[0]
+            : null;
+
+          if (lastAppliedStr !== todayStr) {
+            await (prisma as any).debt.update({
+              where: { id: debt.id },
+              data: {
+                balance: { increment: debt.feePenaltyPerDay },
+                accruedPenalty: { increment: debt.feePenaltyPerDay },
+                lastPenaltyAppliedAt: new Date(),
+              },
+            });
+            console.log(`[Cron] 💸 Đã cộng phạt ${debt.feePenaltyPerDay} vào khoản nợ ${debt.name}`);
+
+            // Gửi Email thông báo quá hạn
+            const daysOverdue = Math.abs(debt.dueDay - new Date().getDate());
+            await (
+              await import('../../services/email.service')
+            ).default.sendOverdueAlert(
+              debt.user.email,
+              debt.user.name,
+              debt.name,
+              daysOverdue || 1,
+              debt.minimumPayment,
+            );
+          } else {
+            console.log(`[Cron] ⏭️ Bỏ qua cộng phạt cho ${debt.name} (Hôm nay đã phạt rồi)`);
+          }
         }
       }
 
       // Phạt Điểm (Health Score)
-      if (diffDays === -1) {
-        const { HealthScoreService } = await import('../../services/health-score.service');
-        await HealthScoreService.deductScore(debt.userId, 5, `Trễ hạn khoản nợ: ${debt.name}`);
-      } else if (diffDays === -7) {
-        const { HealthScoreService } = await import('../../services/health-score.service');
-        await HealthScoreService.deductScore(debt.userId, 10, `Quá hạn 7 ngày khoản nợ: ${debt.name}`);
+      const todayStr = new Date().toISOString().split('T')[0];
+      const lastHealthStr = debt.lastHealthPenaltyAt
+        ? new Date(debt.lastHealthPenaltyAt).toISOString().split('T')[0]
+        : null;
+
+      if (lastHealthStr !== todayStr) {
+        if (diffDays === -1) {
+          const { HealthScoreService } = await import('../../services/health-score.service');
+          await HealthScoreService.deductScore(debt.userId, 5, `Trễ hạn khoản nợ: ${debt.name}`);
+          await (prisma as any).debt.update({ where: { id: debt.id }, data: { lastHealthPenaltyAt: new Date() } });
+        } else if (diffDays === -7) {
+          const { HealthScoreService } = await import('../../services/health-score.service');
+          await HealthScoreService.deductScore(debt.userId, 10, `Quá hạn 7 ngày khoản nợ: ${debt.name}`);
+          await (prisma as any).debt.update({ where: { id: debt.id }, data: { lastHealthPenaltyAt: new Date() } });
+        }
       }
       // -------------------------------
 
