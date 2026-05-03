@@ -220,6 +220,19 @@ export async function seedUsers(prisma) {
       },
     });
 
+    // Investor Profile (Tổng vốn khả dụng)
+    await prisma.investorProfile.create({
+      data: {
+        userId: user.id,
+        capital: 50000000,
+        monthlyAdd: 5000000,
+        goal: 'GROWTH',
+        horizon: 'MEDIUM',
+        riskLevel: 'MEDIUM',
+        riskScore: 50,
+      },
+    });
+
     // Debts & Payments
     let userTotalDebt = 0;
     for (const debtTemplate of DEBTS_TEMPLATE) {
