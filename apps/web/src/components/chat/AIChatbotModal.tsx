@@ -23,6 +23,21 @@ import DebtSummaryCard from './DebtSummaryCard';
 import MessageRenderer from './MessageRenderer';
 import UiSignalDispatcher from './UiSignalDispatcher';
 
+const FEEDBACK_MESSAGES: Record<string, { success: string; name: string }> = {
+  REPAYMENT_CONFIRMATION: {
+    success: 'Tôi đã cập nhật kế hoạch phân bổ mới, mời bạn xem chi tiết trên màn hình.',
+    name: 'kế hoạch trả nợ',
+  },
+  INVESTMENT_CONFIRMATION: {
+    success: 'Tôi đã xác nhận lưu kế hoạch đầu tư thành công.',
+    name: 'kế hoạch đầu tư',
+  },
+  DEBT_CONFIRMATION: {
+    success: 'Tôi đã xác nhận lưu khoản nợ thành công.',
+    name: 'khoản nợ',
+  },
+};
+
 export default function AIChatbotModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
@@ -711,24 +726,16 @@ export default function AIChatbotModal() {
               isModalOpen={!!pendingAction}
               onFeedback={(status, reason) => {
                 const action = pendingUiSignal?.action || 'DEBT_CONFIRMATION';
+                const config = FEEDBACK_MESSAGES[action] || FEEDBACK_MESSAGES.DEBT_CONFIRMATION;
+
                 if (status === 'confirmed') {
-                  if (action === 'REPAYMENT_CONFIRMATION') {
-                    sendMessage(
-                      'Tôi đã cập nhật kế hoạch phân bổ mới, mời bạn xem chi tiết trên màn hình.',
-                      null,
-                      null,
-                      true,
-                    );
-                  } else {
-                    sendMessage('Tôi đã xác nhận lưu khoản nợ thành công.', null, null, true);
-                  }
+                  sendMessage(config.success, null, null, true);
                 } else if (status === 'cancelled') {
                   sendMessage('Tôi đã hủy bỏ thao tác.', null, null, true);
                 } else if (status === 'failed') {
-                  const actionName = action === 'REPAYMENT_CONFIRMATION' ? 'kế hoạch' : 'khoản nợ';
                   const msg = reason
-                    ? `Lưu ${actionName} thất bại: ${reason}`
-                    : `Lưu ${actionName} thất bại, vui lòng thử lại.`;
+                    ? `Lưu ${config.name} thất bại: ${reason}`
+                    : `Lưu ${config.name} thất bại, vui lòng thử lại.`;
                   sendMessage(msg, null, null, true);
                 }
               }}
