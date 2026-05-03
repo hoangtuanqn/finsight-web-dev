@@ -70,6 +70,7 @@ export const userAPI = {
   getNotifications: () => api.get('/users/notifications'),
   markRead: (id: string | number) => api.put(`/users/notifications/${id}/read`),
   markAllRead: () => api.delete('/users/notifications/read-all'),
+  getHealthScoreHistory: () => api.get('/users/health-score-history'),
 };
 
 // KYC

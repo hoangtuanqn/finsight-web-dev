@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
 import { BarChart2, CreditCard, HeartPulse, Thermometer } from 'lucide-react';
+import { useState } from 'react';
 import { formatPercent, formatVND } from '../../../utils/calculations';
-
+import { HealthScoreHistoryModal } from './HealthScoreHistoryModal';
 const CARDS = [
   {
     key: 'health',
@@ -70,6 +71,8 @@ export default function KPICards({
   healthLabel,
   sentimentColor,
 }: KPICardsProps) {
+  const [isHealthModalOpen, setIsHealthModalOpen] = useState(false);
+
   const configs = [
     {
       ...CARDS[0],
@@ -113,7 +116,12 @@ export default function KPICards({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: i * 0.1 }}
           whileHover={{ y: -4, transition: { duration: 0.2 } }}
-          className="group cursor-default"
+          className={`group ${card.key === 'health' ? 'cursor-pointer hover:ring-2 hover:ring-emerald-500/50 rounded-3xl' : 'cursor-default'}`}
+          onClick={() => {
+            if (card.key === 'health') {
+              setIsHealthModalOpen(true);
+            }
+          }}
         >
           {/* Outer glow ring */}
           <div
@@ -122,7 +130,7 @@ export default function KPICards({
           />
 
           <div
-            className="relative rounded-3xl overflow-hidden border h-full"
+            className="relative rounded-3xl overflow-hidden border h-full transition-all"
             style={{
               borderColor: `${card.glow}30`,
               boxShadow: `0 4px 24px ${card.glow}15, 0 1px 0 ${card.glow}20 inset`,
@@ -142,16 +150,23 @@ export default function KPICards({
 
             <div className="relative p-5 flex flex-col h-full">
               {/* Icon + Label */}
-              <div className="flex items-center gap-2.5 mb-4">
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: `${card.glow}20`, boxShadow: `0 0 12px ${card.glow}30` }}
-                >
-                  <card.icon size={18} style={{ color: card.glow }} />
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ background: `${card.glow}20`, boxShadow: `0 0 12px ${card.glow}30` }}
+                  >
+                    <card.icon size={18} style={{ color: card.glow }} />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">
+                    {card.label}
+                  </span>
                 </div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">
-                  {card.label}
-                </span>
+                {card.key === 'health' && (
+                  <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-full animate-pulse">
+                    Xem lịch sử
+                  </span>
+                )}
               </div>
 
               {/* Value */}
@@ -178,6 +193,12 @@ export default function KPICards({
           </div>
         </motion.div>
       ))}
+
+      <HealthScoreHistoryModal
+        isOpen={isHealthModalOpen}
+        onClose={() => setIsHealthModalOpen(false)}
+        currentScore={healthScore}
+      />
     </div>
   );
 }
