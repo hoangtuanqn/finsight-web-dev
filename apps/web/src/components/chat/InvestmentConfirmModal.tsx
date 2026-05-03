@@ -43,22 +43,11 @@ export default function InvestmentConfirmModal({ data, onDismiss, onFeedback }: 
 
   useEffect(() => {
     setForm({
-      monthlyIncome:
-        src.monthlyIncome != null
-          ? String(src.monthlyIncome)
-          : user?.monthlyIncome != null
-            ? String(user.monthlyIncome)
-            : '',
-      capital:
-        src.capital != null
-          ? String(src.capital)
-          : user?.investorProfile?.capital != null
-            ? String(user.investorProfile.capital)
-            : '',
-      riskLevel: (src.riskLevel as RiskLevel) || (user?.investorProfile?.riskLevel as RiskLevel) || '',
+      monthlyIncome: src.monthlyIncome != null ? String(src.monthlyIncome) : '',
+      capital: src.capital != null ? String(src.capital) : '',
+      riskLevel: (src.riskLevel as RiskLevel) ?? '',
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [src.monthlyIncome, src.capital, src.riskLevel]);
 
   const quota: number | null = src.strategyQuotaRemaining ?? null;
 

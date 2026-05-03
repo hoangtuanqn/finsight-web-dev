@@ -52,12 +52,11 @@ export default function RepaymentConfirmModal({ data, onDismiss, onFeedback }: R
 
   useEffect(() => {
     setForm({
-      extraBudget:
-        src.extraBudget != null ? String(src.extraBudget) : user?.extraBudget != null ? String(user.extraBudget) : '',
+      extraBudget: src.extraBudget != null ? String(src.extraBudget) : '',
       targetDate: src.targetDate ?? '',
       strategy: (src.strategy as Strategy) ?? '',
     });
-  }, [user]);
+  }, [src.extraBudget, src.targetDate, src.strategy]);
 
   const formatVND = (v: string) => {
     const num = Number(v);
