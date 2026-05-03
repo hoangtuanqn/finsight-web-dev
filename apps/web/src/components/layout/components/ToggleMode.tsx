@@ -1,12 +1,13 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Moon, Sun } from 'lucide-react';
 
-export const ToggleMode = ({ setDark, dark }) => {
+export const ToggleMode = ({ setDark, dark, ...props }: any) => {
   return (
     <button
       onClick={() => setDark((d) => !d)}
       className="relative w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:bg-slate-500/10 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
       title={dark ? 'Chuyển Sang Sáng' : 'Chuyển Sang Tối'}
+      {...props}
     >
       <AnimatePresence mode="wait">
         <motion.div

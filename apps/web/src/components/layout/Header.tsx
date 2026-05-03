@@ -21,6 +21,7 @@ import { userAPI } from '../../api/index';
 import { useAuth } from '../../context/AuthContext';
 import { useTourContext } from '../../context/TourContext';
 import { useDarkMode } from '../../hooks/useDarkMode';
+import NotificationDetailModal from './components/NotificationDetailModal';
 import { ToggleMode } from './components/ToggleMode';
 import DebtCalendarPopover from './DebtCalendarPopover';
 
@@ -150,6 +151,8 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [notifs, setNotifs] = useState<any[]>([]);
+  const [selectedNotif, setSelectedNotif] = useState<any>(null);
+  const [isNotifModalOpen, setIsNotifModalOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLDivElement>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
@@ -186,7 +189,17 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
     try {
       await (userAPI as any).markRead(id);
       setNotifs((p) => p.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+      // If the selected notification is the one being marked, update it
+      if (selectedNotif?.id === id) {
+        setSelectedNotif((p: any) => ({ ...p, isRead: true }));
+      }
     } catch (_) {}
+  };
+
+  const handleNotifClick = (n: any) => {
+    setSelectedNotif(n);
+    setIsNotifModalOpen(true);
+    setNotifOpen(false);
   };
 
   return (
@@ -264,7 +277,7 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
       {/* ── RIGHT ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         {/* Theme toggle */}
-        <ToggleMode dark={dark} setDark={setDark} className="ToggleMode" />
+        <ToggleMode dark={dark} setDark={setDark} />
 
         {/* Replay Tour */}
         <IconBtn id="tour-replay-btn" title="Xem lại hướng dẫn" onClick={startTour}>
@@ -384,7 +397,7 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
                     notifs.map((n) => (
                       <div
                         key={n.id}
-                        onClick={() => markOne(n.id)}
+                        onClick={() => handleNotifClick(n)}
                         style={{
                           display: 'flex',
                           gap: 10,
@@ -732,6 +745,13 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
           </AnimatePresence>
         </div>
       </div>
+
+      <NotificationDetailModal
+        isOpen={isNotifModalOpen}
+        onClose={() => setIsNotifModalOpen(false)}
+        notification={selectedNotif}
+        onMarkRead={markOne}
+      />
     </header>
   );
 }

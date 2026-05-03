@@ -1,8 +1,6 @@
 import { motion } from 'framer-motion';
 import { BarChart2, CreditCard, HeartPulse, Thermometer } from 'lucide-react';
-import { useState } from 'react';
 import { formatPercent, formatVND } from '../../../utils/calculations';
-import { HealthScoreHistoryModal } from './HealthScoreHistoryModal';
 const CARDS = [
   {
     key: 'health',
@@ -60,6 +58,7 @@ interface KPICardsProps {
   healthColor: string;
   healthLabel: string;
   sentimentColor: string;
+  onHealthClick: () => void;
 }
 
 export default function KPICards({
@@ -70,9 +69,8 @@ export default function KPICards({
   healthColor,
   healthLabel,
   sentimentColor,
+  onHealthClick,
 }: KPICardsProps) {
-  const [isHealthModalOpen, setIsHealthModalOpen] = useState(false);
-
   const configs = [
     {
       ...CARDS[0],
@@ -119,7 +117,7 @@ export default function KPICards({
           className={`group ${card.key === 'health' ? 'cursor-pointer hover:ring-2 hover:ring-emerald-500/50 rounded-3xl' : 'cursor-default'}`}
           onClick={() => {
             if (card.key === 'health') {
-              setIsHealthModalOpen(true);
+              onHealthClick();
             }
           }}
         >
@@ -193,12 +191,6 @@ export default function KPICards({
           </div>
         </motion.div>
       ))}
-
-      <HealthScoreHistoryModal
-        isOpen={isHealthModalOpen}
-        onClose={() => setIsHealthModalOpen(false)}
-        currentScore={healthScore}
-      />
     </div>
   );
 }
