@@ -86,6 +86,11 @@ export const enterpriseAuthAPI = {
   updateParty: (id: string, data: any) => api.patch(`/v1/enterprise/parties/${id}`, data),
   togglePartyStatus: (id: string, data: any) => api.post(`/v1/enterprise/parties/${id}/status`, data),
   getAuditLogs: (id: string) => api.get(`/v1/enterprise/parties/${id}/audit`),
+
+  // DEBTS
+  getDebts: (params: any) => api.get('/v1/enterprise/debts', { params }),
+  getDebt: (id: string) => api.get(`/v1/enterprise/debts/${id}`),
+  createDebt: (data: any) => api.post('/v1/enterprise/debts', data),
 };
 
 export default api;

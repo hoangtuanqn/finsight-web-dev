@@ -12,6 +12,9 @@ import LoginPage from './pages/LoginPage';
 import PartiesPage from './pages/PartiesPage';
 import ProfilePage from './pages/ProfilePage';
 import RegisterPage from './pages/RegisterPage';
+import DebtCreatePage from './pages/debts/DebtCreatePage';
+import DebtDetailPage from './pages/debts/DebtDetailPage';
+import DebtListPage from './pages/debts/DebtListPage';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30000, retry: 1 } },
@@ -47,6 +50,9 @@ export default function App() {
                 <Route path="/home" element={<DashboardPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/parties" element={<PartiesPage />} />
+                <Route path="/debts" element={<DebtListPage />} />
+                <Route path="/debts/new" element={<DebtCreatePage />} />
+                <Route path="/debts/:id" element={<DebtDetailPage />} />
               </Route>
               <Route path="*" element={<Navigate to="/home" />} />
             </Routes>
