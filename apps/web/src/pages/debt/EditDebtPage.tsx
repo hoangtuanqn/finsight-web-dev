@@ -353,17 +353,17 @@ export default function EditDebtPage() {
         </p>
       </div>
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 p-4 bg-white/[0.02] rounded-2xl border border-white/[0.04]">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 p-4 bg-white dark:bg-white/[0.02] rounded-2xl border border-[var(--color-border)] dark:border-white/[0.04]">
         {/* Debt Type Badge */}
         <div className="flex items-center gap-3">
           <span className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">Loại nợ:</span>
           {debtType === 'INSTALLMENT' ? (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-transparent dark:bg-indigo-500/10 border border-[var(--color-border)] dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400">
               <Calendar size={12} />
               <span className="text-[11px] font-black uppercase">Vay Trả Góp</span>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-transparent dark:bg-purple-500/10 border border-[var(--color-border)] dark:border-purple-500/20 text-purple-600 dark:text-purple-400">
               <CreditCard size={12} />
               <span className="text-[11px] font-black uppercase">Thẻ Tín Dụng</span>
             </div>
@@ -374,12 +374,12 @@ export default function EditDebtPage() {
         <div className="flex items-center gap-3">
           <span className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">Trạng thái:</span>
           {loanStatus === 'NEW' ? (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-transparent dark:bg-blue-500/10 border border-[var(--color-border)] dark:border-blue-500/20 text-blue-600 dark:text-blue-400">
               <Plus size={12} className="animate-pulse" />
               <span className="text-[11px] font-black uppercase">Vừa bắt đầu</span>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-transparent dark:bg-amber-500/10 border border-[var(--color-border)] dark:border-amber-500/20 text-amber-600 dark:text-amber-400">
               <Clock size={12} />
               <span className="text-[11px] font-black uppercase">Đang trả dở</span>
             </div>
@@ -391,10 +391,10 @@ export default function EditDebtPage() {
         <div className="lg:col-span-2">
           <div className="glass-card p-6 md:p-8">
             <div className="mb-8">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2 mb-2">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-2">
                 <Info size={18} className="text-blue-400" /> Thông tin cơ bản
               </h2>
-              <p className="text-slate-400 text-xs">Cập nhật các thông số gốc của khoản nợ</p>
+              <p className="text-slate-500 dark:text-slate-400 text-xs">Cập nhật các thông số gốc của khoản nợ</p>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -493,7 +493,7 @@ export default function EditDebtPage() {
               </div>
 
               {debtType === 'INSTALLMENT' && (
-                <div className="p-4 bg-white/[0.02] border border-white/[0.06] rounded-xl space-y-3">
+                <div className="p-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/[0.06] rounded-xl space-y-3">
                   {/* Label row: title + startDate hint + suggestion button */}
                   <div className="flex items-center gap-2">
                     <label className="input-label mb-0 shrink-0">Số kỳ đã trả</label>
@@ -535,7 +535,7 @@ export default function EditDebtPage() {
                   {/* Progress row */}
                   <div>
                     <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-base font-black text-white">
+                      <span className="text-base font-black text-slate-900 dark:text-white">
                         {(formValues.termMonths || 0) - (formValues.remainingTerms || 0)}
                       </span>
                       <span className="text-slate-500 text-sm">/ {formValues.termMonths || 0} kỳ</span>
@@ -562,10 +562,11 @@ export default function EditDebtPage() {
 
                   {/* Auto-update notice */}
                   <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-blue-500/5 border border-blue-500/10">
-                    <Info size={11} className="text-blue-400/70 mt-0.5 shrink-0" />
-                    <p className="text-[10px] text-blue-300/60 leading-relaxed">
-                      Số kỳ đã trả sẽ <span className="font-bold text-blue-300/80">tự động cập nhật</span> khi bạn ghi
-                      nhận thanh toán đủ một kỳ (≥ khoản trả tối thiểu). Bạn cũng có thể điều chỉnh thủ công ở đây.
+                    <Info size={11} className="text-blue-500 dark:text-blue-400/70 mt-0.5 shrink-0" />
+                    <p className="text-[10px] text-blue-600 dark:text-blue-300/60 leading-relaxed">
+                      Số kỳ đã trả sẽ{' '}
+                      <span className="font-bold text-blue-700 dark:text-blue-300/80">tự động cập nhật</span> khi bạn
+                      ghi nhận thanh toán đủ một kỳ (≥ khoản trả tối thiểu). Bạn cũng có thể điều chỉnh thủ công ở đây.
                     </p>
                   </div>
                 </div>
@@ -596,7 +597,7 @@ export default function EditDebtPage() {
                           readOnly={loanStatus === 'NEW'}
                         />
                         {loanStatus === 'NEW' && (
-                          <p className="mt-1.5 text-[10px] text-blue-400/70 flex items-center gap-1 italic">
+                          <p className="mt-1.5 text-[10px] text-blue-600/70 dark:text-blue-400/70 flex items-center gap-1 italic">
                             <Info size={10} /> Tự tính: Gốc + các loại phí thiết lập
                           </p>
                         )}
@@ -794,7 +795,7 @@ export default function EditDebtPage() {
                   <AlertTriangle size={14} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-200">Thiết lập Phạt trễ hạn (Kép)</h3>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-200">Thiết lập Phạt trễ hạn (Kép)</h3>
                   <p className="text-[11px] text-slate-500">Tự động tính thêm dư nợ và trừ Điểm Sức Khoẻ khi trễ hẹn</p>
                 </div>
               </div>
@@ -818,9 +819,9 @@ export default function EditDebtPage() {
                           });
                         }
                       }}
-                      className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500/30 focus:ring-offset-slate-900"
+                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-blue-500 focus:ring-blue-500/30 focus:ring-offset-slate-900"
                     />
-                    <span className="text-sm text-slate-300 font-medium group-hover:text-white transition-colors">
+                    <span className="text-sm text-slate-600 dark:text-slate-300 font-medium group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
                       Khoản nợ này có áp dụng phí phạt trễ hạn
                     </span>
                   </label>
@@ -828,7 +829,7 @@ export default function EditDebtPage() {
 
                 <div className={formValues.feePenaltyPerDay > 0 ? 'col-span-1 md:col-span-2 block' : 'hidden'}>
                   <div className="p-4 rounded-2xl bg-rose-500/5 border border-rose-500/10">
-                    <label className="input-label text-rose-300">
+                    <label className="input-label text-rose-600 dark:text-rose-300">
                       {debtType === 'INSTALLMENT' ? 'Phí phạt cố định mỗi ngày (VND)' : 'Phí phạt trễ hạn 1 lần (VND)'}
                     </label>
                     <Controller
@@ -850,7 +851,7 @@ export default function EditDebtPage() {
                         <AlertTriangle size={11} /> {errors.feePenaltyPerDay.message as string}
                       </p>
                     )}
-                    <p className="mt-1.5 text-[10px] text-rose-400/70 flex items-center gap-1.5 italic">
+                    <p className="mt-1.5 text-[10px] text-rose-600/70 dark:text-rose-400/70 flex items-center gap-1.5 italic">
                       <Info size={12} />
                       {debtType === 'INSTALLMENT'
                         ? 'Phí sẽ được cộng dồn vào dư nợ mỗi ngày nếu quá hạn.'
@@ -887,7 +888,7 @@ export default function EditDebtPage() {
 
         <div className="space-y-6">
           <div className="glass-card p-6 sticky top-8 border-blue-500/10">
-            <h3 className="text-[17px] font-bold text-white mb-6 flex items-center gap-2">
+            <h3 className="text-[17px] font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
               <BarChart2 className="text-blue-400" size={18} /> Phân tích chi phí mới
             </h3>
 
@@ -900,26 +901,26 @@ export default function EditDebtPage() {
                 <p className="text-[10px] text-slate-500 mt-1 italic"> Bao gồm lãi suất + các loại phí</p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/[0.05]">
                 <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Lãi suất năm (APY)</p>
-                <p className="text-xl font-bold text-white">{formatPercent(apy)}%</p>
+                <p className="text-xl font-bold text-slate-900 dark:text-white">{formatPercent(apy)}%</p>
               </div>
 
               {debtType === 'INSTALLMENT' && (
                 <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10">
-                  <p className="text-[11px] font-bold text-blue-400 uppercase tracking-wider mb-2">
+                  <p className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-2">
                     Dự kiến thanh toán
                   </p>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">Tổng tiền trả:</span>
-                      <span className="text-white font-bold">
+                      <span className="text-slate-500 dark:text-slate-400">Tổng tiền trả:</span>
+                      <span className="text-slate-900 dark:text-white font-bold">
                         {(formValues.minPayment * formValues.termMonths).toLocaleString()}đ
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">Tổng lãi & phí:</span>
-                      <span className="text-rose-400 font-bold">
+                      <span className="text-slate-500 dark:text-slate-400">Tổng lãi & phí:</span>
+                      <span className="text-rose-600 dark:text-rose-400 font-bold">
                         {(formValues.minPayment * formValues.termMonths - formValues.originalAmount).toLocaleString()}đ
                       </span>
                     </div>
