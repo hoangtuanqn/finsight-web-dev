@@ -1,6 +1,6 @@
 import { Button } from '@repo/ui';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Building2, Mail, Phone, ShieldCheck, User, X } from 'lucide-react';
+import { Banknote, Building2, Mail, Phone, ShieldCheck, User, X } from 'lucide-react';
 import React from 'react';
 
 interface PartyDetailDrawerProps {
@@ -156,12 +156,66 @@ export const PartyDetailDrawer: React.FC<PartyDetailDrawerProps> = ({
                           )}
                         </p>
                         <div className="space-y-2">
+                          {contact.position && (
+                            <div className="flex items-center gap-2 text-xs text-slate-400">
+                              <Building2 size={12} className="text-slate-600" /> {contact.position}
+                            </div>
+                          )}
                           <div className="flex items-center gap-2 text-xs text-slate-400">
                             <Mail size={12} className="text-slate-600" /> {contact.email || 'N/A'}
                           </div>
                           <div className="flex items-center gap-2 text-xs text-slate-400">
                             <Phone size={12} className="text-slate-600" /> {contact.phone || 'N/A'}
                           </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Bank Accounts Section */}
+              {party.bankAccounts && party.bankAccounts.length > 0 && (
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                      Thông tin ngân hàng
+                    </span>
+                    <div className="h-px flex-1 bg-slate-800" />
+                  </div>
+                  <div className="space-y-4">
+                    {party.bankAccounts.map((bank: any, idx: number) => (
+                      <div
+                        key={idx}
+                        className="p-5 bg-slate-950/30 rounded-[1.5rem] border border-slate-800/50 relative overflow-hidden group"
+                      >
+                        <div className="absolute top-0 right-0 p-3">
+                          <Banknote
+                            size={16}
+                            className="text-slate-800 group-hover:text-emerald-500/20 transition-colors"
+                          />
+                        </div>
+                        <div className="space-y-3">
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Ngân hàng</p>
+                            <p className="text-sm font-bold text-white">{bank.bankName}</p>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Số tài khoản</p>
+                              <p className="text-sm font-bold text-emerald-400 font-mono">{bank.accountNumber}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Chủ tài khoản</p>
+                              <p className="text-xs font-bold text-white uppercase">{bank.accountHolder}</p>
+                            </div>
+                          </div>
+                          {bank.branch && (
+                            <div>
+                              <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Chi nhánh</p>
+                              <p className="text-xs text-slate-400">{bank.branch}</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -220,27 +274,42 @@ export const PartyDetailDrawer: React.FC<PartyDetailDrawerProps> = ({
 
             {/* Drawer Footer Actions */}
             <div className="p-6 bg-slate-950/50 border-t border-slate-800 flex items-center gap-3">
-              <Button
-                appName="web-enterprise"
-                className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-sm"
-                onClick={onEdit}
-              >
-                Chỉnh Sửa
-              </Button>
-              <Button
-                appName="web-enterprise"
-                className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-sm"
-                onClick={() => onToggleStatus(party.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE')}
-              >
-                {party.status === 'ACTIVE' ? 'Ngừng hoạt động' : 'Kích hoạt lại'}
-              </Button>
-              <Button
-                appName="web-enterprise"
-                className="px-6 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-sm"
-                onClick={() => onToggleStatus('BLACKLIST')}
-              >
-                Blacklist
-              </Button>
+              {party.status === 'ACTIVE' && (
+                <Button
+                  appName="web-enterprise"
+                  className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-sm"
+                  onClick={onEdit}
+                >
+                  Chỉnh Sửa
+                </Button>
+              )}
+
+              {party.status === 'BLACKLIST' ? (
+                <Button
+                  appName="web-enterprise"
+                  className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm"
+                  onClick={() => onToggleStatus('ACTIVE')}
+                >
+                  Gỡ khỏi Blacklist
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    appName="web-enterprise"
+                    className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-sm"
+                    onClick={() => onToggleStatus(party.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE')}
+                  >
+                    {party.status === 'ACTIVE' ? 'Ngừng hoạt động' : 'Kích hoạt lại'}
+                  </Button>
+                  <Button
+                    appName="web-enterprise"
+                    className="px-6 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-sm"
+                    onClick={() => onToggleStatus('BLACKLIST')}
+                  >
+                    Blacklist
+                  </Button>
+                </>
+              )}
             </div>
           </motion.div>
         </>

@@ -54,6 +54,32 @@ export default function DebtDetailPage() {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
   };
 
+  const getScheduleStatusStyle = (status: string) => {
+    switch (status) {
+      case 'PAID':
+        return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
+      case 'PARTIAL':
+        return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
+      case 'OVERDUE':
+        return 'bg-rose-500/10 text-rose-500 border-rose-500/20';
+      default:
+        return 'bg-slate-800 text-slate-500 border-slate-700';
+    }
+  };
+
+  const getScheduleStatusLabel = (status: string) => {
+    switch (status) {
+      case 'PAID':
+        return 'Đã xong';
+      case 'PARTIAL':
+        return 'Dở dang';
+      case 'OVERDUE':
+        return 'Quá hạn';
+      default:
+        return 'Chờ thu';
+    }
+  };
+
   if (isLoading) return <div className="p-20 text-center text-slate-500">Đang tải chi tiết hồ sơ...</div>;
   if (!debt) return null;
 
@@ -196,15 +222,21 @@ export default function DebtDetailPage() {
                       <td className="px-8 py-4 text-xs font-mono text-slate-300">{formatCurrency(s.interestAmount)}</td>
                       <td className="px-8 py-4 text-xs font-black text-white">{formatCurrency(s.totalAmount)}</td>
                       <td className="px-8 py-4 text-right">
-                        <span
-                          className={`inline-flex px-2 py-0.5 rounded-full text-[8px] font-black border uppercase tracking-widest ${
-                            s.status === 'PAID'
-                              ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-                              : 'bg-slate-800 text-slate-500 border-slate-700'
-                          }`}
-                        >
-                          {s.status}
-                        </span>
+                        <div className="flex flex-col items-end gap-1">
+                          <span
+                            className={`inline-flex px-2 py-0.5 rounded-full text-[8px] font-black border uppercase tracking-widest ${getScheduleStatusStyle(s.status)}`}
+                          >
+                            {getScheduleStatusLabel(s.status)}
+                          </span>
+                          {s.status !== 'PAID' && (
+                            <p className="text-[9px] font-bold text-slate-500 whitespace-nowrap">
+                              Còn thiếu:{' '}
+                              <span className="text-amber-500">
+                                {formatCurrency(s.principalAmount - (s.paidPrincipal || 0))}
+                              </span>
+                            </p>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
