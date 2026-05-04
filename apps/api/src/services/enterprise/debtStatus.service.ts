@@ -1,31 +1,20 @@
 import enterpriseDb from '../../prisma/enterprise.client';
+import { NotificationService } from './notification.service';
 
 export class DebtStatusService {
-  /**
-   * Tính toán dư nợ hiện tại (Outstanding Balance)
-   * Derive từ Principal - SUM(principalPart trong transactions)
-   */
-  async getOutstandingBalance(debtId: string): Promise<number> {
-    const debt = await (enterpriseDb as any).debtRecord.findUnique({
+  async getOutstandingBalance(debtId: string, tx?: any): Promise<number> {
+    const db = tx || enterpriseDb;
+    const debt = await (db as any).debtRecord.findUnique({
       where: { id: debtId },
-      include: {
-        transactions: true,
-      },
+      include: { transactions: true },
     });
-
     if (!debt) return 0;
-
-    const totalPrincipal = debt.principal;
     const paidPrincipal = debt.transactions
-      .filter((t: any) => t.type === 'PAYMENT')
+      .filter((t: any) => t.type === 'PAYMENT' || t.type === 'REVERSAL')
       .reduce((sum: number, t: any) => sum + (t.principalPart || 0), 0);
-
-    return totalPrincipal - paidPrincipal;
+    return debt.principal - paidPrincipal;
   }
 
-  /**
-   * Ghi log thay đổi trạng thái kèm Snapshot dữ liệu
-   */
   async logStatusChange(
     orgId: string,
     userId: string,
@@ -33,10 +22,11 @@ export class DebtStatusService {
     oldStatus: string,
     newStatus: string,
     reason?: string,
+    tx?: any,
   ) {
-    const outstanding = await this.getOutstandingBalance(debtId);
-
-    return await (enterpriseDb as any).auditLog.create({
+    const db = tx || enterpriseDb;
+    const outstanding = await this.getOutstandingBalance(debtId, tx);
+    return await (db as any).auditLog.create({
       data: {
         organizationId: orgId,
         userId: userId,
@@ -50,118 +40,110 @@ export class DebtStatusService {
     });
   }
 
-  /**
-   * Kích hoạt khoản nợ (DRAFT -> ACTIVE)
-   */
   async activateDebt(orgId: string, userId: string, debtId: string) {
-    const debt = await (enterpriseDb as any).debtRecord.findUnique({
-      where: { id: debtId, organizationId: orgId },
-      include: {
-        documents: true,
-        schedules: true,
-      },
+    return await (enterpriseDb as any).$transaction(async (tx: any) => {
+      const debt = await tx.debtRecord.findUnique({ where: { id: debtId, organizationId: orgId } });
+      if (!debt || debt.status !== 'DRAFT') throw new Error('Không hợp lệ');
+      const updated = await tx.debtRecord.update({ where: { id: debtId }, data: { status: 'ACTIVE' } });
+      await this.logStatusChange(orgId, userId, debtId, 'DRAFT', 'ACTIVE', 'Kích hoạt', tx);
+      return updated;
     });
-
-    if (!debt) throw new Error('Không tìm thấy khoản nợ');
-    if (debt.status !== 'DRAFT') throw new Error('Chỉ có thể kích hoạt khoản nợ đang ở trạng thái Nháp');
-
-    // Validations theo MODULE_3.MD
-    if (debt.principal <= 0) throw new Error('Số tiền gốc phải lớn hơn 0');
-    if (!debt.issueDate || !debt.dueDate) throw new Error('Thiếu ngày phát sinh hoặc ngày đến hạn');
-    if (new Date(debt.dueDate) <= new Date(debt.issueDate)) throw new Error('Ngày đến hạn phải sau ngày phát sinh');
-
-    // Lưu ý: Tạm thời cho phép activate nếu chưa có tài liệu để thuận tiện cho việc test,
-    // nhưng sẽ log cảnh báo nếu cần nghiêm ngặt theo đúng business doc
-    // if (debt.documents.length === 0) throw new Error('Cần đính kèm ít nhất một tài liệu (hợp đồng/hóa đơn)');
-
-    const updatedDebt = await (enterpriseDb as any).debtRecord.update({
-      where: { id: debtId },
-      data: { status: 'ACTIVE' },
-    });
-
-    await this.logStatusChange(orgId, userId, debtId, 'DRAFT', 'ACTIVE', 'Kích hoạt khoản nợ');
-    return updatedDebt;
   }
 
-  /**
-   * Tranh chấp khoản nợ (ANY ACTIVE -> DISPUTED)
-   */
   async disputeDebt(orgId: string, userId: string, debtId: string, reason: string) {
-    const debt = await (enterpriseDb as any).debtRecord.findUnique({
-      where: { id: debtId, organizationId: orgId },
-    });
-
-    if (!debt) throw new Error('Không tìm thấy khoản nợ');
-    if (!['ACTIVE', 'PARTIAL', 'OVERDUE'].includes(debt.status)) {
-      throw new Error('Chỉ có thể tranh chấp khoản nợ đang hoạt động');
-    }
-
-    const oldStatus = debt.status;
-    const updatedDebt = await (enterpriseDb as any).debtRecord.update({
-      where: { id: debtId },
-      data: { status: 'DISPUTED' },
-    });
-
-    await this.logStatusChange(orgId, userId, debtId, oldStatus, 'DISPUTED', reason);
-    return updatedDebt;
-  }
-
-  /**
-   * Giải quyết tranh chấp (DISPUTED -> ACTIVE/PARTIAL/OVERDUE)
-   */
-  async resolveDispute(orgId: string, userId: string, debtId: string) {
-    const debt = await (enterpriseDb as any).debtRecord.findUnique({
-      where: { id: debtId, organizationId: orgId },
-    });
-
-    if (!debt) throw new Error('Không tìm thấy khoản nợ');
-    if (debt.status !== 'DISPUTED') throw new Error('Khoản nợ không ở trạng thái tranh chấp');
-
-    const outstanding = await this.getOutstandingBalance(debtId);
-    let newStatus = 'ACTIVE';
-
-    if (outstanding <= 0) {
-      newStatus = 'PAID';
-    } else if (new Date(debt.dueDate) < new Date()) {
-      newStatus = 'OVERDUE';
-    } else {
-      // Kiểm tra xem đã có thanh toán nào chưa
-      const paymentCount = await (enterpriseDb as any).debtTransaction.count({
-        where: { debtRecordId: debtId, type: 'PAYMENT' },
+    return await (enterpriseDb as any).$transaction(async (tx: any) => {
+      const debt = await tx.debtRecord.findUnique({
+        where: { id: debtId, organizationId: orgId },
+        include: { party: { select: { name: true, personInChargeId: true } } },
       });
-      if (paymentCount > 0) newStatus = 'PARTIAL';
-    }
+      if (!debt) throw new Error('Không tìm thấy');
+      const oldStatus = debt.status;
+      const updated = await tx.debtRecord.update({ where: { id: debtId }, data: { status: 'DISPUTED' } });
+      await this.logStatusChange(orgId, userId, debtId, oldStatus, 'DISPUTED', reason, tx);
 
-    const updatedDebt = await (enterpriseDb as any).debtRecord.update({
-      where: { id: debtId },
-      data: { status: newStatus },
+      const recipientId = debt.personInChargeId || debt.party?.personInChargeId;
+      if (recipientId) {
+        await NotificationService.createNotification(
+          {
+            organizationId: orgId,
+            targetUserId: recipientId,
+            type: 'EVENT_BASED',
+            category: 'ESCALATION',
+            priority: 'IMPORTANT',
+            title: `⚖️ Khoản nợ bị TRANH CHẤP: ${debt.party?.name}`,
+            content: `Khoản nợ ${debt.internalCode} đã được chuyển sang trạng thái Tranh chấp. Lý do: ${reason}.`,
+            debtRecordId: debtId,
+          },
+          tx,
+        );
+      }
+      return updated;
     });
-
-    await this.logStatusChange(orgId, userId, debtId, 'DISPUTED', newStatus, 'Giải quyết tranh chấp');
-    return updatedDebt;
   }
 
-  /**
-   * Xóa nợ (ANY -> WRITTEN_OFF)
-   */
+  async resolveDispute(orgId: string, userId: string, debtId: string) {
+    return await (enterpriseDb as any).$transaction(async (tx: any) => {
+      const debt = await tx.debtRecord.findUnique({
+        where: { id: debtId, organizationId: orgId },
+        include: { party: { select: { name: true, personInChargeId: true } } },
+      });
+      if (!debt || debt.status !== 'DISPUTED') throw new Error('Không hợp lệ');
+
+      const outstanding = await this.getOutstandingBalance(debtId, tx);
+      const newStatus = outstanding <= 0 ? 'PAID' : new Date(debt.dueDate) < new Date() ? 'OVERDUE' : 'PARTIAL';
+
+      const updated = await tx.debtRecord.update({ where: { id: debtId }, data: { status: newStatus } });
+      await this.logStatusChange(orgId, userId, debtId, 'DISPUTED', newStatus, 'Giải quyết tranh chấp', tx);
+
+      const recipientId = debt.personInChargeId || debt.party?.personInChargeId;
+      if (recipientId) {
+        await NotificationService.createNotification(
+          {
+            organizationId: orgId,
+            targetUserId: recipientId,
+            type: 'EVENT_BASED',
+            category: 'PAYMENT',
+            priority: 'IMPORTANT',
+            title: `✅ Tranh chấp đã GIẢI QUYẾT: ${debt.party?.name}`,
+            content: `Khoản nợ ${debt.internalCode} đã được giải quyết tranh chấp và chuyển về trạng thái ${newStatus}.`,
+            debtRecordId: debtId,
+          },
+          tx,
+        );
+      }
+      return updated;
+    });
+  }
+
   async writeOff(orgId: string, userId: string, debtId: string, reason: string) {
-    const debt = await (enterpriseDb as any).debtRecord.findUnique({
-      where: { id: debtId, organizationId: orgId },
+    return await (enterpriseDb as any).$transaction(async (tx: any) => {
+      const debt = await tx.debtRecord.findUnique({
+        where: { id: debtId, organizationId: orgId },
+        include: { party: { select: { name: true, personInChargeId: true } } },
+      });
+      if (!debt) throw new Error('Không tìm thấy');
+      const oldStatus = debt.status;
+      const updated = await tx.debtRecord.update({ where: { id: debtId }, data: { status: 'WRITTEN_OFF' } });
+      await this.logStatusChange(orgId, userId, debtId, oldStatus, 'WRITTEN_OFF', reason, tx);
+
+      const recipientId = debt.personInChargeId || debt.party?.personInChargeId;
+      if (recipientId) {
+        await NotificationService.createNotification(
+          {
+            organizationId: orgId,
+            targetUserId: recipientId,
+            type: 'EVENT_BASED',
+            category: 'ESCALATION',
+            priority: 'URGENT',
+            title: `🗑️ XÓA NỢ: ${debt.party?.name}`,
+            content: `Khoản nợ ${debt.internalCode} trị giá ${debt.outstanding.toLocaleString()}đ đã được Xóa nợ (Write-off). Lý do: ${reason}.`,
+            debtRecordId: debtId,
+          },
+          tx,
+        );
+      }
+      return updated;
     });
-
-    if (!debt) throw new Error('Không tìm thấy khoản nợ');
-    if (['PAID', 'WRITTEN_OFF'].includes(debt.status)) {
-      throw new Error('Khoản nợ đã tất toán hoặc đã xóa nợ');
-    }
-
-    const oldStatus = debt.status;
-    const updatedDebt = await (enterpriseDb as any).debtRecord.update({
-      where: { id: debtId },
-      data: { status: 'WRITTEN_OFF' },
-    });
-
-    await this.logStatusChange(orgId, userId, debtId, oldStatus, 'WRITTEN_OFF', reason);
-    return updatedDebt;
   }
 }
 

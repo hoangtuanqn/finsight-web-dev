@@ -1,7 +1,8 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { BadgeDollarSign, ChevronRight, LayoutDashboard, LogOut, User, Users } from 'lucide-react';
+import { BadgeDollarSign, Bell, Calculator, ChevronRight, LayoutDashboard, LogOut, User, Users } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useNotifications } from '../../hooks/useNotifications';
 
 const NAV_GROUPS = [
   {
@@ -13,8 +14,19 @@ const NAV_GROUPS = [
         icon: LayoutDashboard,
         label: 'Dashboard',
         end: true,
+        hasBadge: false,
         color: '#3b82f6',
         gradient: 'from-blue-500 to-cyan-400',
+      },
+      {
+        id: 'nav-notifications',
+        to: '/notifications',
+        icon: Bell,
+        label: 'Thông báo',
+        end: false,
+        hasBadge: true,
+        color: '#ef4444',
+        gradient: 'from-rose-500 to-orange-400',
       },
     ],
   },
@@ -26,6 +38,8 @@ const NAV_GROUPS = [
         to: '/parties',
         icon: Users,
         label: 'Đối tác',
+        end: false,
+        hasBadge: false,
         color: '#10b981',
         gradient: 'from-emerald-500 to-teal-400',
       },
@@ -34,8 +48,20 @@ const NAV_GROUPS = [
         to: '/debts',
         icon: BadgeDollarSign,
         label: 'Quản lý nợ',
+        end: false,
+        hasBadge: false,
         color: '#f59e0b',
         gradient: 'from-amber-500 to-orange-400',
+      },
+      {
+        id: 'nav-repayment-planner',
+        to: '/repayment-planner',
+        icon: Calculator,
+        label: 'Kế hoạch trả nợ',
+        end: false,
+        hasBadge: false,
+        color: '#6366f1',
+        gradient: 'from-indigo-500 to-purple-400',
       },
     ],
   },
@@ -47,6 +73,8 @@ const NAV_GROUPS = [
         to: '/profile',
         icon: User,
         label: 'Hồ sơ',
+        end: false,
+        hasBadge: false,
         color: '#64748b',
         gradient: 'from-slate-500 to-slate-400',
       },
@@ -63,6 +91,7 @@ interface SidebarProps {
 
 export default function Sidebar({ isCollapsed, width, onClose, isMobile }: SidebarProps) {
   const { user, logout } = useAuth() as any;
+  const { unreadCount } = useNotifications();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -183,6 +212,15 @@ export default function Sidebar({ isCollapsed, width, onClose, isMobile }: Sideb
                           </motion.span>
                         )}
                       </AnimatePresence>
+
+                      {/* Badge for notifications */}
+                      {item.hasBadge && unreadCount > 0 && (
+                        <div
+                          className={`absolute ${isCollapsed ? 'top-1 right-1' : 'right-3'} flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-black border-2 border-[var(--color-bg-secondary)] z-10`}
+                        >
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </div>
+                      )}
 
                       {/* Chevron on hover */}
                       {!isCollapsed && !isActive && (
