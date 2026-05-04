@@ -187,7 +187,7 @@ function PaymentInfoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
             </div>
 
             <h3 className="text-2xl font-black text-[var(--color-text-primary)] tracking-tight mb-2">
-              Cách tính khoản trả
+              Khoản trả hàng tháng
             </h3>
             <p className="text-[var(--color-text-muted)] text-sm mb-8 leading-relaxed">
               Hệ thống tự động tính toán số tiền bạn cần trả mỗi tháng để đảm bảo tất toán đúng hạn.
@@ -244,7 +244,15 @@ function PaymentInfoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
   );
 }
 
-function BalanceInfoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+function BalanceInfoModal({
+  isOpen,
+  onClose,
+  isExisting = false,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  isExisting?: boolean;
+}) {
   if (!isOpen) return null;
 
   return createPortal(
@@ -277,47 +285,89 @@ function BalanceInfoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
             </div>
 
             <h3 className="text-2xl font-black text-[var(--color-text-primary)] tracking-tight mb-2">
-              Dư nợ được tính thế nào?
+              {isExisting ? 'Dư nợ hiện tại' : 'Cách tính dư nợ'}
             </h3>
             <p className="text-[var(--color-text-muted)] text-sm mb-8 leading-relaxed">
-              Đối với khoản nợ mới, hệ thống tự động xác định số tiền bạn thực sự nợ dựa trên gốc và các loại phí ban
-              đầu.
+              {isExisting
+                ? 'Đây là số tiền thực tế bạn còn nợ sau khi đã trừ đi các khoản gốc đã thanh toán qua từng tháng.'
+                : 'Đối với khoản nợ mới, hệ thống tự động xác định số tiền bạn thực sự nợ dựa trên gốc và các loại phí ban đầu.'}
             </p>
 
-            <div className="space-y-4">
-              {[
-                {
-                  title: 'Tiền gốc ban đầu',
-                  desc: 'Giá trị sản phẩm hoặc số tiền mặt bạn thực nhận từ bên cho vay.',
-                  icon: <CheckCircle2 size={16} className="text-emerald-500" />,
-                },
-                {
-                  title: 'Phí xử lý & Hồ sơ',
-                  desc: 'Các loại phí dịch vụ thường được cộng trực tiếp vào số tiền nợ ban đầu.',
-                  icon: <CheckCircle2 size={16} className="text-emerald-500" />,
-                },
-                {
-                  title: 'Phí bảo hiểm khoản vay',
-                  desc: 'Một số nền tảng bắt buộc mua bảo hiểm và tính vào dư nợ để trả góp dần.',
-                  icon: <CheckCircle2 size={16} className="text-emerald-500" />,
-                },
-              ].map((item, i) => (
+            <div className="grid grid-cols-2 gap-3">
+              {(isExisting
+                ? [
+                    {
+                      title: 'Dư nợ đầu kỳ',
+                      desc: 'Gốc vay kèm các loại phí thiết lập được cộng dồn khi giải ngân.',
+                      icon: <CheckCircle2 size={14} className="text-emerald-500" />,
+                    },
+                    {
+                      title: 'Khấu trừ gốc',
+                      desc: 'Tiền gốc trả mỗi kỳ sẽ được khấu trừ trực tiếp vào dư nợ.',
+                      icon: <CheckCircle2 size={14} className="text-emerald-500" />,
+                    },
+                    {
+                      title: 'Phí & Phạt',
+                      desc: 'Phí quản lý hoặc tiền phạt trễ hạn sẽ làm tăng dư nợ thực tế.',
+                      icon: <CheckCircle2 size={14} className="text-emerald-500" />,
+                    },
+                  ]
+                : [
+                    {
+                      title: 'Tiền gốc thực',
+                      desc: 'Giá trị món hàng hoặc số tiền mặt thực tế bạn nhận được.',
+                      icon: <CheckCircle2 size={14} className="text-emerald-500" />,
+                    },
+                    {
+                      title: 'Phí dịch vụ',
+                      desc: 'Phí xử lý hồ sơ thường được cộng dồn vào dư nợ gốc.',
+                      icon: <CheckCircle2 size={14} className="text-emerald-500" />,
+                    },
+                    {
+                      title: 'Phí bảo hiểm',
+                      desc: 'Phí bảo hiểm rủi ro tín dụng tính theo % giá trị hợp đồng.',
+                      icon: <CheckCircle2 size={14} className="text-emerald-500" />,
+                    },
+                  ]
+              ).map((item, i) => (
                 <div
                   key={i}
-                  className="flex gap-4 p-4 rounded-2xl bg-[var(--color-bg-secondary)]/50 border border-[var(--color-border)]/50"
+                  className="p-4 rounded-2xl bg-[var(--color-bg-secondary)]/50 border border-[var(--color-border)]/50 flex flex-col gap-3"
                 >
-                  <div className="mt-0.5">{item.icon}</div>
-                  <div>
-                    <h4 className="text-sm font-bold text-[var(--color-text-primary)] mb-0.5">{item.title}</h4>
-                    <p className="text-[12px] text-[var(--color-text-muted)] leading-snug">{item.desc}</p>
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+                      {item.icon}
+                    </div>
+                    <h4 className="text-sm font-black text-[var(--color-text-primary)] leading-none tracking-tight">
+                      {item.title}
+                    </h4>
                   </div>
+                  <p className="text-sm text-[var(--color-text-muted)] leading-relaxed">{item.desc}</p>
                 </div>
               ))}
+
+              {isExisting && (
+                <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10 flex flex-col gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
+                      <CheckCircle2 size={14} className="text-blue-500" />
+                    </div>
+                    <h4 className="text-sm font-black text-[var(--color-text-primary)] leading-none tracking-tight">
+                      Tracking thực tế
+                    </h4>
+                  </div>
+                  <p className="text-sm text-[var(--color-text-muted)] leading-relaxed">
+                    Tự động theo dõi lịch thanh toán để cập nhật theo thời gian thực.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="mt-8 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
               <p className="text-[11px] text-emerald-400 font-medium leading-relaxed italic text-center">
-                "Việc tính đúng dư nợ ban đầu giúp xác định chính xác lãi suất thực tế (EAR) mà bạn phải gánh chịu."
+                {isExisting
+                  ? '"Việc theo dõi dư nợ chính xác giúp bạn biết được bao giờ mình sẽ hoàn toàn tự do tài chính."'
+                  : '"Việc tính đúng dư nợ ban đầu giúp xác định chính xác lãi suất thực tế (EAR) mà bạn phải gánh chịu."'}
               </p>
             </div>
 
@@ -530,7 +580,9 @@ export default function EditDebtPage() {
       </div>
       <div>
         <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-black tracking-tighter text-[var(--color-text-primary)]">Chỉnh sửa khoản nợ</h1>
+          <h1 className="text-3xl font-black tracking-tighter text-[var(--color-text-primary)]">
+            Chỉnh sửa khoản nợ<span className="text-emerald-500 ml-1">.</span>
+          </h1>
         </div>
         <p className="text-[var(--color-text-secondary)] text-sm mt-1 mb-6">
           Cập nhật thông tin chi tiết cho khoản nợ của bạn
@@ -845,10 +897,29 @@ export default function EditDebtPage() {
                         />
                         {loanStatus === 'EXISTING' &&
                           debtType === 'INSTALLMENT' &&
-                          formValues.originalAmount > 0 &&
-                          formValues.balance < formValues.originalAmount && (
-                            <p className="mt-1 text-[10px] text-amber-400 flex items-center gap-1">
-                              <Info size={10} /> Dư nợ thấp hơn gốc? Bạn đã trả một phần rồi?
+                          toNumberValue(formValues.originalAmount) > 0 &&
+                          toNumberValue(formValues.balance) < toNumberValue(formValues.originalAmount) && (
+                            <p className="mt-1.5 text-[10px] text-[var(--color-text-muted)] flex items-center gap-1.5 font-medium tracking-wide">
+                              <CheckCircle2 size={10} className="text-emerald-500" />
+                              <span>
+                                Bạn đã trả được{' '}
+                                <span className="text-emerald-500 font-bold">
+                                  {new Intl.NumberFormat('vi-VN').format(
+                                    toNumberValue(formValues.originalAmount) - toNumberValue(formValues.balance),
+                                  )}
+                                  đ
+                                </span>{' '}
+                                so với tiền gốc (
+                                <span className="text-emerald-500 font-bold">
+                                  {Math.round(
+                                    ((toNumberValue(formValues.originalAmount) - toNumberValue(formValues.balance)) /
+                                      toNumberValue(formValues.originalAmount)) *
+                                      100,
+                                  )}
+                                  %
+                                </span>
+                                )
+                              </span>
                             </p>
                           )}
                         {debtType === 'CREDIT_CARD' &&
@@ -1139,7 +1210,11 @@ export default function EditDebtPage() {
         </div>
       </div>
       <PaymentInfoModal isOpen={showPaymentInfo} onClose={() => setShowPaymentInfo(false)} />
-      <BalanceInfoModal isOpen={showBalanceInfo} onClose={() => setShowBalanceInfo(false)} />
+      <BalanceInfoModal
+        isOpen={showBalanceInfo}
+        onClose={() => setShowBalanceInfo(false)}
+        isExisting={loanStatus === 'EXISTING'}
+      />
     </motion.div>
   );
 }
