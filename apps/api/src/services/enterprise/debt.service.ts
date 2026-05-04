@@ -53,7 +53,7 @@ export const createDebtRecord = async (data: {
       data: {
         organizationId: data.organizationId,
         partyId: data.partyId,
-        guarantorId: data.guarantorId,
+        guarantorId: data.guarantorId || null,
         type: data.type,
         origin: data.origin,
         principal: data.principal,
@@ -61,10 +61,10 @@ export const createDebtRecord = async (data: {
         interestMethod: data.interestMethod,
         issueDate: data.issueDate,
         dueDate: new Date(new Date(data.issueDate).setMonth(data.issueDate.getMonth() + data.termMonths)),
-        internalCode: data.internalCode,
-        notes: data.notes,
+        internalCode: data.internalCode || null,
+        notes: data.notes || null,
         status: 'DRAFT',
-        personInChargeId: data.personInChargeId,
+        personInChargeId: data.personInChargeId || null,
         penaltyRate: data.penaltyRate || 0,
         gracePeriodDays: data.gracePeriodDays || 0,
         interestRates: {
