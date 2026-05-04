@@ -127,7 +127,7 @@ model AuditLog {
   userId         String
   user           User         @relation(fields: [userId], references: [id])
   action         String   // CREATE, UPDATE, DELETE, TOGGLE_STATUS
-  entityType     String   // PARTY, CONTACT, BANK_ACCOUNT
+  entityType     String   // PARTY, CONTACT, BANK_ACCOUNT, DEBT_RECORD
   entityId       String
   oldValues      Json?
   newValues      Json?
