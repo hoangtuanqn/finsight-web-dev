@@ -3,6 +3,7 @@ import {
   acknowledgeNotification,
   getNotifications,
   getUnreadCount,
+  markAllRead,
   markRead,
   snoozeNotification,
 } from '../../controllers/enterprise/notification.controller';
@@ -14,6 +15,7 @@ router.use(authenticate);
 
 router.get('/', getNotifications);
 router.get('/unread-count', getUnreadCount);
+router.post('/mark-all-read', markAllRead);
 router.patch('/:id/read', markRead);
 router.post('/:id/acknowledge', acknowledgeNotification);
 router.post('/:id/snooze', snoozeNotification);

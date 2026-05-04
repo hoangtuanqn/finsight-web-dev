@@ -10,7 +10,7 @@ export function useNotifications() {
 
   const fetchUnreadCount = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('finsight_token');
       if (!token) return;
 
       const response = await axios.get(`${API_URL}/v1/enterprise/notifications/unread-count`, {
@@ -25,7 +25,7 @@ export function useNotifications() {
   const fetchNotifications = useCallback(async (filters: any = {}) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('finsight_token');
       const response = await axios.get(`${API_URL}/v1/enterprise/notifications`, {
         params: filters,
         headers: { Authorization: `Bearer ${token}` },
@@ -40,7 +40,7 @@ export function useNotifications() {
 
   const markAsRead = async (id: string) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('finsight_token');
       await axios.patch(
         `${API_URL}/v1/enterprise/notifications/${id}/read`,
         {},
@@ -57,7 +57,7 @@ export function useNotifications() {
 
   const markAllAsRead = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('finsight_token');
       await axios.post(
         `${API_URL}/v1/enterprise/notifications/mark-all-read`,
         {},
@@ -74,7 +74,7 @@ export function useNotifications() {
 
   const acknowledge = async (id: string) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('finsight_token');
       await axios.post(
         `${API_URL}/v1/enterprise/notifications/${id}/acknowledge`,
         {},
@@ -90,7 +90,7 @@ export function useNotifications() {
 
   const snooze = async (id: string, days: number = 3) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('finsight_token');
       await axios.post(
         `${API_URL}/v1/enterprise/notifications/${id}/snooze`,
         { days },
