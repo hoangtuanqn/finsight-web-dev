@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 import FormattedInput from '../../components/common/FormattedInput';
 import { useDebt, useDebtMutations } from '../../hooks/useDebtQuery';
-import { calcAPY, calcEAR, calculateMonthlyPayment, formatPercent } from '../../utils/calculations';
+import { calcEAR, calculateMonthlyPayment, formatPercent } from '../../utils/calculations';
 
 const preprocessNumber = (schema: z.ZodTypeAny) =>
   z.preprocess(
@@ -523,8 +523,9 @@ export default function EditDebtPage() {
     formValues.feeInsurance || 0,
     formValues.feeManagement || 0,
     debtType === 'INSTALLMENT' ? formValues.termMonths || 12 : 12,
+    formValues.rateType,
+    formValues.originalAmount,
   );
-  const apy = calcAPY(formValues.apr || 0);
 
   const onSubmit = async (formData: any) => {
     try {
@@ -1177,11 +1178,6 @@ export default function EditDebtPage() {
                 </p>
                 <p className={`text-2xl font-black ${getEarColorClass(ear)}`}>{formatPercent(ear)}%</p>
                 <p className="text-[10px] text-slate-500 mt-1 italic"> Bao gồm lãi suất + các loại phí</p>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/[0.05]">
-                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Lãi suất năm (APY)</p>
-                <p className="text-xl font-bold text-slate-900 dark:text-white">{formatPercent(apy)}%</p>
               </div>
 
               {debtType === 'INSTALLMENT' && (

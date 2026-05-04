@@ -135,7 +135,7 @@ export default function DebtDetailPage() {
                 thùng rác và tự động xoá vĩnh viễn sau 30 ngày.
               </p>
 
-              {debt.balance > 0 && (
+              {(debt.balance > 0 || isCreditCard) && (
                 <div className="text-left mb-6 space-y-3">
                   <input
                     type="text"
@@ -145,7 +145,7 @@ export default function DebtDetailPage() {
                   />
                   <label className="flex items-start gap-2 text-xs text-[var(--color-text-muted)] cursor-pointer">
                     <input type="checkbox" id="deleteCommit" className="mt-0.5" />
-                    <span>Tôi hiểu việc xoá khoản nợ đang vay sẽ làm sai lệch phân tích DTI và EAR.</span>
+                    <span>Tôi hiểu việc xoá khoản nợ này sẽ làm sai lệch phân tích DTI và EAR.</span>
                   </label>
                 </div>
               )}
@@ -162,7 +162,7 @@ export default function DebtDetailPage() {
                     const reason = (document.getElementById('deleteReason') as HTMLInputElement)?.value;
                     const isCommitted = (document.getElementById('deleteCommit') as HTMLInputElement)?.checked;
 
-                    if (debt.balance > 0 && (!reason || !isCommitted)) {
+                    if ((debt.balance > 0 || isCreditCard) && (!reason || !isCommitted)) {
                       toast.error('Vui lòng nhập lý do và xác nhận rủi ro');
                       return;
                     }
@@ -201,9 +201,19 @@ export default function DebtDetailPage() {
       </div>
 
       {debt.deletedAt && (
-        <div className="flex items-center gap-2 px-4 py-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-sm font-semibold text-amber-500">
-          <AlertTriangle size={18} />
-          Khoản nợ này đang nằm trong thùng rác và sẽ bị xóa vĩnh viễn sau 30 ngày.
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 px-4 py-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-sm font-semibold text-amber-500">
+            <AlertTriangle size={18} />
+            Khoản nợ này đang nằm trong thùng rác và sẽ bị xóa vĩnh viễn sau 30 ngày.
+          </div>
+          {debt.deleteReason && (
+            <div className="px-4 py-3 rounded-2xl border border-slate-200/50 bg-slate-50/50 dark:border-slate-800/50 dark:bg-slate-900/50 text-[13px]">
+              <span className="text-[var(--color-text-muted)] font-medium">Lý do xoá: </span>
+              <span className="text-[var(--color-text-primary)] font-bold italic">
+                "{debt.deleteReason === 'CLEAN_UP_SETTLED_DEBT' ? 'Dọn dẹp khoản nợ đã tất toán' : debt.deleteReason}"
+              </span>
+            </div>
+          )}
         </div>
       )}
 
@@ -530,6 +540,15 @@ export default function DebtDetailPage() {
                   vColor: isCreditCard ? '#f43f5e' : '#34d399',
                 },
                 { label: 'Ngày đáo hạn', value: `Ngày ${debt.dueDay} hàng tháng`, vColor: 'var(--color-text-primary)' },
+                ...(debt.deletedAt
+                  ? [
+                      {
+                        label: 'Ngày xoá',
+                        value: new Date(debt.deletedAt).toLocaleDateString('vi-VN'),
+                        vColor: '#fb7185',
+                      },
+                    ]
+                  : []),
                 ...(debt.feePenaltyPerDay > 0
                   ? [
                       {

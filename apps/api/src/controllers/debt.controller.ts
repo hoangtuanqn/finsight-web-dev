@@ -56,7 +56,15 @@ export async function getAllDebts(req: AuthenticatedRequest, res: Response) {
 
     let debtsWithCalc = debts.map((debt: any) => {
       const apy = calcAPY(debt.apr);
-      const ear = calcEAR(debt.apr, debt.feeProcessing, debt.feeInsurance, debt.feeManagement, debt.termMonths);
+      const ear = calcEAR(
+        debt.apr,
+        debt.feeProcessing,
+        debt.feeInsurance,
+        debt.feeManagement,
+        debt.termMonths,
+        debt.rateType,
+        debt.initialPrincipal,
+      );
       const daysUntil = debt.dueDay >= currentDay ? debt.dueDay - currentDay : daysInMonth - currentDay + debt.dueDay;
       return { ...debt, apy, ear, daysUntil };
     });
@@ -158,7 +166,15 @@ export async function getDebtById(req: AuthenticatedRequest, res: Response) {
     if (!debt) return error(res, 'Debt not found', 404);
 
     const apy = calcAPY(debt.apr);
-    const ear = calcEAR(debt.apr, debt.feeProcessing, debt.feeInsurance, debt.feeManagement, debt.termMonths);
+    const ear = calcEAR(
+      debt.apr,
+      debt.feeProcessing,
+      debt.feeInsurance,
+      debt.feeManagement,
+      debt.termMonths,
+      debt.rateType,
+      debt.initialPrincipal,
+    );
     const earBreakdown = {
       apr: debt.apr,
       compoundEffect: apy - debt.apr,
@@ -291,7 +307,9 @@ export async function deleteDebt(req: AuthenticatedRequest, res: Response) {
     let scheduledPurgeAt = new Date();
     scheduledPurgeAt.setDate(scheduledPurgeAt.getDate() + 30);
 
-    if (debt.balance > 0) {
+    const requiresReason = debt.balance > 0 || debt.debtType === 'CREDIT_CARD';
+
+    if (requiresReason) {
       if (!reason || !isCommitted) {
         return error(res, 'Yêu cầu nhập lý do và cam kết rủi ro.', 400);
       }
@@ -311,8 +329,8 @@ export async function deleteDebt(req: AuthenticatedRequest, res: Response) {
         data: {
           deletedAt: new Date(),
           scheduledPurgeAt,
-          deleteReason: 'CLEAN_UP_SETTLED_DEBT',
-          deleteCommitment: false,
+          deleteReason: reason || 'CLEAN_UP_SETTLED_DEBT',
+          deleteCommitment: isCommitted || false,
         },
       });
     }
@@ -585,7 +603,15 @@ export async function getEarAnalysis(req: AuthenticatedRequest, res: Response) {
 
     const analysis = debts.map((d: any) => {
       const apy = calcAPY(d.apr);
-      const ear = calcEAR(d.apr, d.feeProcessing, d.feeInsurance, d.feeManagement, d.termMonths);
+      const ear = calcEAR(
+        d.apr,
+        d.feeProcessing || 0,
+        d.feeInsurance || 0,
+        d.feeManagement || 0,
+        d.termMonths || 12,
+        d.rateType,
+        d.initialPrincipal,
+      );
       return {
         id: d.id,
         name: d.name,
@@ -606,7 +632,8 @@ export async function getEarAnalysis(req: AuthenticatedRequest, res: Response) {
     });
 
     const totalBalance = debts.reduce((sum: number, d: any) => sum + d.balance, 0);
-    const averageAPR = debts.length > 0 ? debts.reduce((sum: number, d: any) => sum + d.apr, 0) / debts.length : 0;
+    const averageAPR =
+      totalBalance > 0 ? debts.reduce((sum: number, d: any) => sum + (d.balance / totalBalance) * d.apr, 0) : 0;
     const averageEAR =
       totalBalance > 0 ? analysis.reduce((sum: number, d: any) => sum + (d.balance / totalBalance) * d.ear, 0) : 0;
     const totalHiddenCost = averageEAR - averageAPR;
