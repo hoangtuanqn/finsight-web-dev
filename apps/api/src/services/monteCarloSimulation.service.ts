@@ -8,11 +8,9 @@ function toArrayMatrix(matrix: any): any[][] {
 }
 
 function normalizeWeights(weights: number[]): number[] {
-  const raw = weights.some(weight => weight > 1)
-    ? weights.map(weight => weight / 100)
-    : [...weights];
+  const raw = weights.some((weight) => weight > 1) ? weights.map((weight) => weight / 100) : [...weights];
   const total = raw.reduce((sum, weight) => sum + weight, 0);
-  return total > 0 ? raw.map(weight => weight / total) : raw;
+  return total > 0 ? raw.map((weight) => weight / total) : raw;
 }
 
 function dot(left: number[], right: number[]): number {
@@ -32,15 +30,15 @@ function average(values: number[] | Float64Array): number {
 }
 
 function buildDiagonalMatrix(matrix: number[][]): number[][] {
-  return matrix.map((row, rowIndex) => (
-    row.map((_, colIndex) => (rowIndex === colIndex ? Math.max(0, row[rowIndex]) : 0))
-  ));
+  return matrix.map((row, rowIndex) =>
+    row.map((_, colIndex) => (rowIndex === colIndex ? Math.max(0, row[rowIndex]) : 0)),
+  );
 }
 
 export function createSeededRng(seed: number = 1) {
   let state = seed >>> 0;
   return () => {
-    state += 0x6D2B79F5;
+    state += 0x6d2b79f5;
     let value = state;
     value = Math.imul(value ^ (value >>> 15), value | 1);
     value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
@@ -86,9 +84,13 @@ export function choleskyDecomposition(matrix: any): number[][] | null {
   return lower;
 }
 
-export function generateCorrelatedNormals(choleskyL: number[][], numAssets: number, rng: () => number = Math.random): number[] {
+export function generateCorrelatedNormals(
+  choleskyL: number[][],
+  numAssets: number,
+  rng: () => number = Math.random,
+): number[] {
   const independent = Array.from({ length: numAssets }, () => boxMullerTransform(rng));
-  return choleskyL.map(row => dot(row, independent));
+  return choleskyL.map((row) => dot(row, independent));
 }
 
 export interface SimulationParams {
@@ -117,11 +119,10 @@ export function simulatePortfolio({
   pathSampleSize = 500,
 }: SimulationParams) {
   const normalizedWeights = normalizeWeights(weights);
-  const monthlyMeans = means.map(mean => mean / 12);
+  const monthlyMeans = means.map((mean) => mean / 12);
   const annualCov = toArrayMatrix(covMatrix);
-  const monthlyCov = annualCov.map(row => row.map((value: number) => value / 12));
-  const cholesky = choleskyDecomposition(monthlyCov)
-    || choleskyDecomposition(buildDiagonalMatrix(monthlyCov));
+  const monthlyCov = annualCov.map((row) => row.map((value: number) => value / 12));
+  const cholesky = choleskyDecomposition(monthlyCov) || choleskyDecomposition(buildDiagonalMatrix(monthlyCov));
   const months = Math.max(0, Math.round(years * 12));
   const results = new Float64Array(numSims);
   const samplePaths: number[][] = [];
@@ -150,11 +151,11 @@ export function simulatePortfolio({
   return {
     p5: percentile(sortedResults, 0.05),
     p25: percentile(sortedResults, 0.25),
-    median: percentile(sortedResults, 0.50),
+    median: percentile(sortedResults, 0.5),
     p75: percentile(sortedResults, 0.75),
     p95: percentile(sortedResults, 0.95),
     mean: average(sortedResults),
-    probLoss: sortedResults.filter(value => value < capital).length / numSims,
+    probLoss: sortedResults.filter((value) => value < capital).length / numSims,
     results: sortedResults,
     samplePaths,
   };
@@ -166,7 +167,7 @@ export function generateProjectionTable(params: any) {
     horizons.map((years: number, index: number) => {
       const rng = params.rngFactory ? params.rngFactory(index + 1) : params.rng;
       return [`${years}y`, simulatePortfolio({ ...params, years, rng })];
-    })
+    }),
   );
 }
 

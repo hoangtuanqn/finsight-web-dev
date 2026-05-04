@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
-import jwt, { SignOptions } from 'jsonwebtoken';
-import prisma from '../lib/prisma';
-import { success, error } from '../utils/apiResponse';
 import { OAuth2Client } from 'google-auth-library';
+import jwt from 'jsonwebtoken';
+import prisma from '../lib/prisma';
+import { error, success } from '../utils/apiResponse';
+import { handleUserLoginResponse } from '../utils/auth';
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -15,21 +16,21 @@ export async function googleLogin(req: Request, res: Response) {
       idToken: credential,
       audience: process.env.GOOGLE_CLIENT_ID,
     });
-    
+
     const payload = ticket.getPayload();
     if (!payload) return error(res, 'Invalid Google Token', 400);
-    
+
     const { email, name, picture, sub } = payload;
 
     let user = await (prisma as any).user.findUnique({ where: { email } });
-    
+
     if (!user) {
       user = await (prisma as any).user.create({
-        data: { 
-          email, 
-          fullName: name || email.split('@')[0], 
-          avatar: picture || null, 
-          googleId: sub 
+        data: {
+          email,
+          fullName: name || email.split('@')[0],
+          avatar: picture || null,
+          googleId: sub,
         },
       });
     } else {
@@ -41,20 +42,14 @@ export async function googleLogin(req: Request, res: Response) {
       }
     }
 
-    const token = jwt.sign(
-      { userId: user.id, email: user.email },
-      (process.env.JWT_SECRET as string),
-      { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'] }
-    );
+    if (!user.password) {
+      const tempToken = jwt.sign({ userId: user.id, isTemp: true }, (process.env.JWT_SECRET as string).trim(), {
+        expiresIn: '15m',
+      });
+      return success(res, { requirePassword: true, tempToken, email: user.email });
+    }
 
-    const fullUser = await (prisma as any).user.findUnique({
-      where: { id: user.id },
-      include: { investorProfile: true }
-    });
-    
-    const { password: _, ...userData } = fullUser;
-    
-    return success(res, { user: userData, token }, 200);
+    return handleUserLoginResponse(req, res, user);
   } catch (err) {
     console.error('Google Login error:', err);
     return error(res, 'Authentication failed during Google login', 500);

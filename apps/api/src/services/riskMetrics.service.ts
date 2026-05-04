@@ -1,16 +1,11 @@
-import {
-  portfolioReturn,
-  portfolioVariance,
-} from './portfolioOptimizer.service.js';
+import { portfolioReturn, portfolioVariance } from './portfolioOptimizer.service.js';
 
 const EPSILON = 1e-12;
 
 function normalizeWeights(weights: number[]): number[] {
-  const raw = weights.some(weight => weight > 1)
-    ? weights.map(weight => weight / 100)
-    : [...weights];
+  const raw = weights.some((weight) => weight > 1) ? weights.map((weight) => weight / 100) : [...weights];
   const total = raw.reduce((sum, weight) => sum + weight, 0);
-  return total > EPSILON ? raw.map(weight => weight / total) : raw;
+  return total > EPSILON ? raw.map((weight) => weight / total) : raw;
 }
 
 function average(values: number[] | Float64Array): number {
@@ -42,20 +37,14 @@ export function calcSharpeRatio(portfolioReturnValue: number, riskFreeRate: numb
 export function calcVaR(simResults: number[] | Float64Array, capital: number, confidence: number = 0.95): number {
   if (!simResults || simResults.length === 0) return 0;
   const sorted = Array.from(simResults).sort((a, b) => a - b);
-  const index = Math.min(
-    sorted.length - 1,
-    Math.max(0, Math.floor((1 - confidence) * sorted.length))
-  );
+  const index = Math.min(sorted.length - 1, Math.max(0, Math.floor((1 - confidence) * sorted.length)));
   return Math.max(0, capital - sorted[index]);
 }
 
 export function calcCVaR(simResults: number[] | Float64Array, capital: number, confidence: number = 0.95): number {
   if (!simResults || simResults.length === 0) return 0;
   const sorted = Array.from(simResults).sort((a, b) => a - b);
-  const index = Math.min(
-    sorted.length - 1,
-    Math.max(0, Math.floor((1 - confidence) * sorted.length))
-  );
+  const index = Math.min(sorted.length - 1, Math.max(0, Math.floor((1 - confidence) * sorted.length)));
   const tail = sorted.slice(0, index + 1);
   return Math.max(0, capital - average(tail));
 }
@@ -88,7 +77,7 @@ export function calcMaxDrawdown(simPaths: number[][] = []) {
     .map(calcPathDrawdown)
     .sort((a, b) => a - b);
 
-  const median = percentile(drawdowns, 0.50);
+  const median = percentile(drawdowns, 0.5);
   const worst = percentile(drawdowns, 0.95);
 
   return {
@@ -101,7 +90,7 @@ export function calcMaxDrawdown(simPaths: number[][] = []) {
 export function calcRiskGrade(sharpeRatio: number, varPercentage: number): string {
   if (sharpeRatio > 1.0 && varPercentage < 0.15) return 'A';
   if (sharpeRatio > 0.5 && varPercentage < 0.25) return 'B';
-  if (sharpeRatio > 0.2 && varPercentage < 0.40) return 'C';
+  if (sharpeRatio > 0.2 && varPercentage < 0.4) return 'C';
   if (sharpeRatio > 0) return 'D';
   return 'F';
 }

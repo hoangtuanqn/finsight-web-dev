@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import redis from '../lib/redis';
 
 export function cache(keyFn: string | ((req: Request) => string), ttlSeconds: number = 300) {

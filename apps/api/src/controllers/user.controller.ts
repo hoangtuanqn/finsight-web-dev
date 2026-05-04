@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import prisma from '../lib/prisma';
-import { success, error } from '../utils/apiResponse';
 import { AuthenticatedRequest } from '../types';
+import { error, success } from '../utils/apiResponse';
 
 export async function getProfile(req: AuthenticatedRequest, res: Response) {
   try {
@@ -19,34 +19,52 @@ export async function getProfile(req: AuthenticatedRequest, res: Response) {
 
 export async function updateProfile(req: AuthenticatedRequest, res: Response) {
   try {
-    const { fullName, email, monthlyIncome, extraBudget, capital, goal, horizon, riskLevel, savingsRate, inflationRate } = req.body;
-    
+    const {
+      fullName,
+      email,
+      monthlyIncome,
+      extraBudget,
+      capital,
+      goal,
+      horizon,
+      riskLevel,
+      savingsRate,
+      inflationRate,
+    } = req.body;
+
     // Update User basic info
     const user = await (prisma as any).user.update({
       where: { id: req.userId },
-      data: { 
-        fullName, 
-        email, 
+      data: {
+        fullName,
+        email,
         monthlyIncome: monthlyIncome !== undefined ? parseFloat(monthlyIncome) : undefined,
-        extraBudget: extraBudget !== undefined ? parseFloat(extraBudget) : undefined 
+        extraBudget: extraBudget !== undefined ? parseFloat(extraBudget) : undefined,
       },
-      include: { investorProfile: true }
+      include: { investorProfile: true },
     });
 
     // Update or Create Investor Profile if investment data provided
-    if (capital !== undefined || goal || horizon || riskLevel || savingsRate !== undefined || inflationRate !== undefined) {
+    if (
+      capital !== undefined ||
+      goal ||
+      horizon ||
+      riskLevel ||
+      savingsRate !== undefined ||
+      inflationRate !== undefined
+    ) {
       await (prisma as any).investorProfile.upsert({
         where: { userId: req.userId },
-        update: { 
+        update: {
           capital: capital !== undefined ? parseFloat(capital) : undefined,
-          goal, 
-          horizon, 
+          goal,
+          horizon,
           riskLevel,
           savingsRate: savingsRate !== undefined ? parseFloat(savingsRate) : undefined,
           inflationRate: inflationRate !== undefined ? parseFloat(inflationRate) : undefined,
-          lastUpdated: new Date() 
+          lastUpdated: new Date(),
         },
-        create: { 
+        create: {
           userId: req.userId,
           capital: capital !== undefined ? parseFloat(capital) : 0,
           goal: goal || 'GROWTH',
@@ -54,13 +72,13 @@ export async function updateProfile(req: AuthenticatedRequest, res: Response) {
           riskLevel: riskLevel || 'MEDIUM',
           savingsRate: savingsRate !== undefined ? parseFloat(savingsRate) : 6.0,
           inflationRate: inflationRate !== undefined ? parseFloat(inflationRate) : 3.5,
-        }
+        },
       });
     }
 
     const updatedUser = await (prisma as any).user.findUnique({
       where: { id: req.userId },
-      include: { investorProfile: true }
+      include: { investorProfile: true },
     });
 
     return success(res, { user: updatedUser });
@@ -106,6 +124,20 @@ export async function markAllRead(req: AuthenticatedRequest, res: Response) {
     return success(res, { message: 'All notifications marked as read' });
   } catch (err) {
     console.error('markAllRead error:', err);
+    return error(res, 'Internal server error');
+  }
+}
+
+export async function getHealthScoreHistory(req: AuthenticatedRequest, res: Response) {
+  try {
+    const history = await (prisma as any).healthScoreHistory.findMany({
+      where: { userId: req.userId },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+    return success(res, { history });
+  } catch (err) {
+    console.error('getHealthScoreHistory error:', err);
     return error(res, 'Internal server error');
   }
 }

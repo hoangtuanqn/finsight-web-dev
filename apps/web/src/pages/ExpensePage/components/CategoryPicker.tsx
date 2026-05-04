@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft } from 'lucide-react';
+import { useState } from 'react';
 
 interface CategoryPickerProps {
   categories: any[]; // top-level groups with children
@@ -12,7 +12,7 @@ interface CategoryPickerProps {
 export function CategoryPicker({ categories, selectedId, onSelect, type }: CategoryPickerProps) {
   const [selectedGroup, setSelectedGroup] = useState<any>(null);
 
-  const filteredGroups = categories.filter(c => c.type === type);
+  const filteredGroups = categories.filter((c) => c.type === type);
 
   // Find selected category display
   const findSelected = () => {
@@ -47,7 +47,10 @@ export function CategoryPicker({ categories, selectedId, onSelect, type }: Categ
       {selectedCat && (
         <div className="flex items-center gap-2 text-[13px] font-bold text-[var(--color-text-muted)]">
           <span className="text-lg">{selectedCat.icon}</span>
-          <span>{selectedCat.groupName ? `${selectedCat.groupName} / ` : ''}{selectedCat.name}</span>
+          <span>
+            {selectedCat.groupName ? `${selectedCat.groupName} / ` : ''}
+            {selectedCat.name}
+          </span>
         </div>
       )}
 

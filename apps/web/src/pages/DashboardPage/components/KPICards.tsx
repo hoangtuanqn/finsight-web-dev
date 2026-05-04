@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion';
-import { HeartPulse, CreditCard, BarChart2, Thermometer } from 'lucide-react';
-import { formatVND, formatPercent } from '../../../utils/calculations';
-
+import { BarChart2, CreditCard, HeartPulse, Thermometer } from 'lucide-react';
+import { formatPercent, formatVND } from '../../../utils/calculations';
 const CARDS = [
   {
     key: 'health',
@@ -37,13 +36,14 @@ const CARDS = [
   },
 ];
 
-function AnimatedBar({ value, gradient }: { value: number, gradient: string }) {
+function AnimatedBar({ value, max = 100, gradient }: { value: number; max?: number; gradient: string }) {
+  const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
   return (
     <div className="h-1.5 rounded-full bg-white/10 overflow-hidden mt-3">
       <motion.div
         className={`h-full rounded-full bg-gradient-to-r ${gradient}`}
         initial={{ width: 0 }}
-        animate={{ width: `${Math.min(value, 100)}%` }}
+        animate={{ width: `${percentage}%` }}
         transition={{ duration: 1.2, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
       />
     </div>
@@ -58,27 +58,40 @@ interface KPICardsProps {
   healthColor: string;
   healthLabel: string;
   sentimentColor: string;
+  onHealthClick: () => void;
 }
 
-export default function KPICards({ debtSummary, debts, sentiment, healthScore, healthColor, healthLabel, sentimentColor }: KPICardsProps) {
+export default function KPICards({
+  debtSummary,
+  debts,
+  sentiment,
+  healthScore,
+  healthColor,
+  healthLabel,
+  sentimentColor,
+  onHealthClick,
+}: KPICardsProps) {
   const configs = [
     {
       ...CARDS[0],
       glow: healthColor,
       value: `${healthScore}`,
-      unit: '/100',
+      unit: '/850',
       sub: healthLabel,
       barValue: healthScore,
+      barMax: 850,
     },
     {
       ...CARDS[1],
       value: formatVND(debtSummary.totalBalance || 0),
+      unit: undefined,
       sub: `${debts.length} khoản • tối thiểu ${formatVND(debtSummary.totalMinPayment || 0)}/tháng`,
       barValue: null,
     },
     {
       ...CARDS[2],
       value: formatPercent(debtSummary.averageEAR || 0),
+      unit: undefined,
       sub: 'Chi phí thực tế / năm',
       barValue: null,
     },
@@ -101,7 +114,12 @@ export default function KPICards({ debtSummary, debts, sentiment, healthScore, h
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: i * 0.1 }}
           whileHover={{ y: -4, transition: { duration: 0.2 } }}
-          className="group cursor-default"
+          className={`group ${card.key === 'health' ? 'cursor-pointer hover:ring-2 hover:ring-emerald-500/50 rounded-3xl' : 'cursor-default'}`}
+          onClick={() => {
+            if (card.key === 'health') {
+              onHealthClick();
+            }
+          }}
         >
           {/* Outer glow ring */}
           <div
@@ -110,7 +128,7 @@ export default function KPICards({ debtSummary, debts, sentiment, healthScore, h
           />
 
           <div
-            className="relative rounded-3xl overflow-hidden border h-full"
+            className="relative rounded-3xl overflow-hidden border h-full transition-all"
             style={{
               borderColor: `${card.glow}30`,
               boxShadow: `0 4px 24px ${card.glow}15, 0 1px 0 ${card.glow}20 inset`,
@@ -130,16 +148,23 @@ export default function KPICards({ debtSummary, debts, sentiment, healthScore, h
 
             <div className="relative p-5 flex flex-col h-full">
               {/* Icon + Label */}
-              <div className="flex items-center gap-2.5 mb-4">
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: `${card.glow}20`, boxShadow: `0 0 12px ${card.glow}30` }}
-                >
-                  <card.icon size={18} style={{ color: card.glow }} />
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ background: `${card.glow}20`, boxShadow: `0 0 12px ${card.glow}30` }}
+                  >
+                    <card.icon size={18} style={{ color: card.glow }} />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">
+                    {card.label}
+                  </span>
                 </div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-secondary)]">
-                  {card.label}
-                </span>
+                {card.key === 'health' && (
+                  <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-full animate-pulse">
+                    Xem lịch sử
+                  </span>
+                )}
               </div>
 
               {/* Value */}
@@ -160,7 +185,7 @@ export default function KPICards({ debtSummary, debts, sentiment, healthScore, h
 
               {/* Progress bar */}
               {card.barValue !== null && card.barValue !== undefined && (
-                <AnimatedBar value={card.barValue} gradient={card.gradient} />
+                <AnimatedBar value={card.barValue} max={(card as any).barMax} gradient={card.gradient} />
               )}
             </div>
           </div>
