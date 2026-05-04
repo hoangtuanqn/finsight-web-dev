@@ -338,7 +338,7 @@ function StrategyFit({
 
 export function MethodPlanCard({
   type,
-  debts,
+  debts = [],
   simulation,
   termBreach,
   onInfo,
@@ -431,7 +431,18 @@ export function MethodPlanCard({
                     <span
                       className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-black ${index === 0 ? `${tone.iconBox} ${tone.textSoft}` : 'bg-white/5 text-[var(--color-text-muted)]'}`}
                     >
-                      {isAvalanche ? `${debt.apr}% APR` : formatVND(debt.balance)}
+                      {isAvalanche ? (
+                        <div className="flex flex-col items-end">
+                          <span>{(debt.apr || 0).toFixed(1)}% APR</span>
+                          {debt.rateType === 'FLAT' && debt.nominalApr !== undefined && (
+                            <span className="text-[8px] opacity-70 italic text-amber-400">
+                              (~{debt.nominalApr}% Flat)
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        formatVND(debt.balance)
+                      )}
                     </span>
                     {index === 0 && <span className={`shrink-0 text-[10px] font-black ${tone.text}`}>← trước</span>}
                   </div>
