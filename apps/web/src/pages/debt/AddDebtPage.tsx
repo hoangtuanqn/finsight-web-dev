@@ -315,7 +315,7 @@ export default function AddDebtPage() {
       <div>
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-black tracking-tighter text-[var(--color-text-primary)]">Thêm khoản nợ mới</h1>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/20 bg-blue-500/8 text-blue-400 text-[10px] font-black uppercase tracking-widest">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[var(--color-border)] bg-transparent dark:bg-blue-500/8 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase tracking-widest">
             <Plus size={11} /> Khoản nợ mới ({debtType === 'INSTALLMENT' ? 'Vay trả góp' : 'Thẻ tín dụng'})
           </div>
         </div>
@@ -539,7 +539,7 @@ export default function AddDebtPage() {
                             readOnly={debtType === 'INSTALLMENT' && loanStatus === 'NEW'}
                           />
                           {debtType === 'INSTALLMENT' && loanStatus === 'NEW' && (
-                            <p className="mt-1.5 text-[10px] text-blue-400/70 flex items-center gap-1 italic">
+                            <p className="mt-1.5 text-[10px] text-blue-600/70 dark:text-blue-400/70 flex items-center gap-1 italic">
                               <Info size={10} /> Tự tính: Gốc + các loại phí thiết lập
                             </p>
                           )}
@@ -792,7 +792,7 @@ export default function AddDebtPage() {
                         <AlertTriangle size={11} /> {errors.feePenaltyPerDay.message as string}
                       </p>
                     )}
-                    <p className="mt-2 text-[10px] text-rose-400/70 flex items-center gap-1.5 italic">
+                    <p className="mt-2 text-[10px] text-rose-600/70 dark:text-rose-400/70 flex items-center gap-1.5 italic">
                       <Info size={12} />
                       {debtType === 'INSTALLMENT'
                         ? 'Phí sẽ được cộng dồn vào dư nợ mỗi ngày nếu quá hạn.'
@@ -809,7 +809,7 @@ export default function AddDebtPage() {
                     <div>
                       <label className="input-label">Kỳ còn lại</label>
                       <div
-                        className={`input-field bg-white/[0.02] text-slate-400 cursor-not-allowed ${remaining === 0 ? 'text-red-400' : ''}`}
+                        className={`input-field bg-slate-50 dark:bg-white/[0.02] text-slate-500 dark:text-slate-400 cursor-not-allowed ${remaining === 0 ? 'text-red-500 dark:text-red-400' : ''}`}
                       >
                         {formValues.startDate && formValues.termMonths
                           ? remaining === 0
@@ -870,11 +870,15 @@ export default function AddDebtPage() {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-[12px] text-[var(--color-text-muted)]">APR (quảng cáo)</span>
-                <span className="text-[13px] font-black text-blue-400">{formatPercent(formValues.apr)}</span>
+                <span className="text-[13px] font-black text-blue-600 dark:text-blue-400">
+                  {formatPercent(formValues.apr)}
+                </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-[12px] text-[var(--color-text-muted)]">APY (lãi kép)</span>
-                <span className="text-[13px] font-black text-purple-400">{formatPercent(apy)}</span>
+                <span className="text-[13px] font-black text-purple-600 dark:text-purple-400">
+                  {formatPercent(apy)}
+                </span>
               </div>
               <div className="h-px" style={{ background: 'var(--color-border)' }} />
               <div className="flex justify-between items-center">
@@ -898,8 +902,10 @@ export default function AddDebtPage() {
                 </span>
                 {debtType === 'INSTALLMENT' ? (
                   <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3">
-                    <p className="text-[11px] text-blue-300/80 mb-1">Tổng chi phí dự kiến (Gốc + Lãi + Phí)</p>
-                    <p className="text-[14px] font-black text-blue-400">
+                    <p className="text-[11px] text-blue-700/80 dark:text-blue-300/80 mb-1">
+                      Tổng chi phí dự kiến (Gốc + Lãi + Phí)
+                    </p>
+                    <p className="text-[14px] font-black text-blue-600 dark:text-blue-400">
                       {formValues.minPayment && formValues.termMonths
                         ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
                             formValues.minPayment * formValues.termMonths,
@@ -909,10 +915,10 @@ export default function AddDebtPage() {
                   </div>
                 ) : (
                   <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3">
-                    <p className="text-[11px] text-yellow-300/80 mb-1 flex items-center gap-1">
+                    <p className="text-[11px] text-yellow-700/80 dark:text-yellow-300/80 mb-1 flex items-center gap-1">
                       <AlertTriangle size={11} /> Thẻ tín dụng
                     </p>
-                    <p className="text-[12px] font-medium text-yellow-400">
+                    <p className="text-[12px] font-medium text-yellow-700 dark:text-yellow-400">
                       Lãi suất kép được tính dựa trên dư nợ hiện tại. Chỉ trả mức tối thiểu sẽ kéo dài thời gian trả nợ
                       rất lâu.
                     </p>
