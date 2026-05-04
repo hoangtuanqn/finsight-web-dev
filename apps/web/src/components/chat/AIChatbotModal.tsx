@@ -1,6 +1,7 @@
 import { AnimatePresence, motion, type Variants } from 'framer-motion';
 import {
   Bot,
+  CheckCircle2,
   Loader2,
   Maximize2,
   MessageSquare,
@@ -8,6 +9,7 @@ import {
   MicOff,
   Minimize2,
   Paperclip,
+  Search,
   Send,
   Sparkles,
   User,
@@ -127,10 +129,10 @@ export default function AIChatbotModal() {
 
     // --- HAS IMAGE: RUN FRONTEND OCR ---
     setIsStreaming(true);
-    setToolStatus('📷 Đang khởi tạo bộ đọc OCR...');
+    setToolStatus('Đang khởi tạo bộ đọc OCR...');
 
     // Show optimistic user message right now AND an empty AI message to trigger the typing indicator
-    const displayContent = text ? `📷 [Ảnh đính kèm]\n${text}` : `📷 [Ảnh đính kèm]`;
+    const displayContent = text ? `[Ảnh đính kèm]\n${text}` : `[Ảnh đính kèm]`;
     const tempUserId = `user-temp-${Date.now()}`;
     const tempAiId = `ai-temp-${Date.now()}`;
 
@@ -150,7 +152,7 @@ export default function AIChatbotModal() {
     let step = 0;
     const fakeStreamInterval = setInterval(() => {
       if (step < loadingSteps.length) {
-        setToolStatus(`📷 ${loadingSteps[step]}`);
+        setToolStatus(loadingSteps[step]);
         step++;
       }
     }, 3000);
@@ -168,7 +170,7 @@ export default function AIChatbotModal() {
         {
           id: `sys-err-${Date.now()}`,
           role: 'assistant',
-          content: `⚠️ Lỗi đọc ảnh: ${ocrResult.error}`,
+          content: `Lỗi đọc ảnh: ${ocrResult.error}`,
         },
       ]);
       return;
@@ -245,7 +247,12 @@ export default function AIChatbotModal() {
   };
 
   // Determine status display text
-  const statusText = isStreaming ? toolStatus || '🤔 Đang suy nghĩ...' : 'Sẵn sàng';
+  const statusIcon = isStreaming ? (
+    <Search className="w-3 h-3 animate-pulse text-blue-400" />
+  ) : (
+    <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+  );
+  const statusLabel = isStreaming ? toolStatus || 'Đang suy nghĩ...' : 'Sẵn sàng';
 
   const modalVariants: Variants = {
     closed: {
@@ -337,9 +344,12 @@ export default function AIChatbotModal() {
                   </div>
                   <div className="flex flex-col">
                     <h3 className="font-bold text-[15px] text-white leading-none">FinSight AI Advisor</h3>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mt-1">
-                      {statusText}
-                    </span>
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      {statusIcon}
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                        {statusLabel}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -531,7 +541,7 @@ export default function AIChatbotModal() {
                           className="w-16 h-16 rounded-xl object-cover ring-2 ring-blue-500/30"
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-white truncate">📷 {selectedImage.file.name}</p>
+                          <p className="text-sm font-bold text-white truncate">{selectedImage.file.name}</p>
                           <p className="text-[11px] font-bold text-slate-500 uppercase tracking-tighter">
                             {(selectedImage.file.size / 1024).toFixed(0)} KB
                           </p>
@@ -607,9 +617,9 @@ export default function AIChatbotModal() {
                         onChange={(e) => setInputValue(e.target.value)}
                         placeholder={
                           isVoiceRecording
-                            ? '🎙️ Đang ghi âm... (bấm mic để dừng)'
+                            ? 'Đang ghi âm... (bấm mic để dừng)'
                             : isVoiceTranscribing
-                              ? '⏳ Đang chuyển giọng nói thành văn bản...'
+                              ? 'Đang chuyển giọng nói thành văn bản...'
                               : selectedImage
                                 ? 'Thêm mô tả về ảnh...'
                                 : 'Hỏi bất kỳ điều gì về tài chính...'
