@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Edit2, Trash2, Tag, Calendar, ChevronRight } from 'lucide-react';
+import { Calendar, Edit2, Tag, Trash2 } from 'lucide-react';
 import { useExpenseMutations } from '../../../hooks/useExpenseQuery';
 
 interface ExpenseTableProps {
@@ -15,7 +15,7 @@ export function ExpenseTable({ expenses, loading, onEdit }: ExpenseTableProps) {
     return new Date(date).toLocaleDateString('vi-VN', {
       day: '2-digit',
       month: '2-digit',
-      year: 'numeric'
+      year: 'numeric',
     });
   };
 
@@ -60,7 +60,7 @@ export function ExpenseTable({ expenses, loading, onEdit }: ExpenseTableProps) {
         </thead>
         <tbody className="divide-y divide-[var(--color-border)]">
           {expenses.map((item, idx) => (
-            <motion.tr 
+            <motion.tr
               key={item.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -68,16 +68,14 @@ export function ExpenseTable({ expenses, loading, onEdit }: ExpenseTableProps) {
               className="group hover:bg-blue-500/3 transition-colors"
             >
               <td className="px-6 py-5">
-                <div className="text-[13px] font-bold text-[var(--color-text-primary)]">
-                  {formatDate(item.date)}
-                </div>
+                <div className="text-[13px] font-bold text-[var(--color-text-primary)]">{formatDate(item.date)}</div>
                 <div className="text-[11px] text-[var(--color-text-muted)] font-medium">
                   {new Date(item.date).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                 </div>
               </td>
               <td className="px-6 py-5">
                 <div className="flex items-center gap-3">
-                  <div 
+                  <div
                     className="w-10 h-10 rounded-xl flex items-center justify-center text-[22px] shadow-sm shrink-0"
                     style={{ background: `${item.category.color}15`, color: item.category.color }}
                   >
@@ -89,10 +87,14 @@ export function ExpenseTable({ expenses, loading, onEdit }: ExpenseTableProps) {
                         {item.description || 'Không có mô tả'}
                       </div>
                       {item.type === 'INCOME' && (
-                        <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 text-[9px] font-black uppercase tracking-wider">Thu</span>
+                        <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 text-[9px] font-black uppercase tracking-wider">
+                          Thu
+                        </span>
                       )}
                       {item.type === 'EXPENSE' && (
-                        <span className="px-1.5 py-0.5 rounded bg-red-500/10 text-red-500 text-[9px] font-black uppercase tracking-wider">Chi</span>
+                        <span className="px-1.5 py-0.5 rounded bg-red-500/10 text-red-500 text-[9px] font-black uppercase tracking-wider">
+                          Chi
+                        </span>
                       )}
                     </div>
                     <div className="flex items-center gap-1.5 mt-1">
@@ -104,19 +106,22 @@ export function ExpenseTable({ expenses, loading, onEdit }: ExpenseTableProps) {
                 </div>
               </td>
               <td className="px-6 py-5 text-right">
-                <div className={`text-[15px] font-black ${item.type === 'INCOME' ? 'text-emerald-500' : 'text-rose-500'}`}>
-                  {item.type === 'INCOME' ? '+' : '-'}{formatCurrency(item.amount)}
+                <div
+                  className={`text-[15px] font-black ${item.type === 'INCOME' ? 'text-emerald-500' : 'text-rose-500'}`}
+                >
+                  {item.type === 'INCOME' ? '+' : '-'}
+                  {formatCurrency(item.amount)}
                 </div>
               </td>
               <td className="px-6 py-5">
                 <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button 
+                  <button
                     onClick={() => onEdit(item)}
                     className="p-2 rounded-lg hover:bg-blue-500/10 text-[var(--color-text-muted)] hover:text-blue-500 transition-all"
                   >
                     <Edit2 size={15} />
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       if (window.confirm('Bạn có chắc muốn xoá giao dịch này?')) {
                         deleteExpense.mutate(item.id);

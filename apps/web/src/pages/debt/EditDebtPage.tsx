@@ -1,56 +1,410 @@
-import { useEffect } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { toast } from 'sonner';
-import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { AnimatePresence, motion } from 'framer-motion';
+import { AlertTriangle, BarChart2, Calendar, CheckCircle2, Clock, CreditCard, Info, Plus, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Controller, useForm } from 'react-hook-form';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import { z } from 'zod';
-import { useDebt, useDebtMutations } from '../../hooks/useDebtQuery';
-import { calcEAR, calcAPY, formatPercent } from '../../utils/calculations';
-import { Pencil, AlertTriangle, BarChart2 } from 'lucide-react';
 import FormattedInput from '../../components/common/FormattedInput';
+import { useDebt, useDebtMutations } from '../../hooks/useDebtQuery';
+import { calcAPY, calcEAR, calculateMonthlyPayment, formatPercent } from '../../utils/calculations';
 
-const debtSchema = z.object({
-  name: z.string().min(1, 'Vui lòng nhập tên khoản vay.'),
-  platform: z.string().default('CUSTOM'),
-  originalAmount: z.number().positive('Số tiền gốc phải lớn hơn 0.'),
-  balance: z.number().min(0, 'Dư nợ không được âm'),
-  apr: z.number().min(0).max(100, 'Lãi suất APR không hợp lệ.'),
-  rateType: z.enum(['FLAT', 'REDUCING']).default('FLAT'),
-  feeProcessing: z.number().min(0).default(0),
-  feeInsurance: z.number().min(0).default(0),
-  feeManagement: z.number().min(0).default(0),
-  minPayment: z.number().positive('Số tiền trả tối thiểu phải lớn hơn 0.'),
-  termMonths: z.number().int().positive('Kỳ hạn phải lớn hơn 0.'),
-  remainingTerms: z.number().int().min(0),
-  dueDay: z.number().int().min(1).max(31, 'Ngày đáo hạn từ 1 đến 31.'),
-}).refine(data => data.balance <= data.originalAmount, {
-  message: 'Dư nợ không được lớn hơn số tiền gốc.',
-  path: ['balance']
-}).refine(data => data.minPayment <= data.balance || data.balance === 0, {
-  message: 'Số tiền trả tối thiểu không được lớn hơn dư nợ hiện tại.',
-  path: ['minPayment']
-}).refine(data => data.remainingTerms <= data.termMonths, {
-  message: 'Kỳ còn lại không được lớn hơn kỳ hạn.',
-  path: ['remainingTerms']
-});
+const preprocessNumber = (schema: z.ZodTypeAny) =>
+  z.preprocess(
+    (v) => (v === '' || v === null || (typeof v === 'number' && isNaN(v)) ? undefined : v),
+    schema,
+  ) as unknown as z.ZodNumber;
+
+const debtSchema = z
+  .object({
+    name: z.string().min(1, 'Vui lòng nhập tên khoản vay.'),
+    platform: z.string().default('CUSTOM'),
+    originalAmount: preprocessNumber(
+      z.number({ message: 'Vui lòng nhập số tiền gốc/hạn mức.' }).min(0, 'Số tiền gốc không được âm.'),
+    ),
+    balance: preprocessNumber(z.number({ message: 'Vui lòng nhập dư nợ hiện tại.' }).min(0, 'Dư nợ không được âm')),
+    apr: preprocessNumber(
+      z.number({ message: 'Vui lòng nhập lãi suất.' }).min(0).max(100, 'Lãi suất APR không hợp lệ.'),
+    ),
+    rateType: z.enum(['FLAT', 'REDUCING']).default('FLAT'),
+    feeProcessing: preprocessNumber(
+      z.number({ message: 'Vui lòng nhập phí xử lý.' }).min(0).max(20, 'Phí xử lý không nên vượt quá 20%').default(0),
+    ),
+    feeInsurance: preprocessNumber(
+      z
+        .number({ message: 'Vui lòng nhập phí bảo hiểm.' })
+        .min(0)
+        .max(10, 'Phí bảo hiểm không nên vượt quá 10%')
+        .default(0),
+    ),
+    feeManagement: preprocessNumber(
+      z.number({ message: 'Vui lòng nhập phí quản lý.' }).min(0).max(5, 'Phí quản lý không nên vượt quá 5%').default(0),
+    ),
+    feePenaltyPerDay: preprocessNumber(z.number({ message: 'Vui lòng nhập phí phạt.' }).min(0).default(0)),
+    minPayment: preprocessNumber(
+      z.number({ message: 'Vui lòng nhập khoản trả tối thiểu.' }).min(0, 'Số tiền trả tối thiểu không được âm.'),
+    ),
+    termMonths: preprocessNumber(
+      z
+        .number({ message: 'Vui lòng nhập kỳ hạn.' })
+        .int()
+        .min(0, 'Kỳ hạn không được âm.')
+        .max(360, 'Kỳ hạn tối đa là 360 tháng (30 năm)'),
+    ),
+    remainingTerms: preprocessNumber(z.number({ message: 'Vui lòng nhập số kỳ còn lại.' }).int().min(0)),
+    dueDay: preprocessNumber(
+      z
+        .number({ message: 'Vui lòng nhập ngày (1-31).' })
+        .int()
+        .min(1, 'Ngày từ 1 đến 31.')
+        .max(31, 'Ngày từ 1 đến 31.'),
+    ),
+    startDate: z.string().optional(),
+  })
+  .refine((data) => data.minPayment <= data.balance || data.balance === 0, {
+    message: 'Số tiền trả tối thiểu không được lớn hơn dư nợ hiện tại.',
+    path: ['minPayment'],
+  })
+  .refine(
+    (data) => {
+      // For Credit Card, balance must not exceed limit
+      // For Installment, balance can be originalAmount + setup fees
+      const setupFees = (data.feeProcessing || 0) + (data.feeInsurance || 0);
+      const maxAllowed = data.originalAmount === 0 ? 0 : Math.round(data.originalAmount * (1 + setupFees / 100));
+
+      return data.balance <= maxAllowed || data.originalAmount === 0;
+    },
+    {
+      message: 'Dư nợ hiện tại không được lớn hơn tổng tiền gốc kèm phí ban đầu.',
+      path: ['balance'],
+    },
+  )
+  .refine((data) => data.balance === 0 || data.minPayment > 0, {
+    message: 'Khoản trả tối thiểu phải lớn hơn 0 khi có dư nợ.',
+    path: ['minPayment'],
+  });
 
 const PLATFORM_PRESETS = {
-  SPAYLATER: { name: 'SPayLater', apr: 18, rateType: 'FLAT', feeProcessing: 0, feeInsurance: 0, feeManagement: 0 },
-  LAZPAYLATER: { name: 'LazPayLater', apr: 18, rateType: 'FLAT', feeProcessing: 0, feeInsurance: 0, feeManagement: 0 },
-  CREDIT_CARD: { name: 'Thẻ tín dụng', apr: 36, rateType: 'REDUCING', feeProcessing: 0, feeInsurance: 0, feeManagement: 0.5 },
-  HOME_CREDIT: { name: 'Home Credit', apr: 30, rateType: 'FLAT', feeProcessing: 1, feeInsurance: 0.5, feeManagement: 0 },
-  FE_CREDIT: { name: 'FE Credit', apr: 48, rateType: 'FLAT', feeProcessing: 5, feeInsurance: 1,   feeManagement: 0.5 },
-  CUSTOM: { name: '', apr: 0, rateType: 'FLAT', feeProcessing: 0, feeInsurance: 0, feeManagement: 0 },
-};
+  // Installment Platforms
+  SPAYLATER: {
+    name: 'SPayLater',
+    type: 'INSTALLMENT',
+    apr: 18,
+    rateType: 'FLAT',
+    feeProcessing: 0,
+    feeInsurance: 0,
+    feeManagement: 0,
+  },
+  LAZPAYLATER: {
+    name: 'LazPayLater',
+    type: 'INSTALLMENT',
+    apr: 18,
+    rateType: 'FLAT',
+    feeProcessing: 0,
+    feeInsurance: 0,
+    feeManagement: 0,
+  },
+  HOME_CREDIT: {
+    name: 'Home Credit',
+    type: 'INSTALLMENT',
+    apr: 30,
+    rateType: 'FLAT',
+    feeProcessing: 1,
+    feeInsurance: 0.5,
+    feeManagement: 0,
+  },
+  FE_CREDIT: {
+    name: 'FE Credit',
+    type: 'INSTALLMENT',
+    apr: 48,
+    rateType: 'FLAT',
+    feeProcessing: 5,
+    feeInsurance: 1,
+    feeManagement: 0.5,
+  },
+  CUSTOM: {
+    name: 'Tự nhập',
+    type: 'INSTALLMENT',
+    apr: 0,
+    rateType: 'FLAT',
+    feeProcessing: 0,
+    feeInsurance: 0,
+    feeManagement: 0,
+  },
+  // Credit Card Platforms
+  CREDIT_CARD: {
+    name: 'Thẻ tín dụng',
+    type: 'CREDIT_CARD',
+    apr: 36,
+    rateType: 'REDUCING',
+    feeProcessing: 0,
+    feeInsurance: 0,
+    feeManagement: 0.5,
+  },
+  CUSTOM_CARD: {
+    name: 'Tự nhập thẻ',
+    type: 'CREDIT_CARD',
+    apr: 0,
+    rateType: 'REDUCING',
+    feeProcessing: 0,
+    feeInsurance: 0,
+    feeManagement: 0,
+  },
+} as const;
+
+function PaymentInfoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  if (!isOpen) return null;
+
+  return createPortal(
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 20 }}
+          className="relative w-full max-w-md bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-[2.5rem] shadow-2xl overflow-hidden"
+        >
+          <div className="p-8">
+            <div className="flex justify-between items-start mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                <Info size={24} />
+              </div>
+              <button
+                onClick={onClose}
+                className="p-2 rounded-xl hover:bg-white/5 text-[var(--color-text-muted)] transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <h3 className="text-2xl font-black text-[var(--color-text-primary)] tracking-tight mb-2">
+              Khoản trả hàng tháng
+            </h3>
+            <p className="text-[var(--color-text-muted)] text-sm mb-8 leading-relaxed">
+              Hệ thống tự động tính toán số tiền bạn cần trả mỗi tháng để đảm bảo tất toán đúng hạn.
+            </p>
+
+            <div className="space-y-4">
+              {[
+                {
+                  title: 'Tiền gốc hàng tháng',
+                  desc: 'Tổng số tiền vay chia đều cho số tháng kỳ hạn.',
+                  icon: <CheckCircle2 size={16} className="text-emerald-500" />,
+                },
+                {
+                  title: 'Lãi suất định kỳ',
+                  desc: 'Tính theo phương thức Flat (phẳng) hoặc Dư nợ giảm dần.',
+                  icon: <CheckCircle2 size={16} className="text-emerald-500" />,
+                },
+                {
+                  title: 'Phí quản lý & Phụ phí',
+                  desc: 'Các loại phí duy trì dịch vụ được cộng dồn hàng tháng.',
+                  icon: <CheckCircle2 size={16} className="text-emerald-500" />,
+                },
+              ].map((item, i) => (
+                <div
+                  key={i}
+                  className="flex gap-4 p-4 rounded-2xl bg-[var(--color-bg-secondary)]/50 border border-[var(--color-border)]/50"
+                >
+                  <div className="mt-0.5">{item.icon}</div>
+                  <div>
+                    <h4 className="text-sm font-bold text-[var(--color-text-primary)] mb-0.5">{item.title}</h4>
+                    <p className="text-[12px] text-[var(--color-text-muted)] leading-snug">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-8 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
+              <p className="text-[11px] text-emerald-400 font-medium leading-relaxed italic text-center">
+                "Khoản trả này thường là cố định (đối với trả góp), giúp bạn dễ dàng lập kế hoạch tài chính hàng tháng."
+              </p>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="w-full mt-8 py-4 rounded-2xl bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] font-black uppercase tracking-widest text-xs hover:opacity-90 transition-opacity"
+            >
+              Đã hiểu
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>,
+    document.body,
+  );
+}
+
+function BalanceInfoModal({
+  isOpen,
+  onClose,
+  isExisting = false,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  isExisting?: boolean;
+}) {
+  if (!isOpen) return null;
+
+  return createPortal(
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 20 }}
+          className="relative w-full max-w-md bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-[2.5rem] shadow-2xl overflow-hidden"
+        >
+          <div className="p-8">
+            <div className="flex justify-between items-start mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                <Info size={24} />
+              </div>
+              <button
+                onClick={onClose}
+                className="p-2 rounded-xl hover:bg-white/5 text-[var(--color-text-muted)] transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <h3 className="text-2xl font-black text-[var(--color-text-primary)] tracking-tight mb-2">
+              {isExisting ? 'Dư nợ hiện tại' : 'Cách tính dư nợ'}
+            </h3>
+            <p className="text-[var(--color-text-muted)] text-sm mb-8 leading-relaxed">
+              {isExisting
+                ? 'Đây là số tiền thực tế bạn còn nợ sau khi đã trừ đi các khoản gốc đã thanh toán qua từng tháng.'
+                : 'Đối với khoản nợ mới, hệ thống tự động xác định số tiền bạn thực sự nợ dựa trên gốc và các loại phí ban đầu.'}
+            </p>
+
+            <div className="grid grid-cols-2 gap-3">
+              {(isExisting
+                ? [
+                    {
+                      title: 'Dư nợ đầu kỳ',
+                      desc: 'Gốc vay kèm các loại phí thiết lập được cộng dồn khi giải ngân.',
+                      icon: <CheckCircle2 size={14} className="text-emerald-500" />,
+                    },
+                    {
+                      title: 'Khấu trừ gốc',
+                      desc: 'Tiền gốc trả mỗi kỳ sẽ được khấu trừ trực tiếp vào dư nợ.',
+                      icon: <CheckCircle2 size={14} className="text-emerald-500" />,
+                    },
+                    {
+                      title: 'Phí & Phạt',
+                      desc: 'Phí quản lý hoặc tiền phạt trễ hạn sẽ làm tăng dư nợ thực tế.',
+                      icon: <CheckCircle2 size={14} className="text-emerald-500" />,
+                    },
+                  ]
+                : [
+                    {
+                      title: 'Tiền gốc thực',
+                      desc: 'Giá trị món hàng hoặc số tiền mặt thực tế bạn nhận được.',
+                      icon: <CheckCircle2 size={14} className="text-emerald-500" />,
+                    },
+                    {
+                      title: 'Phí dịch vụ',
+                      desc: 'Phí xử lý hồ sơ thường được cộng dồn vào dư nợ gốc.',
+                      icon: <CheckCircle2 size={14} className="text-emerald-500" />,
+                    },
+                    {
+                      title: 'Phí bảo hiểm',
+                      desc: 'Phí bảo hiểm rủi ro tín dụng tính theo % giá trị hợp đồng.',
+                      icon: <CheckCircle2 size={14} className="text-emerald-500" />,
+                    },
+                  ]
+              ).map((item, i) => (
+                <div
+                  key={i}
+                  className="p-4 rounded-2xl bg-[var(--color-bg-secondary)]/50 border border-[var(--color-border)]/50 flex flex-col gap-3"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+                      {item.icon}
+                    </div>
+                    <h4 className="text-sm font-black text-[var(--color-text-primary)] leading-none tracking-tight">
+                      {item.title}
+                    </h4>
+                  </div>
+                  <p className="text-sm text-[var(--color-text-muted)] leading-relaxed">{item.desc}</p>
+                </div>
+              ))}
+
+              {isExisting && (
+                <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10 flex flex-col gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
+                      <CheckCircle2 size={14} className="text-blue-500" />
+                    </div>
+                    <h4 className="text-sm font-black text-[var(--color-text-primary)] leading-none tracking-tight">
+                      Tracking thực tế
+                    </h4>
+                  </div>
+                  <p className="text-sm text-[var(--color-text-muted)] leading-relaxed">
+                    Tự động theo dõi lịch thanh toán để cập nhật theo thời gian thực.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-8 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
+              <p className="text-[11px] text-emerald-400 font-medium leading-relaxed italic text-center">
+                {isExisting
+                  ? '"Việc theo dõi dư nợ chính xác giúp bạn biết được bao giờ mình sẽ hoàn toàn tự do tài chính."'
+                  : '"Việc tính đúng dư nợ ban đầu giúp xác định chính xác lãi suất thực tế (EAR) mà bạn phải gánh chịu."'}
+              </p>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="w-full mt-8 py-4 rounded-2xl bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] font-black uppercase tracking-widest text-xs hover:opacity-90 transition-opacity"
+            >
+              Tôi đã hiểu
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>,
+    document.body,
+  );
+}
 
 export default function EditDebtPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { data, isLoading: fetching } = useDebt(id!) as { data: any, isLoading: boolean };
+  const { data, isLoading: fetching } = useDebt(id!) as { data: any; isLoading: boolean };
   const { updateDebt, isUpdating } = useDebtMutations() as any;
+  const [debtType, setDebtType] = useState<'INSTALLMENT' | 'CREDIT_CARD'>('INSTALLMENT');
+  const [loanStatus, setLoanStatus] = useState<'NEW' | 'EXISTING'>('EXISTING');
+  const [isAutoCalcBalance, setIsAutoCalcBalance] = useState(true);
+  const [showPaymentInfo, setShowPaymentInfo] = useState(false);
+  const [showBalanceInfo, setShowBalanceInfo] = useState(false);
 
-  const { register, handleSubmit, control, watch, setValue, reset, formState: { errors } } = useForm({
+  const {
+    handleSubmit,
+    control,
+    watch,
+    setValue,
+    reset,
+    register,
+    formState: { errors },
+  } = useForm({
     resolver: zodResolver(debtSchema),
   });
 
@@ -59,6 +413,21 @@ export default function EditDebtPage() {
 
   useEffect(() => {
     if (data?.debt) {
+      const type =
+        data.debt.debtType ||
+        (data.debt.platform === 'CREDIT_CARD' || data.debt.termMonths === 0 ? 'CREDIT_CARD' : 'INSTALLMENT');
+      setDebtType(type);
+
+      // Infer loanStatus: if no payments made yet (remainingTerms === termMonths) → NEW
+      if (type === 'INSTALLMENT') {
+        const isNew =
+          data.debt.remainingTerms != null &&
+          data.debt.termMonths != null &&
+          data.debt.remainingTerms === data.debt.termMonths;
+        setLoanStatus(isNew ? 'NEW' : 'EXISTING');
+        setIsAutoCalcBalance(isNew);
+      }
+
       reset({
         name: data.debt.name,
         platform: data.debt.platform,
@@ -69,10 +438,12 @@ export default function EditDebtPage() {
         feeProcessing: data.debt.feeProcessing,
         feeInsurance: data.debt.feeInsurance,
         feeManagement: data.debt.feeManagement,
+        feePenaltyPerDay: data.debt.feePenaltyPerDay || 0,
         minPayment: data.debt.minPayment,
         dueDay: data.debt.dueDay,
         termMonths: data.debt.termMonths,
         remainingTerms: data.debt.remainingTerms,
+        startDate: data.debt.startDate ? new Date(data.debt.startDate).toISOString().split('T')[0] : '',
       });
     }
   }, [data, reset]);
@@ -85,25 +456,96 @@ export default function EditDebtPage() {
     setValue('feeProcessing', preset.feeProcessing);
     setValue('feeInsurance', preset.feeInsurance);
     setValue('feeManagement', preset.feeManagement);
+    setValue('feePenaltyPerDay', 0);
+
+    if (preset.type === 'CREDIT_CARD') {
+      setDebtType('CREDIT_CARD');
+      setValue('termMonths', 0);
+      setValue('remainingTerms', 0);
+    } else {
+      setDebtType('INSTALLMENT');
+      if (formValues.termMonths === 0) setValue('termMonths', 12);
+    }
   };
 
-  const ear = calcEAR(formValues.apr || 0, formValues.feeProcessing || 0, formValues.feeInsurance || 0, formValues.feeManagement || 0, formValues.termMonths || 12);
+  const suggestedMinPayment = calculateMonthlyPayment({
+    principal: formValues.originalAmount || 0,
+    apr: formValues.apr || 0,
+    termMonths: formValues.termMonths || 1,
+    rateType: formValues.rateType as 'FLAT' | 'REDUCING',
+    feeManagement: formValues.feeManagement || 0,
+  });
+
+  // Sync minPayment with suggested value for Installment
+  useEffect(() => {
+    if (debtType === 'INSTALLMENT' && suggestedMinPayment > 0) {
+      if (formValues.minPayment !== suggestedMinPayment) {
+        setValue('minPayment', suggestedMinPayment, { shouldValidate: true });
+      }
+    }
+  }, [debtType, suggestedMinPayment, formValues.minPayment, setValue]);
+
+  // Auto-calculate initial balance for Installment based on original amount + hidden fees
+  useEffect(() => {
+    if (debtType === 'INSTALLMENT' && isAutoCalcBalance && formValues.originalAmount > 0) {
+      if (loanStatus === 'NEW') {
+        const fees = (formValues.feeProcessing + formValues.feeInsurance) / 100;
+        const calculatedBalance = Math.round(formValues.originalAmount * (1 + fees));
+
+        if (calculatedBalance !== formValues.balance) {
+          setValue('balance', calculatedBalance, { shouldValidate: true });
+        }
+      }
+    }
+  }, [
+    formValues.originalAmount,
+    formValues.feeProcessing,
+    formValues.feeInsurance,
+    formValues.balance,
+    isAutoCalcBalance,
+    loanStatus,
+    debtType,
+    setValue,
+  ]);
+
+  // Auto-suggest paid terms based on startDate
+  const suggestedPaidTerms = useMemo(() => {
+    if (!formValues.startDate || debtType !== 'INSTALLMENT') return 0;
+    const start = new Date(formValues.startDate);
+    const now = new Date();
+    const months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+    return Math.min(Math.max(0, months), formValues.termMonths || 0);
+  }, [formValues.startDate, formValues.termMonths, debtType]);
+
+  const ear = calcEAR(
+    formValues.apr || 0,
+    formValues.feeProcessing || 0,
+    formValues.feeInsurance || 0,
+    formValues.feeManagement || 0,
+    debtType === 'INSTALLMENT' ? formValues.termMonths || 12 : 12,
+  );
   const apy = calcAPY(formValues.apr || 0);
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (formData: any) => {
     try {
+      const payload = {
+        ...formData,
+        debtType,
+        dueDay: Math.round(formData.dueDay),
+        termMonths: debtType === 'CREDIT_CARD' ? 0 : Math.round(formData.termMonths),
+        remainingTerms: debtType === 'CREDIT_CARD' ? 0 : Math.round(formData.remainingTerms),
+        rateType: debtType === 'CREDIT_CARD' ? 'REDUCING' : formData.rateType,
+      };
+
       await updateDebt({
         id: id!,
-        data: {
-          ...data,
-          dueDay:         Math.round(data.dueDay),
-          termMonths:     Math.round(data.termMonths),
-          remainingTerms: Math.round(data.remainingTerms),
-        }
+        data: payload,
       });
+      toast.success('Cập nhật khoản nợ thành công');
       navigate(`/debts/${id}`);
     } catch (err) {
       console.error(err);
+      toast.error('Có lỗi xảy ra khi cập nhật');
     }
   };
 
@@ -115,120 +557,476 @@ export default function EditDebtPage() {
     );
   }
 
+  const getEarColorClass = (earValue: number) => {
+    if (earValue <= 20) return 'text-emerald-400';
+    if (earValue <= 40) return 'text-yellow-400';
+    return 'text-red-400';
+  };
+
   const inputCls = (hasError: any) => `input-field ${hasError ? 'border-red-500/60 focus:border-red-500' : ''}`;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
       <div className="flex items-center gap-2 text-sm mb-6">
-        <Link to="/debts" className="text-slate-500 hover:text-slate-300 transition-colors">Quản lý nợ</Link>
+        <Link to="/debts" className="text-slate-500 hover:text-slate-300 transition-colors">
+          Quản lý nợ
+        </Link>
         <span className="text-slate-700">/</span>
-        <Link to={`/debts/${id}`} className="text-slate-500 hover:text-slate-300 transition-colors">Chi tiết</Link>
+        <Link to={`/debts/${id}`} className="text-slate-500 hover:text-slate-300 transition-colors">
+          Chi tiết
+        </Link>
         <span className="text-slate-700">/</span>
         <span className="text-slate-300">Chỉnh sửa</span>
       </div>
+      <div>
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-black tracking-tighter text-[var(--color-text-primary)]">
+            Chỉnh sửa khoản nợ<span className="text-emerald-500 ml-1">.</span>
+          </h1>
+        </div>
+        <p className="text-[var(--color-text-secondary)] text-sm mt-1 mb-6">
+          Cập nhật thông tin chi tiết cho khoản nợ của bạn
+        </p>
+      </div>
 
-      <h1 className="text-[22px] font-bold text-white mb-6 flex items-center gap-2"><Pencil size={20} /> Chỉnh sửa khoản nợ</h1>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 p-4 bg-white dark:bg-white/[0.02] rounded-2xl border border-[var(--color-border)] dark:border-white/[0.04]">
+        {/* Debt Type Badge */}
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">Loại nợ:</span>
+          {debtType === 'INSTALLMENT' ? (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-transparent dark:bg-indigo-500/10 border border-[var(--color-border)] dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400">
+              <Calendar size={12} />
+              <span className="text-[11px] font-black uppercase">Vay Trả Góp</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-transparent dark:bg-purple-500/10 border border-[var(--color-border)] dark:border-purple-500/20 text-purple-600 dark:text-purple-400">
+              <CreditCard size={12} />
+              <span className="text-[11px] font-black uppercase">Thẻ Tín Dụng</span>
+            </div>
+          )}
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Loan Status Badge */}
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">Trạng thái:</span>
+          {loanStatus === 'NEW' ? (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-transparent dark:bg-blue-500/10 border border-[var(--color-border)] dark:border-blue-500/20 text-blue-600 dark:text-blue-400">
+              <Plus size={12} className="animate-pulse" />
+              <span className="text-[11px] font-black uppercase">Vừa bắt đầu</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-transparent dark:bg-amber-500/10 border border-[var(--color-border)] dark:border-amber-500/20 text-amber-600 dark:text-amber-400">
+              <Clock size={12} />
+              <span className="text-[11px] font-black uppercase">Đang trả dở</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
-          <div className="glass-card">
-            <div className="mb-6">
-              <label className="input-label">Nền tảng</label>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(PLATFORM_PRESETS).map(([key, val]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => applyPreset(key)}
-                    className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all border ${
-                      formValues.platform === key
-                        ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'
-                        : 'bg-white/[0.03] text-slate-500 border-white/[0.06] hover:bg-white/[0.06] hover:text-slate-400'
-                    }`}
-                  >
-                    {val.name || 'Tự nhập'}
-                  </button>
-                ))}
-              </div>
+          <div className="glass-card p-6 md:p-8">
+            <div className="mb-8">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-2">
+                <Info size={18} className="text-blue-400" /> Thông tin cơ bản
+              </h2>
+              <p className="text-slate-500 dark:text-slate-400 text-xs">Cập nhật các thông số gốc của khoản nợ</p>
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="input-label">Tên khoản vay</label>
-                  <input {...register('name')} className={inputCls(errors.name)} placeholder="VD: Mua điện thoại" />
-                  {errors.name && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={11} /> {errors.name.message}</p>}
+                  <label className="input-label">Tên khoản {debtType === 'INSTALLMENT' ? 'vay' : 'nợ'}</label>
+                  <input
+                    {...register('name')}
+                    className={inputCls(errors.name)}
+                    placeholder="VD: Vay mua xe, Thẻ VPBank..."
+                  />
+                  {errors.name && (
+                    <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1">
+                      <AlertTriangle size={12} /> {errors.name.message}
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <label className="input-label">Số tiền gốc</label>
+                  <label className="input-label">
+                    {debtType === 'CREDIT_CARD' ? 'Hạn mức thẻ' : 'Số tiền vay gốc'}
+                  </label>
                   <Controller
                     name="originalAmount"
                     control={control}
                     render={({ field }) => (
-                      <FormattedInput kind="integer" value={field.value} onValueChange={(value) => field.onChange(toNumberValue(value))} className={inputCls(errors.originalAmount)} placeholder="0" suffix="đ" />
+                      <FormattedInput
+                        kind="integer"
+                        value={field.value}
+                        onValueChange={(v) => field.onChange(toNumberValue(v))}
+                        className={inputCls(errors.originalAmount)}
+                        placeholder="0"
+                        suffix="đ"
+                      />
                     )}
                   />
-                  {errors.originalAmount && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={11} /> {errors.originalAmount.message}</p>}
+                  {errors.originalAmount && (
+                    <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1">
+                      <AlertTriangle size={12} /> {errors.originalAmount.message}
+                    </p>
+                  )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Kỳ hạn và Ngày tháng */}
+              <div
+                className={`grid grid-cols-1 md:${debtType === 'INSTALLMENT' ? 'grid-cols-3' : 'grid-cols-2'} gap-6`}
+              >
                 <div>
-                  <label className="input-label">Dư nợ hiện tại</label>
-                  <Controller
-                    name="balance"
-                    control={control}
-                    render={({ field }) => (
-                      <FormattedInput kind="integer" value={field.value} onValueChange={(value) => field.onChange(toNumberValue(value))} className={inputCls(errors.balance)} placeholder="0" suffix="đ" />
-                    )}
+                  <label className="input-label">Ngày vay</label>
+                  <input
+                    type="date"
+                    {...register('startDate')}
+                    className={inputCls(errors.startDate)}
+                    max={new Date().toISOString().split('T')[0]}
                   />
-                  {errors.balance && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={11} /> {errors.balance.message}</p>}
+                  {errors.startDate && (
+                    <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1">
+                      <AlertTriangle size={12} /> {errors.startDate.message}
+                    </p>
+                  )}
                 </div>
+
+                {debtType === 'INSTALLMENT' && (
+                  <div>
+                    <label className="input-label">Kỳ hạn (tháng)</label>
+                    <input
+                      type="number"
+                      {...register('termMonths', { valueAsNumber: true })}
+                      className={inputCls(errors.termMonths)}
+                      placeholder="12"
+                    />
+                    {errors.termMonths && (
+                      <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1">
+                        <AlertTriangle size={12} /> {errors.termMonths.message}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div>
+                  <label className="input-label">
+                    {debtType === 'CREDIT_CARD' ? 'Ngày chốt sao kê' : 'Ngày thanh toán hàng tháng'}
+                  </label>
+                  <input
+                    type="number"
+                    {...register('dueDay', { valueAsNumber: true })}
+                    className={inputCls(errors.dueDay)}
+                    placeholder="VD: 15"
+                  />
+                  {errors.dueDay && (
+                    <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1">
+                      <AlertTriangle size={12} /> {errors.dueDay.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {debtType === 'INSTALLMENT' && (
+                <div className="p-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/[0.06] rounded-xl space-y-3">
+                  {/* Label row: title + startDate hint + suggestion button */}
+                  <div className="flex items-center gap-2">
+                    <label className="input-label mb-0 shrink-0">Số kỳ đã trả</label>
+                    {formValues.startDate && (
+                      <span className="text-[10px] text-slate-500 italic flex items-center gap-1">
+                        <Info size={9} />
+                        từ {new Date(formValues.startDate).toLocaleDateString('vi-VN')}
+                      </span>
+                    )}
+                    <div className="ml-auto">
+                      {suggestedPaidTerms > 0 &&
+                        suggestedPaidTerms !== (formValues.termMonths || 0) - (formValues.remainingTerms || 0) && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setValue('remainingTerms', Math.max(0, (formValues.termMonths || 0) - suggestedPaidTerms))
+                            }
+                            className="text-[10px] font-bold text-blue-400 hover:text-blue-300 border border-blue-500/30 hover:border-blue-400/50 px-2 py-0.5 rounded-full transition-all bg-blue-500/5 hover:bg-blue-500/10"
+                          >
+                            Gợi ý: {suggestedPaidTerms} kỳ — Áp dụng?
+                          </button>
+                        )}
+                    </div>
+                  </div>
+
+                  {/* Input */}
+                  <input
+                    type="number"
+                    value={(formValues.termMonths || 0) - (formValues.remainingTerms || 0)}
+                    onChange={(e) => {
+                      const paid = Number(e.target.value);
+                      setValue('remainingTerms', Math.max(0, (formValues.termMonths || 0) - paid));
+                    }}
+                    className="input-field"
+                    min={0}
+                    max={formValues.termMonths || 0}
+                  />
+
+                  {/* Progress row */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-base font-black text-slate-900 dark:text-white">
+                        {(formValues.termMonths || 0) - (formValues.remainingTerms || 0)}
+                      </span>
+                      <span className="text-slate-500 text-sm">/ {formValues.termMonths || 0} kỳ</span>
+                      <span className="ml-auto text-[11px] font-bold text-amber-400">
+                        Còn {formValues.remainingTerms || 0} kỳ
+                      </span>
+                    </div>
+                    <div className="w-full bg-white/[0.05] rounded-full h-1.5">
+                      <div
+                        className="bg-gradient-to-r from-blue-500 to-blue-400 h-1.5 rounded-full transition-all duration-300"
+                        style={{
+                          width: `${
+                            formValues.termMonths
+                              ? (
+                                  ((formValues.termMonths - (formValues.remainingTerms || 0)) / formValues.termMonths) *
+                                  100
+                                ).toFixed(1)
+                              : 0
+                          }%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Auto-update notice */}
+                  <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-blue-500/5 border border-blue-500/10">
+                    <Info size={11} className="text-blue-500 dark:text-blue-400/70 mt-0.5 shrink-0" />
+                    <p className="text-[10px] text-blue-600 dark:text-blue-300/60 leading-relaxed">
+                      Số kỳ đã trả sẽ{' '}
+                      <span className="font-bold text-blue-700 dark:text-blue-300/80">tự động cập nhật</span> khi bạn
+                      ghi nhận thanh toán đủ một kỳ (≥ khoản trả tối thiểu). Bạn cũng có thể điều chỉnh thủ công ở đây.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Row 1: Interest Rates Group */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="input-label">Lãi suất APR (%/năm)</label>
                   <Controller
                     name="apr"
                     control={control}
                     render={({ field }) => (
-                      <FormattedInput kind="decimal" value={field.value} onValueChange={(value) => field.onChange(toNumberValue(value))} className={inputCls(errors.apr)} placeholder="0" suffix="%" />
+                      <FormattedInput
+                        kind="decimal"
+                        value={field.value}
+                        onValueChange={(v) => field.onChange(toNumberValue(v))}
+                        className={inputCls(errors.apr)}
+                        placeholder="0"
+                        suffix="%"
+                      />
                     )}
                   />
-                  {errors.apr && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={11} /> {errors.apr.message}</p>}
+                  {errors.apr && (
+                    <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1">
+                      <AlertTriangle size={12} /> {errors.apr.message}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="input-label">Hình thức tính lãi</label>
+                  <select
+                    {...register('rateType')}
+                    className="input-field appearance-none"
+                    disabled={debtType === 'CREDIT_CARD'}
+                    value={debtType === 'CREDIT_CARD' ? 'REDUCING' : formValues.rateType}
+                  >
+                    <option value="FLAT">Flat (Lãi trên gốc ban đầu)</option>
+                    <option value="REDUCING">Reducing (Dư nợ giảm dần)</option>
+                  </select>
+                  {debtType === 'CREDIT_CARD' && (
+                    <p className="mt-1 text-[11px] text-slate-500 italic">
+                      * Thẻ tín dụng mặc định tính trên dư nợ giảm dần
+                    </p>
+                  )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Row 2: Amounts Group */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="input-label">Hình thức tính lãi</label>
-                  <select {...register('rateType')} className="input-field">
-                    <option value="FLAT">Flat (lãi trên gốc ban đầu)</option>
-                    <option value="REDUCING">Reducing (dư nợ giảm dần)</option>
-                  </select>
+                  <div className="flex justify-between items-end mb-1.5">
+                    <label className="input-label mb-0">
+                      Dư nợ hiện tại
+                      <span className="text-[10px] text-emerald-400 font-normal ml-2 tracking-normal lowercase">
+                        (Số tiền đang nợ)
+                      </span>
+                    </label>
+                    {debtType === 'INSTALLMENT' && (
+                      <button
+                        type="button"
+                        onClick={() => setShowBalanceInfo(true)}
+                        className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors cursor-pointer group"
+                      >
+                        <Info size={10} className="text-emerald-400 group-hover:scale-110 transition-transform" />
+                        <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+                          Hệ thống tự tính
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                  <Controller
+                    name="balance"
+                    control={control}
+                    render={({ field }) => (
+                      <div className="relative group">
+                        <FormattedInput
+                          kind="integer"
+                          value={field.value}
+                          onValueChange={(v) => {
+                            field.onChange(toNumberValue(v));
+                            setIsAutoCalcBalance(false);
+                          }}
+                          className={`${inputCls(errors.balance)} ${
+                            loanStatus === 'NEW'
+                              ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-200 cursor-not-allowed'
+                              : ''
+                          }`}
+                          placeholder="0"
+                          suffix="đ"
+                          readOnly={loanStatus === 'NEW'}
+                        />
+                        {loanStatus === 'EXISTING' &&
+                          debtType === 'INSTALLMENT' &&
+                          toNumberValue(formValues.originalAmount) > 0 &&
+                          toNumberValue(formValues.balance) < toNumberValue(formValues.originalAmount) && (
+                            <p className="mt-1.5 text-[10px] text-[var(--color-text-muted)] flex items-center gap-1.5 font-medium tracking-wide">
+                              <CheckCircle2 size={10} className="text-emerald-500" />
+                              <span>
+                                Bạn đã trả được{' '}
+                                <span className="text-emerald-500 font-bold">
+                                  {new Intl.NumberFormat('vi-VN').format(
+                                    toNumberValue(formValues.originalAmount) - toNumberValue(formValues.balance),
+                                  )}
+                                  đ
+                                </span>{' '}
+                                so với tiền gốc (
+                                <span className="text-emerald-500 font-bold">
+                                  {Math.round(
+                                    ((toNumberValue(formValues.originalAmount) - toNumberValue(formValues.balance)) /
+                                      toNumberValue(formValues.originalAmount)) *
+                                      100,
+                                  )}
+                                  %
+                                </span>
+                                )
+                              </span>
+                            </p>
+                          )}
+                        {debtType === 'CREDIT_CARD' &&
+                          formValues.originalAmount > 0 &&
+                          (() => {
+                            const usage = (formValues.balance / formValues.originalAmount) * 100;
+                            if (usage > 85)
+                              return (
+                                <p className="mt-1 text-[10px] text-rose-400 flex items-center gap-1 font-bold">
+                                  <AlertTriangle size={10} /> Báo động: Bạn đã dùng {usage.toFixed(0)}% hạn mức. Cần
+                                  kiểm soát chi tiêu!
+                                </p>
+                              );
+                            if (usage > 70)
+                              return (
+                                <p className="mt-1 text-[10px] text-amber-400 flex items-center gap-1 font-medium">
+                                  <Info size={10} /> Bạn đã dùng {usage.toFixed(0)}% hạn mức. Tỷ lệ cao có thể ảnh hưởng
+                                  điểm tín dụng.
+                                </p>
+                              );
+                            return null;
+                          })()}
+                      </div>
+                    )}
+                  />
+                  {errors.balance && (
+                    <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1">
+                      <AlertTriangle size={12} /> {errors.balance.message}
+                    </p>
+                  )}
                 </div>
+
                 <div>
-                  <label className="input-label">Trả tối thiểu/tháng</label>
+                  <div className="flex justify-between items-end mb-1.5">
+                    <label className="input-label mb-0">
+                      {debtType === 'CREDIT_CARD' ? 'Thanh toán tối thiểu' : 'Khoản trả hàng tháng'}
+                    </label>
+                    {debtType === 'INSTALLMENT' && (
+                      <button
+                        type="button"
+                        onClick={() => setShowPaymentInfo(true)}
+                        className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors cursor-pointer group"
+                      >
+                        <Info size={10} className="text-emerald-400 group-hover:scale-110 transition-transform" />
+                        <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+                          Hệ thống tự tính
+                        </span>
+                      </button>
+                    )}
+                  </div>
                   <Controller
                     name="minPayment"
                     control={control}
                     render={({ field }) => (
-                      <FormattedInput kind="integer" value={field.value} onValueChange={(value) => field.onChange(toNumberValue(value))} className={inputCls(errors.minPayment)} placeholder="0" suffix="đ" />
+                      <div className="relative group">
+                        <FormattedInput
+                          kind="integer"
+                          value={field.value}
+                          onValueChange={(value) => field.onChange(toNumberValue(value))}
+                          className={`${inputCls(errors.minPayment)} ${
+                            debtType === 'INSTALLMENT'
+                              ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-200 cursor-not-allowed'
+                              : ''
+                          }`}
+                          placeholder="0"
+                          suffix="đ"
+                          readOnly={debtType === 'INSTALLMENT'}
+                        />
+                        {debtType === 'CREDIT_CARD' && (
+                          <p className="mt-1.5 text-[10px] text-gray-500 flex items-center gap-1 italic">
+                            <Info size={10} /> Số tiền bạn dự định trả cho thẻ mỗi tháng.
+                          </p>
+                        )}
+                      </div>
                     )}
                   />
-                  {errors.minPayment && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={11} /> {errors.minPayment.message}</p>}
+                  {errors.minPayment && (
+                    <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1">
+                      <AlertTriangle size={12} /> {errors.minPayment.message}
+                    </p>
+                  )}
                 </div>
               </div>
 
-              <div className="h-px bg-white/[0.06] my-2" />
-              <p className="text-[12px] text-slate-500 font-medium uppercase tracking-wide">Phí ẩn</p>
+              <div className="h-px bg-white/[0.06] my-4" />
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[13px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-2">
+                  <Info size={14} className="text-blue-400" /> Cấu hình nâng cao & Phí ẩn
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                  <label className="input-label">Phí xử lý (%)</label>
+                  <label className="input-label">Phí xử lý hồ sơ (%)</label>
                   <Controller
                     name="feeProcessing"
                     control={control}
                     render={({ field }) => (
-                      <FormattedInput kind="decimal" value={field.value} onValueChange={(value) => field.onChange(toNumberValue(value))} className={inputCls(errors.feeProcessing)} placeholder="0" suffix="%" />
+                      <FormattedInput
+                        kind="decimal"
+                        value={field.value}
+                        onValueChange={(v) => field.onChange(toNumberValue(v))}
+                        className="input-field"
+                        placeholder="0"
+                        suffix="%"
+                      />
                     )}
                   />
                 </div>
@@ -238,7 +1036,14 @@ export default function EditDebtPage() {
                     name="feeInsurance"
                     control={control}
                     render={({ field }) => (
-                      <FormattedInput kind="decimal" value={field.value} onValueChange={(value) => field.onChange(toNumberValue(value))} className={inputCls(errors.feeInsurance)} placeholder="0" suffix="%" />
+                      <FormattedInput
+                        kind="decimal"
+                        value={field.value}
+                        onValueChange={(v) => field.onChange(toNumberValue(v))}
+                        className="input-field"
+                        placeholder="0"
+                        suffix="%"
+                      />
                     )}
                   />
                 </div>
@@ -248,75 +1053,168 @@ export default function EditDebtPage() {
                     name="feeManagement"
                     control={control}
                     render={({ field }) => (
-                      <FormattedInput kind="decimal" value={field.value} onValueChange={(value) => field.onChange(toNumberValue(value))} className={inputCls(errors.feeManagement)} placeholder="0" suffix="%" />
+                      <FormattedInput
+                        kind="decimal"
+                        value={field.value}
+                        onValueChange={(v) => field.onChange(toNumberValue(v))}
+                        className="input-field"
+                        placeholder="0"
+                        suffix="%"
+                      />
                     )}
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="input-label">Kỳ hạn (tháng)</label>
-                  <input type="number" {...register('termMonths', { valueAsNumber: true })} className={inputCls(errors.termMonths)} />
-                  {errors.termMonths && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={11} /> {errors.termMonths.message}</p>}
+              {/* Phạt trễ hạn */}
+              <div className="h-px bg-white/[0.06] my-6" />
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-400">
+                  <AlertTriangle size={14} />
                 </div>
                 <div>
-                  <label className="input-label">Kỳ còn lại</label>
-                  <input type="number" {...register('remainingTerms', { valueAsNumber: true })} className={inputCls(errors.remainingTerms)} />
-                  {errors.remainingTerms && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={11} /> {errors.remainingTerms.message}</p>}
-                </div>
-                <div>
-                  <label className="input-label">Ngày đáo hạn</label>
-                  <input type="number" {...register('dueDay', { valueAsNumber: true })} className={inputCls(errors.dueDay)} />
-                  {errors.dueDay && <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1"><AlertTriangle size={11} /> {errors.dueDay.message}</p>}
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-200">Thiết lập Phạt trễ hạn (Kép)</h3>
+                  <p className="text-[11px] text-slate-500">Tự động tính thêm dư nợ và trừ Điểm Sức Khoẻ khi trễ hẹn</p>
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-2">
-                <button type="submit" disabled={isUpdating} className="btn-primary cursor-pointer">
-                  {isUpdating ? (
-                    <span className="flex items-center gap-2">
-                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Đang lưu...
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="col-span-1 md:col-span-2">
+                  <label className="flex items-center gap-3 cursor-pointer group w-fit">
+                    <input
+                      type="checkbox"
+                      checked={formValues.feePenaltyPerDay > 0}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setValue('feePenaltyPerDay', debtType === 'CREDIT_CARD' ? 100000 : 50000, {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                          });
+                        } else {
+                          setValue('feePenaltyPerDay', 0, {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                          });
+                        }
+                      }}
+                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-blue-500 focus:ring-blue-500/30 focus:ring-offset-slate-900"
+                    />
+                    <span className="text-sm text-slate-600 dark:text-slate-300 font-medium group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+                      Khoản nợ này có áp dụng phí phạt trễ hạn
                     </span>
-                  ) : 'Cập nhật khoản nợ'}
+                  </label>
+                </div>
+
+                <div className={formValues.feePenaltyPerDay > 0 ? 'col-span-1 md:col-span-2 block' : 'hidden'}>
+                  <div className="p-4 rounded-2xl bg-rose-500/5 border border-rose-500/10">
+                    <label className="input-label text-rose-600 dark:text-rose-300">
+                      {debtType === 'INSTALLMENT' ? 'Phí phạt cố định mỗi ngày (VND)' : 'Phí phạt trễ hạn 1 lần (VND)'}
+                    </label>
+                    <Controller
+                      name="feePenaltyPerDay"
+                      control={control}
+                      render={({ field }) => (
+                        <FormattedInput
+                          {...field}
+                          kind="integer"
+                          placeholder={debtType === 'INSTALLMENT' ? 'VD: 50.000' : 'VD: 250.000'}
+                          onValueChange={(value) => field.onChange(toNumberValue(value))}
+                          suffix={debtType === 'INSTALLMENT' ? 'đ/ngày' : 'đ/lần'}
+                          className={inputCls(errors.feePenaltyPerDay)}
+                        />
+                      )}
+                    />
+                    {errors.feePenaltyPerDay && (
+                      <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
+                        <AlertTriangle size={11} /> {errors.feePenaltyPerDay.message as string}
+                      </p>
+                    )}
+                    <p className="mt-1.5 text-[10px] text-rose-600/70 dark:text-rose-400/70 flex items-center gap-1.5 italic">
+                      <Info size={12} />
+                      {debtType === 'INSTALLMENT'
+                        ? 'Phí sẽ được cộng dồn vào dư nợ mỗi ngày nếu quá hạn.'
+                        : 'Phí phạt sẽ được tính một lần ngay khi trễ hạn.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="h-px bg-white/[0.06] my-6" />
+
+              <div className="flex gap-4 pt-6">
+                <button
+                  type="submit"
+                  disabled={isUpdating}
+                  className="btn-primary flex-1 py-4 text-base shadow-lg shadow-blue-500/10"
+                >
+                  {isUpdating ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Đang cập nhật...
+                    </span>
+                  ) : (
+                    'Lưu thay đổi'
+                  )}
                 </button>
-                <button type="button" onClick={() => navigate(`/debts/${id}`)} className="btn-secondary cursor-pointer">Hủy</button>
+                <button type="button" onClick={() => navigate(`/debts/${id}`)} className="btn-secondary px-8 py-4">
+                  Hủy
+                </button>
               </div>
             </form>
           </div>
         </div>
 
-        <div>
-          <div className="glass-card sticky top-8">
-            <h3 className="text-[15px] font-semibold text-white mb-4 flex items-center gap-2">
-              <BarChart2 size={16} /> Xem trước chi phí mới
+        <div className="space-y-6">
+          <div className="glass-card p-6 sticky top-8 border-blue-500/10">
+            <h3 className="text-[17px] font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+              <BarChart2 className="text-blue-400" size={18} /> Phân tích chi phí mới
             </h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-slate-500">APR (quảng cáo)</span>
-                <span className="font-semibold text-blue-400">{formatPercent(formValues.apr || 0)}</span>
+
+            <div className="space-y-4">
+              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Lãi suất thực tế (EAR)
+                </p>
+                <p className={`text-2xl font-black ${getEarColorClass(ear)}`}>{formatPercent(ear)}%</p>
+                <p className="text-[10px] text-slate-500 mt-1 italic"> Bao gồm lãi suất + các loại phí</p>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-slate-500">APY (lãi kép)</span>
-                <span className="font-semibold text-purple-400">{formatPercent(apy)}</span>
+
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/[0.05]">
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Lãi suất năm (APY)</p>
+                <p className="text-xl font-bold text-slate-900 dark:text-white">{formatPercent(apy)}%</p>
               </div>
-              <div className="h-px bg-white/[0.06]" />
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-slate-400 font-semibold">EAR (thực tế)</span>
-                <span className="text-xl font-bold text-red-400">{formatPercent(ear)}</span>
-              </div>
-              {ear > (formValues.apr || 0) && (
-                <div className="bg-red-500/8 border border-red-500/15 rounded-xl px-3 py-2.5">
-                  <p className="text-[12px] text-red-400 flex items-center gap-1">
-                    <AlertTriangle size={12} className="shrink-0" /> Chi phí ẩn: <span className="font-semibold">+{formatPercent(ear - (formValues.apr || 0))}</span> so với quảng cáo
+
+              {debtType === 'INSTALLMENT' && (
+                <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10">
+                  <p className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-2">
+                    Dự kiến thanh toán
                   </p>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500 dark:text-slate-400">Tổng tiền trả:</span>
+                      <span className="text-slate-900 dark:text-white font-bold">
+                        {(formValues.minPayment * formValues.termMonths).toLocaleString()}đ
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500 dark:text-slate-400">Tổng lãi & phí:</span>
+                      <span className="text-rose-600 dark:text-rose-400 font-bold">
+                        {(formValues.minPayment * formValues.termMonths - formValues.originalAmount).toLocaleString()}đ
+                      </span>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
           </div>
         </div>
       </div>
+      <PaymentInfoModal isOpen={showPaymentInfo} onClose={() => setShowPaymentInfo(false)} />
+      <BalanceInfoModal
+        isOpen={showBalanceInfo}
+        onClose={() => setShowBalanceInfo(false)}
+        isExisting={loanStatus === 'EXISTING'}
+      />
     </motion.div>
   );
 }

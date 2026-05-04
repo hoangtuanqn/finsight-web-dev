@@ -4,9 +4,9 @@ import { MarketView } from './marketViews.service.js';
 
 /**
  * Tính toán Lợi nhuận kỳ vọng theo mô hình Black-Litterman
- * 
+ *
  * E[R] = [ (tau * Sigma)^-1 + P^T * Omega^-1 * P ]^-1 * [ (tau * Sigma)^-1 * Pi + P^T * Omega^-1 * Q ]
- * 
+ *
  * @param priorMeans Vector lợi nhuận kỳ vọng ban đầu (Pi)
  * @param covMatrix Ma trận hiệp phương sai (Sigma)
  * @param views Danh sách quan điểm thị trường
@@ -16,18 +16,23 @@ export function computePosteriorReturns(
   priorMeans: number[],
   covMatrix: math.Matrix,
   views: MarketView[],
-  tau: number = 0.05
+  tau: number = 0.05,
 ): { posteriorMeans: number[]; pMatrix: number[][]; qVector: number[] } {
-  
   if (!views || views.length === 0) {
     return { posteriorMeans: priorMeans, pMatrix: [], qVector: [] };
   }
 
   const N = ASSET_ORDER.length;
   const K = views.length;
+  const covSize = (covMatrix.toArray() as any[]).length;
+  if (covSize !== N) {
+    console.error(
+      `[BlackLitterman] DIMENSION MISMATCH: ASSET_ORDER.length=${N} but covMatrix is ${covSize}x${covSize}. ASSET_ORDER=${JSON.stringify(ASSET_ORDER)}, covMatrix rows=${covSize}`,
+    );
+  }
 
   // 1. Convert to mathjs matrices
-  const Pi = math.matrix(priorMeans.map(val => [val])); // N x 1 column vector
+  const Pi = math.matrix(priorMeans.map((val) => [val])); // N x 1 column vector
   const Sigma = covMatrix;
 
   // 2. Build P (Pick Matrix) and Q (View Vector)
@@ -47,23 +52,23 @@ export function computePosteriorReturns(
   });
 
   const P = math.matrix(pMatrix);
-  const Q = math.matrix(qVector.map(val => [val])); // K x 1 column vector
+  const Q = math.matrix(qVector.map((val) => [val])); // K x 1 column vector
 
   // 3. Compute Omega (Uncertainty matrix of views)
   // Heuristic: Omega_kk = (tau * P_k * Sigma * P_k^T) / confidence
   const omegaMatrix = Array.from({ length: K }, () => new Array(K).fill(0));
-  
+
   const tauSigma = math.multiply(Sigma, tau) as math.Matrix;
-  
+
   for (let k = 0; k < K; k++) {
     const p_k = P.toArray()[k] as number[];
     const p_k_mat = math.matrix([p_k]); // 1 x N
     const p_k_trans = math.transpose(p_k_mat); // N x 1
-    
+
     // variance of view k = p_k * tauSigma * p_k^T
     const viewVarianceMat = math.multiply(math.multiply(p_k_mat, tauSigma), p_k_trans) as math.Matrix;
     let viewVariance = (viewVarianceMat.toArray() as number[][])[0][0];
-    
+
     if (viewVariance === 0) {
       viewVariance = 1e-4; // Prevent division by zero
     }
@@ -94,12 +99,15 @@ export function computePosteriorReturns(
 
     // Posterior E[R]
     const posterior = math.multiply(term1, term2) as math.Matrix;
-    
-    const posteriorMeans = (posterior.toArray() as number[][]).map(row => row[0]);
+
+    const posteriorMeans = (posterior.toArray() as number[][]).map((row) => row[0]);
 
     return { posteriorMeans, pMatrix, qVector };
   } catch (error) {
-    console.error('[BlackLitterman] Failed to compute posterior returns (Matrix inversion error?). Falling back to prior means.', error);
+    console.error(
+      '[BlackLitterman] Failed to compute posterior returns (Matrix inversion error?). Falling back to prior means.',
+      error,
+    );
     return { posteriorMeans: priorMeans, pMatrix, qVector };
   }
 }

@@ -1,0 +1,266 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/@prisma/enterprise"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["enterprise"]
+}
+
+model Organization {
+  id                  String   @id @default(uuid())
+  taxCode             String   @unique
+  name                String
+  shortName           String?
+  businessType        String
+  headquartersAddress String
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  users               User[]
+  parties             Party[]
+  debtRecords         DebtRecord[]
+  auditLogs           AuditLog[]
+
+  @@map("enterprise_organizations")
+  @@schema("enterprise")
+}
+
+model User {
+  id               String   @id @default(uuid())
+  email            String   @unique
+  passwordHash     String
+  fullName         String
+  roleTitle        String   
+  phoneNumber      String
+
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id])
+
+  managedParties   Party[]      @relation("PersonInCharge")
+  auditLogs        AuditLog[]
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("enterprise_users")
+  @@schema("enterprise")
+}
+
+model Party {
+  id             String   @id @default(uuid())
+  taxCode        String?  
+  name           String
+  shortName      String?
+  internalCode   String   
+  typeTags       String[] // CUSTOMER, SUPPLIER, BANK, STATE, INTERNAL
+  isRelatedParty Boolean  @default(false)
+  creditLimit    Float    @default(0)
+  status         String   @default("ACTIVE") // ACTIVE, INACTIVE, BLACKLIST
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  personInChargeId String?
+  personInCharge   User? @relation("PersonInCharge", fields: [personInChargeId], references: [id])
+
+  parentId       String?
+  parent         Party?   @relation("PartnerGroup", fields: [parentId], references: [id])
+  children       Party[]  @relation("PartnerGroup")
+
+  contacts       Contact[]
+  bankAccounts   BankAccount[]
+  
+  debtRecords    DebtRecord[]
+  guaranteedDebts DebtRecord[] @relation("DebtGuarantor")
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, taxCode])
+  @@unique([organizationId, internalCode])
+  @@map("enterprise_parties")
+  @@schema("enterprise")
+}
+
+model Contact {
+  id        String   @id @default(uuid())
+  partyId   String
+  party     Party    @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  name      String
+  position  String?
+  email     String?
+  phone     String?
+  isPrimary Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("enterprise_contacts")
+  @@schema("enterprise")
+}
+
+model BankAccount {
+  id            String   @id @default(uuid())
+  partyId       String
+  party         Party    @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  bankName      String
+  accountNumber String
+  accountHolder String
+  branch        String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("enterprise_bank_accounts")
+  @@schema("enterprise")
+}
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  action         String   // CREATE, UPDATE, DELETE, TOGGLE_STATUS
+  entityType     String   // PARTY, CONTACT, BANK_ACCOUNT, DEBT_RECORD
+  entityId       String
+  oldValues      Json?
+  newValues      Json?
+  reason         String?
+
+  createdAt      DateTime @default(now())
+
+  @@map("enterprise_audit_logs")
+  @@schema("enterprise")
+}
+
+model DebtRecord {
+  id               String   @id @default(uuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  
+  partyId          String
+  party            Party    @relation(fields: [partyId], references: [id])
+  
+  guarantorId      String?
+  guarantor        Party?   @relation("DebtGuarantor", fields: [guarantorId], references: [id])
+  
+  type             String   // RECEIVABLE, PAYABLE
+  origin           String   // TRADE, FINANCIAL, TAX, BOND, INTERNAL
+  
+  principal        Float
+  outstanding      Float    @default(0) // Current principal remaining
+  interestMethod   String   // REDUCING_BALANCE, EMI, BULLET, NONE
+  
+  issueDate        DateTime
+  dueDate          DateTime // Final due date
+  
+  status           String   @default("DRAFT") // DRAFT, ACTIVE, PARTIAL, PAID, OVERDUE, DISPUTED, WRITTEN_OFF
+  
+  internalCode     String?  // Reference number
+  notes            String?  @db.Text
+  
+  interestRates    DebtInterestRate[]
+  schedules        DebtSchedule[]
+  transactions     DebtTransaction[]
+  documents        DebtDocument[]
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("enterprise_debt_records")
+  @@schema("enterprise")
+}
+
+model DebtInterestRate {
+  id           String   @id @default(uuid())
+  debtRecordId String
+  debtRecord   DebtRecord @relation(fields: [debtRecordId], references: [id], onDelete: Cascade)
+  
+  rate         Float    // Percentage (e.g. 8.5)
+  effectiveDate DateTime // When this rate starts being active
+  
+  createdAt    DateTime @default(now())
+
+  @@map("enterprise_debt_interest_rates")
+  @@schema("enterprise")
+}
+
+model DebtSchedule {
+  id             String   @id @default(uuid())
+  debtRecordId   String
+  debtRecord     DebtRecord @relation(fields: [debtRecordId], references: [id], onDelete: Cascade)
+  
+  period         Int      // Sequence number
+  dueDate        DateTime
+  
+  principalAmount Float
+  interestAmount Float
+  totalAmount    Float
+  
+  paidPrincipal  Float    @default(0)
+  paidInterest   Float    @default(0)
+  
+  remainingPrincipal Float // Balance after this payment
+  
+  status         String   @default("PENDING") // PENDING, PAID, PARTIAL, OVERDUE
+  
+  triggerType    String   @default("DATE") // DATE, MILESTONE
+  triggerCondition String? // e.g. "ACCEPTANCE", "WARRANTY_END"
+  isActivated    Boolean  @default(true) // For milestone-based, initially false
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("enterprise_debt_schedules")
+  @@schema("enterprise")
+}
+
+model DebtTransaction {
+  id             String   @id @default(uuid())
+  debtRecordId   String
+  debtRecord     DebtRecord @relation(fields: [debtRecordId], references: [id], onDelete: Cascade)
+  
+  type           String   // PAYMENT, PENALTY, INTEREST, ADJUSTMENT, REVERSAL
+  amount         Float
+  principalPart  Float    @default(0)
+  interestPart   Float    @default(0)
+  penaltyPart    Float    @default(0)
+  
+  paidAt         DateTime @default(now())
+  paymentMethod  String?  // CASH, BANK_TRANSFER, OFFSET
+  reference      String?  // Receipt or Transaction ID
+  notes          String?  @db.Text
+  
+  balanceSnapshot Float    @default(0) // Outstanding principal AFTER this transaction
+  
+  reversesTransactionId String?
+  reversesTransaction   DebtTransaction? @relation("TransactionReversal", fields: [reversesTransactionId], references: [id])
+  reversedBy            DebtTransaction[] @relation("TransactionReversal")
+  
+  createdAt      DateTime @default(now())
+
+  @@map("enterprise_debt_transactions")
+  @@schema("enterprise")
+}
+
+model DebtDocument {
+  id             String   @id @default(uuid())
+  debtRecordId   String
+  debtRecord     DebtRecord @relation(fields: [debtRecordId], references: [id], onDelete: Cascade)
+  
+  name           String
+  fileUrl        String
+  fileType       String?
+  fileSize       Int?
+  
+  createdAt      DateTime @default(now())
+
+  @@map("enterprise_debt_documents")
+  @@schema("enterprise")
+}
