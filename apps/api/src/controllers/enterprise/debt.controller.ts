@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import enterpriseDb from '../../prisma/enterprise.client';
 import * as debtService from '../../services/enterprise/debt.service';
 import * as debtStatusService from '../../services/enterprise/debtStatus.service';
+import transactionService from '../../services/enterprise/transaction.service';
 import { logAudit } from '../../utils/audit';
 
 export const createDebt = async (req: Request, res: Response) => {
@@ -166,5 +167,46 @@ export const getDebtAuditLogs = async (req: Request, res: Response) => {
     res.status(200).json({ success: true, data: logs });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const recordPayment = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const orgId = (req as any).organizationId;
+    const userId = (req as any).userId;
+
+    const transaction = await transactionService.createPayment({
+      ...req.body,
+      debtId: id,
+      orgId,
+      userId,
+      paidAt: new Date(req.body.paidAt || new Date()),
+    });
+
+    res.status(201).json({ success: true, data: transaction });
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+export const reverseTransaction = async (req: Request, res: Response) => {
+  try {
+    const { transactionId } = req.params;
+    const { reason } = req.body;
+    const orgId = (req as any).organizationId;
+    const userId = (req as any).userId;
+
+    if (!reason) throw new Error('Cần cung cấp lý do đảo ngược giao dịch');
+
+    const transaction = await transactionService.reverseTransaction(
+      orgId as string,
+      userId as string,
+      transactionId as string,
+      reason,
+    );
+    res.status(200).json({ success: true, data: transaction });
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
   }
 };
