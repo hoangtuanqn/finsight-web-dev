@@ -278,9 +278,10 @@ export default function DebtDetailPage() {
               <span className="w-1 h-1 rounded-full bg-rose-500/30" />
               <span className="text-[10px] font-bold text-rose-400/80 italic">Đang kích hoạt</span>
             </div>
-            <div className="text-[14px] text-slate-300 leading-relaxed">
-              Nếu không thanh toán trước <span className="text-white font-bold">ngày {debt.dueDay} hàng tháng</span>,
-              khoản nợ sẽ bị cộng thêm{' '}
+            <div className="text-[14px] text-[var(--color-text-secondary)] leading-relaxed">
+              Nếu không thanh toán trước{' '}
+              <span className="text-[var(--color-text-primary)] font-bold">ngày {debt.dueDay} hàng tháng</span>, khoản
+              nợ sẽ bị cộng thêm{' '}
               <span className="text-rose-400 font-black underline decoration-rose-500/30 underline-offset-4">
                 {formatVND(debt.feePenaltyPerDay)}
               </span>{' '}
