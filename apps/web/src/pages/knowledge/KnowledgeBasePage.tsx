@@ -23,7 +23,7 @@ import {
   User,
   X,
 } from 'lucide-react';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import knowledgeData from '../../data/knowledgeBase.json';
 import { useArticles, useCreateArticle, useDeleteArticle, useUpdateArticle } from '../../hooks/useArticleQuery';
@@ -37,6 +37,7 @@ type ArticleFormData = {
   imageUrl: string;
   excerpt: string;
   content: string;
+  tags: string[];
 };
 
 type ArticleFilters = {
@@ -44,6 +45,7 @@ type ArticleFilters = {
   author: string;
   dateRange: string;
   sortBy: string;
+  tag: string;
 };
 
 const emptyArticleFilters: ArticleFilters = {
@@ -51,6 +53,7 @@ const emptyArticleFilters: ArticleFilters = {
   author: '',
   dateRange: '',
   sortBy: 'newest',
+  tag: '',
 };
 
 function getTodayValue() {
@@ -65,6 +68,7 @@ function getEmptyArticleForm(): ArticleFormData {
     imageUrl: '',
     excerpt: '',
     content: '',
+    tags: [],
   };
 }
 
@@ -123,6 +127,7 @@ export default function KnowledgeBasePage() {
       imageUrl: article.imageUrl || '',
       excerpt: article.excerpt || '',
       content: article.content || '',
+      tags: article.tags || [],
     });
     setIsArticleFormOpen(true);
   };
@@ -134,11 +139,11 @@ export default function KnowledgeBasePage() {
     setArticleForm(getEmptyArticleForm());
   };
 
-  const updateArticleForm = (field: keyof ArticleFormData, value: string) => {
+  const updateArticleForm = (field: keyof ArticleFormData, value: string | string[]) => {
     setArticleForm((current) => ({ ...current, [field]: value }));
   };
 
-  const handleSaveArticle = (event: FormEvent) => {
+  const handleSaveArticle = (event: React.FormEvent) => {
     event.preventDefault();
 
     const data = {
@@ -233,6 +238,12 @@ export default function KnowledgeBasePage() {
         }
       }
 
+      if (articleFilters.tag) {
+        if (!article.tags || !Array.isArray(article.tags) || !article.tags.includes(articleFilters.tag)) {
+          return false;
+        }
+      }
+
       return true;
     });
 
@@ -248,7 +259,11 @@ export default function KnowledgeBasePage() {
   }, [articleFilters, articleList]);
 
   const hasActiveArticleFilters = Boolean(
-    articleFilters.search || articleFilters.author || articleFilters.dateRange || articleFilters.sortBy !== 'newest',
+    articleFilters.search ||
+    articleFilters.author ||
+    articleFilters.dateRange ||
+    articleFilters.tag ||
+    articleFilters.sortBy !== 'newest',
   );
 
   const handlePageChange = (page: number) => {
@@ -468,6 +483,14 @@ export default function KnowledgeBasePage() {
             exit={{ opacity: 0, y: -10 }}
             className="min-h-[400px]"
           >
+            <div className="mb-6 flex items-center gap-3 rounded-2xl border border-yellow-500/20 bg-yellow-500/10 p-4">
+              <Lightbulb className="text-yellow-500 shrink-0" size={20} />
+              <p className="text-sm font-medium text-yellow-500/90">
+                <strong className="font-bold text-yellow-500">Lưu ý:</strong> Thông tin chưa được xác thực, chỉ mang
+                tính chất tham khảo.
+              </p>
+            </div>
+
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-32 gap-5">
                 <div className="relative">
@@ -495,7 +518,7 @@ export default function KnowledgeBasePage() {
                     style={{ boxShadow: '0 20px 40px rgba(0,0,0,0.05)' }}
                   >
                     <div
-                      className={`${articleViewMode === 'grid' ? 'h-64' : 'h-52 md:h-auto md:w-72 lg:w-80'} overflow-hidden relative shrink-0`}
+                      className={`${articleViewMode === 'grid' ? 'h-64' : 'h-52 md:h-64 md:w-72 lg:w-80'} overflow-hidden relative shrink-0`}
                     >
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10 opacity-60 group-hover:opacity-40 transition-opacity" />
                       <img
@@ -526,6 +549,25 @@ export default function KnowledgeBasePage() {
                           <ArrowRight size={20} />
                         </div>
                       </div>
+
+                      {story.tags && story.tags.length > 0 && (
+                        <div className="mb-4 flex flex-wrap gap-2">
+                          {story.tags.map((tag: string) => (
+                            <button
+                              key={tag}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setArticleFilters({ ...emptyArticleFilters, tag });
+                                setTempArticleFilters({ ...emptyArticleFilters, tag });
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
+                              className="rounded-lg bg-blue-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-blue-400 transition-colors hover:bg-blue-500/20"
+                            >
+                              {tag}
+                            </button>
+                          ))}
+                        </div>
+                      )}
 
                       <p
                         className={`text-[var(--color-text-secondary)] text-sm leading-relaxed ${articleViewMode === 'grid' ? 'line-clamp-3' : 'line-clamp-2'} mb-6 font-medium`}
@@ -634,6 +676,24 @@ export default function KnowledgeBasePage() {
                     {authorOptions.map((author) => (
                       <option key={author} value={author}>
                         {author}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[11px] font-black uppercase tracking-widest text-blue-400">
+                    Thuật ngữ (Tag)
+                  </label>
+                  <select
+                    value={tempArticleFilters.tag}
+                    onChange={(event) => setTempArticleFilters((current) => ({ ...current, tag: event.target.value }))}
+                    className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-4 py-3 text-sm font-bold outline-none transition-all focus:border-blue-500"
+                  >
+                    <option value="">Tất cả thuật ngữ</option>
+                    {(knowledgeData as any).terms.map((term: any) => (
+                      <option key={term.id} value={term.term}>
+                        {term.term}
                       </option>
                     ))}
                   </select>
@@ -806,6 +866,26 @@ export default function KnowledgeBasePage() {
 
               <label className="mt-4 block space-y-2">
                 <span className="text-[11px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
+                  Thuật ngữ (Tags) - Cách nhau bằng dấu phẩy
+                </span>
+                <input
+                  value={articleForm.tags.join(', ')}
+                  onChange={(event) =>
+                    updateArticleForm(
+                      'tags',
+                      event.target.value
+                        .split(',')
+                        .map((t) => t.trim())
+                        .filter(Boolean),
+                    )
+                  }
+                  placeholder="Ví dụ: Lãi kép, Lãi suất, Đầu tư"
+                  className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-4 py-3 text-sm outline-none transition-all focus:border-indigo-500"
+                />
+              </label>
+
+              <label className="mt-4 block space-y-2">
+                <span className="text-[11px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
                   Nội dung
                 </span>
                 <textarea
@@ -919,13 +999,29 @@ export default function KnowledgeBasePage() {
                     className="w-full h-full object-cover"
                   />
                   <div className="absolute bottom-10 left-10 right-10 z-20">
-                    <div className="flex gap-4 mb-4">
+                    <div className="flex flex-wrap gap-4 mb-4">
                       <span className="px-4 py-2 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/10 text-white text-[11px] font-black uppercase tracking-wider flex items-center gap-2">
                         <Calendar size={14} className="text-indigo-400" /> {selectedArticle.date}
                       </span>
                       <span className="px-4 py-2 rounded-2xl bg-indigo-600/80 backdrop-blur-xl border border-indigo-400/20 text-white text-[11px] font-black uppercase tracking-wider flex items-center gap-2">
                         <User size={14} /> {selectedArticle.author}
                       </span>
+                      {selectedArticle.tags &&
+                        selectedArticle.tags.length > 0 &&
+                        selectedArticle.tags.map((tag: string) => (
+                          <button
+                            key={tag}
+                            onClick={() => {
+                              setSelectedArticle(null);
+                              setArticleFilters({ ...emptyArticleFilters, tag });
+                              setTempArticleFilters({ ...emptyArticleFilters, tag });
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className="px-4 py-2 rounded-2xl bg-blue-500/20 backdrop-blur-xl border border-blue-400/30 text-blue-300 hover:text-blue-200 hover:bg-blue-500/40 text-[11px] font-black uppercase tracking-wider transition-colors"
+                          >
+                            {tag}
+                          </button>
+                        ))}
                     </div>
                     <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter leading-none pr-12">
                       {selectedArticle.title}

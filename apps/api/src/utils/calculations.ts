@@ -9,6 +9,37 @@ export function calcAPY(apr: number, n: number = 12): number {
 }
 
 /**
+ * CALCULATION 1.5: Convert Flat APR to Reducing APR
+ * Uses Newton-Raphson to find the equivalent reducing rate
+ */
+export function convertFlatToReducingAPR(principal: number, flatAPR: number, termMonths: number): number {
+  if (flatAPR === 0 || !principal || !termMonths) return flatAPR;
+
+  const totalInterest = principal * (flatAPR / 100) * (termMonths / 12);
+  const monthlyPayment = (principal + totalInterest) / termMonths;
+
+  // Initial guess
+  let r = flatAPR / 100 / 12;
+  let error = 1;
+  const tolerance = 1e-7;
+  let iterations = 0;
+
+  while (error > tolerance && iterations < 100) {
+    const term1 = Math.pow(1 + r, termMonths);
+    const f = (principal * (r * term1)) / (term1 - 1) - monthlyPayment;
+
+    const fPrime = principal * ((term1 * (1 + r * termMonths) - 1) / Math.pow(term1 - 1, 2));
+
+    const nextR = r - f / fPrime;
+    error = Math.abs(nextR - r);
+    r = nextR;
+    iterations++;
+  }
+
+  return r * 12 * 100;
+}
+
+/**
  * CALCULATION 2: EAR (Effective Annual Rate)
  * EAR = APY + total annual fees as % of principal
  */
@@ -18,8 +49,15 @@ export function calcEAR(
   feeInsurance: number,
   feeManagement: number,
   termMonths: number,
+  rateType?: string,
+  initialPrincipal?: number,
 ): number {
-  const apy = calcAPY(apr);
+  let effectiveAPR = apr;
+  if (rateType === 'FLAT' && initialPrincipal && termMonths) {
+    effectiveAPR = convertFlatToReducingAPR(initialPrincipal, apr, termMonths);
+  }
+
+  const apy = calcAPY(effectiveAPR);
   const annualizedProcessingFee = termMonths > 0 ? (feeProcessing / termMonths) * 12 : 0;
   const totalAnnualFees = Math.min(annualizedProcessingFee + feeInsurance + feeManagement, 300);
   return apy + totalAnnualFees;
@@ -55,6 +93,9 @@ interface DebtItem {
   remainingTerms?: number;
   debtType?: string;
   feeManagement?: number;
+  initialPrincipal?: number;
+  feeProcessing?: number;
+  feeInsurance?: number;
 }
 
 interface PaymentScheduleItem {
@@ -137,16 +178,40 @@ export function simulateRepayment(
   method: 'AVALANCHE' | 'SNOWBALL' | 'CUSTOM' = 'AVALANCHE',
   options: RepaymentSimulationOptions = {},
 ) {
-  let ds = debts.map((d) => ({
-    id: d.id,
-    name: d.name,
-    balance: d.balance,
-    apr: d.apr,
-    minPayment: d.minPayment,
-    deadlineMonth: getDebtDeadlineMonth(d),
-    debtType: d.debtType,
-    feeManagement: d.feeManagement,
-  }));
+  let ds = debts.map((d) => {
+    let effectiveApr = d.apr;
+
+    // Fix 1 & 3: Convert Flat to Reducing
+    if (d.rateType === 'FLAT' && d.initialPrincipal && d.termMonths) {
+      effectiveApr = convertFlatToReducingAPR(d.initialPrincipal, d.apr, d.termMonths);
+    }
+
+    // Fix 2: Include hidden fees in the simulation's effective interest rate
+    if (d.termMonths && d.termMonths > 0) {
+      if (d.feeProcessing) {
+        effectiveApr += (d.feeProcessing / d.termMonths) * 12;
+      }
+    }
+    if (d.feeInsurance) {
+      effectiveApr += d.feeInsurance;
+    }
+    // Note: feeManagement for Credit Cards is handled dynamically in the loop below.
+    // For other loans, we add it here.
+    if (d.debtType !== 'CREDIT_CARD' && d.feeManagement) {
+      effectiveApr += d.feeManagement;
+    }
+
+    return {
+      id: d.id,
+      name: d.name,
+      balance: d.balance,
+      apr: effectiveApr,
+      minPayment: d.minPayment,
+      deadlineMonth: getDebtDeadlineMonth(d),
+      debtType: d.debtType,
+      feeManagement: d.feeManagement,
+    };
+  });
 
   let months = 0;
   let totalInterest = 0;
@@ -201,10 +266,14 @@ export function simulateRepayment(
     // Step 1: Accrue interest
     ds.forEach((d) => {
       if (d.balance > 0) {
-        let interest = (d.balance * (d.apr / 100)) / 12;
+        let interest = 0;
+        // Fix: Không cộng lãi trong tháng đầu tiên (tháng 1) vì số dư nhập vào thường đã bao gồm lãi kỳ trước (tránh tính chồng lãi)
+        if (months > 1) {
+          interest = (d.balance * (d.apr / 100)) / 12;
 
-        if (d.debtType === 'CREDIT_CARD' && d.feeManagement && d.feeManagement > 0) {
-          interest += (d.balance * (d.feeManagement / 100)) / 12;
+          if (d.debtType === 'CREDIT_CARD' && d.feeManagement && d.feeManagement > 0) {
+            interest += (d.balance * (d.feeManagement / 100)) / 12;
+          }
         }
 
         totalInterest += interest;
