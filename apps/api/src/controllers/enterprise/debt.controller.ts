@@ -20,6 +20,18 @@ export const createDebt = async (req: Request, res: Response) => {
         })) || [],
     };
 
+    if (!data.principal || data.principal <= 0) {
+      throw new Error('Số tiền gốc phải lớn hơn 0');
+    }
+
+    if (!data.termMonths || data.termMonths <= 0) {
+      throw new Error('Thời hạn (số tháng) phải lớn hơn 0 để tính ngày đến hạn hợp lệ');
+    }
+
+    if (data.interestMethod === 'NONE' && data.interestRates.some((r: any) => r.rate > 0)) {
+      throw new Error('Nếu có nhập lãi suất, phương thức tính lãi không được là "Không tính lãi"');
+    }
+
     const debt = await debtService.createDebtRecord(data);
 
     await logAudit({
