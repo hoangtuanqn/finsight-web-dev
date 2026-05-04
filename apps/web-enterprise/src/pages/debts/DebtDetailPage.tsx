@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { enterpriseAuthAPI } from '../../api';
+import DebtAuditTrail from '../../components/debts/DebtAuditTrail';
+import DebtStatusActions from '../../components/debts/DebtStatusActions';
 
 export default function DebtDetailPage() {
   const { id } = useParams();
@@ -54,6 +56,21 @@ export default function DebtDetailPage() {
               <span className="text-emerald-500">{debt.internalCode}</span>
             </div>
             <h1 className="text-2xl font-black text-white">{debt.party?.name}</h1>
+            <span
+              className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest border ${
+                debt.status === 'ACTIVE'
+                  ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                  : debt.status === 'OVERDUE'
+                    ? 'bg-red-500/10 text-red-500 border-red-500/20'
+                    : debt.status === 'PAID'
+                      ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                      : debt.status === 'DISPUTED'
+                        ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                        : 'bg-slate-800 text-slate-500 border-slate-700'
+              }`}
+            >
+              {debt.status}
+            </span>
           </div>
         </div>
         <div className="flex gap-3">
@@ -84,6 +101,9 @@ export default function DebtDetailPage() {
               <h3 className="text-sm font-black text-white uppercase tracking-tight mt-1">{debt.interestMethod}</h3>
             </div>
           </div>
+
+          {/* Debt Actions */}
+          <DebtStatusActions debt={debt} onUpdate={fetchDebt} />
 
           {/* Repayment Schedule */}
           <div className="bg-slate-900/50 border border-slate-800 rounded-3xl overflow-hidden">
@@ -139,6 +159,8 @@ export default function DebtDetailPage() {
               </table>
             </div>
           </div>
+
+          <DebtAuditTrail debtId={debt.id} />
         </div>
 
         {/* ── Right Content: Party & Transactions ── */}

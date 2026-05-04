@@ -49,6 +49,10 @@ export default function DebtListPage() {
         return 'bg-rose-500/10 text-rose-500 border-rose-500/20';
       case 'DRAFT':
         return 'bg-slate-500/10 text-slate-500 border-slate-500/20';
+      case 'DISPUTED':
+        return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
+      case 'WRITTEN_OFF':
+        return 'bg-rose-500/10 text-rose-500 border-rose-500/20';
       default:
         return 'bg-slate-500/10 text-slate-500 border-slate-500/20';
     }
@@ -64,6 +68,10 @@ export default function DebtListPage() {
         return 'Quá hạn';
       case 'DRAFT':
         return 'Bản nháp';
+      case 'DISPUTED':
+        return 'Tranh chấp';
+      case 'WRITTEN_OFF':
+        return 'Đã xóa nợ';
       default:
         return status;
     }
