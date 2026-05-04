@@ -11,6 +11,7 @@ function normalizeArticleBody(body: any) {
     excerpt: String(body?.excerpt || '').trim(),
     content: String(body?.content || '').trim(),
     category: String(body?.category || 'STORY').trim() || 'STORY',
+    tags: Array.isArray(body?.tags) ? body.tags.map(String) : [],
   };
 }
 
