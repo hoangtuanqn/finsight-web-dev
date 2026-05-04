@@ -22,6 +22,7 @@ import { enterpriseAuthAPI } from '../../api';
 export default function DebtCreatePage() {
   const navigate = useNavigate();
   const [parties, setParties] = useState<any[]>([]);
+  const [internalUsers, setInternalUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const [formData, setFormData] = useState<any>({
@@ -38,12 +39,14 @@ export default function DebtCreatePage() {
     gracePeriodDays: 0,
     internalCode: '',
     notes: '',
+    personInChargeId: '',
   });
 
   const [previewSchedule, setPreviewSchedule] = useState<any[]>([]);
 
   useEffect(() => {
     fetchParties();
+    fetchUsers();
   }, []);
 
   useEffect(() => {
@@ -58,6 +61,17 @@ export default function DebtCreatePage() {
       }
     } catch (err) {
       toast.error('Không thể tải danh sách đối tác');
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const res = await (enterpriseAuthAPI as any).getUsers();
+      if (res.data.success) {
+        setInternalUsers(res.data.data);
+      }
+    } catch (err) {
+      // ignore
     }
   };
 
@@ -234,6 +248,52 @@ export default function DebtCreatePage() {
                   value={formData.internalCode}
                   onChange={(e) => setFormData({ ...formData, internalCode: e.target.value })}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">
+                  Bên bảo lãnh (Tùy chọn)
+                </label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
+                    <User size={16} />
+                  </div>
+                  <select
+                    className="w-full pl-12 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:border-emerald-500/50 transition-all outline-none appearance-none"
+                    value={formData.guarantorId}
+                    onChange={(e) => setFormData({ ...formData, guarantorId: e.target.value })}
+                  >
+                    <option value="">Không có bảo lãnh...</option>
+                    {parties.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} ({p.internalCode})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">
+                  Người Phụ Trách Nợ
+                </label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
+                    <User size={16} />
+                  </div>
+                  <select
+                    className="w-full pl-12 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:border-emerald-500/50 transition-all outline-none appearance-none"
+                    value={formData.personInChargeId}
+                    onChange={(e) => setFormData({ ...formData, personInChargeId: e.target.value })}
+                  >
+                    <option value="">Chọn nhân viên phụ trách...</option>
+                    {internalUsers.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.fullName} ({u.roleTitle || 'Nhân viên'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
           </div>
