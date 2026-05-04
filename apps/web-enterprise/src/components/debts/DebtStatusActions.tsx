@@ -7,9 +7,10 @@ import { enterpriseAuthAPI } from '../../api';
 interface DebtStatusActionsProps {
   debt: any;
   onUpdate: () => void;
+  onRecordPayment?: () => void;
 }
 
-export default function DebtStatusActions({ debt, onUpdate }: DebtStatusActionsProps) {
+export default function DebtStatusActions({ debt, onUpdate, onRecordPayment }: DebtStatusActionsProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleAction = async (action: string, reason?: string) => {
@@ -58,6 +59,15 @@ export default function DebtStatusActions({ debt, onUpdate }: DebtStatusActionsP
 
       {['ACTIVE', 'PARTIAL', 'OVERDUE'].includes(debt.status) && (
         <>
+          <Button
+            onClick={onRecordPayment}
+            disabled={isLoading}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+          >
+            <CheckCircle2 className="w-4 h-4 mr-2" />
+            Ghi nhận thanh toán
+          </Button>
+
           <Button
             onClick={() => {
               const reason = window.prompt('Nhập lý do tranh chấp:');
