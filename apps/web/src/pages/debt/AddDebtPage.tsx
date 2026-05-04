@@ -460,7 +460,9 @@ export default function AddDebtPage() {
     formValues.feeProcessing,
     formValues.feeInsurance,
     formValues.feeManagement,
-    debtType === 'INSTALLMENT' ? formValues.termMonths : 12, // Default to 12 for credit card EAR calc
+    debtType === 'INSTALLMENT' ? formValues.termMonths : 12,
+    formValues.rateType,
+    formValues.originalAmount,
   );
   const remaining = calcRemainingTerms(formValues.startDate, formValues.termMonths);
 

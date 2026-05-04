@@ -523,6 +523,8 @@ export default function EditDebtPage() {
     formValues.feeInsurance || 0,
     formValues.feeManagement || 0,
     debtType === 'INSTALLMENT' ? formValues.termMonths || 12 : 12,
+    formValues.rateType,
+    formValues.originalAmount,
   );
 
   const onSubmit = async (formData: any) => {
