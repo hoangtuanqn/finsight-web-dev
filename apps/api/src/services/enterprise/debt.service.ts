@@ -143,12 +143,21 @@ export const getDebtDetail = async (id: string, orgId: string) => {
   if (!debt) return null;
 
   // Calculate real-time outstanding
-  const paidPrincipal = debt.transactions
-    .filter((t: any) => t.type === 'PAYMENT' || t.type === 'REVERSAL')
-    .reduce((sum: number, t: any) => sum + t.principalPart, 0);
+  const paymentRelated = debt.transactions.filter((t: any) => t.type === 'PAYMENT' || t.type === 'REVERSAL');
+
+  const paidPrincipal = paymentRelated.reduce((sum: number, t: any) => sum + t.principalPart, 0);
+
+  const totalPenaltyAccrued = debt.transactions
+    .filter((t: any) => t.type === 'PENALTY')
+    .reduce((sum: number, t: any) => sum + t.amount, 0);
+
+  const totalPenaltyPaid = paymentRelated.reduce((sum: number, t: any) => sum + (t.penaltyPart || 0), 0);
 
   return {
     ...debt,
-    outstanding: debt.principal - paidPrincipal,
+    outstanding: Math.max(0, debt.principal - paidPrincipal),
+    totalPenaltyAccrued,
+    totalPenaltyPaid,
+    unpaidPenalty: Math.max(0, totalPenaltyAccrued - totalPenaltyPaid),
   };
 };

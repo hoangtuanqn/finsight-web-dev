@@ -1,7 +1,33 @@
 import enterpriseDb from '../../prisma/enterprise.client';
-import debtStatusService from './debtStatus.service';
 
 export class TransactionService {
+  /**
+   * Ghi nhận một giao dịch phạt (Penalty) tích lũy
+   */
+  async createPenaltyTransaction(data: { debtId: string; amount: number; notes?: string; paidAt?: Date }) {
+    return await (enterpriseDb as any).$transaction(async (tx: any) => {
+      const debt = await tx.debtRecord.findUnique({
+        where: { id: data.debtId },
+      });
+
+      if (!debt) throw new Error('Không tìm thấy khoản nợ');
+
+      return await tx.debtTransaction.create({
+        data: {
+          debtRecordId: debt.id,
+          type: 'PENALTY',
+          amount: data.amount,
+          principalPart: 0,
+          interestPart: 0,
+          penaltyPart: data.amount,
+          paidAt: data.paidAt || new Date(),
+          notes: data.notes || 'Phạt tích lũy hệ thống',
+          balanceSnapshot: debt.outstanding, // Penalty không làm giảm gốc
+        },
+      });
+    });
+  }
+
   /**
    * Ghi nhận thanh toán và phân bổ theo Waterfall (Penalty -> Interest -> Principal)
    */
@@ -21,6 +47,7 @@ export class TransactionService {
         where: { id: data.debtId, organizationId: data.orgId },
         include: {
           schedules: { orderBy: { period: 'asc' } },
+          transactions: true, // Lấy để tính penalty unpaid
         },
       });
 
@@ -29,36 +56,55 @@ export class TransactionService {
         throw new Error(`Không thể thanh toán cho khoản nợ ở trạng thái ${debt.status}`);
       }
 
-      // 2. Tính toán phân bổ (Waterfall)
-      // Lưu ý: Trong Module 4, chúng ta giả định các khoản lãi/phạt đã được ghi nhận
-      // bởi hệ thống hoặc người dùng. Hiện tại tập trung vào logic khấu trừ gốc.
-
-      const currentOutstanding = await debtStatusService.getOutstandingBalance(debt.id);
-
       if (data.amount <= 0) throw new Error('Số tiền thanh toán phải lớn hơn 0');
 
+      // 2. Tính toán Penalty và Interest chưa trả (Waterfall foundation)
+      // Tổng penalty tích lũy - Tổng penalty đã trả
+      const totalPenaltyAccrued = debt.transactions
+        .filter((t: any) => t.type === 'PENALTY')
+        .reduce((sum: number, t: any) => sum + t.amount, 0);
+
+      const totalPenaltyPaid = debt.transactions
+        .filter((t: any) => t.type === 'PAYMENT' || t.type === 'REVERSAL')
+        .reduce((sum: number, t: any) => sum + (t.penaltyPart || 0), 0);
+
+      const unpaidPenalty = Math.max(0, totalPenaltyAccrued - totalPenaltyPaid);
+
+      // (Tương tự cho Interest nếu có logic tích lũy lãi riêng)
+      const unpaidInterest = 0;
+
       let remainingAmount = data.amount;
-      let principalPaid = 0;
-      let interestPaid = 0;
-      let penaltyPaid = 0;
+      let penaltyToPay = 0;
+      let interestToPay = 0;
+      let principalToPay = 0;
 
-      // TODO: Sau này Module 5 sẽ cung cấp số liệu Lãi/Phạt cụ thể để trừ tại đây
-      // Hiện tại: Ưu tiên trừ vào gốc (Principal)
-      principalPaid = Math.min(remainingAmount, currentOutstanding);
-      remainingAmount -= principalPaid;
+      // ── WATERFALL STEP 1: Penalty ───────────────────────────────────
+      penaltyToPay = Math.min(remainingAmount, unpaidPenalty);
+      remainingAmount -= penaltyToPay;
 
-      if (remainingAmount > 0) {
-        throw new Error('Số tiền thanh toán vượt quá dư nợ hiện tại');
+      // ── WATERFALL STEP 2: Interest ──────────────────────────────────
+      interestToPay = Math.min(remainingAmount, unpaidInterest);
+      remainingAmount -= interestToPay;
+
+      // ── WATERFALL STEP 3: Principal ─────────────────────────────────
+      const currentOutstanding = debt.outstanding;
+      principalToPay = Math.min(remainingAmount, currentOutstanding);
+      remainingAmount -= principalToPay;
+
+      if (remainingAmount > 0.01) {
+        // Cho phép sai số nhỏ làm tròn
+        throw new Error(
+          `Số tiền thanh toán vượt quá tổng nghĩa vụ (Phạt: ${unpaidPenalty}, Lãi: ${unpaidInterest}, Gốc: ${currentOutstanding})`,
+        );
       }
 
-      // 3. Cập nhật các kỳ thanh toán (Schedules)
-      if (debt.schedules.length > 0) {
-        let amountToDistribute = principalPaid;
+      // 3. Cập nhật các kỳ thanh toán (Schedules) - Chỉ áp dụng cho phần GỐC
+      if (debt.schedules.length > 0 && principalToPay > 0) {
+        let amountToDistribute = principalToPay;
         for (const schedule of debt.schedules) {
           if (amountToDistribute <= 0) break;
           if (schedule.status === 'PAID') continue;
 
-          // Tính toán phần nợ gốc còn thiếu trong kỳ này
           const remainingPrincipalInSchedule = schedule.principalAmount - (schedule.paidPrincipal || 0);
           const payToThisSchedule = Math.min(amountToDistribute, remainingPrincipalInSchedule);
 
@@ -78,16 +124,16 @@ export class TransactionService {
       }
 
       // 4. Tạo bản ghi giao dịch
-      const newOutstanding = currentOutstanding - principalPaid;
+      const newOutstanding = Math.max(0, currentOutstanding - principalToPay);
 
       const transaction = await tx.debtTransaction.create({
         data: {
           debtRecordId: debt.id,
           type: 'PAYMENT',
           amount: data.amount,
-          principalPart: principalPaid,
-          interestPart: interestPaid,
-          penaltyPart: penaltyPaid,
+          principalPart: principalToPay,
+          interestPart: interestToPay,
+          penaltyPart: penaltyToPay,
           paidAt: data.paidAt,
           paymentMethod: data.paymentMethod,
           reference: data.reference,
@@ -105,8 +151,11 @@ export class TransactionService {
       // 6. Chuyển trạng thái khoản nợ
       let newStatus = debt.status;
       if (newOutstanding <= 0) {
+        // Kiểm tra xem còn penalty/interest chưa trả không?
+        // Nếu còn thì vẫn là PARTIAL hoặc OVERDUE (tùy nghiệp vụ)
+        // Ở đây giả định nếu hết gốc thì coi như PAID để giải phóng hạn mức
         newStatus = 'PAID';
-      } else if (debt.status === 'ACTIVE') {
+      } else {
         newStatus = 'PARTIAL';
       }
 
@@ -125,7 +174,7 @@ export class TransactionService {
             entityId: debt.id,
             oldValues: { status: debt.status },
             newValues: { status: newStatus, outstandingSnapshot: newOutstanding },
-            reason: 'Tự động cập nhật sau thanh toán',
+            reason: 'Tự động cập nhật sau thanh toán (Waterfall applied)',
           },
         });
       }
