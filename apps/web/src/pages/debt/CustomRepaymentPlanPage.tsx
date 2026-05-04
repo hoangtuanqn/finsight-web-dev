@@ -2,7 +2,6 @@ import { AnimatePresence, motion, Reorder } from 'framer-motion';
 import {
   AlertTriangle,
   ArrowLeft,
-  Check,
   DollarSign,
   LineChart as LineChartIcon,
   Plus,
@@ -646,48 +645,15 @@ export default function CustomRepaymentPlanPage() {
             </div>
 
             <div className="space-y-4">
-              {simulationData?.custom && (
-                <div
-                  className="rounded-3xl border p-5"
-                  style={{
-                    background: 'var(--color-bg-card)',
-                    borderColor: 'rgba(248,113,113,0.28)',
-                  }}
-                >
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-9 h-9 rounded-xl bg-red-500/12 text-red-300 flex items-center justify-center">
-                      <Check size={16} />
-                    </div>
-                    <div>
-                      <h3 className="font-black text-[var(--color-text-primary)]">Kết quả Kế hoạch của bạn</h3>
-                      <p className="text-[11px] text-[var(--color-text-muted)]">
-                        Tính trên {selectedIds.length} khoản đã chọn
-                      </p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
-                      <p className="text-[10px] uppercase tracking-widest font-black text-[var(--color-text-muted)]">
-                        Thời gian
-                      </p>
-                      <p className="text-xl font-black text-[var(--color-text-primary)] mt-1">
-                        {simulationData.custom.months} tháng
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
-                      <p className="text-[10px] uppercase tracking-widest font-black text-[var(--color-text-muted)]">
-                        Tổng lãi
-                      </p>
-                      <p className="text-lg font-black text-red-300 mt-1">
-                        {formatVND(simulationData.custom.totalInterest)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
+              <MethodPlanCard
+                type="CUSTOM"
+                debts={selectedDebts}
+                simulation={simulationData?.custom}
+                termBreach={simulationData?.custom?.termBreach}
+              />
 
-              {simulationData?.comparison && (
-                <>
+              {simulationData?.comparison && !simulationData?.custom?.termBreach && (
+                <div className="grid grid-cols-1 gap-3">
                   <div
                     className="rounded-3xl border p-5"
                     style={{
@@ -695,7 +661,7 @@ export default function CustomRepaymentPlanPage() {
                       borderColor: 'rgba(59,130,246,0.20)',
                     }}
                   >
-                    <p className="text-[11px] uppercase tracking-widest font-black text-blue-300/80 mb-2">
+                    <p className="text-[10px] uppercase tracking-widest font-black text-blue-300/80 mb-2">
                       So với Avalanche
                     </p>
                     <p className="text-lg font-black text-blue-200">
@@ -712,7 +678,7 @@ export default function CustomRepaymentPlanPage() {
                       borderColor: 'rgba(16,185,129,0.20)',
                     }}
                   >
-                    <p className="text-[11px] uppercase tracking-widest font-black text-emerald-300/80 mb-2">
+                    <p className="text-[10px] uppercase tracking-widest font-black text-emerald-300/80 mb-2">
                       So với Snowball
                     </p>
                     <p className="text-lg font-black text-emerald-200">
@@ -722,7 +688,7 @@ export default function CustomRepaymentPlanPage() {
                       {metricDelta(simulationData.comparison.customVsSnowball.monthsDelta, 'month')}
                     </p>
                   </div>
-                </>
+                </div>
               )}
             </div>
           </div>
