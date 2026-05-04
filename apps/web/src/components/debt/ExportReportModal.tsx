@@ -21,6 +21,7 @@ const ExportReportModal = ({ isOpen, onClose }) => {
   const [timeRange, setTimeRange] = useState('all');
   const [customDates, setCustomDates] = useState({ start: '', end: '' });
   const [selectedDebts, setSelectedDebts] = useState(['all']);
+  const [selectedFormat, setSelectedFormat] = useState(null);
 
   const { data: debtData } = useDebts() as any;
   const debts = debtData?.debts || [];
@@ -41,6 +42,7 @@ const ExportReportModal = ({ isOpen, onClose }) => {
   };
 
   const handleExport = async (format) => {
+    if (!format) return;
     setLoadingType(format);
     try {
       const debtIdParam = selectedDebts.includes('all') ? 'all' : selectedDebts.join(',');
@@ -65,6 +67,7 @@ const ExportReportModal = ({ isOpen, onClose }) => {
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);
+        setSelectedFormat(null);
         onClose();
       }, 2000);
     } catch (error) {
@@ -113,7 +116,7 @@ const ExportReportModal = ({ isOpen, onClose }) => {
             </div>
 
             {/* Content */}
-            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
               {!success && (
                 <div className="space-y-6">
                   {/* Time Range Section */}
@@ -213,24 +216,54 @@ const ExportReportModal = ({ isOpen, onClose }) => {
                   <div className="grid grid-cols-2 gap-4">
                     <button
                       disabled={loadingType !== null}
-                      onClick={() => handleExport('pdf')}
-                      className="flex flex-col items-center gap-2 p-4 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 hover:border-blue-500/50 rounded-2xl transition-all group disabled:opacity-50"
+                      onClick={() => setSelectedFormat('pdf')}
+                      className={`flex flex-col items-center gap-2 p-4 rounded-2xl transition-all border ${
+                        selectedFormat === 'pdf'
+                          ? 'bg-red-500/10 border-red-500/50 shadow-lg shadow-red-500/10'
+                          : 'bg-slate-800/50 hover:bg-slate-800 border-slate-700 hover:border-slate-600'
+                      } disabled:opacity-50`}
                     >
-                      <FileText className="w-6 h-6 text-red-400" />
-                      <span className="text-sm font-semibold text-white">Xuất PDF</span>
-                      {loadingType === 'pdf' && <Loader2 className="w-4 h-4 animate-spin text-blue-400" />}
+                      <FileText className={`w-6 h-6 ${selectedFormat === 'pdf' ? 'text-red-500' : 'text-red-400'}`} />
+                      <span
+                        className={`text-sm font-semibold ${selectedFormat === 'pdf' ? 'text-red-400' : 'text-white'}`}
+                      >
+                        Xuất PDF
+                      </span>
                     </button>
 
                     <button
                       disabled={loadingType !== null}
-                      onClick={() => handleExport('excel')}
-                      className="flex flex-col items-center gap-2 p-4 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 hover:border-emerald-500/50 rounded-2xl transition-all group disabled:opacity-50"
+                      onClick={() => setSelectedFormat('excel')}
+                      className={`flex flex-col items-center gap-2 p-4 rounded-2xl transition-all border ${
+                        selectedFormat === 'excel'
+                          ? 'bg-emerald-500/10 border-emerald-500/50 shadow-lg shadow-emerald-500/10'
+                          : 'bg-slate-800/50 hover:bg-slate-800 border-slate-700 hover:border-slate-600'
+                      } disabled:opacity-50`}
                     >
-                      <FileSpreadsheet className="w-6 h-6 text-emerald-400" />
-                      <span className="text-sm font-semibold text-white">Xuất Excel</span>
-                      {loadingType === 'excel' && <Loader2 className="w-4 h-4 animate-spin text-emerald-400" />}
+                      <FileSpreadsheet
+                        className={`w-6 h-6 ${selectedFormat === 'excel' ? 'text-emerald-500' : 'text-emerald-400'}`}
+                      />
+                      <span
+                        className={`text-sm font-semibold ${selectedFormat === 'excel' ? 'text-emerald-400' : 'text-white'}`}
+                      >
+                        Xuất Excel
+                      </span>
                     </button>
                   </div>
+
+                  <button
+                    disabled={!selectedFormat || loadingType !== null}
+                    onClick={() => handleExport(selectedFormat)}
+                    className="w-full mt-6 flex items-center justify-center gap-2 py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
+                  >
+                    {loadingType ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" /> Đang xử lý...
+                      </>
+                    ) : (
+                      'Xác nhận xuất báo cáo'
+                    )}
+                  </button>
                 </div>
               )}
 
