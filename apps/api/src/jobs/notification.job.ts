@@ -2,32 +2,13 @@ import dayjs from 'dayjs';
 import timezone from 'dayjs/plugin/timezone.js';
 import utc from 'dayjs/plugin/utc.js';
 import enterpriseDb from '../prisma/enterprise.client';
+import { NotificationService } from '../services/enterprise/notification.service';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
 const TZ = 'Asia/Ho_Chi_Minh';
 const JOB_NAME = 'JOB_NOTIFY';
-
-// Mốc cảnh báo (ngày trước khi đến hạn)
-const ALERT_MILESTONES = [30, 15, 7, 1];
-
-type AlertLevel = 'URGENT' | 'CRITICAL' | 'WARNING' | 'INFO' | 'REMINDER';
-
-function getAlertLevel(daysUntilDue: number, isOverdue: boolean): AlertLevel {
-  if (isOverdue) return 'URGENT';
-  if (daysUntilDue <= 1) return 'CRITICAL';
-  if (daysUntilDue <= 7) return 'WARNING';
-  if (daysUntilDue <= 15) return 'INFO';
-  return 'REMINDER';
-}
-
-function getEscalationLevel(overdueDays: number): string {
-  if (overdueDays <= 7) return 'ASSIGNEE';
-  if (overdueDays <= 15) return 'MANAGER';
-  if (overdueDays <= 30) return 'CFO';
-  return 'CEO';
-}
 
 export async function runNotificationJob(orgId?: string): Promise<{
   processed: number;
@@ -38,7 +19,7 @@ export async function runNotificationJob(orgId?: string): Promise<{
   const today = dayjs().tz(TZ).startOf('day');
   const todayStr = today.format('YYYY-MM-DD');
 
-  console.log(`[${JOB_NAME}] Starting — today is ${todayStr} (GMT+7)`);
+  console.log(`[${JOB_NAME}] Starting — today is ${todayStr}`);
 
   let processed = 0;
   let notificationsSent = 0;
@@ -48,19 +29,37 @@ export async function runNotificationJob(orgId?: string): Promise<{
     data: { jobName: JOB_NAME, status: 'RUNNING', organizationId: orgId ?? null },
   });
 
+  const adminCache = new Map<string, string[]>();
+
+  const getOrgAdmins = async (oId: string) => {
+    if (adminCache.has(oId)) return adminCache.get(oId) || [];
+    const admins = await (enterpriseDb as any).user.findMany({
+      where: {
+        organizationId: oId,
+        roleTitle: { in: ['ADMIN', 'MANAGER', 'CFO', 'CEO'] },
+      },
+      select: { id: true },
+    });
+    const ids = admins.map((a: any) => a.id);
+    adminCache.set(oId, ids);
+    return ids;
+  };
+
   try {
-    // Query tất cả khoản nợ đang hoạt động (không bao gồm terminal states)
     const activeDebts = await (enterpriseDb as any).debtRecord.findMany({
       where: {
         ...(orgId ? { organizationId: orgId } : {}),
         status: { notIn: ['PAID', 'WRITTEN_OFF', 'DRAFT'] },
       },
       include: {
-        party: { select: { name: true } },
+        party: {
+          select: {
+            name: true,
+            personInChargeId: true,
+          },
+        },
       },
     });
-
-    console.log(`[${JOB_NAME}] Processing ${activeDebts.length} active debts`);
 
     for (const debt of activeDebts) {
       try {
@@ -70,104 +69,73 @@ export async function runNotificationJob(orgId?: string): Promise<{
         const overdueDays =
           isOverdue && debt.overdueSince ? today.diff(dayjs(debt.overdueSince).tz(TZ).startOf('day'), 'day') : 0;
 
-        let shouldNotify = false;
-        let milestone = '';
+        let category: any = null;
+        let title = '';
+        let content = '';
+        let priority: any = 'NORMAL';
 
-        if (isOverdue && dayjs(debt.overdueSince).format('YYYY-MM-DD') === todayStr) {
-          // Vừa chuyển OVERDUE hôm nay → notify ngay
-          shouldNotify = true;
-          milestone = 'OVERDUE_TODAY';
-        } else if (!isOverdue && ALERT_MILESTONES.includes(daysUntilDue)) {
-          // Đến mốc cảnh báo sắp đến hạn
-          shouldNotify = true;
-          milestone = `T_MINUS_${daysUntilDue}`;
+        // 1. Cảnh báo trước hạn
+        const Milestones = [30, 15, 7, 3, 1];
+        if (daysUntilDue > 0 && Milestones.includes(daysUntilDue)) {
+          category = 'OVERDUE';
+          title = `⏳ Sắp đến hạn: ${debt.party?.name || 'Đối tác'}`;
+          content = `Khoản nợ ${debt.internalCode} sẽ đến hạn trong ${daysUntilDue} ngày tới.`;
+          priority = daysUntilDue <= 3 ? 'IMPORTANT' : 'NORMAL';
         }
 
-        if (!shouldNotify) {
-          processed++;
-          continue;
+        // 2. Cảnh báo quá hạn
+        if (isOverdue && overdueDays >= 0) {
+          if ([0, 1, 7, 15, 30].includes(overdueDays)) {
+            category = overdueDays >= 15 ? 'ESCALATION' : 'OVERDUE';
+            priority = overdueDays >= 7 ? 'URGENT' : 'IMPORTANT';
+            title =
+              overdueDays === 0
+                ? `🔴 Khoản nợ VỪA QUÁ HẠN: ${debt.party?.name}`
+                : `🚨 QUÁ HẠN ${overdueDays} NGÀY: ${debt.party?.name}`;
+            content = `Khoản nợ ${debt.internalCode} đã quá hạn ${overdueDays} ngày. Tổng nợ: ${debt.outstanding.toLocaleString()}đ.`;
+          }
         }
 
-        // ── Chống duplicate notification ─────────────────────────────
-        // Kiểm tra xem hôm nay đã gửi ở mốc này chưa
-        const existingNotification = await (enterpriseDb as any).notification.findFirst({
-          where: {
-            userId: 'SYSTEM', // Tạm dùng userId đặc biệt để đánh dấu
-            metadata: {
-              path: ['debtId'],
-              equals: debt.id,
-            },
-            // Dùng createdAt để check duplicate trong ngày
-            createdAt: { gte: today.toDate() },
-          },
-        });
+        if (category) {
+          const recipients = new Set<string>();
+          if (debt.personInChargeId) recipients.add(debt.personInChargeId);
+          else if (debt.party?.personInChargeId) recipients.add(debt.party.personInChargeId);
 
-        if (existingNotification) {
-          console.log(`[${JOB_NAME}] Notification already sent for debt ${debt.id} today — skip`);
-          processed++;
-          continue;
+          if (category === 'ESCALATION' || (category === 'OVERDUE' && overdueDays >= 7)) {
+            const orgAdmins = await getOrgAdmins(debt.organizationId);
+            orgAdmins.forEach((id) => recipients.add(id));
+          }
+
+          if (recipients.size === 0) {
+            const orgAdmins = await getOrgAdmins(debt.organizationId);
+            if (orgAdmins.length > 0) recipients.add(orgAdmins[0]);
+          }
+
+          for (const targetUserId of recipients) {
+            await NotificationService.createNotification({
+              organizationId: debt.organizationId,
+              targetUserId,
+              type: 'TIME_BASED',
+              category,
+              priority,
+              title,
+              content,
+              debtRecordId: debt.id,
+              data: { daysUntilDue, overdueDays, outstanding: debt.outstanding },
+            });
+            notificationsSent++;
+          }
         }
-
-        const alertLevel = getAlertLevel(daysUntilDue, isOverdue);
-        const escalationTarget = isOverdue ? getEscalationLevel(overdueDays) : 'ASSIGNEE';
-
-        // ── Lấy danh sách users trong org để gửi notify ─────────────
-        const orgUsers = await (enterpriseDb as any).user.findMany({
-          where: { organizationId: debt.organizationId },
-          select: { id: true },
-        });
-
-        // Tạo notification cho tất cả users trong org
-        // (Thực tế sẽ filter theo assignee/role khi có field assigneeId)
-        for (const user of orgUsers) {
-          await (enterpriseDb as any).notification.create({
-            data: {
-              userId: user.id,
-              type: isOverdue ? 'DEBT_OVERDUE' : 'DEBT_DUE_SOON',
-              title: isOverdue
-                ? `🔴 Khoản nợ quá hạn: ${debt.party?.name}`
-                : `${alertLevel === 'CRITICAL' ? '🟠' : alertLevel === 'WARNING' ? '🟡' : '🟢'} Sắp đến hạn (${daysUntilDue} ngày): ${debt.party?.name}`,
-              message: isOverdue
-                ? `Khoản nợ ${debt.internalCode} với ${debt.party?.name} đã quá hạn ${overdueDays} ngày. Cần xử lý ngay — cấp độ: ${escalationTarget}.`
-                : `Khoản nợ ${debt.internalCode} với ${debt.party?.name} sẽ đến hạn sau ${daysUntilDue} ngày (${dayjs(debt.dueDate).format('DD/MM/YYYY')}).`,
-              isRead: false,
-              metadata: {
-                debtId: debt.id,
-                milestone,
-                alertLevel,
-                escalationTarget,
-                daysUntilDue,
-                overdueDays,
-                outstanding: debt.outstanding,
-              },
-            },
-          });
-          notificationsSent++;
-        }
-
         processed++;
-        console.log(
-          `[${JOB_NAME}] ✓ Debt ${debt.id} — sent ${orgUsers.length} notifications [${alertLevel}/${milestone}]`,
-        );
       } catch (err: any) {
-        // Check if error is about notification model not existing
-        if (err.message?.includes('notification')) {
-          console.warn(`[${JOB_NAME}] Notification model may not exist yet — ${err.message}`);
-          processed++;
-          continue;
-        }
-        const msg = `Debt ${debt.id}: ${err.message}`;
-        errors.push(msg);
-        console.error(`[${JOB_NAME}] ✗ ${msg}`);
+        errors.push(`Debt ${debt.id}: ${err.message}`);
       }
     }
   } catch (fatalErr: any) {
-    console.error(`[${JOB_NAME}] FATAL:`, fatalErr.message);
     errors.push(`FATAL: ${fatalErr.message}`);
   }
 
   const durationMs = Date.now() - startTime;
-
   await (enterpriseDb as any).jobLog.update({
     where: { id: jobLog.id },
     data: {
@@ -178,10 +146,6 @@ export async function runNotificationJob(orgId?: string): Promise<{
       durationMs,
     },
   });
-
-  console.log(
-    `[${JOB_NAME}] Done — processed: ${processed}, notifications sent: ${notificationsSent}, duration: ${durationMs}ms`,
-  );
 
   return { processed, notificationsSent, errors };
 }
