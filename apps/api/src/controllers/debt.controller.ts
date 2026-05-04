@@ -606,7 +606,8 @@ export async function getEarAnalysis(req: AuthenticatedRequest, res: Response) {
     });
 
     const totalBalance = debts.reduce((sum: number, d: any) => sum + d.balance, 0);
-    const averageAPR = debts.length > 0 ? debts.reduce((sum: number, d: any) => sum + d.apr, 0) / debts.length : 0;
+    const averageAPR =
+      totalBalance > 0 ? debts.reduce((sum: number, d: any) => sum + (d.balance / totalBalance) * d.apr, 0) : 0;
     const averageEAR =
       totalBalance > 0 ? analysis.reduce((sum: number, d: any) => sum + (d.balance / totalBalance) * d.ear, 0) : 0;
     const totalHiddenCost = averageEAR - averageAPR;
