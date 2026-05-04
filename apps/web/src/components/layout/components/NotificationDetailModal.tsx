@@ -105,27 +105,10 @@ export default function NotificationDetailModal({
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-100 dark:border-white/5">
-                {!notification.isRead && (
-                  <button
-                    onClick={() => {
-                      onMarkRead(notification.id);
-                      onClose();
-                    }}
-                    className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition-all hover:shadow-[0_0_20px_rgba(37,99,235,0.4)]"
-                  >
-                    <CheckCircle size={18} />
-                    Đánh dấu đã đọc
-                  </button>
-                )}
+              <div className="flex pt-4 border-t border-slate-100 dark:border-white/5">
                 <button
                   onClick={onClose}
-                  className={`flex-1 px-6 py-3 rounded-xl font-bold border transition-all ${
-                    notification.isRead
-                      ? 'bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-white/10'
-                      : 'border-slate-200 dark:border-white/10 text-slate-500 dark:text-white/60 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5'
-                  }`}
+                  className="w-full px-6 py-3 rounded-xl font-bold bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-white/10 transition-all"
                 >
                   Đóng
                 </button>
