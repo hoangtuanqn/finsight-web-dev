@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, Info, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import FormattedInput from '../../components/common/FormattedInput';
@@ -406,7 +406,10 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss, onFeedbac
                   className="w-full px-3 py-2.5 flex items-center justify-between text-xs font-medium transition-colors hover:opacity-80"
                   style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)' }}
                 >
-                  <span>📋 Phí ẩn (không bắt buộc)</span>
+                  <div className="flex items-center gap-2">
+                    <Info className="w-3.5 h-3.5" />
+                    <span>Phí ẩn (không bắt buộc)</span>
+                  </div>
                   {showFees ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </button>
                 <AnimatePresence>

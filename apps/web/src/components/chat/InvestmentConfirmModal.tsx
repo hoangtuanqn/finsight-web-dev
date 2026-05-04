@@ -254,15 +254,18 @@ export default function InvestmentConfirmModal({ data, onDismiss, onFeedback }: 
 
               {/* Disclaimer */}
               <div
-                className="p-3 rounded-xl text-xs"
+                className="p-3 rounded-xl text-xs flex items-start gap-2"
                 style={{
                   background: 'var(--color-bg-secondary)',
                   color: 'var(--color-text-secondary)',
                   border: '1px solid var(--color-border)',
                 }}
               >
-                ⚠️ Chiến lược đầu tư AI là gợi ý tham khảo, không phải lời khuyên tài chính chính thức. Bạn chịu trách
-                nhiệm về quyết định đầu tư của mình.
+                <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0 text-amber-500" />
+                <span>
+                  Chiến lược đầu tư AI là gợi ý tham khảo, không phải lời khuyên tài chính chính thức. Bạn chịu trách
+                  nhiệm về quyết định đầu tư của mình.
+                </span>
               </div>
             </div>
 
