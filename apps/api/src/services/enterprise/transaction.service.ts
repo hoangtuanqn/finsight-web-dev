@@ -147,11 +147,17 @@ export class TransactionService {
     return await (enterpriseDb as any).$transaction(async (tx: any) => {
       const originalTx = await tx.debtTransaction.findUnique({
         where: { id: transactionId },
-        include: { debtRecord: { include: { party: { select: { personInChargeId: true } } } } },
+        include: {
+          debtRecord: { include: { party: { select: { personInChargeId: true } } } },
+          reversedBy: { select: { id: true }, take: 1 },
+        },
       });
 
       if (!originalTx) throw new Error('Không tìm thấy giao dịch gốc');
       const debt = originalTx.debtRecord;
+
+      if (debt.organizationId !== orgId) throw new Error('Không có quyền đảo ngược giao dịch này');
+      if (originalTx.reversedBy.length > 0) throw new Error('Giao dịch này đã được đảo ngược trước đó');
 
       const reversalTx = await tx.debtTransaction.create({
         data: {

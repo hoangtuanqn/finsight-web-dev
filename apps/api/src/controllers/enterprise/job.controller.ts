@@ -1,13 +1,13 @@
 import { Request, Response } from 'express';
-import { runNotificationJob } from '../../jobs/notification.job';
-import { runOverdueJob } from '../../jobs/overdue.job';
-import { runPenaltyJob } from '../../jobs/penalty.job';
-import { runReportingJob } from '../../jobs/report.job';
-import enterpriseDb from '../../prisma/enterprise.client';
+import { runNotificationJob } from '../../jobs/notification.job.js';
+import { runOverdueJob } from '../../jobs/overdue.job.js';
+import { runPenaltyJob } from '../../jobs/penalty.job.js';
+import { runReportingJob } from '../../jobs/report.job.js';
+import enterpriseDb from '../../prisma/enterprise.client.js';
 
 export const runOverdue = async (req: Request, res: Response) => {
   try {
-    const orgId = (req as any).user?.organizationId;
+    const orgId = (req as any).organizationId;
     const result = await runOverdueJob(orgId);
     res.json(result);
   } catch (error: any) {
@@ -17,7 +17,7 @@ export const runOverdue = async (req: Request, res: Response) => {
 
 export const runPenalty = async (req: Request, res: Response) => {
   try {
-    const orgId = (req as any).user?.organizationId;
+    const orgId = (req as any).organizationId;
     const result = await runPenaltyJob(orgId);
     res.json(result);
   } catch (error: any) {
@@ -27,7 +27,7 @@ export const runPenalty = async (req: Request, res: Response) => {
 
 export const runNotify = async (req: Request, res: Response) => {
   try {
-    const orgId = (req as any).user?.organizationId;
+    const orgId = (req as any).organizationId;
     const result = await runNotificationJob(orgId);
     res.json(result);
   } catch (error: any) {
@@ -37,7 +37,7 @@ export const runNotify = async (req: Request, res: Response) => {
 
 export const runReport = async (req: Request, res: Response) => {
   try {
-    const orgId = (req as any).user?.organizationId;
+    const orgId = (req as any).organizationId;
     const result = await runReportingJob(orgId);
     res.json(result);
   } catch (error: any) {

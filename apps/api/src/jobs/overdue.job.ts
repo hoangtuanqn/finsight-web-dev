@@ -68,7 +68,7 @@ export async function runOverdueJob(orgId?: string): Promise<{
           await tx.auditLog.create({
             data: {
               organizationId: debt.organizationId,
-              userId: 'SYSTEM',
+              userId: null,
               action: 'UPDATE_STATUS',
               entityType: 'DEBT_RECORD',
               entityId: debt.id,
@@ -137,7 +137,7 @@ export async function runOverdueJob(orgId?: string): Promise<{
             await tx.auditLog.create({
               data: {
                 organizationId: debt.organizationId,
-                userId: 'SYSTEM',
+                userId: null,
                 action: 'UPDATE_STATUS',
                 entityType: 'DEBT_RECORD',
                 entityId: debt.id,

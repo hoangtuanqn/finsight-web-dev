@@ -25,9 +25,10 @@ export class NotificationService {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      const existing = await (db as any).notification.findFirst({
+      const existing = await (db as any).enterpriseNotification.findFirst({
         where: {
           debtRecordId: data.debtRecordId,
+          targetUserId: data.targetUserId,
           type: 'TIME_BASED',
           category: data.category,
           createdAt: { gte: today },
@@ -36,8 +37,16 @@ export class NotificationService {
       if (existing) return existing;
     }
 
-    return await (db as any).notification.create({
+    return await (db as any).enterpriseNotification.create({
       data: {
+        organizationId: data.organizationId,
+        targetUserId: data.targetUserId,
+        type: data.type,
+        category: data.category,
+        priority: data.priority,
+        title: data.title,
+        content: data.content,
+        debtRecordId: data.debtRecordId,
         data: data.data || {},
       },
     });
@@ -63,7 +72,7 @@ export class NotificationService {
     if (filters.priority) where.priority = filters.priority;
     if (filters.category) where.category = filters.category;
 
-    return await (enterpriseDb as any).notification.findMany({
+    return await (enterpriseDb as any).enterpriseNotification.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       include: {
@@ -79,8 +88,15 @@ export class NotificationService {
    * Đánh dấu đã đọc
    */
   static async markAsRead(id: string, userId: string) {
-    return await (enterpriseDb as any).notification.updateMany({
+    return await (enterpriseDb as any).enterpriseNotification.updateMany({
       where: { id, targetUserId: userId },
+      data: { isRead: true, readAt: new Date() },
+    });
+  }
+
+  static async markAllAsRead(userId: string) {
+    return await (enterpriseDb as any).enterpriseNotification.updateMany({
+      where: { targetUserId: userId, isRead: false },
       data: { isRead: true, readAt: new Date() },
     });
   }
@@ -89,7 +105,7 @@ export class NotificationService {
    * Xác nhận xử lý (Acknowledge)
    */
   static async acknowledge(id: string, userId: string) {
-    return await (enterpriseDb as any).notification.updateMany({
+    return await (enterpriseDb as any).enterpriseNotification.updateMany({
       where: { id, targetUserId: userId },
       data: { acknowledgedAt: new Date() },
     });
@@ -100,7 +116,7 @@ export class NotificationService {
    */
   static async snooze(id: string, userId: string, days: number = 3) {
     const snoozedUntil = dayjs().add(days, 'day').toDate();
-    return await (enterpriseDb as any).notification.updateMany({
+    return await (enterpriseDb as any).enterpriseNotification.updateMany({
       where: { id, targetUserId: userId },
       data: { snoozedUntil },
     });
@@ -110,7 +126,7 @@ export class NotificationService {
    * Lấy số lượng chưa đọc
    */
   static async getUnreadCount(userId: string) {
-    return await (enterpriseDb as any).notification.count({
+    return await (enterpriseDb as any).enterpriseNotification.count({
       where: {
         targetUserId: userId,
         isRead: false,

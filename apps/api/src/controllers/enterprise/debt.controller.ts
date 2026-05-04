@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import enterpriseDb from '../../prisma/enterprise.client';
-import * as debtService from '../../services/enterprise/debt.service';
-import * as debtStatusService from '../../services/enterprise/debtStatus.service';
-import transactionService from '../../services/enterprise/transaction.service';
-import { logAudit } from '../../utils/audit';
+import enterpriseDb from '../../prisma/enterprise.client.js';
+import * as debtService from '../../services/enterprise/debt.service.js';
+import * as debtStatusService from '../../services/enterprise/debtStatus.service.js';
+import transactionService from '../../services/enterprise/transaction.service.js';
+import { logAudit } from '../../utils/audit.js';
 
 export const createDebt = async (req: Request, res: Response) => {
   try {
