@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { BadgeDollarSign, Bell, ChevronRight, LayoutDashboard, LogOut, User, Users } from 'lucide-react';
+import { BadgeDollarSign, Bell, Calculator, ChevronRight, LayoutDashboard, LogOut, User, Users } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../hooks/useNotifications';
@@ -52,6 +52,16 @@ const NAV_GROUPS = [
         hasBadge: false,
         color: '#f59e0b',
         gradient: 'from-amber-500 to-orange-400',
+      },
+      {
+        id: 'nav-repayment-planner',
+        to: '/repayment-planner',
+        icon: Calculator,
+        label: 'Kế hoạch trả nợ',
+        end: false,
+        hasBadge: false,
+        color: '#6366f1',
+        gradient: 'from-indigo-500 to-purple-400',
       },
     ],
   },

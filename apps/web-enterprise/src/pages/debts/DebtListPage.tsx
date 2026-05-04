@@ -77,9 +77,18 @@ export default function DebtListPage() {
     }
   };
 
+  const filteredDebts = search.trim()
+    ? debts.filter(
+        (d) =>
+          (d.internalCode || '').toLowerCase().includes(search.toLowerCase()) ||
+          (d.party?.name || '').toLowerCase().includes(search.toLowerCase()) ||
+          (d.notes || '').toLowerCase().includes(search.toLowerCase()),
+      )
+    : debts;
+
   const stats = {
-    receivable: debts.filter((d) => d.type === 'RECEIVABLE').reduce((sum, d) => sum + d.principal, 0),
-    payable: debts.filter((d) => d.type === 'PAYABLE').reduce((sum, d) => sum + d.principal, 0),
+    receivable: debts.filter((d) => d.type === 'RECEIVABLE').reduce((sum, d) => sum + d.outstanding, 0),
+    payable: debts.filter((d) => d.type === 'PAYABLE').reduce((sum, d) => sum + d.outstanding, 0),
     overdueCount: debts.filter((d) => d.status === 'OVERDUE').length,
   };
 
@@ -200,14 +209,14 @@ export default function DebtListPage() {
                     Đang tải dữ liệu...
                   </td>
                 </tr>
-              ) : debts.length === 0 ? (
+              ) : filteredDebts.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-20 text-center text-slate-500 text-sm font-medium">
                     Không tìm thấy khoản nợ nào.
                   </td>
                 </tr>
               ) : (
-                debts.map((debt) => (
+                filteredDebts.map((debt) => (
                   <tr
                     key={debt.id}
                     className="hover:bg-slate-800/30 transition-colors cursor-pointer group"

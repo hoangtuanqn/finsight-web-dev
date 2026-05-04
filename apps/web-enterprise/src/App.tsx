@@ -7,15 +7,16 @@ import ScrollToTop from './components/layout/ScrollToTop';
 import { AuthProvider } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import DashboardPage from './pages/DashboardPage';
+import DebtCreatePage from './pages/debts/DebtCreatePage';
+import DebtDetailPage from './pages/debts/DebtDetailPage';
+import DebtListPage from './pages/debts/DebtListPage';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import NotificationsPage from './pages/Notifications';
 import PartiesPage from './pages/PartiesPage';
 import ProfilePage from './pages/ProfilePage';
 import RegisterPage from './pages/RegisterPage';
-import DebtCreatePage from './pages/debts/DebtCreatePage';
-import DebtDetailPage from './pages/debts/DebtDetailPage';
-import DebtListPage from './pages/debts/DebtListPage';
+import RepaymentPlanner from './pages/RepaymentPlanner';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30000, retry: 1 } },
@@ -55,6 +56,7 @@ export default function App() {
                 <Route path="/debts" element={<DebtListPage />} />
                 <Route path="/debts/new" element={<DebtCreatePage />} />
                 <Route path="/debts/:id" element={<DebtDetailPage />} />
+                <Route path="/repayment-planner" element={<RepaymentPlanner />} />
               </Route>
               <Route path="*" element={<Navigate to="/home" />} />
             </Routes>
