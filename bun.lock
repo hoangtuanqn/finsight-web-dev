@@ -128,6 +128,7 @@
         "@hookform/resolvers": "^5.2.2",
         "@mediapipe/face_mesh": "^0.4.1633559619",
         "@react-oauth/google": "^0.13.5",
+        "@repo/financial-core": "*",
         "@repo/types": "*",
         "@repo/ui": "*",
         "@tanstack/react-query": "^5.91.3",
