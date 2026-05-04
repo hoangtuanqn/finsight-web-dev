@@ -3,6 +3,7 @@ import {
   AlertOctagon,
   AlertTriangle,
   BarChart2,
+  CheckCircle2,
   ChevronRight,
   ClipboardList,
   CreditCard,
@@ -340,216 +341,223 @@ export default function DebtOverviewPage() {
         </div>
       )}
 
-      {debtsData.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          {/* Debt Mix Chart */}
-          <div className="bg-[var(--color-bg-card)] rounded-3xl p-6 border border-[var(--color-border)] shadow-sm">
-            <h3 className="text-sm font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-4">
-              Cơ cấu nợ
-            </h3>
-            <div className="h-[220px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={debtMixData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {debtMixData.map((entry: any, index: number) => (
-                      <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} stroke="transparent" />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value: number) => formatVND(value)}
-                    contentStyle={{
-                      backgroundColor: 'var(--color-bg-primary)',
-                      border: '1px solid var(--color-border)',
-                      borderRadius: '12px',
-                      fontSize: '13px',
-                      fontWeight: 'bold',
-                    }}
-                    itemStyle={{ color: 'var(--color-text-primary)' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Balance Trend Area Chart */}
-          <div className="bg-[var(--color-bg-card)] rounded-3xl p-6 border border-[var(--color-border)] shadow-sm">
-            <h3 className="text-sm font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-4">
-              Xu hướng dự kiến (6 tháng)
-            </h3>
-            <div className="h-[220px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.5} />
-                  <XAxis
-                    dataKey="month"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }}
-                    dy={10}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }}
-                    tickFormatter={(val) => `${(val / 1000000).toFixed(0)}M`}
-                    width={45}
-                  />
-                  <Tooltip
-                    formatter={(value: number) => formatVND(value)}
-                    contentStyle={{
-                      backgroundColor: 'var(--color-bg-primary)',
-                      border: '1px solid var(--color-border)',
-                      borderRadius: '12px',
-                      fontSize: '13px',
-                      fontWeight: 'bold',
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="Dư nợ"
-                    stroke="#3b82f6"
-                    strokeWidth={3}
-                    fillOpacity={1}
-                    fill="url(#colorBalance)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Interest vs Principal Stacked Bar Chart */}
-          <div className="bg-[var(--color-bg-card)] rounded-3xl p-6 border border-[var(--color-border)] shadow-sm">
-            <h3 className="text-sm font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-4">
-              Lãi suất vs Gốc / Tháng
-            </h3>
-            <div className="h-[220px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={interestVsPrincipalData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.5} />
-                  <XAxis
-                    dataKey="name"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }}
-                    dy={10}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }}
-                    tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`}
-                    width={45}
-                  />
-                  <Tooltip
-                    formatter={(value: number) => formatVND(value)}
-                    contentStyle={{
-                      backgroundColor: 'var(--color-bg-primary)',
-                      border: '1px solid var(--color-border)',
-                      borderRadius: '12px',
-                      fontSize: '13px',
-                      fontWeight: 'bold',
-                    }}
-                    cursor={{ fill: 'var(--color-border)', opacity: 0.2 }}
-                  />
-                  <Bar dataKey="Gốc trả được" stackId="a" fill="#10b981" radius={[0, 0, 4, 4]} />
-                  <Bar dataKey="Lãi phát sinh" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {(filteredDebts.length > 0 || hasActiveFilters) && (
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between pt-2 gap-4">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-extrabold text-[var(--color-text-primary)]">Chi tiết khoản nợ</h2>
-            <div className="hidden lg:flex bg-[var(--color-bg-secondary)] p-1 rounded-xl border border-[var(--color-border)]">
-              {STATUS_TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setFilters((f: any) => ({ ...f, status: tab.id }))}
-                  className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
-                    filters.status === tab.id
-                      ? 'bg-[var(--color-bg-card)] text-blue-500 shadow-sm border border-blue-500/20'
-                      : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <div className="lg:hidden flex-1 flex bg-[var(--color-bg-secondary)] p-1 rounded-xl border border-[var(--color-border)]">
-              {STATUS_TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setFilters((f: any) => ({ ...f, status: tab.id }))}
-                  className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    filters.status === tab.id
-                      ? 'bg-[var(--color-bg-card)] text-blue-500 shadow-sm border border-blue-500/20'
-                      : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowFilters(true)}
-                className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all font-bold text-sm ${
-                  hasActiveFilters
-                    ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-500/20'
-                    : 'bg-[var(--color-bg-card)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-blue-500/40'
-                }`}
-              >
-                <Filter size={16} />
-                <span>Bộ lọc</span>
-                {hasActiveFilters && (
-                  <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-[10px] flex items-center justify-center rounded-full border-2 border-[var(--color-bg-primary)]">
-                    !
-                  </span>
-                )}
-              </button>
-
-              <div className="hidden sm:flex items-center bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-xl p-1 shadow-sm">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-1.5 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'}`}
-                  title="Xem dạng lưới"
-                >
-                  <LayoutGrid size={18} />
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-1.5 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'}`}
-                  title="Xem dạng danh sách"
-                >
-                  <List size={18} />
-                </button>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {debtsData.length > 0 ? (
+          <>
+            {/* Debt Mix Chart */}
+            <div className="bg-[var(--color-bg-card)] rounded-3xl p-6 border border-[var(--color-border)] shadow-sm">
+              <h3 className="text-sm font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-4">
+                Cơ cấu nợ
+              </h3>
+              <div className="h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={debtMixData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {debtMixData.map((entry: any, index: number) => (
+                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} stroke="transparent" />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: number) => formatVND(value)}
+                      contentStyle={{
+                        backgroundColor: 'var(--color-bg-primary)',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: '12px',
+                        fontSize: '13px',
+                        fontWeight: 'bold',
+                      }}
+                      itemStyle={{ color: 'var(--color-text-primary)' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
             </div>
+
+            {/* Balance Trend Area Chart */}
+            <div className="bg-[var(--color-bg-card)] rounded-3xl p-6 border border-[var(--color-border)] shadow-sm">
+              <h3 className="text-sm font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-4">
+                Xu hướng dự kiến (6 tháng)
+              </h3>
+              <div className="h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.5} />
+                    <XAxis
+                      dataKey="month"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }}
+                      dy={10}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }}
+                      tickFormatter={(val) => `${(val / 1000000).toFixed(0)}M`}
+                      width={45}
+                    />
+                    <Tooltip
+                      formatter={(value: number) => formatVND(value)}
+                      contentStyle={{
+                        backgroundColor: 'var(--color-bg-primary)',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: '12px',
+                        fontSize: '13px',
+                        fontWeight: 'bold',
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="Dư nợ"
+                      stroke="#3b82f6"
+                      strokeWidth={3}
+                      fillOpacity={1}
+                      fill="url(#colorBalance)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Interest vs Principal Stacked Bar Chart */}
+            <div className="bg-[var(--color-bg-card)] rounded-3xl p-6 border border-[var(--color-border)] shadow-sm">
+              <h3 className="text-sm font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-4">
+                Lãi suất vs Gốc / Tháng
+              </h3>
+              <div className="h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={interestVsPrincipalData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" opacity={0.5} />
+                    <XAxis
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }}
+                      dy={10}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 12, fill: 'var(--color-text-muted)' }}
+                      tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`}
+                      width={45}
+                    />
+                    <Tooltip
+                      formatter={(value: number) => formatVND(value)}
+                      contentStyle={{
+                        backgroundColor: 'var(--color-bg-primary)',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: '12px',
+                        fontSize: '13px',
+                        fontWeight: 'bold',
+                      }}
+                      cursor={{ fill: 'var(--color-border)', opacity: 0.2 }}
+                    />
+                    <Bar dataKey="Gốc trả được" stackId="a" fill="#10b981" radius={[0, 0, 4, 4]} />
+                    <Bar dataKey="Lãi phát sinh" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="lg:col-span-3 bg-[var(--color-bg-card)]/50 rounded-3xl p-12 border border-dashed border-[var(--color-border)] flex flex-col items-center justify-center text-center">
+            <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-4">
+              <BarChart2 className="text-slate-500 w-8 h-8" />
+            </div>
+            <p className="text-[var(--color-text-muted)] font-medium">Không có dữ liệu phân tích cho danh mục này</p>
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between pt-2 gap-4">
+        <div className="flex items-center gap-4">
+          <h2 className="text-xl font-extrabold text-[var(--color-text-primary)]">Chi tiết khoản nợ</h2>
+          <div className="hidden lg:flex bg-[var(--color-bg-secondary)] p-1 rounded-xl border border-[var(--color-border)]">
+            {STATUS_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setFilters((f: any) => ({ ...f, status: tab.id }))}
+                className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
+                  filters.status === tab.id
+                    ? 'bg-[var(--color-bg-card)] text-blue-500 shadow-sm border border-blue-500/20'
+                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
         </div>
-      )}
+
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="lg:hidden flex-1 flex bg-[var(--color-bg-secondary)] p-1 rounded-xl border border-[var(--color-border)]">
+            {STATUS_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setFilters((f: any) => ({ ...f, status: tab.id }))}
+                className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  filters.status === tab.id
+                    ? 'bg-[var(--color-bg-card)] text-blue-500 shadow-sm border border-blue-500/20'
+                    : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowFilters(true)}
+              className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl border transition-all font-bold text-sm ${
+                hasActiveFilters
+                  ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-500/20'
+                  : 'bg-[var(--color-bg-card)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-blue-500/40'
+              }`}
+            >
+              <Filter size={16} />
+              <span>Bộ lọc</span>
+              {hasActiveFilters && (
+                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-[10px] flex items-center justify-center rounded-full border-2 border-[var(--color-bg-primary)]">
+                  !
+                </span>
+              )}
+            </button>
+
+            <div className="hidden sm:flex items-center bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-xl p-1 shadow-sm">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-1.5 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'}`}
+                title="Xem dạng lưới"
+              >
+                <LayoutGrid size={18} />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-1.5 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'}`}
+                title="Xem dạng danh sách"
+              >
+                <List size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Filter Drawer Overlay */}
       <AnimatePresence>
@@ -749,13 +757,27 @@ export default function DebtOverviewPage() {
             style={{ background: 'var(--color-bg-card)' }}
           >
             <div className="w-20 h-20 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto mb-6">
-              <PartyPopper size={36} className="text-blue-400" />
+              {filters.status === 'ACTIVE' ? (
+                <PartyPopper size={36} className="text-blue-400" />
+              ) : filters.status === 'PAID' ? (
+                <CheckCircle2 size={36} className="text-emerald-400" />
+              ) : (
+                <X size={36} className="text-slate-400" />
+              )}
             </div>
             <h3 className="text-xl md:text-2xl text-[var(--color-text-primary)] font-bold mb-2">
-              Không có khoản nợ nào cần theo dõi
+              {filters.status === 'ACTIVE'
+                ? 'Không có khoản nợ nào cần theo dõi'
+                : filters.status === 'PAID'
+                  ? 'Chưa có khoản nợ nào được tất toán'
+                  : 'Thùng rác trống'}
             </h3>
-            <p className="text-[var(--color-text-muted)] text-base">
-              Tuyệt vời! Bạn đang quản lý tài chính rất tốt, hãy tiếp tục phát huy nhé.
+            <p className="text-[var(--color-text-muted)] text-base leading-relaxed max-w-md mx-auto">
+              {filters.status === 'ACTIVE'
+                ? 'Tuyệt vời! Bạn đang quản lý tài chính rất tốt, hãy tiếp tục phát huy nhé.'
+                : filters.status === 'PAID'
+                  ? 'Khi bạn hoàn thành trả nợ cho một khoản, nó sẽ xuất hiện tại đây.'
+                  : 'Các khoản nợ bị xóa sẽ tạm thời được lưu trữ tại đây trong 30 ngày.'}
             </p>
           </div>
         )
