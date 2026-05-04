@@ -1,6 +1,6 @@
 import { Button } from '@repo/ui/button';
 import { Input } from '@repo/ui/input';
-import { AlertCircle, Calendar, CheckCircle2, CreditCard, DollarSign, FileText, Hash, X } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle2, CreditCard, DollarSign, FileText, Hash, Info, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { enterpriseAuthAPI } from '../../api';
 
@@ -35,10 +35,10 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ isOpen, 
         throw new Error('Số tiền thanh toán phải lớn hơn 0');
       }
 
-      if (amount > debt.outstanding) {
-        throw new Error(
-          `Số tiền thanh toán không được vượt quá dư nợ hiện tại (${debt.outstanding.toLocaleString()}đ)`,
-        );
+      const totalObligation = debt.outstanding + (debt.unpaidPenalty || 0);
+
+      if (amount > totalObligation + 0.01) {
+        throw new Error(`Số tiền thanh toán không được vượt quá tổng nghĩa vụ (${totalObligation.toLocaleString()}đ)`);
       }
 
       await enterpriseAuthAPI.recordPayment(debt.id, {
@@ -54,6 +54,10 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ isOpen, 
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
   };
 
   return (
@@ -84,17 +88,33 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ isOpen, 
           )}
 
           {/* Quick Info */}
-          <div className="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl flex items-center justify-between">
-            <div>
-              <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Dư nợ hiện tại</p>
-              <p className="text-lg font-black text-emerald-400 font-mono">
-                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(debt.outstanding)}
+          <div className="p-4 bg-slate-950/50 border border-slate-800 rounded-2xl space-y-3">
+            <div className="flex justify-between items-center">
+              <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Dư nợ gốc</p>
+              <p className="text-sm font-black text-white font-mono">{formatCurrency(debt.outstanding)}</p>
+            </div>
+            <div className="flex justify-between items-center">
+              <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Phạt chưa trả</p>
+              <p
+                className={`text-sm font-black font-mono ${debt.unpaidPenalty > 0 ? 'text-rose-500' : 'text-slate-500'}`}
+              >
+                {formatCurrency(debt.unpaidPenalty || 0)}
               </p>
             </div>
-            <div className="text-right">
-              <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-1">Đối tác</p>
-              <p className="text-sm font-bold text-white">{debt.party?.name}</p>
+            <div className="pt-2 border-t border-slate-800 flex justify-between items-center">
+              <p className="text-[10px] text-emerald-500 font-black uppercase tracking-widest">Tổng cần trả</p>
+              <p className="text-lg font-black text-emerald-500 font-mono">
+                {formatCurrency(debt.outstanding + (debt.unpaidPenalty || 0))}
+              </p>
             </div>
+          </div>
+
+          <div className="flex items-center gap-2 p-3 bg-blue-500/5 border border-blue-500/10 rounded-xl mb-2">
+            <Info size={14} className="text-blue-400 shrink-0" />
+            <p className="text-[10px] text-blue-400/80 leading-relaxed font-medium">
+              Hệ thống áp dụng cơ chế <b>Waterfall</b>: Tiền thanh toán sẽ ưu tiên trừ vào <b>Phạt</b>, sau đó mới đến{' '}
+              <b>Gốc</b>.
+            </p>
           </div>
 
           <div className="space-y-4">
