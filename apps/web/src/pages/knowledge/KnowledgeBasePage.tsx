@@ -23,7 +23,7 @@ import {
   User,
   X,
 } from 'lucide-react';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import knowledgeData from '../../data/knowledgeBase.json';
 import { useArticles, useCreateArticle, useDeleteArticle, useUpdateArticle } from '../../hooks/useArticleQuery';
@@ -143,7 +143,7 @@ export default function KnowledgeBasePage() {
     setArticleForm((current) => ({ ...current, [field]: value }));
   };
 
-  const handleSaveArticle = (event: FormEvent) => {
+  const handleSaveArticle = (event: React.FormEvent) => {
     event.preventDefault();
 
     const data = {
@@ -518,7 +518,7 @@ export default function KnowledgeBasePage() {
                     style={{ boxShadow: '0 20px 40px rgba(0,0,0,0.05)' }}
                   >
                     <div
-                      className={`${articleViewMode === 'grid' ? 'h-64' : 'h-52 md:h-auto md:w-72 lg:w-80'} overflow-hidden relative shrink-0`}
+                      className={`${articleViewMode === 'grid' ? 'h-64' : 'h-52 md:h-64 md:w-72 lg:w-80'} overflow-hidden relative shrink-0`}
                     >
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10 opacity-60 group-hover:opacity-40 transition-opacity" />
                       <img
