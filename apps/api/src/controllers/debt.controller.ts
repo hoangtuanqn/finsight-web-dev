@@ -291,7 +291,9 @@ export async function deleteDebt(req: AuthenticatedRequest, res: Response) {
     let scheduledPurgeAt = new Date();
     scheduledPurgeAt.setDate(scheduledPurgeAt.getDate() + 30);
 
-    if (debt.balance > 0) {
+    const requiresReason = debt.balance > 0 || debt.debtType === 'CREDIT_CARD';
+
+    if (requiresReason) {
       if (!reason || !isCommitted) {
         return error(res, 'Yêu cầu nhập lý do và cam kết rủi ro.', 400);
       }
@@ -311,8 +313,8 @@ export async function deleteDebt(req: AuthenticatedRequest, res: Response) {
         data: {
           deletedAt: new Date(),
           scheduledPurgeAt,
-          deleteReason: 'CLEAN_UP_SETTLED_DEBT',
-          deleteCommitment: false,
+          deleteReason: reason || 'CLEAN_UP_SETTLED_DEBT',
+          deleteCommitment: isCommitted || false,
         },
       });
     }
