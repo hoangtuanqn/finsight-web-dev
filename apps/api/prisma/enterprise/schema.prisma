@@ -162,6 +162,13 @@ model DebtRecord {
   
   status           String   @default("DRAFT") // DRAFT, ACTIVE, PARTIAL, PAID, OVERDUE, DISPUTED, WRITTEN_OFF
   
+  // Module 5: Overdue & Penalty tracking
+  overdueSince          DateTime? // First date debt became overdue
+  lastOverdueCheckDate  DateTime? // Idempotency: last date Job 1 processed this record
+  lastPenaltyDate       DateTime? // Idempotency: last date Job 2 calculated penalty
+  penaltyRate           Float     @default(0)   // %/day (e.g. 0.0003 = 0.03%)
+  gracePeriodDays       Int       @default(0)   // Days after dueDate before penalty starts
+  
   internalCode     String?  // Reference number
   notes            String?  @db.Text
   
@@ -209,6 +216,8 @@ model DebtSchedule {
   remainingPrincipal Float // Balance after this payment
   
   status         String   @default("PENDING") // PENDING, PAID, PARTIAL, OVERDUE
+  isOverdue      Boolean  @default(false)
+  overdueSince   DateTime?
   
   triggerType    String   @default("DATE") // DATE, MILESTONE
   triggerCondition String? // e.g. "ACCEPTANCE", "WARRANTY_END"
@@ -262,5 +271,20 @@ model DebtDocument {
   createdAt      DateTime @default(now())
 
   @@map("enterprise_debt_documents")
+  @@schema("enterprise")
+}
+
+model JobLog {
+  id             String   @id @default(uuid())
+  organizationId String?
+  jobName        String   // JOB_OVERDUE, JOB_PENALTY, JOB_NOTIFY, JOB_REPORT
+  runAt          DateTime @default(now())
+  status         String   // RUNNING, SUCCESS, FAILED, PARTIAL
+  processedCount Int      @default(0)
+  failedCount    Int      @default(0)
+  errorLog       String?  @db.Text
+  durationMs     Int?
+
+  @@map("enterprise_job_logs")
   @@schema("enterprise")
 }
