@@ -233,8 +233,8 @@ function PaymentInfoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
               ))}
             </div>
 
-            <div className="mt-8 p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10">
-              <p className="text-[11px] text-blue-400 font-medium leading-relaxed italic text-center">
+            <div className="mt-8 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
+              <p className="text-[11px] text-emerald-400 font-medium leading-relaxed italic text-center">
                 "Khoản trả này thường là cố định (đối với trả góp), giúp bạn dễ dàng lập kế hoạch tài chính hàng tháng."
               </p>
             </div>
@@ -274,7 +274,7 @@ function BalanceInfoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
         >
           <div className="p-8">
             <div className="flex justify-between items-start mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
                 <Info size={24} />
               </div>
               <button
@@ -298,17 +298,17 @@ function BalanceInfoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
                 {
                   title: 'Tiền gốc ban đầu',
                   desc: 'Giá trị sản phẩm hoặc số tiền mặt bạn thực nhận từ bên cho vay.',
-                  icon: <CheckCircle2 size={16} className="text-blue-500" />,
+                  icon: <CheckCircle2 size={16} className="text-emerald-500" />,
                 },
                 {
                   title: 'Phí xử lý & Hồ sơ',
                   desc: 'Các loại phí dịch vụ thường được cộng trực tiếp vào số tiền nợ ban đầu.',
-                  icon: <CheckCircle2 size={16} className="text-blue-500" />,
+                  icon: <CheckCircle2 size={16} className="text-emerald-500" />,
                 },
                 {
                   title: 'Phí bảo hiểm khoản vay',
                   desc: 'Một số nền tảng bắt buộc mua bảo hiểm và tính vào dư nợ để trả góp dần.',
-                  icon: <CheckCircle2 size={16} className="text-blue-500" />,
+                  icon: <CheckCircle2 size={16} className="text-emerald-500" />,
                 },
               ].map((item, i) => (
                 <div
@@ -324,8 +324,8 @@ function BalanceInfoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
               ))}
             </div>
 
-            <div className="mt-8 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/10">
-              <p className="text-[11px] text-amber-600/80 dark:text-amber-400/70 font-medium leading-relaxed italic text-center">
+            <div className="mt-8 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
+              <p className="text-[11px] text-emerald-400 font-medium leading-relaxed italic text-center">
                 "Việc tính đúng dư nợ ban đầu giúp xác định chính xác lãi suất thực tế (EAR) mà bạn phải gánh chịu."
               </p>
             </div>
@@ -701,13 +701,53 @@ export default function AddDebtPage() {
                     </div>
                   </div>
 
-                  {/* Dư nợ và Lãi suất */}
+                  {/* Dư nợ và Lãi suất - Rearranged: Lãi suất & Hình thức lãi */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="input-label">Lãi suất APR (%/năm)</label>
+                      <Controller
+                        name="apr"
+                        control={control}
+                        render={({ field }) => (
+                          <FormattedInput
+                            kind="decimal"
+                            value={field.value}
+                            onValueChange={(value) => field.onChange(toNumberValue(value))}
+                            className={inputCls(errors.apr)}
+                            placeholder="0"
+                            suffix="%"
+                          />
+                        )}
+                      />
+                      {errors.apr && (
+                        <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
+                          <AlertTriangle size={11} /> {errors.apr.message as string}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="input-label">Hình thức tính lãi</label>
+                      {debtType === 'CREDIT_CARD' ? (
+                        <div className="px-4 py-2.5 rounded-xl border border-[var(--color-border)] bg-white/[0.02] text-sm text-[var(--color-text-secondary)]">
+                          Reducing (Dư nợ giảm dần)
+                        </div>
+                      ) : (
+                        <select {...register('rateType')} className={inputCls(errors.rateType)}>
+                          <option value="FLAT">Flat (Lãi trên gốc ban đầu)</option>
+                          <option value="REDUCING">Reducing (Dư nợ giảm dần)</option>
+                        </select>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Trả tối thiểu và Dư nợ - Rearranged: Số dư & Khoản trả hàng tháng */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <div className="flex justify-between items-end mb-1.5">
                         <label className="input-label mb-0">
                           Dư nợ hiện tại
-                          <span className="text-[10px] text-blue-400 font-normal ml-2 tracking-normal lowercase">
+                          <span className="text-[10px] text-emerald-400 font-normal ml-2 tracking-normal lowercase">
                             (Số tiền đang nợ)
                           </span>
                         </label>
@@ -715,10 +755,10 @@ export default function AddDebtPage() {
                           <button
                             type="button"
                             onClick={() => setShowBalanceInfo(true)}
-                            className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 transition-colors cursor-pointer group"
+                            className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors cursor-pointer group"
                           >
-                            <Info size={10} className="text-blue-400 group-hover:scale-110 transition-transform" />
-                            <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">
+                            <Info size={10} className="text-emerald-400 group-hover:scale-110 transition-transform" />
+                            <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
                               Hệ thống tự tính
                             </span>
                           </button>
@@ -783,32 +823,6 @@ export default function AddDebtPage() {
                     </div>
 
                     <div>
-                      <label className="input-label">Lãi suất APR (%/năm)</label>
-                      <Controller
-                        name="apr"
-                        control={control}
-                        render={({ field }) => (
-                          <FormattedInput
-                            kind="decimal"
-                            value={field.value}
-                            onValueChange={(value) => field.onChange(toNumberValue(value))}
-                            className={inputCls(errors.apr)}
-                            placeholder="0"
-                            suffix="%"
-                          />
-                        )}
-                      />
-                      {errors.apr && (
-                        <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
-                          <AlertTriangle size={11} /> {errors.apr.message as string}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Trả tối thiểu và Hình thức lãi */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
                       <div className="flex justify-between items-end mb-1.5">
                         <label className="input-label mb-0">
                           {debtType === 'CREDIT_CARD' ? 'Thanh toán tối thiểu' : 'Khoản trả hàng tháng'}
@@ -856,20 +870,6 @@ export default function AddDebtPage() {
                         <p className="mt-1 text-[12px] text-red-400 flex items-center gap-1">
                           <AlertTriangle size={11} /> {errors.minPayment.message as string}
                         </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="input-label">Hình thức tính lãi</label>
-                      {debtType === 'CREDIT_CARD' ? (
-                        <div className="px-4 py-2.5 rounded-xl border border-[var(--color-border)] bg-white/[0.02] text-sm text-[var(--color-text-secondary)]">
-                          Reducing (Dư nợ giảm dần)
-                        </div>
-                      ) : (
-                        <select {...register('rateType')} className={inputCls(errors.rateType)}>
-                          <option value="FLAT">Flat (Lãi trên gốc ban đầu)</option>
-                          <option value="REDUCING">Reducing (Dư nợ giảm dần)</option>
-                        </select>
                       )}
                     </div>
                   </div>
