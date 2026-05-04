@@ -119,6 +119,7 @@ export default function PartiesPage() {
     setPendingStatus(status);
     setStatusReason('');
     setIsStatusModalOpen(true);
+    setIsDetailOpen(false); // Tự động đóng thanh bên
   };
 
   const confirmStatusChange = async () => {
@@ -296,6 +297,7 @@ export default function PartiesPage() {
         onEdit={() => {
           setFormData({ ...selectedParty });
           setIsModalOpen(true);
+          setIsDetailOpen(false); // Tự động đóng thanh bên
         }}
         onToggleStatus={(status) => handleToggleStatus(selectedParty!, status)}
         formatCurrency={formatCurrency}

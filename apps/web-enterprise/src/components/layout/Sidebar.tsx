@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronRight, LayoutDashboard, LogOut, User, Users } from 'lucide-react';
+import { BadgeDollarSign, ChevronRight, LayoutDashboard, LogOut, User, Users } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
@@ -28,6 +28,14 @@ const NAV_GROUPS = [
         label: 'Đối tác',
         color: '#10b981',
         gradient: 'from-emerald-500 to-teal-400',
+      },
+      {
+        id: 'nav-debts',
+        to: '/debts',
+        icon: BadgeDollarSign,
+        label: 'Quản lý nợ',
+        color: '#f59e0b',
+        gradient: 'from-amber-500 to-orange-400',
       },
     ],
   },

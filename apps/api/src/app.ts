@@ -18,6 +18,7 @@ import bankSyncRoutes from './routes/bank-sync.routes';
 import debtGoalRoutes from './routes/debt-goal.routes';
 import debtRoutes from './routes/debt.routes';
 import enterpriseAuthRoutes from './routes/enterprise/auth.routes';
+import enterpriseDebtRoutes from './routes/enterprise/debt.routes';
 import enterprisePartyRoutes from './routes/enterprise/party.routes';
 
 import expenseRoutes from './routes/expense.routes';
@@ -81,6 +82,7 @@ app.use('/api/referral', referralRoutes);
 app.use('/api/kyc', kycRoutes);
 app.use('/api/face', faceRoutes);
 app.use('/api/v1/enterprise/parties', enterprisePartyRoutes);
+app.use('/api/v1/enterprise/debts', enterpriseDebtRoutes);
 app.use('/api/v1/enterprise/auth', enterpriseAuthRoutes);
 
 // Health check
