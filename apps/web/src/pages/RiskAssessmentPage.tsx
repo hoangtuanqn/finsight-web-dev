@@ -1,122 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Flame, RefreshCw, Shield, Target, TrendingUp } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { investmentAPI, userAPI } from '../api/index';
 import { useAuth } from '../context/AuthContext';
-
-const QUESTIONS = [
-  {
-    id: 'reaction_drop',
-    category: 'Phản ứng thị trường',
-    question: 'Nếu danh mục đầu tư giảm 20% trong 1 tháng, bạn sẽ?',
-    options: [
-      { text: 'Bán hết để cắt lỗ', score: 10 },
-      { text: 'Bán một phần, giữ phần còn lại', score: 30 },
-      { text: 'Giữ nguyên và chờ đợi', score: 60 },
-      { text: 'Mua thêm vì đây là cơ hội', score: 90 },
-    ],
-  },
-  {
-    id: 'goal',
-    category: 'Mục tiêu',
-    question: 'Mục tiêu đầu tư chính của bạn là gì?',
-    options: [
-      { text: 'Bảo toàn vốn, không muốn mất tiền', score: 15 },
-      { text: 'Thu nhập ổn định hàng tháng', score: 35 },
-      { text: 'Tăng trưởng vốn dài hạn', score: 65 },
-      { text: 'Tối đa hóa lợi nhuận, chấp nhận biến động lớn', score: 90 },
-    ],
-  },
-  {
-    id: 'horizon',
-    category: 'Thời gian',
-    question: 'Khoảng thời gian đầu tư dự kiến?',
-    options: [
-      { text: 'Dưới 1 năm', score: 15 },
-      { text: '1-3 năm', score: 40 },
-      { text: '3-5 năm', score: 65 },
-      { text: 'Trên 5 năm', score: 85 },
-    ],
-  },
-  {
-    id: 'experience',
-    category: 'Kinh nghiệm',
-    question: 'Bạn có kinh nghiệm đầu tư tài chính không?',
-    options: [
-      { text: 'Chưa bao giờ đầu tư', score: 10 },
-      { text: 'Chỉ gửi tiết kiệm ngân hàng', score: 30 },
-      { text: 'Đã đầu tư chứng khoán/vàng', score: 60 },
-      { text: 'Đầu tư đa dạng (crypto, CK, BĐS...)', score: 85 },
-    ],
-  },
-  {
-    id: 'allocation',
-    category: 'Tỉ lệ đầu tư',
-    question: 'Tỉ lệ thu nhập bạn sẵn sàng đầu tư?',
-    options: [
-      { text: 'Dưới 10% - chỉ dư thì mới đầu tư', score: 15 },
-      { text: '10-20% - dành riêng mỗi tháng', score: 40 },
-      { text: '20-40% - đầu tư là ưu tiên', score: 65 },
-      { text: 'Trên 40% - all-in', score: 90 },
-    ],
-  },
-  {
-    id: 'emergency_fund',
-    category: 'Quỹ khẩn cấp',
-    question: 'Quỹ khẩn cấp hiện tại của bạn đủ cho bao nhiêu tháng chi tiêu?',
-    options: [
-      { text: 'Không có quỹ khẩn cấp', score: 10 },
-      { text: 'Dưới 3 tháng', score: 30 },
-      { text: '3-6 tháng', score: 65 },
-      { text: 'Trên 6 tháng', score: 90 },
-    ],
-  },
-  {
-    id: 'income_stability',
-    category: 'Thu nhập',
-    question: 'Mức độ ổn định của thu nhập hàng tháng?',
-    options: [
-      { text: 'Không ổn định, thường xuyên biến động', score: 15 },
-      { text: 'Tương đối ổn định nhưng đôi khi thay đổi', score: 35 },
-      { text: 'Khá ổn định (lương cứng + thưởng)', score: 65 },
-      { text: 'Rất ổn định, có thêm thu nhập thụ động', score: 90 },
-    ],
-  },
-  {
-    id: 'loss_experience',
-    category: 'Kinh nghiệm thua lỗ',
-    question: 'Bạn đã từng thua lỗ khi đầu tư chưa? Cảm giác như thế nào?',
-    options: [
-      { text: 'Chưa, và tôi rất lo sợ điều đó', score: 10 },
-      { text: 'Chưa, nhưng tôi nghĩ mình sẽ bình tĩnh', score: 35 },
-      { text: 'Rồi, tôi hoảng loạn và bán ngay', score: 20 },
-      { text: 'Rồi, tôi giữ bình tĩnh và học từ sai lầm', score: 80 },
-    ],
-  },
-  {
-    id: 'debt_situation',
-    category: 'Tình trạng nợ',
-    question: 'Tình trạng nợ hiện tại của bạn?',
-    options: [
-      { text: 'Đang có nhiều nợ lãi cao (>30%/năm)', score: 10 },
-      { text: 'Có nợ vừa phải, đang trả đều', score: 35 },
-      { text: 'Chỉ còn khoản nợ nhỏ hoặc lãi thấp', score: 65 },
-      { text: 'Không có nợ', score: 90 },
-    ],
-  },
-  {
-    id: 'news_reaction',
-    category: 'Tâm lý',
-    question: 'Khi đọc tin "thị trường sắp sụp đổ", bạn phản ứng thế nào?',
-    options: [
-      { text: 'Bán hết tài sản ngay lập tức', score: 10 },
-      { text: 'Lo lắng và giảm tỉ trọng đầu tư', score: 30 },
-      { text: 'Theo dõi thêm, không hành động vội', score: 65 },
-      { text: 'Bỏ qua, tập trung vào chiến lược dài hạn', score: 90 },
-    ],
-  },
-];
+import { drawSessionQuestions, type RiskQuestion } from '../data/riskQuestions.data';
 
 const RISK_META = {
   LOW: {
@@ -142,22 +30,34 @@ const RISK_META = {
 export default function RiskAssessmentPage() {
   const navigate = useNavigate();
   const { setUser } = useAuth() as any;
+
+  // Draw 7 questions once per session (re-memoized only on remount)
+  const questions = useMemo<RiskQuestion[]>(() => drawSessionQuestions(), []);
+
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<any[]>([]);
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleAnswer = async (option: any) => {
-    const newAnswers = [...answers, { questionIndex: current, score: option.score }];
+  const handleAnswer = async (option: { text: string; score: number }) => {
+    const q = questions[current];
+    const newAnswers = [
+      ...answers,
+      {
+        id: q.id,
+        categoryKey: q.categoryKey,
+        weight: q.weight,
+        score: option.score,
+      },
+    ];
     setAnswers(newAnswers);
-    if (current < QUESTIONS.length - 1) {
+
+    if (current < questions.length - 1) {
       setCurrent(current + 1);
     } else {
       setLoading(true);
       try {
-        const res = await investmentAPI.submitRiskAssessment({
-          answers: newAnswers,
-        });
+        const res = await investmentAPI.submitRiskAssessment({ answers: newAnswers });
         setResult(res.data.data);
         const profileRes = await userAPI.getProfile();
         setUser((prev: any) => ({ ...prev, ...profileRes.data.data.user }));
@@ -169,9 +69,15 @@ export default function RiskAssessmentPage() {
     }
   };
 
+  const handleReset = () => {
+    setCurrent(0);
+    setAnswers([]);
+    setResult(null);
+  };
+
   // ── Result Screen ──
   if (result) {
-    const meta = RISK_META[result.riskLevel] || RISK_META.MEDIUM;
+    const meta = RISK_META[result.riskLevel as keyof typeof RISK_META] || RISK_META.MEDIUM;
     const RiskIcon = meta.icon;
     return (
       <motion.div
@@ -189,28 +95,20 @@ export default function RiskAssessmentPage() {
         >
           <div
             className="absolute top-0 left-8 right-8 h-px"
-            style={{
-              background: `linear-gradient(90deg,transparent,${meta.color}60,transparent)`,
-            }}
+            style={{ background: `linear-gradient(90deg,transparent,${meta.color}60,transparent)` }}
           />
           <div
             className="w-20 h-20 rounded-3xl mx-auto mb-6 flex items-center justify-center"
-            style={{
-              background: `${meta.color}15`,
-              boxShadow: `0 0 30px ${meta.color}30`,
-            }}
+            style={{ background: `${meta.color}15`, boxShadow: `0 0 30px ${meta.color}30` }}
           >
             <RiskIcon size={40} style={{ color: meta.color }} />
           </div>
           <h2 className="text-xl font-black text-[var(--color-text-primary)] mb-1">Kết quả đánh giá</h2>
-          <p className="text-sm text-[var(--color-text-muted)] mb-6">Dựa trên {QUESTIONS.length} câu trả lời của bạn</p>
+          <p className="text-sm text-[var(--color-text-muted)] mb-6">Dựa trên {questions.length} câu trả lời của bạn</p>
 
           <div
             className="p-5 rounded-2xl mb-6"
-            style={{
-              background: `${meta.color}08`,
-              border: `1px solid ${meta.color}20`,
-            }}
+            style={{ background: `${meta.color}08`, border: `1px solid ${meta.color}20` }}
           >
             <p className={`text-4xl font-black bg-gradient-to-r ${meta.gradient} bg-clip-text text-transparent mb-2`}>
               {meta.label}
@@ -222,6 +120,12 @@ export default function RiskAssessmentPage() {
 
           <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed mb-8">{result.riskDescription}</p>
 
+          {result.consistencyWarning && (
+            <div className="mb-6 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs leading-relaxed">
+              ⚠️ {result.consistencyWarning}
+            </div>
+          )}
+
           <div className="flex gap-3 justify-center">
             <button
               onClick={() => navigate('/investment')}
@@ -230,11 +134,7 @@ export default function RiskAssessmentPage() {
               <TrendingUp size={15} /> Xem phân bổ đầu tư
             </button>
             <button
-              onClick={() => {
-                setCurrent(0);
-                setAnswers([]);
-                setResult(null);
-              }}
+              onClick={handleReset}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-[var(--color-border)] text-[var(--color-text-secondary)] font-black text-sm hover:text-[var(--color-text-primary)] hover:border-[var(--color-text-muted)] transition-all cursor-pointer"
             >
               <RefreshCw size={15} /> Làm lại
@@ -245,8 +145,8 @@ export default function RiskAssessmentPage() {
     );
   }
 
-  const q = QUESTIONS[current];
-  const progress = (current / QUESTIONS.length) * 100;
+  const q = questions[current];
+  const progress = (current / questions.length) * 100;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl mx-auto py-4 pb-8">
@@ -259,7 +159,7 @@ export default function RiskAssessmentPage() {
           Đánh giá mức độ rủi ro
         </h1>
         <p className="text-[var(--color-text-secondary)] text-sm mt-1">
-          Trả lời {QUESTIONS.length} câu hỏi để xác định profile đầu tư phù hợp
+          Trả lời {questions.length} câu hỏi để xác định profile đầu tư phù hợp
         </p>
       </div>
 
@@ -267,7 +167,7 @@ export default function RiskAssessmentPage() {
       <div className="mb-8">
         <div className="flex justify-between text-[12px] font-bold mb-2">
           <span className="text-[var(--color-text-muted)]">
-            Câu {current + 1}/{QUESTIONS.length}
+            Câu {current + 1}/{questions.length}
           </span>
           <span className="text-blue-400">{Math.round(progress)}%</span>
         </div>
@@ -291,10 +191,7 @@ export default function RiskAssessmentPage() {
           exit={{ opacity: 0, x: -32 }}
           transition={{ duration: 0.22 }}
           className="relative rounded-3xl p-6 border overflow-hidden"
-          style={{
-            background: 'var(--color-bg-card)',
-            borderColor: 'rgba(59,130,246,0.15)',
-          }}
+          style={{ background: 'var(--color-bg-card)', borderColor: 'rgba(59,130,246,0.15)' }}
         >
           <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-blue-500/40 to-transparent" />
 
@@ -311,11 +208,8 @@ export default function RiskAssessmentPage() {
                 key={i}
                 onClick={() => handleAnswer(opt)}
                 disabled={loading}
-                className="w-full text-left p-4 rounded-2xl border transition-all group cursor-pointer hover:-translate-y-0.5"
-                style={{
-                  background: 'var(--color-bg-secondary)',
-                  borderColor: 'var(--color-border)',
-                }}
+                className="w-full text-left p-4 rounded-2xl border transition-all cursor-pointer hover:-translate-y-0.5"
+                style={{ background: 'var(--color-bg-secondary)', borderColor: 'var(--color-border)' }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = 'rgba(59,130,246,0.4)';
                   e.currentTarget.style.background = 'rgba(59,130,246,0.06)';
