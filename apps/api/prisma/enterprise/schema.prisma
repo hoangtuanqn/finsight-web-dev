@@ -42,6 +42,8 @@ model User {
   organization     Organization @relation(fields: [organizationId], references: [id])
 
   managedParties   Party[]      @relation("PersonInCharge")
+  managedDebts     DebtRecord[] @relation("DebtPersonInCharge")
+  notifications    Notification[]
   auditLogs        AuditLog[]
 
   createdAt        DateTime @default(now())
@@ -169,6 +171,9 @@ model DebtRecord {
   penaltyRate           Float     @default(0)   // %/day (e.g. 0.0003 = 0.03%)
   gracePeriodDays       Int       @default(0)   // Days after dueDate before penalty starts
   
+  personInChargeId String?
+  personInCharge   User? @relation("DebtPersonInCharge", fields: [personInChargeId], references: [id])
+  
   internalCode     String?  // Reference number
   notes            String?  @db.Text
   
@@ -176,6 +181,7 @@ model DebtRecord {
   schedules        DebtSchedule[]
   transactions     DebtTransaction[]
   documents        DebtDocument[]
+  notifications    Notification[]
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -284,7 +290,40 @@ model JobLog {
   failedCount    Int      @default(0)
   errorLog       String?  @db.Text
   durationMs     Int?
+  details        Json?    // Added this for flexible report data
 
   @@map("enterprise_job_logs")
+  @@schema("enterprise")
+}
+
+model Notification {
+  id             String   @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  
+  targetUserId   String
+  targetUser     User     @relation(fields: [targetUserId], references: [id])
+  
+  type           String   // TIME_BASED, EVENT_BASED
+  category       String   // OVERDUE, PENALTY, PAYMENT, NEW_DEBT, ESCALATION, LIMIT_BREACH
+  priority       String   @default("INFO") // URGENT, IMPORTANT, REMINDER, INFO
+  
+  title          String
+  content        String   @db.Text
+  data           Json?    // { debtId, partyId, amount, ... }
+  
+  isRead         Boolean  @default(false)
+  readAt         DateTime?
+  
+  acknowledgedAt DateTime?
+  snoozedUntil   DateTime?
+  
+  debtRecordId   String?
+  debtRecord     DebtRecord? @relation(fields: [debtRecordId], references: [id])
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("enterprise_notifications")
   @@schema("enterprise")
 }
