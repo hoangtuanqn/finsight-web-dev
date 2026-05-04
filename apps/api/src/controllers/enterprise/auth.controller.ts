@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import enterpriseDb from '../../prisma/enterprise.client';
+import enterpriseDb from '../../prisma/enterprise.client.js';
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -23,7 +23,7 @@ export const register = async (req: Request, res: Response) => {
       return;
     }
 
-    const existingUser = await enterpriseDb.user.findUnique({ where: { email } });
+    const existingUser = await enterpriseDb.enterpriseUser.findUnique({ where: { email } });
     if (existingUser) {
       res.status(400).json({ error: 'Email đã tồn tại' });
       return;
@@ -37,7 +37,7 @@ export const register = async (req: Request, res: Response) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    const user = await enterpriseDb.$transaction(async (tx) => {
+    const enterpriseUser = await enterpriseDb.$transaction(async (tx) => {
       const org = await tx.organization.create({
         data: {
           taxCode,
@@ -48,7 +48,7 @@ export const register = async (req: Request, res: Response) => {
         },
       });
 
-      return await tx.user.create({
+      return await tx.enterpriseUser.create({
         data: {
           email,
           passwordHash,
@@ -61,7 +61,12 @@ export const register = async (req: Request, res: Response) => {
     });
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email, organizationId: user.organizationId, role: 'enterprise' },
+      {
+        userId: enterpriseUser.id,
+        email: enterpriseUser.email,
+        organizationId: enterpriseUser.organizationId,
+        role: 'enterprise',
+      },
       process.env.JWT_SECRET || 'fallback_secret',
       { expiresIn: '7d' },
     );
@@ -70,11 +75,11 @@ export const register = async (req: Request, res: Response) => {
       success: true,
       data: {
         token,
-        user: {
-          id: user.id,
-          email: user.email,
-          fullName: user.fullName,
-          organizationId: user.organizationId,
+        enterpriseUser: {
+          id: enterpriseUser.id,
+          email: enterpriseUser.email,
+          fullName: enterpriseUser.fullName,
+          organizationId: enterpriseUser.organizationId,
         },
       },
     });
@@ -93,24 +98,29 @@ export const login = async (req: Request, res: Response) => {
       return;
     }
 
-    const user = await enterpriseDb.user.findUnique({
+    const enterpriseUser = await enterpriseDb.enterpriseUser.findUnique({
       where: { email },
       include: { organization: true },
     });
 
-    if (!user) {
+    if (!enterpriseUser) {
       res.status(401).json({ error: 'Email hoặc mật khẩu không chính xác' });
       return;
     }
 
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    const isMatch = await bcrypt.compare(password, enterpriseUser.passwordHash);
     if (!isMatch) {
       res.status(401).json({ error: 'Email hoặc mật khẩu không chính xác' });
       return;
     }
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email, organizationId: user.organizationId, role: 'enterprise' },
+      {
+        userId: enterpriseUser.id,
+        email: enterpriseUser.email,
+        organizationId: enterpriseUser.organizationId,
+        role: 'enterprise',
+      },
       process.env.JWT_SECRET || 'fallback_secret',
       { expiresIn: '7d' },
     );
@@ -119,12 +129,12 @@ export const login = async (req: Request, res: Response) => {
       success: true,
       data: {
         token,
-        user: {
-          id: user.id,
-          email: user.email,
-          fullName: user.fullName,
-          organizationId: user.organizationId,
-          organization: user.organization,
+        enterpriseUser: {
+          id: enterpriseUser.id,
+          email: enterpriseUser.email,
+          fullName: enterpriseUser.fullName,
+          organizationId: enterpriseUser.organizationId,
+          organization: enterpriseUser.organization,
         },
       },
     });
@@ -137,12 +147,12 @@ export const login = async (req: Request, res: Response) => {
 export const me = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const user = await enterpriseDb.user.findUnique({
+    const enterpriseUser = await enterpriseDb.enterpriseUser.findUnique({
       where: { id: userId },
       include: { organization: true },
     });
 
-    if (!user) {
+    if (!enterpriseUser) {
       res.status(404).json({ success: false, error: 'User not found' });
       return;
     }
@@ -151,13 +161,13 @@ export const me = async (req: Request, res: Response) => {
       success: true,
       data: {
         user: {
-          id: user.id,
-          email: user.email,
-          fullName: user.fullName,
-          roleTitle: user.roleTitle,
-          phoneNumber: user.phoneNumber,
-          organizationId: user.organizationId,
-          organization: user.organization,
+          id: enterpriseUser.id,
+          email: enterpriseUser.email,
+          fullName: enterpriseUser.fullName,
+          roleTitle: enterpriseUser.roleTitle,
+          phoneNumber: enterpriseUser.phoneNumber,
+          organizationId: enterpriseUser.organizationId,
+          organization: enterpriseUser.organization,
         },
       },
     });

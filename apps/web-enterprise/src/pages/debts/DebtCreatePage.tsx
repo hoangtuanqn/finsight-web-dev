@@ -34,6 +34,8 @@ export default function DebtCreatePage() {
     issueDate: new Date().toISOString().split('T')[0],
     termMonths: 12,
     interestRates: [{ rate: 0, effectiveDate: new Date().toISOString().split('T')[0] }],
+    penaltyRate: 0,
+    gracePeriodDays: 0,
     internalCode: '',
     notes: '',
   });
@@ -306,6 +308,38 @@ export default function DebtCreatePage() {
                   <option value="BULLET">Bullet (Gốc cuối kỳ)</option>
                   <option value="NONE">Không tính lãi</option>
                 </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">
+                  Tỷ lệ phạt (%/ngày)
+                </label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
+                    <Info size={16} />
+                  </div>
+                  <Input
+                    type="number"
+                    step="0.0001"
+                    className="w-full pl-12 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white font-mono"
+                    value={formData.penaltyRate}
+                    onChange={(e) => setFormData({ ...formData, penaltyRate: Number(e.target.value) })}
+                    placeholder="VD: 0.0003 cho 0.03%"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-500 ml-1">0.03% (0.0003) là mức phạt chuẩn theo luật VN.</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">
+                  Grace Period (Ngày)
+                </label>
+                <Input
+                  type="number"
+                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white"
+                  value={formData.gracePeriodDays}
+                  onChange={(e) => setFormData({ ...formData, gracePeriodDays: Number(e.target.value) })}
+                />
               </div>
             </div>
 
