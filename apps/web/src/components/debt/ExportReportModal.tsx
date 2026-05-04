@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import {
+  AlertTriangle,
   Calendar,
   CheckCircle2,
   CreditCard,
@@ -23,8 +24,34 @@ const ExportReportModal = ({ isOpen, onClose }) => {
   const [selectedDebts, setSelectedDebts] = useState(['all']);
   const [selectedFormat, setSelectedFormat] = useState(null);
 
-  const { data: debtData } = useDebts() as any;
+  const { data: debtData, isLoading: debtsLoading } = useDebts() as any;
   const debts = debtData?.debts || [];
+  const hasNoDebts = !debtsLoading && debts.length === 0;
+
+  const [dateError, setDateError] = useState('');
+
+  const validateDates = () => {
+    if (timeRange !== 'custom') return true;
+    if (!customDates.start || !customDates.end) {
+      setDateError('Vui lòng chọn đầy đủ ngày bắt đầu và ngày kết thúc');
+      return false;
+    }
+    const start = new Date(customDates.start);
+    const end = new Date(customDates.end);
+    const now = new Date();
+
+    if (start > end) {
+      setDateError('Ngày bắt đầu không được lớn hơn ngày kết thúc');
+      return false;
+    }
+    if (start > now || end > now) {
+      setDateError('Không thể chọn thời gian ở tương lai');
+      return false;
+    }
+
+    setDateError('');
+    return true;
+  };
 
   const toggleDebt = (id) => {
     if (id === 'all') {
@@ -43,6 +70,8 @@ const ExportReportModal = ({ isOpen, onClose }) => {
 
   const handleExport = async (format) => {
     if (!format) return;
+    if (!validateDates()) return;
+
     setLoadingType(format);
     try {
       const debtIdParam = selectedDebts.includes('all') ? 'all' : selectedDebts.join(',');
@@ -119,151 +148,185 @@ const ExportReportModal = ({ isOpen, onClose }) => {
             <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
               {!success && (
                 <div className="space-y-6">
-                  {/* Time Range Section */}
-                  <div className="space-y-3">
-                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <Calendar size={14} /> Khoảng thời gian
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { id: 'this_month', label: 'Tháng này' },
-                        { id: '3m', label: '3 tháng qua' },
-                        { id: '6m', label: '6 tháng qua' },
-                        { id: 'custom', label: 'Tùy chọn' },
-                        { id: 'all', label: 'Tất cả' },
-                      ].map((opt) => (
-                        <button
-                          key={opt.id}
-                          onClick={() => setTimeRange(opt.id)}
-                          className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all border ${
-                            timeRange === opt.id
-                              ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20'
-                              : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:border-slate-600'
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {timeRange === 'custom' && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="grid grid-cols-2 gap-3 p-4 bg-slate-800/30 rounded-2xl border border-slate-800"
-                      >
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] text-slate-500 uppercase font-bold">Từ ngày</label>
-                          <input
-                            type="date"
-                            value={customDates.start}
-                            onChange={(e) => setCustomDates({ ...customDates, start: e.target.value })}
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
-                          />
+                  {hasNoDebts ? (
+                    <div className="flex flex-col gap-6">
+                      <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                          <p className="text-sm font-bold text-amber-500">Chưa có dữ liệu khoản nợ</p>
+                          <p className="text-xs text-amber-500/70 leading-relaxed">
+                            Bạn hiện chưa có khoản nợ nào được ghi nhận. Vui lòng thêm khoản nợ trước khi thực hiện xuất
+                            báo cáo chuyên sâu.
+                          </p>
                         </div>
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] text-slate-500 uppercase font-bold">Đến ngày</label>
-                          <input
-                            type="date"
-                            value={customDates.end}
-                            onChange={(e) => setCustomDates({ ...customDates, end: e.target.value })}
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
-                          />
-                        </div>
-                      </motion.div>
-                    )}
-                  </div>
-
-                  {/* Debt Selection Section */}
-                  <div className="space-y-3">
-                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <CreditCard size={14} /> Chọn khoản nợ (Có thể chọn nhiều)
-                    </label>
-                    <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                      </div>
                       <button
-                        onClick={() => toggleDebt('all')}
-                        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
-                          selectedDebts.includes('all')
-                            ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
-                            : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:border-slate-600'
-                        }`}
+                        onClick={onClose}
+                        className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl transition-all border border-slate-700"
                       >
-                        <span className="text-sm font-medium">Tất cả khoản nợ</span>
-                        {selectedDebts.includes('all') && <CheckCircle2 size={16} />}
+                        Quay lại
                       </button>
-                      {debts.map((d: any) => (
-                        <button
-                          key={d.id}
-                          onClick={() => toggleDebt(d.id)}
-                          className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
-                            selectedDebts.includes(d.id)
-                              ? 'bg-emerald-600/10 border-emerald-500/50 text-emerald-400'
-                              : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:border-slate-600'
-                          }`}
-                        >
-                          <div className="text-left">
-                            <div className="text-sm font-medium">{d.name}</div>
-                            <div className="text-[10px] opacity-60">{d.platform}</div>
-                          </div>
-                          {selectedDebts.includes(d.id) && <CheckCircle2 size={16} />}
-                        </button>
-                      ))}
                     </div>
-                  </div>
+                  ) : (
+                    <>
+                      {/* Time Range Section */}
+                      <div className="space-y-3">
+                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                          <Calendar size={14} /> Khoảng thời gian
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { id: 'this_month', label: 'Tháng này' },
+                            { id: '3m', label: '3 tháng qua' },
+                            { id: '6m', label: '6 tháng qua' },
+                            { id: 'custom', label: 'Tùy chọn' },
+                            { id: 'all', label: 'Tất cả' },
+                          ].map((opt) => (
+                            <button
+                              key={opt.id}
+                              onClick={() => setTimeRange(opt.id)}
+                              className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all border ${
+                                timeRange === opt.id
+                                  ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20'
+                                  : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:border-slate-600'
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
 
-                  <div className="h-px bg-slate-800" />
+                        {timeRange === 'custom' && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="grid grid-cols-2 gap-3 p-4 bg-slate-800/30 rounded-2xl border border-slate-800"
+                          >
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] text-slate-500 uppercase font-bold">Từ ngày</label>
+                              <input
+                                type="date"
+                                value={customDates.start}
+                                onChange={(e) => setCustomDates({ ...customDates, start: e.target.value })}
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] text-slate-500 uppercase font-bold">Đến ngày</label>
+                              <input
+                                type="date"
+                                value={customDates.end}
+                                onChange={(e) => setCustomDates({ ...customDates, end: e.target.value })}
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+                              />
+                            </div>
+                            {dateError && (
+                              <motion.p
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                className="text-[11px] text-red-400 font-medium px-1"
+                              >
+                                * {dateError}
+                              </motion.p>
+                            )}
+                          </motion.div>
+                        )}
+                      </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <button
-                      disabled={loadingType !== null}
-                      onClick={() => setSelectedFormat('pdf')}
-                      className={`flex flex-col items-center gap-2 p-4 rounded-2xl transition-all border ${
-                        selectedFormat === 'pdf'
-                          ? 'bg-red-500/10 border-red-500/50 shadow-lg shadow-red-500/10'
-                          : 'bg-slate-800/50 hover:bg-slate-800 border-slate-700 hover:border-slate-600'
-                      } disabled:opacity-50`}
-                    >
-                      <FileText className={`w-6 h-6 ${selectedFormat === 'pdf' ? 'text-red-500' : 'text-red-400'}`} />
-                      <span
-                        className={`text-sm font-semibold ${selectedFormat === 'pdf' ? 'text-red-400' : 'text-white'}`}
+                      {/* Debt Selection Section */}
+                      <div className="space-y-3">
+                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                          <CreditCard size={14} /> Chọn khoản nợ (Có thể chọn nhiều)
+                        </label>
+                        <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                          <button
+                            onClick={() => toggleDebt('all')}
+                            className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
+                              selectedDebts.includes('all')
+                                ? 'bg-blue-600/10 border-blue-500/50 text-blue-400'
+                                : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:border-slate-600'
+                            }`}
+                          >
+                            <span className="text-sm font-medium">Tất cả khoản nợ</span>
+                            {selectedDebts.includes('all') && <CheckCircle2 size={16} />}
+                          </button>
+                          {debts.map((d: any) => (
+                            <button
+                              key={d.id}
+                              onClick={() => toggleDebt(d.id)}
+                              className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${
+                                selectedDebts.includes(d.id)
+                                  ? 'bg-emerald-600/10 border-emerald-500/50 text-emerald-400'
+                                  : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:border-slate-600'
+                              }`}
+                            >
+                              <div className="text-left">
+                                <div className="text-sm font-medium">{d.name}</div>
+                                <div className="text-[10px] opacity-60">{d.platform}</div>
+                              </div>
+                              {selectedDebts.includes(d.id) && <CheckCircle2 size={16} />}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="h-px bg-slate-800" />
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <button
+                          disabled={loadingType !== null}
+                          onClick={() => setSelectedFormat('pdf')}
+                          className={`flex flex-col items-center gap-2 p-4 rounded-2xl transition-all border ${
+                            selectedFormat === 'pdf'
+                              ? 'bg-red-500/10 border-red-500/50 shadow-lg shadow-red-500/10'
+                              : 'bg-slate-800/50 hover:bg-slate-800 border-slate-700 hover:border-slate-600'
+                          } disabled:opacity-50`}
+                        >
+                          <FileText
+                            className={`w-6 h-6 ${selectedFormat === 'pdf' ? 'text-red-500' : 'text-red-400'}`}
+                          />
+                          <span
+                            className={`text-sm font-semibold ${selectedFormat === 'pdf' ? 'text-red-400' : 'text-white'}`}
+                          >
+                            Xuất PDF
+                          </span>
+                        </button>
+
+                        <button
+                          disabled={loadingType !== null}
+                          onClick={() => setSelectedFormat('excel')}
+                          className={`flex flex-col items-center gap-2 p-4 rounded-2xl transition-all border ${
+                            selectedFormat === 'excel'
+                              ? 'bg-emerald-500/10 border-emerald-500/50 shadow-lg shadow-emerald-500/10'
+                              : 'bg-slate-800/50 hover:bg-slate-800 border-slate-700 hover:border-slate-600'
+                          } disabled:opacity-50`}
+                        >
+                          <FileSpreadsheet
+                            className={`w-6 h-6 ${selectedFormat === 'excel' ? 'text-emerald-500' : 'text-emerald-400'}`}
+                          />
+                          <span
+                            className={`text-sm font-semibold ${selectedFormat === 'excel' ? 'text-emerald-400' : 'text-white'}`}
+                          >
+                            Xuất Excel
+                          </span>
+                        </button>
+                      </div>
+
+                      <button
+                        disabled={selectedFormat === null || loadingType !== null}
+                        onClick={() => handleExport(selectedFormat)}
+                        className="w-full mt-6 flex items-center justify-center gap-2 py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
                       >
-                        Xuất PDF
-                      </span>
-                    </button>
-
-                    <button
-                      disabled={loadingType !== null}
-                      onClick={() => setSelectedFormat('excel')}
-                      className={`flex flex-col items-center gap-2 p-4 rounded-2xl transition-all border ${
-                        selectedFormat === 'excel'
-                          ? 'bg-emerald-500/10 border-emerald-500/50 shadow-lg shadow-emerald-500/10'
-                          : 'bg-slate-800/50 hover:bg-slate-800 border-slate-700 hover:border-slate-600'
-                      } disabled:opacity-50`}
-                    >
-                      <FileSpreadsheet
-                        className={`w-6 h-6 ${selectedFormat === 'excel' ? 'text-emerald-500' : 'text-emerald-400'}`}
-                      />
-                      <span
-                        className={`text-sm font-semibold ${selectedFormat === 'excel' ? 'text-emerald-400' : 'text-white'}`}
-                      >
-                        Xuất Excel
-                      </span>
-                    </button>
-                  </div>
-
-                  <button
-                    disabled={!selectedFormat || loadingType !== null}
-                    onClick={() => handleExport(selectedFormat)}
-                    className="w-full mt-6 flex items-center justify-center gap-2 py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
-                  >
-                    {loadingType ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" /> Đang xử lý...
-                      </>
-                    ) : (
-                      'Xác nhận xuất báo cáo'
-                    )}
-                  </button>
+                        {loadingType ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" /> Đang xử lý...
+                          </>
+                        ) : (
+                          'Xác nhận xuất báo cáo'
+                        )}
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
 
