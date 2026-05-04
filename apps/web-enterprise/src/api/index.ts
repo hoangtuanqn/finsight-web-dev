@@ -91,6 +91,11 @@ export const enterpriseAuthAPI = {
   getDebts: (params: any) => api.get('/v1/enterprise/debts', { params }),
   getDebt: (id: string) => api.get(`/v1/enterprise/debts/${id}`),
   createDebt: (data: any) => api.post('/v1/enterprise/debts', data),
+  activateDebt: (id: string) => api.patch(`/v1/enterprise/debts/${id}/activate`),
+  disputeDebt: (id: string, reason: string) => api.patch(`/v1/enterprise/debts/${id}/dispute`, { reason }),
+  resolveDispute: (id: string) => api.patch(`/v1/enterprise/debts/${id}/resolve`),
+  writeOffDebt: (id: string, reason: string) => api.patch(`/v1/enterprise/debts/${id}/write-off`, { reason }),
+  getDebtAuditLogs: (id: string) => api.get(`/v1/enterprise/debts/${id}/audit-logs`),
 };
 
 export default api;
