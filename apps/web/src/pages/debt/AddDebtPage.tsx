@@ -734,7 +734,9 @@ export default function AddDebtPage() {
                     <AlertTriangle size={14} />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-slate-200">Thiết lập Phạt trễ hạn (Kép)</h3>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-200">
+                      Thiết lập Phạt trễ hạn (Kép)
+                    </h3>
                     <p className="text-[11px] text-slate-500">
                       Tự động tính thêm dư nợ và trừ Điểm Sức Khoẻ khi trễ hẹn
                     </p>
@@ -756,9 +758,9 @@ export default function AddDebtPage() {
                           setValue('feePenaltyPerDay', 0, { shouldValidate: true, shouldDirty: true });
                         }
                       }}
-                      className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500/30 focus:ring-offset-slate-900"
+                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-blue-500 focus:ring-blue-500/30 focus:ring-offset-slate-900"
                     />
-                    <span className="text-sm text-slate-300 font-medium group-hover:text-white transition-colors">
+                    <span className="text-sm text-slate-600 dark:text-slate-300 font-medium group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
                       Khoản nợ này có áp dụng phí phạt trễ hạn
                     </span>
                   </label>
@@ -766,7 +768,7 @@ export default function AddDebtPage() {
 
                 <div className={formValues.feePenaltyPerDay > 0 ? 'block' : 'hidden'}>
                   <div className="mt-4 p-4 rounded-2xl bg-rose-500/5 border border-rose-500/10">
-                    <label className="input-label text-rose-300">
+                    <label className="input-label text-rose-600 dark:text-rose-300">
                       {debtType === 'INSTALLMENT' ? 'Phí phạt cố định mỗi ngày (VND)' : 'Phí phạt trễ hạn 1 lần (VND)'}
                     </label>
                     <Controller
