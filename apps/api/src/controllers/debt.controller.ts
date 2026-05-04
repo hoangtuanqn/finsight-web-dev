@@ -63,7 +63,7 @@ export async function getAllDebts(req: AuthenticatedRequest, res: Response) {
         debt.feeManagement,
         debt.termMonths,
         debt.rateType,
-        debt.initialPrincipal,
+        debt.originalAmount,
       );
       const daysUntil = debt.dueDay >= currentDay ? debt.dueDay - currentDay : daysInMonth - currentDay + debt.dueDay;
       return { ...debt, apy, ear, daysUntil };
@@ -173,7 +173,7 @@ export async function getDebtById(req: AuthenticatedRequest, res: Response) {
       debt.feeManagement,
       debt.termMonths,
       debt.rateType,
-      debt.initialPrincipal,
+      debt.originalAmount,
     );
     const earBreakdown = {
       apr: debt.apr,
@@ -526,6 +526,7 @@ export async function getRepaymentPlan(req: AuthenticatedRequest, res: Response)
         warnings: simulation.warnings,
         isScheduleTruncated: simulation.schedule.length > MAX_REPAYMENT_SCHEDULE_POINTS,
         schedule: simulation.schedule.slice(0, MAX_REPAYMENT_SCHEDULE_POINTS),
+        debts: simulation.debts,
       };
     };
 
