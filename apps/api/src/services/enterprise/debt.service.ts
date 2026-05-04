@@ -63,7 +63,7 @@ export const createDebtRecord = async (data: {
         dueDate: new Date(new Date(data.issueDate).setMonth(data.issueDate.getMonth() + data.termMonths)),
         internalCode: data.internalCode,
         notes: data.notes,
-        status: 'ACTIVE',
+        status: 'DRAFT',
         personInChargeId: data.personInChargeId,
         penaltyRate: data.penaltyRate || 0,
         gracePeriodDays: data.gracePeriodDays || 0,

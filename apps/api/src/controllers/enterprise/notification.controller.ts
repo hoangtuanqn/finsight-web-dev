@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import { NotificationService } from '../../services/enterprise/notification.service';
+import { NotificationService } from '../../services/enterprise/notification.service.js';
 
 export const getNotifications = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as any).userId;
     const { isRead, priority, category } = req.query;
 
     const notifications = await NotificationService.getUserNotifications(userId, {
@@ -20,7 +20,7 @@ export const getNotifications = async (req: Request, res: Response) => {
 
 export const getUnreadCount = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as any).userId;
     const count = await NotificationService.getUnreadCount(userId);
     res.json({ unreadCount: count });
   } catch (error: any) {
@@ -30,7 +30,7 @@ export const getUnreadCount = async (req: Request, res: Response) => {
 
 export const markRead = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as any).userId;
     const { id } = req.params;
     await NotificationService.markAsRead(id as string, userId as string);
     res.json({ success: true });
@@ -41,7 +41,7 @@ export const markRead = async (req: Request, res: Response) => {
 
 export const acknowledgeNotification = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as any).userId;
     const { id } = req.params;
     await NotificationService.acknowledge(id as string, userId as string);
     res.json({ success: true });
@@ -50,9 +50,19 @@ export const acknowledgeNotification = async (req: Request, res: Response) => {
   }
 };
 
+export const markAllRead = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    await NotificationService.markAllAsRead(userId);
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 export const snoozeNotification = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as any).userId;
     const { id } = req.params;
     const { days } = req.body;
     await NotificationService.snooze(id as string, userId as string, days);
