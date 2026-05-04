@@ -154,6 +154,7 @@ model DebtRecord {
   origin           String   // TRADE, FINANCIAL, TAX, BOND, INTERNAL
   
   principal        Float
+  outstanding      Float    @default(0) // Current principal remaining
   interestMethod   String   // REDUCING_BALANCE, EMI, BULLET, NONE
   
   issueDate        DateTime
@@ -202,6 +203,9 @@ model DebtSchedule {
   interestAmount Float
   totalAmount    Float
   
+  paidPrincipal  Float    @default(0)
+  paidInterest   Float    @default(0)
+  
   remainingPrincipal Float // Balance after this payment
   
   status         String   @default("PENDING") // PENDING, PAID, PARTIAL, OVERDUE
@@ -229,9 +233,15 @@ model DebtTransaction {
   penaltyPart    Float    @default(0)
   
   paidAt         DateTime @default(now())
-  paymentMethod  String?  // CASH, BANK_TRANSFER
+  paymentMethod  String?  // CASH, BANK_TRANSFER, OFFSET
   reference      String?  // Receipt or Transaction ID
   notes          String?  @db.Text
+  
+  balanceSnapshot Float    @default(0) // Outstanding principal AFTER this transaction
+  
+  reversesTransactionId String?
+  reversesTransaction   DebtTransaction? @relation("TransactionReversal", fields: [reversesTransactionId], references: [id])
+  reversedBy            DebtTransaction[] @relation("TransactionReversal")
   
   createdAt      DateTime @default(now())
 
