@@ -25,7 +25,7 @@ import {
   useRepaymentPlans,
   useRepaymentPlanSimulation,
 } from '../../hooks/useDebtQuery';
-import { formatVND } from '../../utils/calculations';
+import { convertFlatToReducingAPR, formatVND } from '../../utils/calculations';
 import { AvailableDebtRow, SelectedDebtItem } from './components/customPlanRows';
 import { breachDot, MethodPlanCard, TOOLTIP_STYLE } from './components/repaymentShared';
 
@@ -140,7 +140,16 @@ export default function CustomRepaymentPlanPage() {
       ),
     [selectedDebts],
   );
-  const avalanchePriority = useMemo(() => [...selectedDebts].sort((a: any, b: any) => b.apr - a.apr), [selectedDebts]);
+  const avalanchePriority = useMemo(() => {
+    const getEffective = (d: any) => {
+      if (d.rateType === 'FLAT' && d.originalAmount && d.termMonths) {
+        return convertFlatToReducingAPR(d.originalAmount, d.apr, d.termMonths);
+      }
+      return d.apr || 0;
+    };
+    return [...selectedDebts].sort((a: any, b: any) => getEffective(b) - getEffective(a));
+  }, [selectedDebts]);
+
   const snowballPriority = useMemo(
     () => [...selectedDebts].sort((a: any, b: any) => a.balance - b.balance),
     [selectedDebts],
@@ -210,7 +219,15 @@ export default function CustomRepaymentPlanPage() {
   }, []);
 
   const sortByAvalanche = useCallback(() => {
-    setSelectedIds((current) => [...current].sort((a, b) => (debtMap.get(b)?.apr || 0) - (debtMap.get(a)?.apr || 0)));
+    const getEffective = (id: string) => {
+      const d = debtMap.get(id);
+      if (!d) return 0;
+      if (d.rateType === 'FLAT' && d.originalAmount && d.termMonths) {
+        return convertFlatToReducingAPR(d.originalAmount, d.apr, d.termMonths);
+      }
+      return d.apr || 0;
+    };
+    setSelectedIds((current) => [...current].sort((a, b) => getEffective(b) - getEffective(a)));
   }, [debtMap]);
 
   const sortBySnowball = useCallback(() => {
@@ -426,7 +443,7 @@ export default function CustomRepaymentPlanPage() {
                 step="500000"
                 value={Math.min(extraBudget, 100000000)}
                 onChange={(e) => setExtraBudget(+e.target.value)}
-                className="w-full accent-cyan-500"
+                className="w-full accent-blue-500"
               />
               <div className="flex justify-between text-[10px] text-[var(--color-text-muted)] mt-1.5">
                 <span>0đ</span>
@@ -554,6 +571,20 @@ export default function CustomRepaymentPlanPage() {
               <div className="h-[360px] md:h-[380px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData}>
+                    <defs>
+                      <linearGradient id="customLine" x1="0" y1="0" x2="1" y2="0">
+                        <stop stopColor="#f87171" />
+                        <stop offset="1" stopColor="#ef4444" />
+                      </linearGradient>
+                      <linearGradient id="avLine" x1="0" y1="0" x2="1" y2="0">
+                        <stop stopColor="#3b82f6" />
+                        <stop offset="1" stopColor="#06b6d4" />
+                      </linearGradient>
+                      <linearGradient id="snLine" x1="0" y1="0" x2="1" y2="0">
+                        <stop stopColor="#10b981" />
+                        <stop offset="1" stopColor="#34d399" />
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
                     <XAxis
                       dataKey="month"
@@ -589,7 +620,7 @@ export default function CustomRepaymentPlanPage() {
                       type="monotone"
                       dataKey="custom"
                       name="Kế hoạch của bạn"
-                      stroke="#f87171"
+                      stroke="url(#customLine)"
                       strokeWidth={3}
                       dot={breachDot(simulationData?.custom, '#f87171')}
                     />
@@ -597,7 +628,7 @@ export default function CustomRepaymentPlanPage() {
                       type="monotone"
                       dataKey="avalanche"
                       name="Avalanche"
-                      stroke="#3b82f6"
+                      stroke="url(#avLine)"
                       strokeWidth={2.5}
                       dot={breachDot(simulationData?.avalanche, '#3b82f6')}
                     />
@@ -605,7 +636,7 @@ export default function CustomRepaymentPlanPage() {
                       type="monotone"
                       dataKey="snowball"
                       name="Snowball"
-                      stroke="#10b981"
+                      stroke="url(#snLine)"
                       strokeWidth={2.5}
                       dot={breachDot(simulationData?.snowball, '#10b981')}
                     />
@@ -723,8 +754,16 @@ export default function CustomRepaymentPlanPage() {
             </div>
           )}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-            <MethodPlanCard type="AVALANCHE" debts={avalanchePriority} simulation={simulationData?.avalanche} />
-            <MethodPlanCard type="SNOWBALL" debts={snowballPriority} simulation={simulationData?.snowball} />
+            <MethodPlanCard
+              type="AVALANCHE"
+              debts={simulationData?.avalanche?.debts || avalanchePriority}
+              simulation={simulationData?.avalanche}
+            />
+            <MethodPlanCard
+              type="SNOWBALL"
+              debts={simulationData?.snowball?.debts || snowballPriority}
+              simulation={simulationData?.snowball}
+            />
           </div>
         </>
       )}

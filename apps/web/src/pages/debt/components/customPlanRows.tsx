@@ -2,7 +2,14 @@ import { motion, Reorder } from 'framer-motion';
 import { ArrowDown, ArrowUp, GripVertical, Plus, X } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { formatVND } from '../../../utils/calculations';
+import { convertFlatToReducingAPR, formatVND } from '../../../utils/calculations';
+
+function getDisplayAPR(debt: any) {
+  if (debt.rateType === 'FLAT' && debt.originalAmount && debt.termMonths) {
+    return convertFlatToReducingAPR(debt.originalAmount, debt.apr, debt.termMonths).toFixed(1);
+  }
+  return (debt.apr || 0).toFixed(1);
+}
 
 export function AvailableDebtRow({ debt, onAdd }: { debt: any; onAdd: (id: string) => void }) {
   const debtId = String(debt.id);
@@ -31,7 +38,7 @@ export function AvailableDebtRow({ debt, onAdd }: { debt: any; onAdd: (id: strin
             {debt.name}
           </Link>
           <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5 truncate">
-            {debt.platform} · APR {debt.apr}% · Tối thiểu {formatVND(debt.minPayment)}
+            {debt.platform} · {getDisplayAPR(debt)}% APR · Tối thiểu {formatVND(debt.minPayment)}
           </p>
         </div>
         <div className="text-right shrink-0">
@@ -100,7 +107,7 @@ export function SelectedDebtItem({
             {debt.name}
           </Link>
           <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5 truncate">
-            {debt.platform} · APR {debt.apr}% · Tối thiểu {formatVND(debt.minPayment)}
+            {debt.platform} · {getDisplayAPR(debt)}% APR · Tối thiểu {formatVND(debt.minPayment)}
           </p>
         </div>
         <div className="text-right shrink-0">
