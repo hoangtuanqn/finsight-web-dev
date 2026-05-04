@@ -1,7 +1,5 @@
-import axios from 'axios';
 import { useCallback, useState } from 'react';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api/v1';
+import api from '../api';
 
 export const useAnalytics = () => {
   const [loading, setLoading] = useState(false);
@@ -10,9 +8,7 @@ export const useAnalytics = () => {
   const getSummary = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/enterprise/analytics/summary`, {
-        withCredentials: true,
-      });
+      const response = await api.get('/v1/enterprise/analytics/summary');
       return response.data;
     } catch (err: any) {
       setError(err.response?.data?.message || 'Lỗi khi lấy dữ liệu tổng quan');
@@ -25,9 +21,7 @@ export const useAnalytics = () => {
   const getAgingReport = useCallback(async (type: 'RECEIVABLE' | 'PAYABLE' = 'RECEIVABLE') => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/enterprise/analytics/aging?type=${type}`, {
-        withCredentials: true,
-      });
+      const response = await api.get(`/v1/enterprise/analytics/aging?type=${type}`);
       return response.data;
     } catch (err: any) {
       setError(err.response?.data?.message || 'Lỗi khi lấy báo cáo tuổi nợ');
@@ -40,9 +34,7 @@ export const useAnalytics = () => {
   const getCashFlow = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/enterprise/analytics/cash-flow`, {
-        withCredentials: true,
-      });
+      const response = await api.get('/v1/enterprise/analytics/cash-flow');
       return response.data;
     } catch (err: any) {
       setError(err.response?.data?.message || 'Lỗi khi lấy dự báo dòng tiền');
@@ -55,9 +47,7 @@ export const useAnalytics = () => {
   const getActionItems = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/enterprise/analytics/action-items`, {
-        withCredentials: true,
-      });
+      const response = await api.get('/v1/enterprise/analytics/action-items');
       return response.data;
     } catch (err: any) {
       setError(err.response?.data?.message || 'Lỗi khi lấy danh sách việc cần làm');
