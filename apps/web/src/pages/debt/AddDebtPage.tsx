@@ -7,7 +7,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 import FormattedInput from '../../components/common/FormattedInput';
 import { useDebtMutations } from '../../hooks/useDebtQuery';
-import { calcAPY, calcEAR, calculateMonthlyPayment, formatPercent } from '../../utils/calculations';
+import { calcEAR, calculateMonthlyPayment, formatPercent } from '../../utils/calculations';
 
 const preprocessNumber = (schema: z.ZodTypeAny) =>
   z.preprocess(
@@ -462,7 +462,6 @@ export default function AddDebtPage() {
     formValues.feeManagement,
     debtType === 'INSTALLMENT' ? formValues.termMonths : 12, // Default to 12 for credit card EAR calc
   );
-  const apy = calcAPY(formValues.apr);
   const remaining = calcRemainingTerms(formValues.startDate, formValues.termMonths);
 
   const onSubmit = async (data: any) => {
@@ -1082,12 +1081,7 @@ export default function AddDebtPage() {
                     {formatPercent(formValues.apr)}
                   </span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-[12px] text-[var(--color-text-muted)]">APY (lãi kép)</span>
-                  <span className="text-[13px] font-black text-purple-600 dark:text-purple-400">
-                    {formatPercent(apy)}
-                  </span>
-                </div>
+
                 <div className="h-px" style={{ background: 'var(--color-border)' }} />
                 <div className="flex justify-between items-center">
                   <span className="text-[13px] font-black text-[var(--color-text-primary)]">EAR (thực tế)</span>
