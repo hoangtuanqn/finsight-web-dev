@@ -11,17 +11,22 @@ export default function DebtListPage() {
   const [debts, setDebts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [filterType, setFilterType] = useState('ALL');
+  const [activeTab, setActiveTab] = useState('OVERVIEW');
+
+  const TABS = [
+    { id: 'OVERVIEW', label: 'Tổng quan' },
+    { id: 'RECEIVABLE', label: 'Phải thu' },
+    { id: 'PAYABLE', label: 'Phải trả' },
+    { id: 'RISK', label: 'Rủi ro & Quá hạn' },
+  ];
 
   useEffect(() => {
     fetchDebts();
-  }, [filterType]);
+  }, []);
 
   const fetchDebts = async () => {
     try {
-      const res = await (enterpriseAuthAPI as any).getDebts({
-        type: filterType === 'ALL' ? undefined : filterType,
-      });
+      const res = await (enterpriseAuthAPI as any).getDebts();
       if (res.data.success) {
         setDebts(res.data.data);
       } else {
@@ -77,7 +82,7 @@ export default function DebtListPage() {
     }
   };
 
-  const filteredDebts = search.trim()
+  const searchedDebts = search.trim()
     ? debts.filter(
         (d) =>
           (d.internalCode || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -85,6 +90,23 @@ export default function DebtListPage() {
           (d.notes || '').toLowerCase().includes(search.toLowerCase()),
       )
     : debts;
+
+  const getDisplayedDebts = () => {
+    switch (activeTab) {
+      case 'RECEIVABLE':
+        return searchedDebts.filter((d) => d.type === 'RECEIVABLE');
+      case 'PAYABLE':
+        return searchedDebts.filter((d) => d.type === 'PAYABLE');
+      case 'RISK':
+        return searchedDebts.filter((d) => d.status === 'OVERDUE' || d.status === 'DISPUTED');
+      case 'OVERVIEW':
+      default:
+        // Sort by closest due date for overview
+        return [...searchedDebts].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+    }
+  };
+
+  const displayedDebts = getDisplayedDebts();
 
   const stats = {
     receivable: debts.filter((d) => d.type === 'RECEIVABLE').reduce((sum, d) => sum + d.outstanding, 0),
@@ -150,9 +172,31 @@ export default function DebtListPage() {
         </div>
       </div>
 
-      {/* ── Filter & Search ── */}
-      <div className="flex flex-col md:flex-row items-center gap-4">
-        <div className="relative flex-1 group">
+      {/* ── Tabs & Search ── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center p-1 bg-slate-900/50 border border-slate-800 rounded-2xl overflow-x-auto custom-scrollbar">
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.id;
+            let activeClass = 'bg-slate-800 text-white';
+            if (tab.id === 'RECEIVABLE') activeClass = 'bg-emerald-500/10 text-emerald-500';
+            if (tab.id === 'PAYABLE') activeClass = 'bg-rose-500/10 text-rose-500';
+            if (tab.id === 'RISK') activeClass = 'bg-amber-500/10 text-amber-500';
+
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-6 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                  isActive ? activeClass : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="relative w-full md:w-96 group">
           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-500 transition-colors">
             <Search size={18} />
           </div>
@@ -163,20 +207,8 @@ export default function DebtListPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex p-1 bg-slate-900/50 border border-slate-800 rounded-2xl">
-          {['ALL', 'RECEIVABLE', 'PAYABLE'].map((t) => (
-            <button
-              key={t}
-              onClick={() => setFilterType(t)}
-              className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all ${filterType === t ? 'bg-slate-800 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
-            >
-              {t === 'ALL' ? 'Tất cả' : t === 'RECEIVABLE' ? 'Phải thu' : 'Phải trả'}
-            </button>
-          ))}
-        </div>
       </div>
 
-      {/* ── Table ── */}
       <div className="bg-slate-900/50 border border-slate-800 rounded-3xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
@@ -209,14 +241,14 @@ export default function DebtListPage() {
                     Đang tải dữ liệu...
                   </td>
                 </tr>
-              ) : filteredDebts.length === 0 ? (
+              ) : displayedDebts.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-20 text-center text-slate-500 text-sm font-medium">
                     Không tìm thấy khoản nợ nào.
                   </td>
                 </tr>
               ) : (
-                filteredDebts.map((debt) => (
+                displayedDebts.map((debt) => (
                   <tr
                     key={debt.id}
                     className="hover:bg-slate-800/30 transition-colors cursor-pointer group"
