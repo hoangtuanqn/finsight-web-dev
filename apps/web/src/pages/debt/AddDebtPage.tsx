@@ -199,8 +199,9 @@ export default function AddDebtPage() {
   });
 
   const formValues = watch();
-  const [loanStatus, setLoanStatus] = useState<'NEW' | 'EXISTING'>('NEW');
-  const [isAutoCalcBalance, setIsAutoCalcBalance] = useState(true);
+  const urlStatus = searchParams.get('status') as 'NEW' | 'EXISTING' | null;
+  const [loanStatus, setLoanStatus] = useState<'NEW' | 'EXISTING'>(urlStatus || 'NEW');
+  const [isAutoCalcBalance, setIsAutoCalcBalance] = useState(urlStatus !== 'EXISTING');
 
   const suggestedMinPayment = useMemo(() => {
     if (debtType === 'CREDIT_CARD') return 0;
@@ -316,7 +317,9 @@ export default function AddDebtPage() {
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-black tracking-tighter text-[var(--color-text-primary)]">Thêm khoản nợ mới</h1>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[var(--color-border)] bg-transparent dark:bg-blue-500/8 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase tracking-widest">
-            <Plus size={11} /> Khoản nợ mới ({debtType === 'INSTALLMENT' ? 'Vay trả góp' : 'Thẻ tín dụng'})
+            {loanStatus === 'NEW' ? <Plus size={11} /> : <Clock size={11} />}
+            {loanStatus === 'NEW' ? 'Khoản nợ mới' : 'Khoản nợ hiện có'} (
+            {debtType === 'INSTALLMENT' ? 'Vay trả góp' : 'Thẻ tín dụng'})
           </div>
         </div>
         <p className="text-[var(--color-text-secondary)] text-sm mt-1">
@@ -332,8 +335,8 @@ export default function AddDebtPage() {
           >
             <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-blue-500/30 to-transparent" />
             <div className="p-6">
-              {/* Trạng thái khoản vay (Chỉ cho Trả góp) */}
-              {debtType === 'INSTALLMENT' && (
+              {/* Trạng thái khoản vay (Chỉ hiển thị nếu không truyền qua URL) */}
+              {debtType === 'INSTALLMENT' && !urlStatus && (
                 <div className="mb-6">
                   <label className="block text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-2">
                     Trạng thái khoản vay
@@ -372,7 +375,7 @@ export default function AddDebtPage() {
                 </div>
               )}
 
-              <div className="h-px bg-white/[0.06] my-2" />
+              {debtType === 'INSTALLMENT' && !urlStatus && <div className="h-px bg-white/[0.06] my-2" />}
 
               {/* Nền tảng */}
               <div className="mb-6">
