@@ -13,6 +13,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -107,84 +108,86 @@ export default function DebtDetailPage() {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-8 space-y-6">
-      {confirmDelete && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}
-          onClick={() => setConfirmDelete(false)}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.92 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="relative w-full max-w-sm rounded-3xl border overflow-hidden text-center p-7"
-            style={{ background: 'var(--color-bg-card)', borderColor: 'rgba(239,68,68,0.25)' }}
-            onClick={(e) => e.stopPropagation()}
+      {confirmDelete &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[999] flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}
+            onClick={() => setConfirmDelete(false)}
           >
-            <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
-            <div
-              className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto mb-4"
-              style={{ boxShadow: '0 0 20px rgba(239,68,68,0.2)' }}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="relative w-full max-w-sm rounded-3xl border overflow-hidden text-center p-7"
+              style={{ background: 'var(--color-bg-card)', borderColor: 'rgba(239,68,68,0.25)' }}
+              onClick={(e) => e.stopPropagation()}
             >
-              <Trash2 size={24} className="text-red-400" />
-            </div>
-            <h3 className="text-[16px] font-black text-[var(--color-text-primary)] mb-2">Chuyển vào thùng rác?</h3>
-            <p className="text-[13px] text-[var(--color-text-secondary)] mb-4 leading-relaxed">
-              Khoản nợ <strong className="text-[var(--color-text-primary)]">"{debt.name}"</strong> sẽ được chuyển vào
-              thùng rác và tự động xoá vĩnh viễn sau 30 ngày.
-            </p>
-
-            {debt.balance > 0 && (
-              <div className="text-left mb-6 space-y-3">
-                <input
-                  type="text"
-                  placeholder="Lý do xoá khoản nợ này?"
-                  className="w-full px-3 py-2 rounded-lg text-sm border bg-[var(--color-bg-secondary)] border-[var(--color-border)] outline-none focus:border-red-500/50"
-                  id="deleteReason"
-                />
-                <label className="flex items-start gap-2 text-xs text-[var(--color-text-muted)] cursor-pointer">
-                  <input type="checkbox" id="deleteCommit" className="mt-0.5" />
-                  <span>Tôi hiểu việc xoá khoản nợ đang vay sẽ làm sai lệch phân tích DTI và EAR.</span>
-                </label>
+              <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-red-500/40 to-transparent" />
+              <div
+                className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto mb-4"
+                style={{ boxShadow: '0 0 20px rgba(239,68,68,0.2)' }}
+              >
+                <Trash2 size={24} className="text-red-400" />
               </div>
-            )}
+              <h3 className="text-[16px] font-black text-[var(--color-text-primary)] mb-2">Chuyển vào thùng rác?</h3>
+              <p className="text-[13px] text-[var(--color-text-secondary)] mb-4 leading-relaxed">
+                Khoản nợ <strong className="text-[var(--color-text-primary)]">"{debt.name}"</strong> sẽ được chuyển vào
+                thùng rác và tự động xoá vĩnh viễn sau 30 ngày.
+              </p>
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmDelete(false)}
-                className="flex-1 py-2.5 rounded-xl text-[13px] font-bold border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-all cursor-pointer"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={() => {
-                  const reason = (document.getElementById('deleteReason') as HTMLInputElement)?.value;
-                  const isCommitted = (document.getElementById('deleteCommit') as HTMLInputElement)?.checked;
+              {debt.balance > 0 && (
+                <div className="text-left mb-6 space-y-3">
+                  <input
+                    type="text"
+                    placeholder="Lý do xoá khoản nợ này?"
+                    className="w-full px-3 py-2 rounded-lg text-sm border bg-[var(--color-bg-secondary)] border-[var(--color-border)] outline-none focus:border-red-500/50"
+                    id="deleteReason"
+                  />
+                  <label className="flex items-start gap-2 text-xs text-[var(--color-text-muted)] cursor-pointer">
+                    <input type="checkbox" id="deleteCommit" className="mt-0.5" />
+                    <span>Tôi hiểu việc xoá khoản nợ đang vay sẽ làm sai lệch phân tích DTI và EAR.</span>
+                  </label>
+                </div>
+              )}
 
-                  if (debt.balance > 0 && (!reason || !isCommitted)) {
-                    toast.error('Vui lòng nhập lý do và xác nhận rủi ro');
-                    return;
-                  }
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  className="flex-1 py-2.5 rounded-xl text-[13px] font-bold border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-all cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={() => {
+                    const reason = (document.getElementById('deleteReason') as HTMLInputElement)?.value;
+                    const isCommitted = (document.getElementById('deleteCommit') as HTMLInputElement)?.checked;
 
-                  handleDelete(reason, isCommitted);
-                }}
-                disabled={isDeleting}
-                className="flex-1 py-2.5 rounded-xl text-[13px] font-black bg-red-500 hover:bg-red-400 text-white transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                {isDeleting ? (
-                  <>
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Đang
-                    xử lý...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 size={14} /> Xoá nợ
-                  </>
-                )}
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+                    if (debt.balance > 0 && (!reason || !isCommitted)) {
+                      toast.error('Vui lòng nhập lý do và xác nhận rủi ro');
+                      return;
+                    }
+
+                    handleDelete(reason, isCommitted);
+                  }}
+                  disabled={isDeleting}
+                  className="flex-1 py-2.5 rounded-xl text-[13px] font-black bg-red-500 hover:bg-red-400 text-white transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {isDeleting ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />{' '}
+                      Đang xử lý...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={14} /> Xoá nợ
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>,
+          document.body,
+        )}
 
       <div className="flex items-center gap-1.5 text-[12px] font-medium pt-2">
         <Link
