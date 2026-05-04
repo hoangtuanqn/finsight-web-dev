@@ -85,6 +85,7 @@ function formatSimulation(simulation: any) {
     warnings: simulation.warnings,
     isScheduleTruncated: simulation.schedule.length > MAX_CHART_MONTHS,
     schedule: simulation.schedule.slice(0, MAX_CHART_MONTHS),
+    debts: simulation.debts,
   };
 }
 
