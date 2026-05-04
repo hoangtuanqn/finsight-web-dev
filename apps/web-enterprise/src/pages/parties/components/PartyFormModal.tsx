@@ -13,6 +13,28 @@ interface PartyFormModalProps {
   isEdit: boolean;
 }
 
+const VIETNAM_BANKS = [
+  'Vietcombank (VCB)',
+  'BIDV',
+  'VietinBank',
+  'Agribank',
+  'Techcombank',
+  'MB Bank',
+  'VPBank',
+  'ACB',
+  'Sacombank',
+  'TPBank',
+  'VIB',
+  'HDBank',
+  'SHB',
+  'MSB',
+  'SeABank',
+  'LienVietPostBank',
+  'Nam A Bank',
+  'OCB',
+  'Eximbank',
+];
+
 export const PartyFormModal: React.FC<PartyFormModalProps> = ({
   isOpen,
   onClose,
@@ -220,11 +242,10 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                       className="w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white"
                       value={formData.contacts?.[0]?.name || ''}
                       onChange={(e) => {
-                        const contacts = formData.contacts || [
-                          { name: '', position: '', email: '', phone: '', isPrimary: true },
-                        ];
-                        const newContacts = [{ ...contacts[0], name: e.target.value }, ...contacts.slice(1)];
-                        setFormData({ ...formData, contacts: newContacts });
+                        const current = formData.contacts || [];
+                        const first = current[0] || { name: '', position: '', email: '', phone: '', isPrimary: true };
+                        const updated = [{ ...first, name: e.target.value }, ...current.slice(1)];
+                        setFormData({ ...formData, contacts: updated });
                       }}
                     />
                   </div>
@@ -237,11 +258,10 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                       className="w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white"
                       value={formData.contacts?.[0]?.position || ''}
                       onChange={(e) => {
-                        const contacts = formData.contacts || [
-                          { name: '', position: '', email: '', phone: '', isPrimary: true },
-                        ];
-                        const newContacts = [{ ...contacts[0], position: e.target.value }, ...contacts.slice(1)];
-                        setFormData({ ...formData, contacts: newContacts });
+                        const current = formData.contacts || [];
+                        const first = current[0] || { name: '', position: '', email: '', phone: '', isPrimary: true };
+                        const updated = [{ ...first, position: e.target.value }, ...current.slice(1)];
+                        setFormData({ ...formData, contacts: updated });
                       }}
                     />
                   </div>
@@ -254,11 +274,10 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                       className="w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white"
                       value={formData.contacts?.[0]?.phone || ''}
                       onChange={(e) => {
-                        const contacts = formData.contacts || [
-                          { name: '', position: '', email: '', phone: '', isPrimary: true },
-                        ];
-                        const newContacts = [{ ...contacts[0], phone: e.target.value }, ...contacts.slice(1)];
-                        setFormData({ ...formData, contacts: newContacts });
+                        const current = formData.contacts || [];
+                        const first = current[0] || { name: '', position: '', email: '', phone: '', isPrimary: true };
+                        const updated = [{ ...first, phone: e.target.value }, ...current.slice(1)];
+                        setFormData({ ...formData, contacts: updated });
                       }}
                     />
                   </div>
@@ -270,11 +289,10 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                       className="w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white"
                       value={formData.contacts?.[0]?.email || ''}
                       onChange={(e) => {
-                        const contacts = formData.contacts || [
-                          { name: '', position: '', email: '', phone: '', isPrimary: true },
-                        ];
-                        const newContacts = [{ ...contacts[0], email: e.target.value }, ...contacts.slice(1)];
-                        setFormData({ ...formData, contacts: newContacts });
+                        const current = formData.contacts || [];
+                        const first = current[0] || { name: '', position: '', email: '', phone: '', isPrimary: true };
+                        const updated = [{ ...first, email: e.target.value }, ...current.slice(1)];
+                        setFormData({ ...formData, contacts: updated });
                       }}
                     />
                   </div>
@@ -291,22 +309,27 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
             {activeTab === 'bank' && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2.5">
-                    <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
-                      Tên Ngân hàng
-                    </label>
-                    <Input
-                      placeholder="Ví dụ: Vietcombank"
-                      className="w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white"
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-400 uppercase ml-1">Tên Ngân hàng</label>
+                    <select
+                      className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl p-4 text-white appearance-none focus:outline-none focus:border-emerald-500/50 transition-all"
                       value={formData.bankAccounts?.[0]?.bankName || ''}
                       onChange={(e) => {
-                        const banks = formData.bankAccounts || [
-                          { bankName: '', accountNumber: '', accountHolder: '', branch: '' },
-                        ];
-                        const newBanks = [{ ...banks[0], bankName: e.target.value }, ...banks.slice(1)];
-                        setFormData({ ...formData, bankAccounts: newBanks });
+                        const current = formData.bankAccounts || [];
+                        const first = current[0] || { bankName: '', accountNumber: '', accountHolder: '', branch: '' };
+                        const updated = [{ ...first, bankName: e.target.value }, ...current.slice(1)];
+                        setFormData({ ...formData, bankAccounts: updated });
                       }}
-                    />
+                    >
+                      <option value="" disabled className="bg-slate-900">
+                        Chọn ngân hàng...
+                      </option>
+                      {VIETNAM_BANKS.map((bank) => (
+                        <option key={bank} value={bank} className="bg-slate-900 text-white">
+                          {bank}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="space-y-2.5">
                     <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
@@ -317,11 +340,10 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                       className="w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white font-mono"
                       value={formData.bankAccounts?.[0]?.accountNumber || ''}
                       onChange={(e) => {
-                        const banks = formData.bankAccounts || [
-                          { bankName: '', accountNumber: '', accountHolder: '', branch: '' },
-                        ];
-                        const newBanks = [{ ...banks[0], accountNumber: e.target.value }, ...banks.slice(1)];
-                        setFormData({ ...formData, bankAccounts: newBanks });
+                        const current = formData.bankAccounts || [];
+                        const first = current[0] || { bankName: '', accountNumber: '', accountHolder: '', branch: '' };
+                        const updated = [{ ...first, accountNumber: e.target.value }, ...current.slice(1)];
+                        setFormData({ ...formData, bankAccounts: updated });
                       }}
                     />
                   </div>
@@ -334,11 +356,10 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                       className="w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white uppercase"
                       value={formData.bankAccounts?.[0]?.accountHolder || ''}
                       onChange={(e) => {
-                        const banks = formData.bankAccounts || [
-                          { bankName: '', accountNumber: '', accountHolder: '', branch: '' },
-                        ];
-                        const newBanks = [{ ...banks[0], accountHolder: e.target.value }, ...banks.slice(1)];
-                        setFormData({ ...formData, bankAccounts: newBanks });
+                        const current = formData.bankAccounts || [];
+                        const first = current[0] || { bankName: '', accountNumber: '', accountHolder: '', branch: '' };
+                        const updated = [{ ...first, accountHolder: e.target.value }, ...current.slice(1)];
+                        setFormData({ ...formData, bankAccounts: updated });
                       }}
                     />
                   </div>
@@ -351,11 +372,10 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                       className="w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white"
                       value={formData.bankAccounts?.[0]?.branch || ''}
                       onChange={(e) => {
-                        const banks = formData.bankAccounts || [
-                          { bankName: '', accountNumber: '', accountHolder: '', branch: '' },
-                        ];
-                        const newBanks = [{ ...banks[0], branch: e.target.value }, ...banks.slice(1)];
-                        setFormData({ ...formData, bankAccounts: newBanks });
+                        const current = formData.bankAccounts || [];
+                        const first = current[0] || { bankName: '', accountNumber: '', accountHolder: '', branch: '' };
+                        const updated = [{ ...first, branch: e.target.value }, ...current.slice(1)];
+                        setFormData({ ...formData, bankAccounts: updated });
                       }}
                     />
                   </div>
