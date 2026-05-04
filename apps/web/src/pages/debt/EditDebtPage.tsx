@@ -1,7 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { motion } from 'framer-motion';
-import { AlertTriangle, BarChart2, Calendar, Clock, CreditCard, Info, Plus } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { AlertTriangle, BarChart2, Calendar, CheckCircle2, Clock, CreditCard, Info, Plus, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Controller, useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -153,6 +154,237 @@ const PLATFORM_PRESETS = {
   },
 } as const;
 
+function PaymentInfoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  if (!isOpen) return null;
+
+  return createPortal(
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 20 }}
+          className="relative w-full max-w-md bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-[2.5rem] shadow-2xl overflow-hidden"
+        >
+          <div className="p-8">
+            <div className="flex justify-between items-start mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                <Info size={24} />
+              </div>
+              <button
+                onClick={onClose}
+                className="p-2 rounded-xl hover:bg-white/5 text-[var(--color-text-muted)] transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <h3 className="text-2xl font-black text-[var(--color-text-primary)] tracking-tight mb-2">
+              Khoản trả hàng tháng
+            </h3>
+            <p className="text-[var(--color-text-muted)] text-sm mb-8 leading-relaxed">
+              Hệ thống tự động tính toán số tiền bạn cần trả mỗi tháng để đảm bảo tất toán đúng hạn.
+            </p>
+
+            <div className="space-y-4">
+              {[
+                {
+                  title: 'Tiền gốc hàng tháng',
+                  desc: 'Tổng số tiền vay chia đều cho số tháng kỳ hạn.',
+                  icon: <CheckCircle2 size={16} className="text-emerald-500" />,
+                },
+                {
+                  title: 'Lãi suất định kỳ',
+                  desc: 'Tính theo phương thức Flat (phẳng) hoặc Dư nợ giảm dần.',
+                  icon: <CheckCircle2 size={16} className="text-emerald-500" />,
+                },
+                {
+                  title: 'Phí quản lý & Phụ phí',
+                  desc: 'Các loại phí duy trì dịch vụ được cộng dồn hàng tháng.',
+                  icon: <CheckCircle2 size={16} className="text-emerald-500" />,
+                },
+              ].map((item, i) => (
+                <div
+                  key={i}
+                  className="flex gap-4 p-4 rounded-2xl bg-[var(--color-bg-secondary)]/50 border border-[var(--color-border)]/50"
+                >
+                  <div className="mt-0.5">{item.icon}</div>
+                  <div>
+                    <h4 className="text-sm font-bold text-[var(--color-text-primary)] mb-0.5">{item.title}</h4>
+                    <p className="text-[12px] text-[var(--color-text-muted)] leading-snug">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-8 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
+              <p className="text-[11px] text-emerald-400 font-medium leading-relaxed italic text-center">
+                "Khoản trả này thường là cố định (đối với trả góp), giúp bạn dễ dàng lập kế hoạch tài chính hàng tháng."
+              </p>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="w-full mt-8 py-4 rounded-2xl bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] font-black uppercase tracking-widest text-xs hover:opacity-90 transition-opacity"
+            >
+              Đã hiểu
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>,
+    document.body,
+  );
+}
+
+function BalanceInfoModal({
+  isOpen,
+  onClose,
+  isExisting = false,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  isExisting?: boolean;
+}) {
+  if (!isOpen) return null;
+
+  return createPortal(
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 20 }}
+          className="relative w-full max-w-md bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-[2.5rem] shadow-2xl overflow-hidden"
+        >
+          <div className="p-8">
+            <div className="flex justify-between items-start mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                <Info size={24} />
+              </div>
+              <button
+                onClick={onClose}
+                className="p-2 rounded-xl hover:bg-white/5 text-[var(--color-text-muted)] transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <h3 className="text-2xl font-black text-[var(--color-text-primary)] tracking-tight mb-2">
+              {isExisting ? 'Dư nợ hiện tại' : 'Cách tính dư nợ'}
+            </h3>
+            <p className="text-[var(--color-text-muted)] text-sm mb-8 leading-relaxed">
+              {isExisting
+                ? 'Đây là số tiền thực tế bạn còn nợ sau khi đã trừ đi các khoản gốc đã thanh toán qua từng tháng.'
+                : 'Đối với khoản nợ mới, hệ thống tự động xác định số tiền bạn thực sự nợ dựa trên gốc và các loại phí ban đầu.'}
+            </p>
+
+            <div className="grid grid-cols-2 gap-3">
+              {(isExisting
+                ? [
+                    {
+                      title: 'Dư nợ đầu kỳ',
+                      desc: 'Gốc vay kèm các loại phí thiết lập được cộng dồn khi giải ngân.',
+                      icon: <CheckCircle2 size={14} className="text-emerald-500" />,
+                    },
+                    {
+                      title: 'Khấu trừ gốc',
+                      desc: 'Tiền gốc trả mỗi kỳ sẽ được khấu trừ trực tiếp vào dư nợ.',
+                      icon: <CheckCircle2 size={14} className="text-emerald-500" />,
+                    },
+                    {
+                      title: 'Phí & Phạt',
+                      desc: 'Phí quản lý hoặc tiền phạt trễ hạn sẽ làm tăng dư nợ thực tế.',
+                      icon: <CheckCircle2 size={14} className="text-emerald-500" />,
+                    },
+                  ]
+                : [
+                    {
+                      title: 'Tiền gốc thực',
+                      desc: 'Giá trị món hàng hoặc số tiền mặt thực tế bạn nhận được.',
+                      icon: <CheckCircle2 size={14} className="text-emerald-500" />,
+                    },
+                    {
+                      title: 'Phí dịch vụ',
+                      desc: 'Phí xử lý hồ sơ thường được cộng dồn vào dư nợ gốc.',
+                      icon: <CheckCircle2 size={14} className="text-emerald-500" />,
+                    },
+                    {
+                      title: 'Phí bảo hiểm',
+                      desc: 'Phí bảo hiểm rủi ro tín dụng tính theo % giá trị hợp đồng.',
+                      icon: <CheckCircle2 size={14} className="text-emerald-500" />,
+                    },
+                  ]
+              ).map((item, i) => (
+                <div
+                  key={i}
+                  className="p-4 rounded-2xl bg-[var(--color-bg-secondary)]/50 border border-[var(--color-border)]/50 flex flex-col gap-3"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+                      {item.icon}
+                    </div>
+                    <h4 className="text-sm font-black text-[var(--color-text-primary)] leading-none tracking-tight">
+                      {item.title}
+                    </h4>
+                  </div>
+                  <p className="text-sm text-[var(--color-text-muted)] leading-relaxed">{item.desc}</p>
+                </div>
+              ))}
+
+              {isExisting && (
+                <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10 flex flex-col gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
+                      <CheckCircle2 size={14} className="text-blue-500" />
+                    </div>
+                    <h4 className="text-sm font-black text-[var(--color-text-primary)] leading-none tracking-tight">
+                      Tracking thực tế
+                    </h4>
+                  </div>
+                  <p className="text-sm text-[var(--color-text-muted)] leading-relaxed">
+                    Tự động theo dõi lịch thanh toán để cập nhật theo thời gian thực.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-8 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
+              <p className="text-[11px] text-emerald-400 font-medium leading-relaxed italic text-center">
+                {isExisting
+                  ? '"Việc theo dõi dư nợ chính xác giúp bạn biết được bao giờ mình sẽ hoàn toàn tự do tài chính."'
+                  : '"Việc tính đúng dư nợ ban đầu giúp xác định chính xác lãi suất thực tế (EAR) mà bạn phải gánh chịu."'}
+              </p>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="w-full mt-8 py-4 rounded-2xl bg-[var(--color-text-primary)] text-[var(--color-bg-primary)] font-black uppercase tracking-widest text-xs hover:opacity-90 transition-opacity"
+            >
+              Tôi đã hiểu
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>,
+    document.body,
+  );
+}
+
 export default function EditDebtPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -161,6 +393,8 @@ export default function EditDebtPage() {
   const [debtType, setDebtType] = useState<'INSTALLMENT' | 'CREDIT_CARD'>('INSTALLMENT');
   const [loanStatus, setLoanStatus] = useState<'NEW' | 'EXISTING'>('EXISTING');
   const [isAutoCalcBalance, setIsAutoCalcBalance] = useState(true);
+  const [showPaymentInfo, setShowPaymentInfo] = useState(false);
+  const [showBalanceInfo, setShowBalanceInfo] = useState(false);
 
   const {
     handleSubmit,
@@ -346,24 +580,26 @@ export default function EditDebtPage() {
       </div>
       <div>
         <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-black tracking-tighter text-[var(--color-text-primary)]">Chỉnh sửa khoản nợ</h1>
+          <h1 className="text-3xl font-black tracking-tighter text-[var(--color-text-primary)]">
+            Chỉnh sửa khoản nợ<span className="text-emerald-500 ml-1">.</span>
+          </h1>
         </div>
         <p className="text-[var(--color-text-secondary)] text-sm mt-1 mb-6">
           Cập nhật thông tin chi tiết cho khoản nợ của bạn
         </p>
       </div>
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 p-4 bg-white/[0.02] rounded-2xl border border-white/[0.04]">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 p-4 bg-white dark:bg-white/[0.02] rounded-2xl border border-[var(--color-border)] dark:border-white/[0.04]">
         {/* Debt Type Badge */}
         <div className="flex items-center gap-3">
           <span className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">Loại nợ:</span>
           {debtType === 'INSTALLMENT' ? (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-transparent dark:bg-indigo-500/10 border border-[var(--color-border)] dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400">
               <Calendar size={12} />
               <span className="text-[11px] font-black uppercase">Vay Trả Góp</span>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-transparent dark:bg-purple-500/10 border border-[var(--color-border)] dark:border-purple-500/20 text-purple-600 dark:text-purple-400">
               <CreditCard size={12} />
               <span className="text-[11px] font-black uppercase">Thẻ Tín Dụng</span>
             </div>
@@ -374,12 +610,12 @@ export default function EditDebtPage() {
         <div className="flex items-center gap-3">
           <span className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">Trạng thái:</span>
           {loanStatus === 'NEW' ? (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-transparent dark:bg-blue-500/10 border border-[var(--color-border)] dark:border-blue-500/20 text-blue-600 dark:text-blue-400">
               <Plus size={12} className="animate-pulse" />
               <span className="text-[11px] font-black uppercase">Vừa bắt đầu</span>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-transparent dark:bg-amber-500/10 border border-[var(--color-border)] dark:border-amber-500/20 text-amber-600 dark:text-amber-400">
               <Clock size={12} />
               <span className="text-[11px] font-black uppercase">Đang trả dở</span>
             </div>
@@ -391,10 +627,10 @@ export default function EditDebtPage() {
         <div className="lg:col-span-2">
           <div className="glass-card p-6 md:p-8">
             <div className="mb-8">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2 mb-2">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-2">
                 <Info size={18} className="text-blue-400" /> Thông tin cơ bản
               </h2>
-              <p className="text-slate-400 text-xs">Cập nhật các thông số gốc của khoản nợ</p>
+              <p className="text-slate-500 dark:text-slate-400 text-xs">Cập nhật các thông số gốc của khoản nợ</p>
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -493,7 +729,7 @@ export default function EditDebtPage() {
               </div>
 
               {debtType === 'INSTALLMENT' && (
-                <div className="p-4 bg-white/[0.02] border border-white/[0.06] rounded-xl space-y-3">
+                <div className="p-4 bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/[0.06] rounded-xl space-y-3">
                   {/* Label row: title + startDate hint + suggestion button */}
                   <div className="flex items-center gap-2">
                     <label className="input-label mb-0 shrink-0">Số kỳ đã trả</label>
@@ -535,7 +771,7 @@ export default function EditDebtPage() {
                   {/* Progress row */}
                   <div>
                     <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-base font-black text-white">
+                      <span className="text-base font-black text-slate-900 dark:text-white">
                         {(formValues.termMonths || 0) - (formValues.remainingTerms || 0)}
                       </span>
                       <span className="text-slate-500 text-sm">/ {formValues.termMonths || 0} kỳ</span>
@@ -562,18 +798,82 @@ export default function EditDebtPage() {
 
                   {/* Auto-update notice */}
                   <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-blue-500/5 border border-blue-500/10">
-                    <Info size={11} className="text-blue-400/70 mt-0.5 shrink-0" />
-                    <p className="text-[10px] text-blue-300/60 leading-relaxed">
-                      Số kỳ đã trả sẽ <span className="font-bold text-blue-300/80">tự động cập nhật</span> khi bạn ghi
-                      nhận thanh toán đủ một kỳ (≥ khoản trả tối thiểu). Bạn cũng có thể điều chỉnh thủ công ở đây.
+                    <Info size={11} className="text-blue-500 dark:text-blue-400/70 mt-0.5 shrink-0" />
+                    <p className="text-[10px] text-blue-600 dark:text-blue-300/60 leading-relaxed">
+                      Số kỳ đã trả sẽ{' '}
+                      <span className="font-bold text-blue-700 dark:text-blue-300/80">tự động cập nhật</span> khi bạn
+                      ghi nhận thanh toán đủ một kỳ (≥ khoản trả tối thiểu). Bạn cũng có thể điều chỉnh thủ công ở đây.
                     </p>
                   </div>
                 </div>
               )}
 
+              {/* Row 1: Interest Rates Group */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="input-label">Dư nợ hiện tại</label>
+                  <label className="input-label">Lãi suất APR (%/năm)</label>
+                  <Controller
+                    name="apr"
+                    control={control}
+                    render={({ field }) => (
+                      <FormattedInput
+                        kind="decimal"
+                        value={field.value}
+                        onValueChange={(v) => field.onChange(toNumberValue(v))}
+                        className={inputCls(errors.apr)}
+                        placeholder="0"
+                        suffix="%"
+                      />
+                    )}
+                  />
+                  {errors.apr && (
+                    <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1">
+                      <AlertTriangle size={12} /> {errors.apr.message}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="input-label">Hình thức tính lãi</label>
+                  <select
+                    {...register('rateType')}
+                    className="input-field appearance-none"
+                    disabled={debtType === 'CREDIT_CARD'}
+                    value={debtType === 'CREDIT_CARD' ? 'REDUCING' : formValues.rateType}
+                  >
+                    <option value="FLAT">Flat (Lãi trên gốc ban đầu)</option>
+                    <option value="REDUCING">Reducing (Dư nợ giảm dần)</option>
+                  </select>
+                  {debtType === 'CREDIT_CARD' && (
+                    <p className="mt-1 text-[11px] text-slate-500 italic">
+                      * Thẻ tín dụng mặc định tính trên dư nợ giảm dần
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Row 2: Amounts Group */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <div className="flex justify-between items-end mb-1.5">
+                    <label className="input-label mb-0">
+                      Dư nợ hiện tại
+                      <span className="text-[10px] text-emerald-400 font-normal ml-2 tracking-normal lowercase">
+                        (Số tiền đang nợ)
+                      </span>
+                    </label>
+                    {debtType === 'INSTALLMENT' && (
+                      <button
+                        type="button"
+                        onClick={() => setShowBalanceInfo(true)}
+                        className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors cursor-pointer group"
+                      >
+                        <Info size={10} className="text-emerald-400 group-hover:scale-110 transition-transform" />
+                        <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+                          Hệ thống tự tính
+                        </span>
+                      </button>
+                    )}
+                  </div>
                   <Controller
                     name="balance"
                     control={control}
@@ -588,24 +888,38 @@ export default function EditDebtPage() {
                           }}
                           className={`${inputCls(errors.balance)} ${
                             loanStatus === 'NEW'
-                              ? 'bg-blue-500/5 border-blue-500/20 text-blue-200 cursor-not-allowed'
+                              ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-200 cursor-not-allowed'
                               : ''
                           }`}
                           placeholder="0"
                           suffix="đ"
                           readOnly={loanStatus === 'NEW'}
                         />
-                        {loanStatus === 'NEW' && (
-                          <p className="mt-1.5 text-[10px] text-blue-400/70 flex items-center gap-1 italic">
-                            <Info size={10} /> Tự tính: Gốc + các loại phí thiết lập
-                          </p>
-                        )}
                         {loanStatus === 'EXISTING' &&
                           debtType === 'INSTALLMENT' &&
-                          formValues.originalAmount > 0 &&
-                          formValues.balance < formValues.originalAmount && (
-                            <p className="mt-1 text-[10px] text-amber-400 flex items-center gap-1">
-                              <Info size={10} /> Dư nợ thấp hơn gốc? Bạn đã trả một phần rồi?
+                          toNumberValue(formValues.originalAmount) > 0 &&
+                          toNumberValue(formValues.balance) < toNumberValue(formValues.originalAmount) && (
+                            <p className="mt-1.5 text-[10px] text-[var(--color-text-muted)] flex items-center gap-1.5 font-medium tracking-wide">
+                              <CheckCircle2 size={10} className="text-emerald-500" />
+                              <span>
+                                Bạn đã trả được{' '}
+                                <span className="text-emerald-500 font-bold">
+                                  {new Intl.NumberFormat('vi-VN').format(
+                                    toNumberValue(formValues.originalAmount) - toNumberValue(formValues.balance),
+                                  )}
+                                  đ
+                                </span>{' '}
+                                so với tiền gốc (
+                                <span className="text-emerald-500 font-bold">
+                                  {Math.round(
+                                    ((toNumberValue(formValues.originalAmount) - toNumberValue(formValues.balance)) /
+                                      toNumberValue(formValues.originalAmount)) *
+                                      100,
+                                  )}
+                                  %
+                                </span>
+                                )
+                              </span>
                             </p>
                           )}
                         {debtType === 'CREDIT_CARD' &&
@@ -637,57 +951,23 @@ export default function EditDebtPage() {
                     </p>
                   )}
                 </div>
-                <div>
-                  <label className="input-label">Lãi suất APR (%/năm)</label>
-                  <Controller
-                    name="apr"
-                    control={control}
-                    render={({ field }) => (
-                      <FormattedInput
-                        kind="decimal"
-                        value={field.value}
-                        onValueChange={(v) => field.onChange(toNumberValue(v))}
-                        className={inputCls(errors.apr)}
-                        placeholder="0"
-                        suffix="%"
-                      />
-                    )}
-                  />
-                  {errors.apr && (
-                    <p className="mt-1.5 text-[12px] text-red-400 flex items-center gap-1">
-                      <AlertTriangle size={12} /> {errors.apr.message}
-                    </p>
-                  )}
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="input-label">Hình thức tính lãi</label>
-                  <select
-                    {...register('rateType')}
-                    className="input-field appearance-none"
-                    disabled={debtType === 'CREDIT_CARD'}
-                    value={debtType === 'CREDIT_CARD' ? 'REDUCING' : formValues.rateType}
-                  >
-                    <option value="FLAT">Flat (Lãi trên gốc ban đầu)</option>
-                    <option value="REDUCING">Reducing (Dư nợ giảm dần)</option>
-                  </select>
-                  {debtType === 'CREDIT_CARD' && (
-                    <p className="mt-1 text-[11px] text-slate-500 italic">
-                      * Thẻ tín dụng mặc định tính trên dư nợ giảm dần
-                    </p>
-                  )}
-                </div>
                 <div>
                   <div className="flex justify-between items-end mb-1.5">
-                    <label className="input-label mb-0">Khoản trả hàng tháng</label>
+                    <label className="input-label mb-0">
+                      {debtType === 'CREDIT_CARD' ? 'Thanh toán tối thiểu' : 'Khoản trả hàng tháng'}
+                    </label>
                     {debtType === 'INSTALLMENT' && (
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                      <button
+                        type="button"
+                        onClick={() => setShowPaymentInfo(true)}
+                        className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors cursor-pointer group"
+                      >
+                        <Info size={10} className="text-emerald-400 group-hover:scale-110 transition-transform" />
                         <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
                           Hệ thống tự tính
                         </span>
-                      </div>
+                      </button>
                     )}
                   </div>
                   <Controller
@@ -701,19 +981,18 @@ export default function EditDebtPage() {
                           onValueChange={(value) => field.onChange(toNumberValue(value))}
                           className={`${inputCls(errors.minPayment)} ${
                             debtType === 'INSTALLMENT'
-                              ? 'bg-blue-500/5 border-blue-500/20 text-blue-200 cursor-not-allowed'
+                              ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-200 cursor-not-allowed'
                               : ''
                           }`}
                           placeholder="0"
                           suffix="đ"
                           readOnly={debtType === 'INSTALLMENT'}
                         />
-                        <p className="mt-1.5 text-[10px] text-gray-500 flex items-center gap-1 italic">
-                          <Info size={10} />{' '}
-                          {debtType === 'INSTALLMENT'
-                            ? 'Khoản trả cố định hàng tháng (gốc + lãi + phí).'
-                            : 'Số tiền bạn dự định trả cho thẻ mỗi tháng.'}
-                        </p>
+                        {debtType === 'CREDIT_CARD' && (
+                          <p className="mt-1.5 text-[10px] text-gray-500 flex items-center gap-1 italic">
+                            <Info size={10} /> Số tiền bạn dự định trả cho thẻ mỗi tháng.
+                          </p>
+                        )}
                       </div>
                     )}
                   />
@@ -794,7 +1073,7 @@ export default function EditDebtPage() {
                   <AlertTriangle size={14} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-200">Thiết lập Phạt trễ hạn (Kép)</h3>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-200">Thiết lập Phạt trễ hạn (Kép)</h3>
                   <p className="text-[11px] text-slate-500">Tự động tính thêm dư nợ và trừ Điểm Sức Khoẻ khi trễ hẹn</p>
                 </div>
               </div>
@@ -818,9 +1097,9 @@ export default function EditDebtPage() {
                           });
                         }
                       }}
-                      className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500/30 focus:ring-offset-slate-900"
+                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-blue-500 focus:ring-blue-500/30 focus:ring-offset-slate-900"
                     />
-                    <span className="text-sm text-slate-300 font-medium group-hover:text-white transition-colors">
+                    <span className="text-sm text-slate-600 dark:text-slate-300 font-medium group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
                       Khoản nợ này có áp dụng phí phạt trễ hạn
                     </span>
                   </label>
@@ -828,7 +1107,7 @@ export default function EditDebtPage() {
 
                 <div className={formValues.feePenaltyPerDay > 0 ? 'col-span-1 md:col-span-2 block' : 'hidden'}>
                   <div className="p-4 rounded-2xl bg-rose-500/5 border border-rose-500/10">
-                    <label className="input-label text-rose-300">
+                    <label className="input-label text-rose-600 dark:text-rose-300">
                       {debtType === 'INSTALLMENT' ? 'Phí phạt cố định mỗi ngày (VND)' : 'Phí phạt trễ hạn 1 lần (VND)'}
                     </label>
                     <Controller
@@ -850,7 +1129,7 @@ export default function EditDebtPage() {
                         <AlertTriangle size={11} /> {errors.feePenaltyPerDay.message as string}
                       </p>
                     )}
-                    <p className="mt-1.5 text-[10px] text-rose-400/70 flex items-center gap-1.5 italic">
+                    <p className="mt-1.5 text-[10px] text-rose-600/70 dark:text-rose-400/70 flex items-center gap-1.5 italic">
                       <Info size={12} />
                       {debtType === 'INSTALLMENT'
                         ? 'Phí sẽ được cộng dồn vào dư nợ mỗi ngày nếu quá hạn.'
@@ -887,7 +1166,7 @@ export default function EditDebtPage() {
 
         <div className="space-y-6">
           <div className="glass-card p-6 sticky top-8 border-blue-500/10">
-            <h3 className="text-[17px] font-bold text-white mb-6 flex items-center gap-2">
+            <h3 className="text-[17px] font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
               <BarChart2 className="text-blue-400" size={18} /> Phân tích chi phí mới
             </h3>
 
@@ -900,26 +1179,26 @@ export default function EditDebtPage() {
                 <p className="text-[10px] text-slate-500 mt-1 italic"> Bao gồm lãi suất + các loại phí</p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/[0.05]">
                 <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Lãi suất năm (APY)</p>
-                <p className="text-xl font-bold text-white">{formatPercent(apy)}%</p>
+                <p className="text-xl font-bold text-slate-900 dark:text-white">{formatPercent(apy)}%</p>
               </div>
 
               {debtType === 'INSTALLMENT' && (
                 <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10">
-                  <p className="text-[11px] font-bold text-blue-400 uppercase tracking-wider mb-2">
+                  <p className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-2">
                     Dự kiến thanh toán
                   </p>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">Tổng tiền trả:</span>
-                      <span className="text-white font-bold">
+                      <span className="text-slate-500 dark:text-slate-400">Tổng tiền trả:</span>
+                      <span className="text-slate-900 dark:text-white font-bold">
                         {(formValues.minPayment * formValues.termMonths).toLocaleString()}đ
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">Tổng lãi & phí:</span>
-                      <span className="text-rose-400 font-bold">
+                      <span className="text-slate-500 dark:text-slate-400">Tổng lãi & phí:</span>
+                      <span className="text-rose-600 dark:text-rose-400 font-bold">
                         {(formValues.minPayment * formValues.termMonths - formValues.originalAmount).toLocaleString()}đ
                       </span>
                     </div>
@@ -930,6 +1209,12 @@ export default function EditDebtPage() {
           </div>
         </div>
       </div>
+      <PaymentInfoModal isOpen={showPaymentInfo} onClose={() => setShowPaymentInfo(false)} />
+      <BalanceInfoModal
+        isOpen={showBalanceInfo}
+        onClose={() => setShowBalanceInfo(false)}
+        isExisting={loanStatus === 'EXISTING'}
+      />
     </motion.div>
   );
 }
