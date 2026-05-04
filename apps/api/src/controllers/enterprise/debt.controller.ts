@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
+import enterpriseDb from '../../prisma/enterprise.client';
 import * as debtService from '../../services/enterprise/debt.service';
+import * as debtStatusService from '../../services/enterprise/debtStatus.service';
 import { logAudit } from '../../utils/audit';
 
 export const createDebt = async (req: Request, res: Response) => {
@@ -74,6 +76,94 @@ export const getDebt = async (req: Request, res: Response) => {
     }
 
     res.status(200).json({ success: true, data: debt });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export const activateDebt = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const orgId = (req as any).organizationId;
+    const userId = (req as any).userId;
+
+    const debt = await (debtStatusService as any).default.activateDebt(orgId, userId, id);
+    res.status(200).json({ success: true, data: debt });
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+export const disputeDebt = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const orgId = (req as any).organizationId;
+    const userId = (req as any).userId;
+
+    if (!reason) throw new Error('Cần cung cấp lý do tranh chấp');
+
+    const debt = await (debtStatusService as any).default.disputeDebt(orgId, userId, id, reason);
+    res.status(200).json({ success: true, data: debt });
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+export const resolveDispute = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const orgId = (req as any).organizationId;
+    const userId = (req as any).userId;
+
+    const debt = await (debtStatusService as any).default.resolveDispute(orgId, userId, id);
+    res.status(200).json({ success: true, data: debt });
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+export const writeOffDebt = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const orgId = (req as any).organizationId;
+    const userId = (req as any).userId;
+
+    if (!reason) throw new Error('Cần cung cấp lý do xóa nợ');
+
+    const debt = await (debtStatusService as any).default.writeOff(orgId, userId, id, reason);
+    res.status(200).json({ success: true, data: debt });
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+export const getDebtAuditLogs = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const orgId = (req as any).organizationId;
+
+    const logs = await (enterpriseDb as any).auditLog.findMany({
+      where: {
+        organizationId: orgId,
+        entityType: 'DEBT_RECORD',
+        entityId: id,
+      },
+      include: {
+        user: {
+          select: {
+            fullName: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    res.status(200).json({ success: true, data: logs });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
