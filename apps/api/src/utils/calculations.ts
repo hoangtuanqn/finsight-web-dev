@@ -201,10 +201,14 @@ export function simulateRepayment(
     // Step 1: Accrue interest
     ds.forEach((d) => {
       if (d.balance > 0) {
-        let interest = (d.balance * (d.apr / 100)) / 12;
+        let interest = 0;
+        // Fix: Không cộng lãi trong tháng đầu tiên (tháng 1) vì số dư nhập vào thường đã bao gồm lãi kỳ trước (tránh tính chồng lãi)
+        if (months > 1) {
+          interest = (d.balance * (d.apr / 100)) / 12;
 
-        if (d.debtType === 'CREDIT_CARD' && d.feeManagement && d.feeManagement > 0) {
-          interest += (d.balance * (d.feeManagement / 100)) / 12;
+          if (d.debtType === 'CREDIT_CARD' && d.feeManagement && d.feeManagement > 0) {
+            interest += (d.balance * (d.feeManagement / 100)) / 12;
+          }
         }
 
         totalInterest += interest;
