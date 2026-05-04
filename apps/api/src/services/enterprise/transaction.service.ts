@@ -148,7 +148,12 @@ export class TransactionService {
       const originalTx = await tx.debtTransaction.findUnique({
         where: { id: transactionId },
         include: {
-          debtRecord: { include: { party: { select: { personInChargeId: true } } } },
+          debtRecord: {
+            include: {
+              party: { select: { personInChargeId: true } },
+              schedules: { orderBy: { period: 'desc' } }, // Lấy lịch trình sắp xếp ngược để hoàn tác từ kỳ muộn nhất
+            },
+          },
           reversedBy: { select: { id: true }, take: 1 },
         },
       });
@@ -159,6 +164,28 @@ export class TransactionService {
       if (debt.organizationId !== orgId) throw new Error('Không có quyền đảo ngược giao dịch này');
       if (originalTx.reversedBy.length > 0) throw new Error('Giao dịch này đã được đảo ngược trước đó');
 
+      // 1. Hoàn tác Lịch trình thanh toán (Schedules)
+      if (originalTx.principalPart > 0) {
+        let amountToRecover = originalTx.principalPart;
+        for (const schedule of debt.schedules) {
+          if (amountToRecover <= 0) break;
+          if ((schedule.paidPrincipal || 0) <= 0) continue;
+
+          const canRecoverFromThis = Math.min(amountToRecover, schedule.paidPrincipal || 0);
+          const newPaid = (schedule.paidPrincipal || 0) - canRecoverFromThis;
+
+          await tx.debtSchedule.update({
+            where: { id: schedule.id },
+            data: {
+              paidPrincipal: newPaid,
+              status: newPaid <= 0 ? 'PENDING' : 'PARTIAL',
+            },
+          });
+          amountToRecover -= canRecoverFromThis;
+        }
+      }
+
+      // 2. Tạo giao dịch đảo ngược
       const reversalTx = await tx.debtTransaction.create({
         data: {
           debtRecordId: debt.id,
@@ -173,6 +200,7 @@ export class TransactionService {
         },
       });
 
+      // 3. Khôi phục dư nợ trên hồ sơ gốc
       const restoredOutstanding = debt.outstanding + originalTx.principalPart;
       await tx.debtRecord.update({
         where: { id: debt.id },
@@ -182,7 +210,7 @@ export class TransactionService {
         },
       });
 
-      // Notify
+      // 4. Thông báo
       const recipientId = debt.personInChargeId || debt.party?.personInChargeId;
       if (recipientId) {
         await NotificationService.createNotification(
