@@ -23,6 +23,7 @@ model Organization {
 
   users               User[]
   parties             Party[]
+  debtRecords         DebtRecord[]
   auditLogs           AuditLog[]
 
   @@map("enterprise_organizations")
@@ -73,6 +74,9 @@ model Party {
 
   contacts       Contact[]
   bankAccounts   BankAccount[]
+  
+  debtRecords    DebtRecord[]
+  guaranteedDebts DebtRecord[] @relation("DebtGuarantor")
   
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -132,5 +136,121 @@ model AuditLog {
   createdAt      DateTime @default(now())
 
   @@map("enterprise_audit_logs")
+  @@schema("enterprise")
+}
+
+model DebtRecord {
+  id               String   @id @default(uuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  
+  partyId          String
+  party            Party    @relation(fields: [partyId], references: [id])
+  
+  guarantorId      String?
+  guarantor        Party?   @relation("DebtGuarantor", fields: [guarantorId], references: [id])
+  
+  type             String   // RECEIVABLE, PAYABLE
+  origin           String   // TRADE, FINANCIAL, TAX, BOND, INTERNAL
+  
+  principal        Float
+  interestMethod   String   // REDUCING_BALANCE, EMI, BULLET, NONE
+  
+  issueDate        DateTime
+  dueDate          DateTime // Final due date
+  
+  status           String   @default("DRAFT") // DRAFT, ACTIVE, PARTIAL, PAID, OVERDUE, DISPUTED, WRITTEN_OFF
+  
+  internalCode     String?  // Reference number
+  notes            String?  @db.Text
+  
+  interestRates    DebtInterestRate[]
+  schedules        DebtSchedule[]
+  transactions     DebtTransaction[]
+  documents        DebtDocument[]
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("enterprise_debt_records")
+  @@schema("enterprise")
+}
+
+model DebtInterestRate {
+  id           String   @id @default(uuid())
+  debtRecordId String
+  debtRecord   DebtRecord @relation(fields: [debtRecordId], references: [id], onDelete: Cascade)
+  
+  rate         Float    // Percentage (e.g. 8.5)
+  effectiveDate DateTime // When this rate starts being active
+  
+  createdAt    DateTime @default(now())
+
+  @@map("enterprise_debt_interest_rates")
+  @@schema("enterprise")
+}
+
+model DebtSchedule {
+  id             String   @id @default(uuid())
+  debtRecordId   String
+  debtRecord     DebtRecord @relation(fields: [debtRecordId], references: [id], onDelete: Cascade)
+  
+  period         Int      // Sequence number
+  dueDate        DateTime
+  
+  principalAmount Float
+  interestAmount Float
+  totalAmount    Float
+  
+  remainingPrincipal Float // Balance after this payment
+  
+  status         String   @default("PENDING") // PENDING, PAID, PARTIAL, OVERDUE
+  
+  triggerType    String   @default("DATE") // DATE, MILESTONE
+  triggerCondition String? // e.g. "ACCEPTANCE", "WARRANTY_END"
+  isActivated    Boolean  @default(true) // For milestone-based, initially false
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("enterprise_debt_schedules")
+  @@schema("enterprise")
+}
+
+model DebtTransaction {
+  id             String   @id @default(uuid())
+  debtRecordId   String
+  debtRecord     DebtRecord @relation(fields: [debtRecordId], references: [id], onDelete: Cascade)
+  
+  type           String   // PAYMENT, PENALTY, INTEREST, ADJUSTMENT, REVERSAL
+  amount         Float
+  principalPart  Float    @default(0)
+  interestPart   Float    @default(0)
+  penaltyPart    Float    @default(0)
+  
+  paidAt         DateTime @default(now())
+  paymentMethod  String?  // CASH, BANK_TRANSFER
+  reference      String?  // Receipt or Transaction ID
+  notes          String?  @db.Text
+  
+  createdAt      DateTime @default(now())
+
+  @@map("enterprise_debt_transactions")
+  @@schema("enterprise")
+}
+
+model DebtDocument {
+  id             String   @id @default(uuid())
+  debtRecordId   String
+  debtRecord     DebtRecord @relation(fields: [debtRecordId], references: [id], onDelete: Cascade)
+  
+  name           String
+  fileUrl        String
+  fileType       String?
+  fileSize       Int?
+  
+  createdAt      DateTime @default(now())
+
+  @@map("enterprise_debt_documents")
   @@schema("enterprise")
 }
