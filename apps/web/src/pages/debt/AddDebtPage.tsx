@@ -372,6 +372,8 @@ export default function AddDebtPage() {
                 </div>
               )}
 
+              <div className="h-px bg-white/[0.06] my-2" />
+
               {/* Nền tảng */}
               <div className="mb-6">
                 <label className="block text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-2">
@@ -743,7 +745,7 @@ export default function AddDebtPage() {
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-800/50">
+                <div className="">
                   <label className="flex items-center gap-3 cursor-pointer group w-fit">
                     <input
                       type="checkbox"
