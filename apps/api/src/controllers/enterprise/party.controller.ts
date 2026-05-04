@@ -160,6 +160,8 @@ export const getParties = async (req: Request, res: Response) => {
           personInCharge: {
             select: { id: true, fullName: true },
           },
+          contacts: true,
+          bankAccounts: true,
           _count: {
             select: { contacts: true },
           },
