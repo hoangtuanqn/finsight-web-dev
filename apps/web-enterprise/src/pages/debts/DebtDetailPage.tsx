@@ -6,12 +6,15 @@ import { toast } from 'sonner';
 import { enterpriseAuthAPI } from '../../api';
 import DebtAuditTrail from '../../components/debts/DebtAuditTrail';
 import DebtStatusActions from '../../components/debts/DebtStatusActions';
+import { RecordPaymentModal } from '../../components/debts/RecordPaymentModal';
 
 export default function DebtDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [debt, setDebt] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isReversing, setIsReversing] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDebt();
@@ -28,6 +31,22 @@ export default function DebtDetailPage() {
       navigate('/debts');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleReverse = async (transactionId: string) => {
+    const reason = window.prompt('Nhập lý do đảo ngược giao dịch:');
+    if (!reason) return;
+
+    setIsReversing(transactionId);
+    try {
+      await enterpriseAuthAPI.reverseTransaction(transactionId, reason);
+      toast.success('Đã đảo ngược giao dịch');
+      fetchDebt();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Thao tác thất bại');
+    } finally {
+      setIsReversing(null);
     }
   };
 
@@ -77,9 +96,14 @@ export default function DebtDetailPage() {
           <button className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-300 text-xs font-bold hover:bg-slate-800 transition-all">
             <Download size={16} /> Xuất PDF
           </button>
-          <button className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white text-xs font-black rounded-xl hover:bg-emerald-500 hover:shadow-lg hover:shadow-emerald-500/30 transition-all">
-            Ghi nhận thanh toán
-          </button>
+          {['ACTIVE', 'PARTIAL', 'OVERDUE'].includes(debt.status) && (
+            <button
+              onClick={() => setIsPaymentModalOpen(true)}
+              className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white text-xs font-black rounded-xl hover:bg-emerald-500 hover:shadow-lg hover:shadow-emerald-500/30 transition-all"
+            >
+              Ghi nhận thanh toán
+            </button>
+          )}
         </div>
       </div>
 
@@ -103,7 +127,7 @@ export default function DebtDetailPage() {
           </div>
 
           {/* Debt Actions */}
-          <DebtStatusActions debt={debt} onUpdate={fetchDebt} />
+          <DebtStatusActions debt={debt} onUpdate={fetchDebt} onRecordPayment={() => setIsPaymentModalOpen(true)} />
 
           {/* Repayment Schedule */}
           <div className="bg-slate-900/50 border border-slate-800 rounded-3xl overflow-hidden">
@@ -206,24 +230,63 @@ export default function DebtDetailPage() {
                 debt.transactions.map((t: any) => (
                   <div
                     key={t.id}
-                    className="flex gap-4 p-4 bg-slate-950/50 border border-slate-800/50 rounded-2xl relative"
+                    className={`p-4 bg-slate-950/50 border border-slate-800/50 rounded-2xl relative transition-all group ${
+                      t.type === 'REVERSAL' ? 'opacity-50 grayscale' : ''
+                    }`}
                   >
-                    <div
-                      className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                        t.type === 'PAYMENT' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-blue-500/10 text-blue-500'
-                      }`}
-                    >
-                      <CreditCard size={14} />
-                    </div>
-                    <div>
-                      <div className="flex justify-between items-start mb-1">
-                        <p className="text-[10px] font-black text-white uppercase">{t.type}</p>
-                        <span className="text-[10px] text-slate-500 font-medium">
-                          {new Date(t.paidAt).toLocaleDateString()}
-                        </span>
+                    <div className="flex gap-4">
+                      <div
+                        className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                          t.type === 'PAYMENT'
+                            ? 'bg-emerald-500/10 text-emerald-500'
+                            : t.type === 'REVERSAL'
+                              ? 'bg-red-500/10 text-red-500'
+                              : 'bg-blue-500/10 text-blue-500'
+                        }`}
+                      >
+                        <CreditCard size={14} />
                       </div>
-                      <p className="text-sm font-black text-white font-mono">{formatCurrency(t.amount)}</p>
-                      {t.notes && <p className="text-[10px] text-slate-500 mt-1 line-clamp-1">{t.notes}</p>}
+                      <div className="flex-1">
+                        <div className="flex justify-between items-start mb-1">
+                          <p className="text-[10px] font-black text-white uppercase tracking-wider">{t.type}</p>
+                          <span className="text-[10px] text-slate-500 font-medium font-mono">
+                            {new Date(t.paidAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p
+                          className={`text-sm font-black font-mono ${
+                            t.type === 'REVERSAL' ? 'text-red-400' : 'text-white'
+                          }`}
+                        >
+                          {formatCurrency(t.amount)}
+                        </p>
+                        <div className="mt-2 pt-2 border-t border-slate-800/50 flex items-center justify-between">
+                          <p className="text-[9px] text-slate-500 font-bold uppercase tracking-tight">Dư nợ sau GD</p>
+                          <p className="text-[10px] text-emerald-500 font-mono font-bold">
+                            {formatCurrency(t.balanceSnapshot)}
+                          </p>
+                        </div>
+                        {t.notes && <p className="text-[10px] text-slate-500 mt-2 italic line-clamp-2">"{t.notes}"</p>}
+
+                        {/* Action buttons on hover */}
+                        {t.type === 'PAYMENT' &&
+                          !debt.transactions.some((rt: any) => rt.reversesTransactionId === t.id) && (
+                            <div className="mt-3 opacity-0 group-hover:opacity-100 transition-opacity flex justify-end">
+                              <button
+                                onClick={() => handleReverse(t.id)}
+                                disabled={isReversing === t.id}
+                                className="text-[9px] font-black uppercase tracking-widest text-red-500 hover:text-red-400 flex items-center gap-1 bg-red-500/5 px-2 py-1 rounded-lg border border-red-500/10 transition-colors"
+                              >
+                                {isReversing === t.id ? 'Đang xử lý...' : 'Đảo bút toán'}
+                              </button>
+                            </div>
+                          )}
+                        {t.type === 'REVERSAL' && (
+                          <div className="mt-2 text-[8px] text-red-500/70 font-black uppercase tracking-widest bg-red-500/5 inline-block px-2 py-0.5 rounded border border-red-500/10">
+                            Đã hủy giao dịch gốc
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))
@@ -237,6 +300,13 @@ export default function DebtDetailPage() {
           </div>
         </div>
       </div>
+
+      <RecordPaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        debt={debt}
+        onSuccess={fetchDebt}
+      />
     </motion.div>
   );
 }
