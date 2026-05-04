@@ -65,19 +65,19 @@ export default function NotificationDetailModal({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-white/10 bg-[#111827] shadow-2xl dark:bg-[#0f172a]"
+            className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#0f172a] shadow-2xl"
           >
             {/* Header Area with Icon Background */}
             <div className={`relative h-32 w-full ${config.bg} flex items-center justify-center`}>
               <div className="absolute top-4 right-4">
                 <button
                   onClick={onClose}
-                  className="rounded-full bg-black/20 p-2 text-white/60 hover:bg-black/40 hover:text-white transition-colors"
+                  className="rounded-full bg-slate-200/50 dark:bg-black/20 p-2 text-slate-600 dark:text-white/60 hover:bg-slate-300 dark:hover:bg-black/40 hover:text-slate-900 dark:hover:text-white transition-colors"
                 >
                   <X size={20} />
                 </button>
               </div>
-              <div className={`rounded-2xl p-4 bg-black/20 backdrop-blur-sm border ${config.border}`}>
+              <div className={`rounded-2xl p-4 bg-white/40 dark:bg-black/20 backdrop-blur-sm border ${config.border}`}>
                 <Icon size={40} className={config.color} />
               </div>
             </div>
@@ -91,18 +91,22 @@ export default function NotificationDetailModal({
                   >
                     {notification.type || 'HỆ THỐNG'}
                   </span>
-                  <span className="text-white/40 text-[10px] font-medium">
+                  <span className="text-slate-400 dark:text-white/40 text-[10px] font-medium">
                     {new Date(notification.createdAt).toLocaleString('vi-VN')}
                   </span>
                 </div>
-                <h2 className="text-2xl font-black text-white leading-tight mb-4">{notification.title}</h2>
+                <h2 className="text-2xl font-black text-slate-900 dark:text-white leading-tight mb-4">
+                  {notification.title}
+                </h2>
                 <div className="space-y-4">
-                  <p className="text-white/70 text-base leading-relaxed whitespace-pre-wrap">{notification.message}</p>
+                  <p className="text-slate-600 dark:text-white/70 text-base leading-relaxed whitespace-pre-wrap">
+                    {notification.message}
+                  </p>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-white/5">
+              <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-100 dark:border-white/5">
                 {!notification.isRead && (
                   <button
                     onClick={() => {
@@ -119,8 +123,8 @@ export default function NotificationDetailModal({
                   onClick={onClose}
                   className={`flex-1 px-6 py-3 rounded-xl font-bold border transition-all ${
                     notification.isRead
-                      ? 'bg-white/5 border-white/10 text-white hover:bg-white/10'
-                      : 'border-white/10 text-white/60 hover:text-white hover:bg-white/5'
+                      ? 'bg-slate-100 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-white/10'
+                      : 'border-slate-200 dark:border-white/10 text-slate-500 dark:text-white/60 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5'
                   }`}
                 >
                   Đóng
