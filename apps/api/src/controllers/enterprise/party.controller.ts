@@ -203,10 +203,21 @@ export const updateParty = async (req: Request, res: Response) => {
     }
 
     // 2. Perform Update
+    const { name, shortName, taxCode, internalCode, typeTags, creditLimit, isRelatedParty, personInChargeId, status } =
+      req.body;
+
     const party = await (enterpriseDb as any).party.update({
       where: { id },
       data: {
-        ...updateData,
+        name,
+        shortName,
+        taxCode,
+        internalCode,
+        typeTags,
+        creditLimit,
+        isRelatedParty,
+        personInChargeId,
+        status,
         ...(contacts !== undefined && {
           contacts: {
             deleteMany: {},
