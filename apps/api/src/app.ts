@@ -17,9 +17,13 @@ import authRoutes from './routes/auth.routes';
 import bankSyncRoutes from './routes/bank-sync.routes';
 import debtGoalRoutes from './routes/debt-goal.routes';
 import debtRoutes from './routes/debt.routes';
+import enterpriseAnalyticsRoutes from './routes/enterprise/analytics.routes';
 import enterpriseAuthRoutes from './routes/enterprise/auth.routes';
 import enterpriseDebtRoutes from './routes/enterprise/debt.routes';
+import enterpriseJobRoutes from './routes/enterprise/job.routes';
+import enterpriseNotificationRoutes from './routes/enterprise/notification.routes';
 import enterprisePartyRoutes from './routes/enterprise/party.routes';
+import enterpriseRepaymentPlannerRoutes from './routes/enterprise/repaymentPlanner.routes';
 
 import expenseRoutes from './routes/expense.routes';
 import faceRoutes from './routes/face.routes';
@@ -83,7 +87,11 @@ app.use('/api/kyc', kycRoutes);
 app.use('/api/face', faceRoutes);
 app.use('/api/v1/enterprise/parties', enterprisePartyRoutes);
 app.use('/api/v1/enterprise/debts', enterpriseDebtRoutes);
+app.use('/api/v1/enterprise/jobs', enterpriseJobRoutes);
+app.use('/api/v1/enterprise/notifications', enterpriseNotificationRoutes);
 app.use('/api/v1/enterprise/auth', enterpriseAuthRoutes);
+app.use('/api/v1/enterprise/repayment-planner', enterpriseRepaymentPlannerRoutes);
+app.use('/api/v1/enterprise/analytics', enterpriseAnalyticsRoutes);
 
 // Health check
 app.get('/api/health', (req: Request, res: Response) => {

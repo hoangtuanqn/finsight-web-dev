@@ -61,10 +61,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (res.data.data.require2FA) {
       return { require2FA: true, tempToken: res.data.data.tempToken };
     }
-    const { user, token } = res.data.data;
+    const { enterpriseUser, token } = res.data.data;
     localStorage.setItem('finsight_token', token);
-    setUser(user);
-    return user;
+    setUser(enterpriseUser);
+    return enterpriseUser;
   };
 
   const loginWithGoogle = async (credential: any) => {

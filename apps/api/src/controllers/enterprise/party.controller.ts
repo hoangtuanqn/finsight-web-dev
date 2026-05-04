@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import enterpriseDb from '../../prisma/enterprise.client';
-import { logAudit } from '../../utils/audit';
+import enterpriseDb from '../../prisma/enterprise.client.js';
+import { logAudit } from '../../utils/audit.js';
 
 /**
  * Helper to generate internal code based on role
@@ -255,7 +255,7 @@ export const updateParty = async (req: Request, res: Response) => {
       userId,
       action: 'UPDATE',
       entityType: 'PARTY',
-      entityId: id,
+      entityId: id as string,
       oldValues: oldParty,
       newValues: party,
     });
@@ -298,7 +298,7 @@ export const toggleStatus = async (req: Request, res: Response) => {
       userId,
       action: 'TOGGLE_STATUS',
       entityType: 'PARTY',
-      entityId: id,
+      entityId: id as string,
       oldValues: { status: oldParty.status },
       newValues: { status },
       reason,
@@ -334,7 +334,7 @@ export const getAuditLogs = async (req: Request, res: Response) => {
 export const getUsers = async (req: Request, res: Response) => {
   try {
     const orgId = (req as any).organizationId;
-    const users = await (enterpriseDb as any).user.findMany({
+    const users = await (enterpriseDb as any).enterpriseUser.findMany({
       where: { organizationId: orgId },
       select: { id: true, fullName: true, email: true, roleTitle: true },
       orderBy: { fullName: 'asc' },
