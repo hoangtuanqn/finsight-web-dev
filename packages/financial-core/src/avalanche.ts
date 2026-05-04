@@ -9,7 +9,7 @@ export interface DebtItem {
   remainingTerms?: number;
   debtType?: string;
   feeManagement?: number;
-  initialPrincipal?: number;
+  originalAmount?: number;
   feeProcessing?: number;
   feeInsurance?: number;
 }
@@ -122,8 +122,8 @@ export function simulateRepayment(
     let effectiveApr = d.apr;
 
     // Fix 1 & 3: Convert Flat to Reducing
-    if (d.rateType === 'FLAT' && d.initialPrincipal && d.termMonths) {
-      effectiveApr = convertFlatToReducingAPR(d.initialPrincipal, d.apr, d.termMonths);
+    if (d.rateType === 'FLAT' && d.originalAmount && d.termMonths) {
+      effectiveApr = convertFlatToReducingAPR(d.originalAmount, d.apr, d.termMonths);
     }
 
     // Fix 2: Include hidden fees in the simulation's effective interest rate
@@ -144,12 +144,16 @@ export function simulateRepayment(
       name: d.name,
       balance: d.balance,
       apr: effectiveApr,
+      nominalApr: d.apr,
+      rateType: d.rateType,
       minPayment: d.minPayment,
       deadlineMonth: getDebtDeadlineMonth(d),
       debtType: d.debtType,
       feeManagement: d.feeManagement,
     };
   });
+
+  const processedDebts = ds.map((d) => ({ ...d }));
 
   let months = 0;
   let totalInterest = 0;
@@ -340,6 +344,7 @@ export function simulateRepayment(
     isCompleted,
     termBreach,
     warnings: warnings.filter((w) => !(w.type === 'TERM_BREACH' && (!w.debtIds || w.debtIds.length === 0))),
+    debts: processedDebts,
   };
 }
 
