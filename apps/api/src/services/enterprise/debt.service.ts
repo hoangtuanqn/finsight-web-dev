@@ -53,6 +53,7 @@ export const createDebtRecord = async (data: {
         type: data.type,
         origin: data.origin,
         principal: data.principal,
+        outstanding: data.principal,
         interestMethod: data.interestMethod,
         issueDate: data.issueDate,
         dueDate: new Date(new Date(data.issueDate).setMonth(data.issueDate.getMonth() + data.termMonths)),
@@ -143,7 +144,7 @@ export const getDebtDetail = async (id: string, orgId: string) => {
 
   // Calculate real-time outstanding
   const paidPrincipal = debt.transactions
-    .filter((t: any) => t.type === 'PAYMENT')
+    .filter((t: any) => t.type === 'PAYMENT' || t.type === 'REVERSAL')
     .reduce((sum: number, t: any) => sum + t.principalPart, 0);
 
   return {
