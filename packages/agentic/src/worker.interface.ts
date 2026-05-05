@@ -1,7 +1,9 @@
 import { type AgentGraphState } from './graph-state.js';
 import { type UiSignal } from './ui-signal.js';
 import { debtExtractionWorker } from './workers/debt-extraction.worker.js';
+import { debtSummaryWorker } from './workers/debt-summary.worker.js';
 import { ragWorker } from './workers/rag.worker.js';
+import { repaymentWorker } from './workers/repayment.worker.js';
 
 // ─── Tool event (status updates streamed to the client) ───────────────────────
 
@@ -156,9 +158,9 @@ export function buildDefaultWorkerRegistry(): WorkerRegistry {
     .register(maxLengthWorker)
     .register(generalChatWorker)
     .register(debtExtractionWorker) // Task 2.5 — real implementation
-    .register(createStubWorker('repayment'))
+    .register(repaymentWorker) // Task 2.6 — real repayment implementation
     .register(createStubWorker('investment'))
-    .register(createStubWorker('debt_summary'))
+    .register(debtSummaryWorker) // Task 2.8 — real debt summary implementation
     .register(createStubWorker('debt_list'))
     .register(createStubWorker('simulation'))
     .register(createStubWorker('market'))
