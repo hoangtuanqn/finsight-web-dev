@@ -28,7 +28,8 @@ export function convertFlatToReducingAPR(principal: number, flatAPR: number, ter
     const term1 = Math.pow(1 + r, termMonths);
     const f = (principal * (r * term1)) / (term1 - 1) - monthlyPayment;
 
-    const fPrime = principal * ((term1 * (1 + r * termMonths) - 1) / Math.pow(term1 - 1, 2));
+    const fPrime =
+      principal * ((term1 * (term1 - 1) - r * termMonths * Math.pow(1 + r, termMonths - 1)) / Math.pow(term1 - 1, 2));
 
     const nextR = r - f / fPrime;
     error = Math.abs(nextR - r);
