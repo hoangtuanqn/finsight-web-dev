@@ -52,6 +52,17 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
     { id: 'bank', label: 'Ngân hàng', icon: Banknote },
   ] as const;
 
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (activeTab !== 'bank') {
+      // If not on the last tab, move to the next tab instead of submitting
+      if (activeTab === 'general') setActiveTab('contact');
+      else if (activeTab === 'contact') setActiveTab('bank');
+      return;
+    }
+    onSubmit(e);
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -84,7 +95,7 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
           })}
         </div>
 
-        <form onSubmit={onSubmit} className="flex-1 flex flex-col overflow-hidden">
+        <form onSubmit={handleFormSubmit} className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
             {activeTab === 'general' && (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -407,32 +418,32 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                 appName="web-enterprise"
                 type="button"
                 className="px-6 py-2.5 text-slate-400 font-bold hover:text-white transition-colors"
-                onClick={onClose}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onClose();
+                }}
               >
                 Hủy
               </Button>
 
-              {activeTab !== 'bank' ? (
-                <Button
-                  appName="web-enterprise"
-                  type="button"
-                  className="px-8 py-2.5 bg-slate-800 text-white font-bold rounded-xl border border-slate-700 hover:bg-slate-700"
-                  onClick={() => {
+              <Button
+                appName="web-enterprise"
+                type={activeTab === 'bank' ? 'submit' : 'button'}
+                className={`px-8 py-2.5 font-bold rounded-xl shadow-lg transition-all ${
+                  activeTab === 'bank'
+                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20'
+                    : 'bg-slate-800 text-white border border-slate-700 hover:bg-slate-700'
+                }`}
+                onClick={(e) => {
+                  if (activeTab !== 'bank') {
+                    e.preventDefault();
                     if (activeTab === 'general') setActiveTab('contact');
                     else if (activeTab === 'contact') setActiveTab('bank');
-                  }}
-                >
-                  Tiếp theo
-                </Button>
-              ) : (
-                <Button
-                  appName="web-enterprise"
-                  type="submit"
-                  className="px-8 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20"
-                >
-                  {isEdit ? 'Cập Nhật' : 'Xác nhận Đăng ký'}
-                </Button>
-              )}
+                  }
+                }}
+              >
+                {activeTab === 'bank' ? (isEdit ? 'Cập Nhật' : 'Xác nhận Đăng ký') : 'Tiếp theo'}
+              </Button>
             </div>
           </div>
         </form>
