@@ -115,7 +115,7 @@ export default function DebtDetailPage() {
         </div>
         <div className="flex gap-3">
           <button
-            onClick={() => setIsEditModalOpen(true)}
+            onClick={() => navigate(`/debts/${id}/edit`)}
             className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-300 text-xs font-bold hover:bg-slate-800 transition-all"
           >
             <Edit2 size={16} className="text-amber-400" /> Chỉnh sửa
