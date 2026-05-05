@@ -50,10 +50,9 @@ export function calcEAR(
     effectiveAPR = convertFlatToReducingAPR(originalAmount, apr, termMonths);
   }
 
-  const apy = calcAPY(effectiveAPR);
   const annualizedProcessingFee = termMonths > 0 ? (feeProcessing / termMonths) * 12 : 0;
   const totalAnnualFees = Math.min(annualizedProcessingFee + feeInsurance + feeManagement, 300);
-  return apy + totalAnnualFees;
+  return effectiveAPR + totalAnnualFees;
 }
 
 export function calcReducingMonthlyPayment(principal: number, apr: number, termMonths: number) {
@@ -136,7 +135,7 @@ export function formatVND(amount: number) {
 }
 
 export function formatPercent(value: number, decimals = 1) {
-  return value.toFixed(decimals);
+  return `${value.toFixed(decimals)}%`;
 }
 
 interface CalculateMonthlyPaymentOptions {
