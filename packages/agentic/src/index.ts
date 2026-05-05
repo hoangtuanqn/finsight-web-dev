@@ -16,5 +16,8 @@ export * from './worker.interface.js';
 // Phase 2.5 – Workers
 export * from './workers/debt-extraction.worker.js';
 
+// Phase 2.6 – Repayment Worker
+export * from './workers/repayment.worker.js';
+
 // Phase 2.11 – RAG Worker
 export * from './workers/rag.worker.js';

@@ -5,6 +5,7 @@ import { useAgenticChat } from '../../hooks/useAgenticChat';
 import { runOCR } from '../../utils/ocr';
 import ChatHistory from './ChatHistory';
 import DebtConfirmModal from './DebtConfirmModal';
+import DebtSummaryCard from './DebtSummaryCard';
 import MessageRenderer from './MessageRenderer';
 import UiSignalDispatcher from './UiSignalDispatcher';
 
@@ -385,6 +386,12 @@ export default function AIChatbotModal() {
                     </div>
                   )}
 
+                {/* Inline Interactive Card (e.g. DebtSummaryCard) — Task 4.6 */}
+                {pendingUiSignal?.type === 'SHOW_INTERACTIVE_CARD' &&
+                  pendingUiSignal.action === 'DEBT_SUMMARY_ACTIONS' && (
+                    <DebtSummaryCard buttons={(pendingUiSignal as any).buttons ?? []} onNavigated={dismissUiSignal} />
+                  )}
+
                 <div ref={messagesEndRef} />
               </div>
             </div>
@@ -492,27 +499,30 @@ export default function AIChatbotModal() {
         />
       )}
 
-      {/* Typed UI Signal Dispatcher — handles all new signal types */}
-      <UiSignalDispatcher
-        signal={pendingUiSignal}
-        onDismiss={dismissUiSignal}
-        onConfirmed={(sig) => {
-          dismissUiSignal();
-          if (sig.action === 'DEBT_CONFIRMATION') {
-            sendMessage('Tôi đã xác nhận lưu khoản nợ thành công.');
-          }
-        }}
-        onFeedback={(status, reason) => {
-          if (status === 'confirmed') {
-            sendMessage('Tôi đã xác nhận lưu khoản nợ thành công.');
-          } else if (status === 'cancelled') {
-            sendMessage('Tôi đã hủy bỏ thao tác.');
-          } else if (status === 'failed') {
-            const msg = reason ? `Lưu khoản nợ thất bại: ${reason}` : 'Lưu khoản nợ thất bại, vui lòng thử lại.';
-            sendMessage(msg);
-          }
-        }}
-      />
+      {/* Typed UI Signal Dispatcher — handles SHOW_POPUP and REDIRECT */}
+      {pendingUiSignal?.type !== 'SHOW_INTERACTIVE_CARD' && (
+        <UiSignalDispatcher
+          signal={pendingUiSignal}
+          onDismiss={dismissUiSignal}
+          isModalOpen={!!pendingAction}
+          onConfirmed={(sig) => {
+            dismissUiSignal();
+            if (sig.action === 'DEBT_CONFIRMATION') {
+              sendMessage('Tôi đã xác nhận lưu khoản nợ thành công.');
+            }
+          }}
+          onFeedback={(status, reason) => {
+            if (status === 'confirmed') {
+              sendMessage('Tôi đã xác nhận lưu khoản nợ thành công.');
+            } else if (status === 'cancelled') {
+              sendMessage('Tôi đã hủy bỏ thao tác.');
+            } else if (status === 'failed') {
+              const msg = reason ? `Lưu khoản nợ thất bại: ${reason}` : 'Lưu khoản nợ thất bại, vui lòng thử lại.';
+              sendMessage(msg);
+            }
+          }}
+        />
+      )}
 
       {/* Floating Trigger Button */}
       <motion.button
