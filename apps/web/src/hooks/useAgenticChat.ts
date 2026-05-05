@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { deleteSession, getSessionMessages, getSessions, streamChat } from '../api/agentic';
+import { deleteSession, getSessionMessages, getSessions, streamChatTyped } from '../api/agentic';
 
 const WELCOME_MESSAGE = {
   id: 'welcome',
@@ -14,13 +14,26 @@ interface Message {
   content: string;
 }
 
+/**
+ * Shape of a validated UiSignal from the backend.
+ * Kept intentionally loose so the dispatcher decides how to render each action.
+ */
+export interface UiSignal {
+  type: 'SHOW_POPUP' | 'SHOW_INTERACTIVE_CARD' | 'REDIRECT' | 'NONE';
+  action: string;
+  data?: unknown;
+}
+
 export function useAgenticChat() {
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessions, setSessions] = useState<any[]>([]);
+  /** Legacy debt-form action (kept for backward compat with DebtConfirmModal) */
   const [pendingAction, setPendingAction] = useState<any>(null);
-  const [toolStatus, setToolStatus] = useState<string | null>(null); // Agent tool status text
+  /** New typed UI signal dispatched by the server */
+  const [pendingUiSignal, setPendingUiSignal] = useState<UiSignal | null>(null);
+  const [toolStatus, setToolStatus] = useState<string | null>(null);
   const abortRef = useRef(false);
 
   const sendMessage = useCallback(
@@ -41,44 +54,55 @@ export function useAgenticChat() {
       setToolStatus('🤔 Đang suy nghĩ...');
       abortRef.current = false;
 
-      await streamChat(
+      await streamChatTyped(
         text,
         sessionId,
-        // onToken
-        (token: string) => {
-          if (abortRef.current) return;
-          setToolStatus(null);
-          setMessages((prev) => prev.map((m) => (m.id === aiMsgId ? { ...m, content: m.content + token } : m)));
+        {
+          onToken: (token) => {
+            if (abortRef.current) return;
+            setToolStatus(null);
+            setMessages((prev) => prev.map((m) => (m.id === aiMsgId ? { ...m, content: m.content + token } : m)));
+          },
+
+          onStatus: (status) => {
+            if (abortRef.current) return;
+            setToolStatus(status);
+          },
+
+          // Typed UI signal — dispatched before `done`
+          onUiSignal: (signal) => {
+            if (abortRef.current) return;
+            const s = signal as UiSignal;
+            if (!s?.type || s.type === 'NONE') return;
+            setPendingUiSignal(s);
+          },
+
+          onDone: (meta: any) => {
+            setIsStreaming(false);
+            setToolStatus(null);
+            if (meta.sessionId) setSessionId(meta.sessionId);
+
+            // Legacy: form_population path still triggers DebtConfirmModal
+            if (meta.actionType === 'form_population' && meta.triggerPayload) {
+              setPendingAction(meta.triggerPayload);
+            }
+
+            // If server bundled uiSignal inside done (fallback), hydrate it
+            if (meta.uiSignal?.type && meta.uiSignal.type !== 'NONE') {
+              setPendingUiSignal(meta.uiSignal as UiSignal);
+            }
+          },
+
+          onError: (err) => {
+            setIsStreaming(false);
+            setToolStatus(null);
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === aiMsgId ? { ...m, content: `⚠️ ${err || 'Đã xảy ra lỗi. Vui lòng thử lại.'}` } : m,
+              ),
+            );
+          },
         },
-        // onDone
-        (meta: any) => {
-          setIsStreaming(false);
-          setToolStatus(null);
-          if (meta.sessionId) setSessionId(meta.sessionId);
-          if (meta.actionType === 'form_population' && meta.triggerPayload) {
-            setPendingAction(meta.triggerPayload);
-          }
-        },
-        // onError
-        (err: any) => {
-          setIsStreaming(false);
-          setToolStatus(null);
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === aiMsgId
-                ? {
-                    ...m,
-                    content: `⚠️ ${err || 'Đã xảy ra lỗi. Vui lòng thử lại.'}`,
-                  }
-                : m,
-            ),
-          );
-        },
-        // onStatus (tool execution status)
-        (status: string) => {
-          setToolStatus(status);
-        },
-        // ocrText extracted directly on the browser
         ocrText,
       );
     },
@@ -131,17 +155,21 @@ export function useAgenticChat() {
     setSessionId(null);
     setMessages([WELCOME_MESSAGE]);
     setPendingAction(null);
+    setPendingUiSignal(null);
     setToolStatus(null);
   }, []);
 
   const dismissAction = useCallback(() => setPendingAction(null), []);
+  const dismissUiSignal = useCallback(() => setPendingUiSignal(null), []);
 
   return {
     messages,
     isStreaming,
     sessionId,
     sessions,
+    /** @deprecated use pendingUiSignal + UiSignalDispatcher instead */
     pendingAction,
+    pendingUiSignal,
     toolStatus,
     sendMessage,
     loadSession,
@@ -149,6 +177,7 @@ export function useAgenticChat() {
     removeSession,
     newChat,
     dismissAction,
+    dismissUiSignal,
     setToolStatus,
     setIsStreaming,
     setMessages,

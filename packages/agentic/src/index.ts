@@ -12,3 +12,9 @@ export * from './graph-state.js';
 export * from './memory-compressor.js';
 export * from './router-node.js';
 export * from './worker.interface.js';
+
+// Phase 2.5 – Workers
+export * from './workers/debt-extraction.worker.js';
+
+// Phase 2.11 – RAG Worker
+export * from './workers/rag.worker.js';
