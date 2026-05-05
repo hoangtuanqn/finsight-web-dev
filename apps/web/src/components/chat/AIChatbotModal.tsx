@@ -512,12 +512,20 @@ export default function AIChatbotModal() {
             }
           }}
           onFeedback={(status, reason) => {
+            const action = pendingUiSignal?.action || 'DEBT_CONFIRMATION';
             if (status === 'confirmed') {
-              sendMessage('Tôi đã xác nhận lưu khoản nợ thành công.');
+              if (action === 'REPAYMENT_CONFIRMATION') {
+                sendMessage('Tôi đã cập nhật kế hoạch phân bổ mới, mời bạn xem chi tiết trên màn hình.');
+              } else {
+                sendMessage('Tôi đã xác nhận lưu khoản nợ thành công.');
+              }
             } else if (status === 'cancelled') {
               sendMessage('Tôi đã hủy bỏ thao tác.');
             } else if (status === 'failed') {
-              const msg = reason ? `Lưu khoản nợ thất bại: ${reason}` : 'Lưu khoản nợ thất bại, vui lòng thử lại.';
+              const actionName = action === 'REPAYMENT_CONFIRMATION' ? 'kế hoạch' : 'khoản nợ';
+              const msg = reason
+                ? `Lưu ${actionName} thất bại: ${reason}`
+                : `Lưu ${actionName} thất bại, vui lòng thử lại.`;
               sendMessage(msg);
             }
           }}
