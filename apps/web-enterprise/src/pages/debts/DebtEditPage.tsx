@@ -1,7 +1,7 @@
 import { generateSchedule, type InterestMethod } from '@repo/financial-core';
 import { Button, Input } from '@repo/ui';
 import { motion } from 'framer-motion';
-import { Calculator, Calendar, ChevronRight, DollarSign, FileText, Info, Lock, Save, User, Users } from 'lucide-react';
+import { Calculator, Calendar, ChevronRight, DollarSign, FileText, Info, Save, User, Users } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -16,7 +16,6 @@ export default function DebtEditPage() {
   const [internalUsers, setInternalUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
-  const [isUnlocked, setIsUnlocked] = useState(false);
 
   const [interestRateType, setInterestRateType] = useState<InterestRateType>('FIXED');
 
@@ -65,7 +64,6 @@ export default function DebtEditPage() {
       if (debtRes.data.success) {
         const debt = debtRes.data.data;
 
-        // Determine interest rate type based on first rate
         const firstRate = debt.interestRates?.[0];
         let type: InterestRateType = 'FIXED';
         if (firstRate?.rateType === 'FLOATING') type = 'FLOATING';
@@ -166,7 +164,6 @@ export default function DebtEditPage() {
         ...formData,
         guarantorId: formData.guarantorId || null,
         personInChargeId: formData.personInChargeId || null,
-        unlocked: isUnlocked,
       };
       const res = await enterpriseAuthAPI.updateDebt(id!, payload);
       if (res.data.success) {
@@ -228,8 +225,6 @@ export default function DebtEditPage() {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
   };
 
-  const canEditFinancial = formData.status === 'DRAFT' || isUnlocked;
-
   if (isLoadingData) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
@@ -252,10 +247,7 @@ export default function DebtEditPage() {
             <span className="text-amber-500">Chỉnh sửa</span>
           </div>
           <h1 className="text-3xl font-black text-white">Chỉnh sửa Khoản nợ</h1>
-          <p className="text-slate-400 text-sm mt-1">
-            Cập nhật thông tin hồ sơ.{' '}
-            {formData.status !== 'DRAFT' && 'Hồ sơ đã kích hoạt cần mở khóa để sửa thông tin tài chính.'}
-          </p>
+          <p className="text-slate-400 text-sm mt-1">Cập nhật thông tin hồ sơ và các điều khoản tài chính.</p>
         </div>
         <div className="flex gap-3">
           <Button
@@ -428,22 +420,12 @@ export default function DebtEditPage() {
           </div>
 
           {/* Section: Điều khoản tài chính */}
-          <div
-            className={`bg-slate-900/50 border rounded-3xl p-8 space-y-6 transition-all ${canEditFinancial ? 'border-slate-800' : 'border-slate-800/50 opacity-60 pointer-events-none'}`}
-          >
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg">
-                  <Calculator size={20} />
-                </div>
-                <h2 className="text-lg font-bold text-white">Điều khoản tài chính</h2>
+          <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-8 space-y-6 transition-all">
+            <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
+              <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg">
+                <Calculator size={20} />
               </div>
-              {!canEditFinancial && (
-                <div className="flex items-center gap-2 px-3 py-1 bg-slate-950 rounded-lg text-slate-500 border border-slate-800">
-                  <Lock size={14} />
-                  <span className="text-[10px] font-black uppercase tracking-wider">Chế độ xem</span>
-                </div>
-              )}
+              <h2 className="text-lg font-bold text-white">Điều khoản tài chính</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -457,7 +439,6 @@ export default function DebtEditPage() {
                   </div>
                   <Input
                     type="number"
-                    readOnly={!canEditFinancial}
                     className={`w-full pl-12 pr-4 py-3 bg-slate-950 border rounded-xl text-sm text-white font-mono ${
                       errors.principal ? 'border-rose-500/50 ring-2 ring-rose-500/10' : 'border-slate-800'
                     }`}
@@ -477,7 +458,6 @@ export default function DebtEditPage() {
                 </label>
                 <Input
                   type="number"
-                  readOnly={!canEditFinancial}
                   className={`w-full px-4 py-3 bg-slate-950 border rounded-xl text-sm text-white ${
                     errors.termMonths ? 'border-rose-500/50 ring-2 ring-rose-500/10' : 'border-slate-800'
                   }`}
@@ -500,7 +480,6 @@ export default function DebtEditPage() {
                   </div>
                   <Input
                     type="date"
-                    readOnly={!canEditFinancial}
                     className={`w-full pl-12 pr-4 py-3 bg-slate-950 border rounded-xl text-sm text-white ${
                       errors.issueDate ? 'border-rose-500/50 ring-2 ring-rose-500/10' : 'border-slate-800'
                     }`}
@@ -519,8 +498,7 @@ export default function DebtEditPage() {
                   Phương thức tính lãi
                 </label>
                 <select
-                  disabled={!canEditFinancial}
-                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:border-emerald-500/50 transition-all outline-none disabled:opacity-100"
+                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:border-emerald-500/50 transition-all outline-none"
                   value={formData.interestMethod}
                   onChange={(e) => setFormData({ ...formData, interestMethod: e.target.value as InterestMethod })}
                 >
@@ -595,7 +573,7 @@ export default function DebtEditPage() {
               <div className="p-2 bg-purple-500/10 text-purple-500 rounded-lg">
                 <Users size={20} />
               </div>
-              <h2 className="text-lg font-bold text-white">Lịch trình {canEditFinancial ? 'Dự kiến' : 'Hiện tại'}</h2>
+              <h2 className="text-lg font-bold text-white">Lịch trình Dự kiến</h2>
             </div>
 
             <SchedulePreview

@@ -222,7 +222,6 @@ export const updateDebt = async (req: Request, res: Response) => {
       return;
     }
 
-    const isDraft = oldDebt.status === 'DRAFT';
     const {
       notes,
       penaltyRate,
@@ -238,11 +237,7 @@ export const updateDebt = async (req: Request, res: Response) => {
       termMonths,
       issueDate,
       interestRates,
-      unlocked,
     } = req.body;
-
-    // Financial fields can be edited when DRAFT or when user explicitly unlocks
-    const canEditFinancial = isDraft || unlocked === true;
 
     const updateData: any = {};
     if (notes !== undefined) updateData.notes = notes;
@@ -255,25 +250,25 @@ export const updateDebt = async (req: Request, res: Response) => {
     if (origin !== undefined) updateData.origin = origin;
     if (partyId !== undefined) updateData.partyId = partyId;
 
-    if (canEditFinancial) {
-      if (principal !== undefined) {
-        updateData.principal = Number(principal);
-        if (isDraft) updateData.outstanding = Number(principal);
-      }
-      if (interestMethod !== undefined) updateData.interestMethod = interestMethod;
-      const baseIssueDate = issueDate ? new Date(issueDate) : new Date(oldDebt.issueDate);
-      if (termMonths !== undefined) {
-        updateData.dueDate = new Date(new Date(baseIssueDate).setMonth(baseIssueDate.getMonth() + Number(termMonths)));
-      }
-      if (issueDate !== undefined) updateData.issueDate = new Date(issueDate);
+    if (principal !== undefined) {
+      updateData.principal = Number(principal);
+      // Only update outstanding if it was equal to principal (no payments yet) or if explicitly desired
+      // For simplicity, let's keep it flexible as requested
+      if (oldDebt.status === 'DRAFT') updateData.outstanding = Number(principal);
     }
+    if (interestMethod !== undefined) updateData.interestMethod = interestMethod;
+    const baseIssueDate = issueDate ? new Date(issueDate) : new Date(oldDebt.issueDate);
+    if (termMonths !== undefined) {
+      updateData.dueDate = new Date(new Date(baseIssueDate).setMonth(baseIssueDate.getMonth() + Number(termMonths)));
+    }
+    if (issueDate !== undefined) updateData.issueDate = new Date(issueDate);
 
     await (enterpriseDb as any).$transaction(async (tx: any) => {
       // Update main record
       await tx.debtRecord.update({ where: { id }, data: updateData });
 
-      // Replace interest rates if provided and financial editing is allowed
-      if (canEditFinancial && interestRates !== undefined) {
+      // Replace interest rates if provided
+      if (interestRates !== undefined) {
         await tx.debtInterestRate.deleteMany({ where: { debtRecordId: id } });
         await tx.debtInterestRate.createMany({
           data: interestRates.map((r: any) => ({
