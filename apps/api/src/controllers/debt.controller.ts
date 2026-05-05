@@ -234,7 +234,6 @@ export async function updateDebt(req: AuthenticatedRequest, res: Response) {
       'remainingTerms',
       'startDate',
       'notes',
-      'status',
     ];
 
     const numericFields = [
