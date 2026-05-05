@@ -43,11 +43,11 @@ export function calcEAR(
   feeManagement: number,
   termMonths: number,
   rateType?: string,
-  initialPrincipal?: number,
+  originalAmount?: number,
 ) {
   let effectiveAPR = apr;
-  if (rateType === 'FLAT' && initialPrincipal && termMonths) {
-    effectiveAPR = convertFlatToReducingAPR(initialPrincipal, apr, termMonths);
+  if (rateType === 'FLAT' && originalAmount && termMonths) {
+    effectiveAPR = convertFlatToReducingAPR(originalAmount, apr, termMonths);
   }
 
   const apy = calcAPY(effectiveAPR);
