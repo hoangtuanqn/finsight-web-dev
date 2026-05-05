@@ -92,17 +92,45 @@ export default function DebtListPage() {
     : debts;
 
   const getDisplayedDebts = () => {
+    const getStatusWeight = (status: string) => {
+      switch (status) {
+        case 'OVERDUE':
+        case 'DISPUTED':
+          return 0; // Highest priority
+        case 'ACTIVE':
+        case 'PARTIAL':
+          return 1; // Active
+        case 'DRAFT':
+          return 2; // New
+        case 'PAID':
+        case 'WRITTEN_OFF':
+          return 3; // Completed/Archived
+        default:
+          return 4;
+      }
+    };
+
+    const sortFn = (a: any, b: any) => {
+      const weightA = getStatusWeight(a.status);
+      const weightB = getStatusWeight(b.status);
+
+      if (weightA !== weightB) {
+        return weightA - weightB;
+      }
+
+      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    };
+
     switch (activeTab) {
       case 'RECEIVABLE':
-        return searchedDebts.filter((d) => d.type === 'RECEIVABLE');
+        return [...searchedDebts].filter((d) => d.type === 'RECEIVABLE').sort(sortFn);
       case 'PAYABLE':
-        return searchedDebts.filter((d) => d.type === 'PAYABLE');
+        return [...searchedDebts].filter((d) => d.type === 'PAYABLE').sort(sortFn);
       case 'RISK':
-        return searchedDebts.filter((d) => d.status === 'OVERDUE' || d.status === 'DISPUTED');
+        return [...searchedDebts].filter((d) => d.status === 'OVERDUE' || d.status === 'DISPUTED').sort(sortFn);
       case 'OVERVIEW':
       default:
-        // Sort by closest due date for overview
-        return [...searchedDebts].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+        return [...searchedDebts].sort(sortFn);
     }
   };
 
