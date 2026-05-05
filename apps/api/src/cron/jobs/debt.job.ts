@@ -21,7 +21,9 @@ export async function checkDueDebtsAndDominoRisk() {
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
-    const dueDateThisMonth = new Date(currentYear, currentMonth, debt.dueDay);
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const effectiveDueDay = Math.min(debt.dueDay, daysInMonth);
+    const dueDateThisMonth = new Date(currentYear, currentMonth, effectiveDueDay);
     const diffTime = dueDateThisMonth.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
@@ -101,18 +103,6 @@ export async function checkDueDebtsAndDominoRisk() {
               },
             });
             console.log(`[Cron] 💸 Đã cộng phạt ${debt.feePenaltyPerDay} vào khoản nợ ${debt.name}`);
-
-            // Gửi Email thông báo quá hạn
-            const daysOverdue = Math.abs(debt.dueDay - new Date().getDate());
-            await (
-              await import('../../services/email.service')
-            ).default.sendOverdueAlert(
-              debt.user.email,
-              debt.user.name,
-              debt.name,
-              daysOverdue || 1,
-              debt.minimumPayment,
-            );
           } else {
             console.log(`[Cron] ⏭️ Bỏ qua cộng phạt cho ${debt.name} (Hôm nay đã phạt rồi)`);
           }
