@@ -1,3 +1,5 @@
+import { convertFlatToReducingAPR } from './ear.js';
+
 export interface DebtItem {
   id: string | number;
   name: string;
@@ -71,37 +73,6 @@ function getDebtDeadlineMonth(debt: DebtItem): number | undefined {
   }
 
   return undefined;
-}
-
-/**
- * CALCULATION 1.5: Convert Flat APR to Reducing APR
- * Uses Newton-Raphson to find the equivalent reducing rate
- */
-export function convertFlatToReducingAPR(principal: number, flatAPR: number, termMonths: number): number {
-  if (flatAPR === 0 || !principal || !termMonths) return flatAPR;
-
-  const totalInterest = principal * (flatAPR / 100) * (termMonths / 12);
-  const monthlyPayment = (principal + totalInterest) / termMonths;
-
-  // Initial guess
-  let r = flatAPR / 100 / 12;
-  let error = 1;
-  const tolerance = 1e-7;
-  let iterations = 0;
-
-  while (error > tolerance && iterations < 100) {
-    const term1 = Math.pow(1 + r, termMonths);
-    const f = (principal * (r * term1)) / (term1 - 1) - monthlyPayment;
-
-    const fPrime = principal * ((term1 * (1 + r * termMonths) - 1) / Math.pow(term1 - 1, 2));
-
-    const nextR = r - f / fPrime;
-    error = Math.abs(nextR - r);
-    r = nextR;
-    iterations++;
-  }
-
-  return r * 12 * 100;
 }
 
 export function formatVND(amount: number): string {
