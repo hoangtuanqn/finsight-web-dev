@@ -88,6 +88,21 @@ const methodTone = {
     glow: 'via-emerald-500/50',
     icon: <Sparkles size={18} />,
   },
+  CUSTOM: {
+    name: 'Kế hoạch của bạn',
+    badge: 'Tùy chỉnh',
+    subtitle: 'Theo thứ tự ưu tiên bạn đã sắp xếp',
+    text: 'text-red-400',
+    textSoft: 'text-red-300',
+    hover: 'hover:text-red-300',
+    border: 'rgba(239,68,68,0.25)',
+    shadow: 'rgba(239,68,68,0.06)',
+    iconBox: 'bg-red-500/15 text-red-400',
+    iconButton: 'bg-red-500/10 hover:bg-red-500/20 text-red-400/70 hover:text-red-300',
+    separator: 'bg-red-500/10',
+    glow: 'via-red-500/50',
+    icon: <Target size={18} />,
+  },
 } as const;
 
 export function breachDot(simulation: any, color: string) {
@@ -338,12 +353,12 @@ function StrategyFit({
 
 export function MethodPlanCard({
   type,
-  debts,
+  debts = [],
   simulation,
   termBreach,
   onInfo,
 }: {
-  type: 'AVALANCHE' | 'SNOWBALL';
+  type: 'AVALANCHE' | 'SNOWBALL' | 'CUSTOM';
   debts: any[];
   simulation: any;
   termBreach?: any;
@@ -352,8 +367,11 @@ export function MethodPlanCard({
   if (!simulation) return null;
 
   const isAvalanche = type === 'AVALANCHE';
+  const isCustom = type === 'CUSTOM';
   const tone = methodTone[type];
-  const orderedDebts = [...debts].sort((a, b) => (isAvalanche ? b.apr - a.apr : a.balance - b.balance));
+  const orderedDebts = isCustom
+    ? debts
+    : [...debts].sort((a, b) => (isAvalanche ? b.apr - a.apr : a.balance - b.balance));
 
   return (
     <motion.div
@@ -431,7 +449,18 @@ export function MethodPlanCard({
                     <span
                       className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-black ${index === 0 ? `${tone.iconBox} ${tone.textSoft}` : 'bg-white/5 text-[var(--color-text-muted)]'}`}
                     >
-                      {isAvalanche ? `${debt.apr}% APR` : formatVND(debt.balance)}
+                      {isAvalanche ? (
+                        <div className="flex flex-col items-end">
+                          <span>{(debt.apr || 0).toFixed(1)}% APR</span>
+                          {debt.rateType === 'FLAT' && debt.nominalApr !== undefined && (
+                            <span className="text-[8px] opacity-70 italic text-amber-400">
+                              (~{debt.nominalApr}% Flat)
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        formatVND(debt.balance)
+                      )}
                     </span>
                     {index === 0 && <span className={`shrink-0 text-[10px] font-black ${tone.text}`}>← trước</span>}
                   </div>

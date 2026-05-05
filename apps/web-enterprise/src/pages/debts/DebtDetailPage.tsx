@@ -54,6 +54,32 @@ export default function DebtDetailPage() {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
   };
 
+  const getScheduleStatusStyle = (status: string) => {
+    switch (status) {
+      case 'PAID':
+        return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
+      case 'PARTIAL':
+        return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
+      case 'OVERDUE':
+        return 'bg-rose-500/10 text-rose-500 border-rose-500/20';
+      default:
+        return 'bg-slate-800 text-slate-500 border-slate-700';
+    }
+  };
+
+  const getScheduleStatusLabel = (status: string) => {
+    switch (status) {
+      case 'PAID':
+        return 'Đã xong';
+      case 'PARTIAL':
+        return 'Dở dang';
+      case 'OVERDUE':
+        return 'Quá hạn';
+      default:
+        return 'Chờ thu';
+    }
+  };
+
   if (isLoading) return <div className="p-20 text-center text-slate-500">Đang tải chi tiết hồ sơ...</div>;
   if (!debt) return null;
 
@@ -113,16 +139,45 @@ export default function DebtDetailPage() {
           {/* Quick Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-6">
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Dư nợ hiện tại</p>
-              <h3 className="text-xl font-black text-emerald-500 font-mono">{formatCurrency(debt.outstanding)}</h3>
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Dư nợ gốc còn lại</p>
+              <h3 className="text-xl font-black text-white font-mono">{formatCurrency(debt.outstanding)}</h3>
             </div>
             <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-6">
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Gốc ban đầu</p>
-              <h3 className="text-xl font-black text-white font-mono">{formatCurrency(debt.principal)}</h3>
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">
+                Phạt chưa thanh toán
+              </p>
+              <h3
+                className={`text-xl font-black font-mono ${debt.unpaidPenalty > 0 ? 'text-rose-500' : 'text-slate-500'}`}
+              >
+                {formatCurrency(debt.unpaidPenalty)}
+              </h3>
             </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-6">
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Phương thức lãi</p>
-              <h3 className="text-sm font-black text-white uppercase tracking-tight mt-1">{debt.interestMethod}</h3>
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Gốc ban đầu</p>
+                  <h3 className="text-xl font-black text-white font-mono">{formatCurrency(debt.principal)}</h3>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">
+                    Phương thức lãi
+                  </p>
+                  <h3 className="text-xs font-black text-blue-400 uppercase tracking-tight">{debt.interestMethod}</h3>
+                </div>
+              </div>
+            </div>
+            <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-6 flex justify-between items-center">
+              <div>
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">
+                  Tổng phạt tích lũy
+                </p>
+                <h3 className="text-xl font-black text-white font-mono">{formatCurrency(debt.totalPenaltyAccrued)}</h3>
+              </div>
+              <div className="p-2 bg-rose-500/10 text-rose-500 rounded-xl">
+                <Info size={20} />
+              </div>
             </div>
           </div>
 
@@ -167,15 +222,21 @@ export default function DebtDetailPage() {
                       <td className="px-8 py-4 text-xs font-mono text-slate-300">{formatCurrency(s.interestAmount)}</td>
                       <td className="px-8 py-4 text-xs font-black text-white">{formatCurrency(s.totalAmount)}</td>
                       <td className="px-8 py-4 text-right">
-                        <span
-                          className={`inline-flex px-2 py-0.5 rounded-full text-[8px] font-black border uppercase tracking-widest ${
-                            s.status === 'PAID'
-                              ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-                              : 'bg-slate-800 text-slate-500 border-slate-700'
-                          }`}
-                        >
-                          {s.status}
-                        </span>
+                        <div className="flex flex-col items-end gap-1">
+                          <span
+                            className={`inline-flex px-2 py-0.5 rounded-full text-[8px] font-black border uppercase tracking-widest ${getScheduleStatusStyle(s.status)}`}
+                          >
+                            {getScheduleStatusLabel(s.status)}
+                          </span>
+                          {s.status !== 'PAID' && (
+                            <p className="text-[9px] font-bold text-slate-500 whitespace-nowrap">
+                              Còn thiếu:{' '}
+                              <span className="text-amber-500">
+                                {formatCurrency(s.principalAmount - (s.paidPrincipal || 0))}
+                              </span>
+                            </p>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -241,10 +302,12 @@ export default function DebtDetailPage() {
                             ? 'bg-emerald-500/10 text-emerald-500'
                             : t.type === 'REVERSAL'
                               ? 'bg-red-500/10 text-red-500'
-                              : 'bg-blue-500/10 text-blue-500'
+                              : t.type === 'PENALTY'
+                                ? 'bg-rose-500/10 text-rose-500'
+                                : 'bg-blue-500/10 text-blue-500'
                         }`}
                       >
-                        <CreditCard size={14} />
+                        {t.type === 'PENALTY' ? <Info size={14} /> : <CreditCard size={14} />}
                       </div>
                       <div className="flex-1">
                         <div className="flex justify-between items-start mb-1">
@@ -255,13 +318,20 @@ export default function DebtDetailPage() {
                         </div>
                         <p
                           className={`text-sm font-black font-mono ${
-                            t.type === 'REVERSAL' ? 'text-red-400' : 'text-white'
+                            t.type === 'REVERSAL'
+                              ? 'text-red-400'
+                              : t.type === 'PENALTY'
+                                ? 'text-rose-400'
+                                : 'text-white'
                           }`}
                         >
+                          {t.type === 'PENALTY' ? '+' : ''}
                           {formatCurrency(t.amount)}
                         </p>
                         <div className="mt-2 pt-2 border-t border-slate-800/50 flex items-center justify-between">
-                          <p className="text-[9px] text-slate-500 font-bold uppercase tracking-tight">Dư nợ sau GD</p>
+                          <p className="text-[9px] text-slate-500 font-bold uppercase tracking-tight">
+                            {t.type === 'PENALTY' ? 'Nợ gốc duy trì' : 'Dư nợ sau GD'}
+                          </p>
                           <p className="text-[10px] text-emerald-500 font-mono font-bold">
                             {formatCurrency(t.balanceSnapshot)}
                           </p>

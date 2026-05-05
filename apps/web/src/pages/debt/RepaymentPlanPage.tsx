@@ -386,14 +386,14 @@ export default function RepaymentPlanPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <MethodPlanCard
                 type="AVALANCHE"
-                debts={allDebts.filter((d) => d.balance > 0)}
+                debts={avalanche.debts || allDebts.filter((d) => d.balance > 0)}
                 simulation={avalanche}
                 termBreach={avalanche.termBreach}
                 onInfo={() => setModal('AVALANCHE')}
               />
               <MethodPlanCard
                 type="SNOWBALL"
-                debts={allDebts.filter((d) => d.balance > 0)}
+                debts={snowball.debts || allDebts.filter((d) => d.balance > 0)}
                 simulation={snowball}
                 termBreach={snowball.termBreach}
                 onInfo={() => setModal('SNOWBALL')}

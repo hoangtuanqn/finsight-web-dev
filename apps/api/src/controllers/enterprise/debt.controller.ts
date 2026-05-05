@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
-import enterpriseDb from '../../prisma/enterprise.client';
-import * as debtService from '../../services/enterprise/debt.service';
-import * as debtStatusService from '../../services/enterprise/debtStatus.service';
-import transactionService from '../../services/enterprise/transaction.service';
-import { logAudit } from '../../utils/audit';
+import enterpriseDb from '../../prisma/enterprise.client.js';
+import * as debtService from '../../services/enterprise/debt.service.js';
+import * as debtStatusService from '../../services/enterprise/debtStatus.service.js';
+import transactionService from '../../services/enterprise/transaction.service.js';
+import { logAudit } from '../../utils/audit.js';
 
 export const createDebt = async (req: Request, res: Response) => {
   try {
@@ -19,6 +19,18 @@ export const createDebt = async (req: Request, res: Response) => {
           effectiveDate: new Date(r.effectiveDate),
         })) || [],
     };
+
+    if (!data.principal || data.principal <= 0) {
+      throw new Error('Số tiền gốc phải lớn hơn 0');
+    }
+
+    if (!data.termMonths || data.termMonths <= 0) {
+      throw new Error('Thời hạn (số tháng) phải lớn hơn 0 để tính ngày đến hạn hợp lệ');
+    }
+
+    if (data.interestMethod === 'NONE' && data.interestRates.some((r: any) => r.rate > 0)) {
+      throw new Error('Nếu có nhập lãi suất, phương thức tính lãi không được là "Không tính lãi"');
+    }
 
     const debt = await debtService.createDebtRecord(data);
 

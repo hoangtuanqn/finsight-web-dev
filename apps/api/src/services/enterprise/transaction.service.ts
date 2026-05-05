@@ -1,9 +1,36 @@
 import enterpriseDb from '../../prisma/enterprise.client';
-import debtStatusService from './debtStatus.service';
+import { NotificationService } from './notification.service';
 
 export class TransactionService {
   /**
-   * Ghi nhận thanh toán và phân bổ theo Waterfall (Penalty -> Interest -> Principal)
+   * Ghi nhận một giao dịch phạt (Penalty) tích lũy
+   */
+  async createPenaltyTransaction(data: { debtId: string; amount: number; notes?: string; paidAt?: Date }) {
+    return await (enterpriseDb as any).$transaction(async (tx: any) => {
+      const debt = await tx.debtRecord.findUnique({
+        where: { id: data.debtId },
+      });
+
+      if (!debt) throw new Error('Không tìm thấy khoản nợ');
+
+      return await tx.debtTransaction.create({
+        data: {
+          debtRecordId: debt.id,
+          type: 'PENALTY',
+          amount: data.amount,
+          principalPart: 0,
+          interestPart: 0,
+          penaltyPart: data.amount,
+          paidAt: data.paidAt || new Date(),
+          notes: data.notes || 'Phạt tích lũy hệ thống',
+          balanceSnapshot: debt.outstanding,
+        },
+      });
+    });
+  }
+
+  /**
+   * Ghi nhận thanh toán và phân bổ theo Waterfall
    */
   async createPayment(data: {
     orgId: string;
@@ -16,78 +43,67 @@ export class TransactionService {
     notes?: string;
   }) {
     return await (enterpriseDb as any).$transaction(async (tx: any) => {
-      // 1. Lấy thông tin khoản nợ và lịch thanh toán
       const debt = await tx.debtRecord.findUnique({
         where: { id: data.debtId, organizationId: data.orgId },
         include: {
           schedules: { orderBy: { period: 'asc' } },
+          transactions: true,
+          party: { select: { name: true, personInChargeId: true } },
         },
       });
 
       if (!debt) throw new Error('Không tìm thấy khoản nợ');
-      if (!['ACTIVE', 'PARTIAL', 'OVERDUE', 'DISPUTED'].includes(debt.status)) {
-        throw new Error(`Không thể thanh toán cho khoản nợ ở trạng thái ${debt.status}`);
-      }
-
-      // 2. Tính toán phân bổ (Waterfall)
-      // Lưu ý: Trong Module 4, chúng ta giả định các khoản lãi/phạt đã được ghi nhận
-      // bởi hệ thống hoặc người dùng. Hiện tại tập trung vào logic khấu trừ gốc.
-
-      const currentOutstanding = await debtStatusService.getOutstandingBalance(debt.id);
-
       if (data.amount <= 0) throw new Error('Số tiền thanh toán phải lớn hơn 0');
 
+      // Waterfall logic
+      const totalPenaltyAccrued = debt.transactions
+        .filter((t: any) => t.type === 'PENALTY')
+        .reduce((sum: number, t: any) => sum + t.amount, 0);
+
+      const totalPenaltyPaid = debt.transactions
+        .filter((t: any) => t.type === 'PAYMENT' || t.type === 'REVERSAL')
+        .reduce((sum: number, t: any) => sum + (t.penaltyPart || 0), 0);
+
+      const unpaidPenalty = Math.max(0, totalPenaltyAccrued - totalPenaltyPaid);
+
       let remainingAmount = data.amount;
-      let principalPaid = 0;
-      let interestPaid = 0;
-      let penaltyPaid = 0;
+      const penaltyToPay = Math.min(remainingAmount, unpaidPenalty);
+      remainingAmount -= penaltyToPay;
 
-      // TODO: Sau này Module 5 sẽ cung cấp số liệu Lãi/Phạt cụ thể để trừ tại đây
-      // Hiện tại: Ưu tiên trừ vào gốc (Principal)
-      principalPaid = Math.min(remainingAmount, currentOutstanding);
-      remainingAmount -= principalPaid;
+      const principalToPay = Math.min(remainingAmount, debt.outstanding);
+      remainingAmount -= principalToPay;
 
-      if (remainingAmount > 0) {
-        throw new Error('Số tiền thanh toán vượt quá dư nợ hiện tại');
-      }
+      const newOutstanding = Math.max(0, debt.outstanding - principalToPay);
 
-      // 3. Cập nhật các kỳ thanh toán (Schedules)
-      if (debt.schedules.length > 0) {
-        let amountToDistribute = principalPaid;
+      // Update Schedules
+      if (principalToPay > 0) {
+        let amountToDistribute = principalToPay;
         for (const schedule of debt.schedules) {
           if (amountToDistribute <= 0) break;
           if (schedule.status === 'PAID') continue;
 
-          // Tính toán phần nợ gốc còn thiếu trong kỳ này
-          const remainingPrincipalInSchedule = schedule.principalAmount - (schedule.paidPrincipal || 0);
-          const payToThisSchedule = Math.min(amountToDistribute, remainingPrincipalInSchedule);
-
-          const newPaidPrincipal = (schedule.paidPrincipal || 0) + payToThisSchedule;
-          const isFullyPaid = newPaidPrincipal >= schedule.principalAmount;
+          const remainingInSchedule = schedule.principalAmount - (schedule.paidPrincipal || 0);
+          const payToThis = Math.min(amountToDistribute, remainingInSchedule);
+          const newPaid = (schedule.paidPrincipal || 0) + payToThis;
 
           await tx.debtSchedule.update({
             where: { id: schedule.id },
             data: {
-              paidPrincipal: newPaidPrincipal,
-              status: isFullyPaid ? 'PAID' : 'PARTIAL',
+              paidPrincipal: newPaid,
+              status: newPaid >= schedule.principalAmount ? 'PAID' : 'PARTIAL',
             },
           });
-
-          amountToDistribute -= payToThisSchedule;
+          amountToDistribute -= payToThis;
         }
       }
-
-      // 4. Tạo bản ghi giao dịch
-      const newOutstanding = currentOutstanding - principalPaid;
 
       const transaction = await tx.debtTransaction.create({
         data: {
           debtRecordId: debt.id,
           type: 'PAYMENT',
           amount: data.amount,
-          principalPart: principalPaid,
-          interestPart: interestPaid,
-          penaltyPart: penaltyPaid,
+          principalPart: principalToPay,
+          penaltyPart: penaltyToPay,
           paidAt: data.paidAt,
           paymentMethod: data.paymentMethod,
           reference: data.reference,
@@ -96,74 +112,86 @@ export class TransactionService {
         },
       });
 
-      // 5. Cập nhật Outstanding trên DebtRecord
       await tx.debtRecord.update({
         where: { id: debt.id },
-        data: { outstanding: newOutstanding },
+        data: {
+          outstanding: newOutstanding,
+          status: newOutstanding <= 0 ? 'PAID' : 'PARTIAL',
+        },
       });
 
-      // 6. Chuyển trạng thái khoản nợ
-      let newStatus = debt.status;
-      if (newOutstanding <= 0) {
-        newStatus = 'PAID';
-      } else if (debt.status === 'ACTIVE') {
-        newStatus = 'PARTIAL';
-      }
-
-      if (newStatus !== debt.status) {
-        await tx.debtRecord.update({
-          where: { id: debt.id },
-          data: { status: newStatus },
-        });
-
-        await tx.auditLog.create({
-          data: {
+      // Notify
+      const recipientId = debt.personInChargeId || debt.party?.personInChargeId;
+      if (recipientId) {
+        await NotificationService.createNotification(
+          {
             organizationId: data.orgId,
-            userId: data.userId,
-            action: 'UPDATE_STATUS',
-            entityType: 'DEBT_RECORD',
-            entityId: debt.id,
-            oldValues: { status: debt.status },
-            newValues: { status: newStatus, outstandingSnapshot: newOutstanding },
-            reason: 'Tự động cập nhật sau thanh toán',
+            targetUserId: recipientId,
+            type: 'EVENT_BASED',
+            category: 'PAYMENT',
+            priority: 'NORMAL',
+            title: `✅ Thanh toán được ghi nhận: ${data.amount.toLocaleString()}đ`,
+            content: `Khoản nợ ${debt.internalCode} đã nhận thanh toán ${data.amount.toLocaleString()}đ (Gốc: ${principalToPay.toLocaleString()}đ, Phạt: ${penaltyToPay.toLocaleString()}đ). Dư nợ còn lại: ${newOutstanding.toLocaleString()}đ.`,
+            debtRecordId: debt.id,
+            data: { amount: data.amount, principalPart: principalToPay, penaltyPart: penaltyToPay, newOutstanding },
           },
-        });
+          tx,
+        );
       }
 
       return transaction;
     });
   }
 
-  /**
-   * Đảo bút toán (Reversal)
-   */
   async reverseTransaction(orgId: string, userId: string, transactionId: string, reason: string) {
     return await (enterpriseDb as any).$transaction(async (tx: any) => {
       const originalTx = await tx.debtTransaction.findUnique({
         where: { id: transactionId },
-        include: { debtRecord: true },
+        include: {
+          debtRecord: {
+            include: {
+              party: { select: { personInChargeId: true } },
+              schedules: { orderBy: { period: 'desc' } }, // Lấy lịch trình sắp xếp ngược để hoàn tác từ kỳ muộn nhất
+            },
+          },
+          reversedBy: { select: { id: true }, take: 1 },
+        },
       });
 
       if (!originalTx) throw new Error('Không tìm thấy giao dịch gốc');
-      if (originalTx.type === 'REVERSAL') throw new Error('Không thể đảo ngược một giao dịch đảo');
-
-      // Kiểm tra xem đã bị đảo ngược chưa
-      const existingReversal = await tx.debtTransaction.findFirst({
-        where: { reversesTransactionId: transactionId },
-      });
-      if (existingReversal) throw new Error('Giao dịch này đã được đảo ngược trước đó');
-
       const debt = originalTx.debtRecord;
-      if (debt.organizationId !== orgId) throw new Error('Không có quyền truy cập');
 
-      // 1. Tạo giao dịch đảo (âm tiền)
+      if (debt.organizationId !== orgId) throw new Error('Không có quyền đảo ngược giao dịch này');
+      if (originalTx.reversedBy.length > 0) throw new Error('Giao dịch này đã được đảo ngược trước đó');
+
+      // 1. Hoàn tác Lịch trình thanh toán (Schedules)
+      if (originalTx.principalPart > 0) {
+        let amountToRecover = originalTx.principalPart;
+        for (const schedule of debt.schedules) {
+          if (amountToRecover <= 0) break;
+          if ((schedule.paidPrincipal || 0) <= 0) continue;
+
+          const canRecoverFromThis = Math.min(amountToRecover, schedule.paidPrincipal || 0);
+          const newPaid = (schedule.paidPrincipal || 0) - canRecoverFromThis;
+
+          await tx.debtSchedule.update({
+            where: { id: schedule.id },
+            data: {
+              paidPrincipal: newPaid,
+              status: newPaid <= 0 ? 'PENDING' : 'PARTIAL',
+            },
+          });
+          amountToRecover -= canRecoverFromThis;
+        }
+      }
+
+      // 2. Tạo giao dịch đảo ngược
       const reversalTx = await tx.debtTransaction.create({
         data: {
           debtRecordId: debt.id,
           type: 'REVERSAL',
           amount: -originalTx.amount,
           principalPart: -originalTx.principalPart,
-          interestPart: -originalTx.interestPart,
           penaltyPart: -originalTx.penaltyPart,
           paidAt: new Date(),
           notes: `Đảo ngược giao dịch ${originalTx.id}. Lý do: ${reason}`,
@@ -172,50 +200,32 @@ export class TransactionService {
         },
       });
 
-      // 2. Hoàn trả Outstanding
+      // 3. Khôi phục dư nợ trên hồ sơ gốc
       const restoredOutstanding = debt.outstanding + originalTx.principalPart;
       await tx.debtRecord.update({
         where: { id: debt.id },
-        data: { outstanding: restoredOutstanding },
+        data: {
+          outstanding: restoredOutstanding,
+          status: restoredOutstanding > 0 ? (debt.status === 'PAID' ? 'PARTIAL' : debt.status) : debt.status,
+        },
       });
 
-      // 3. Hoàn trả Schedules (LIFO - đảo ngược từ kỳ cuối cùng có thanh toán)
-      if (originalTx.principalPart > 0) {
-        const schedules = await tx.debtSchedule.findMany({
-          where: { debtRecordId: debt.id, paidPrincipal: { gt: 0 } },
-          orderBy: { period: 'desc' },
-        });
-
-        let amountToRestore = originalTx.principalPart;
-        for (const schedule of schedules) {
-          if (amountToRestore <= 0) break;
-
-          const restoreFromThis = Math.min(amountToRestore, schedule.paidPrincipal);
-          const newPaidPrincipal = schedule.paidPrincipal - restoreFromThis;
-
-          await tx.debtSchedule.update({
-            where: { id: schedule.id },
-            data: {
-              paidPrincipal: newPaidPrincipal,
-              status: newPaidPrincipal <= 0 ? 'PENDING' : 'PARTIAL',
-            },
-          });
-
-          amountToRestore -= restoreFromThis;
-        }
-      }
-
-      // 4. Khôi phục trạng thái khoản nợ nếu cần
-      let restoredStatus = debt.status;
-      if (restoredOutstanding > 0 && debt.status === 'PAID') {
-        restoredStatus = 'PARTIAL';
-      }
-
-      if (restoredStatus !== debt.status) {
-        await tx.debtRecord.update({
-          where: { id: debt.id },
-          data: { status: restoredStatus },
-        });
+      // 4. Thông báo
+      const recipientId = debt.personInChargeId || debt.party?.personInChargeId;
+      if (recipientId) {
+        await NotificationService.createNotification(
+          {
+            organizationId: orgId,
+            targetUserId: recipientId,
+            type: 'EVENT_BASED',
+            category: 'PAYMENT',
+            priority: 'IMPORTANT',
+            title: `⚠️ Giao dịch bị ĐẢO NGƯỢC: ${originalTx.amount.toLocaleString()}đ`,
+            content: `Giao dịch ${originalTx.id} của khoản nợ ${debt.internalCode} đã bị đảo ngược. Lý do: ${reason}. Dư nợ đã khôi phục về ${restoredOutstanding.toLocaleString()}đ.`,
+            debtRecordId: debt.id,
+          },
+          tx,
+        );
       }
 
       return reversalTx;

@@ -42,7 +42,7 @@ export default function EarAnalysisPage() {
     },
     {
       label: 'Chi phí ẩn',
-      value: `+${formatPercent(data.summary.totalHiddenCost)}`,
+      value: `${data.summary.totalHiddenCost >= 0 ? '+' : ''}${formatPercent(data.summary.totalHiddenCost)}`,
       color: '#f59e0b',
       gradient: 'from-amber-500 to-orange-400',
       desc: 'Chênh lệch APR vs EAR',
@@ -113,7 +113,10 @@ export default function EarAnalysisPage() {
           <Lightbulb size={16} className="text-amber-400 shrink-0 mt-0.5 ml-1" />
           <p className="text-[13px] text-amber-300 leading-relaxed">
             Tổng chi phí ẩn trung bình{' '}
-            <span className="font-black text-amber-200">+{formatPercent(data.summary.totalHiddenCost)}</span> - khoản nợ
+            <span className="font-black text-amber-200">
+              {data.summary.totalHiddenCost >= 0 ? '+' : ''}
+              {formatPercent(data.summary.totalHiddenCost)}
+            </span>{' '}
             đắt hơn{' '}
             <span className="font-black text-amber-200">
               {Math.round((data.summary.totalHiddenCost / (data.summary.averageAPR || 1)) * 100)}%
