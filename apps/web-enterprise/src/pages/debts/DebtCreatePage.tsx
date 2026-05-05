@@ -32,6 +32,7 @@ export default function DebtCreatePage() {
     personInChargeId: '',
   });
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [previewSchedule, setPreviewSchedule] = useState<any[]>([]);
 
   useEffect(() => {
@@ -88,10 +89,33 @@ export default function DebtCreatePage() {
     }
   };
 
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.partyId) newErrors.partyId = 'Vui lòng chọn đối tác';
+    if (!formData.principal || formData.principal <= 0) newErrors.principal = 'Số tiền gốc phải lớn hơn 0';
+    if (!formData.termMonths || formData.termMonths <= 0) newErrors.termMonths = 'Thời hạn phải lớn hơn 0';
+    if (!formData.internalCode?.trim()) newErrors.internalCode = 'Vui lòng nhập mã tham chiếu (Số HĐ)';
+    if (!formData.personInChargeId) newErrors.personInChargeId = 'Vui lòng chọn người phụ trách';
+    if (!formData.issueDate) newErrors.issueDate = 'Vui lòng chọn ngày phát sinh';
+
+    if (formData.interestMethod !== 'NONE') {
+      formData.interestRates.forEach((rate: any, idx: number) => {
+        if (rate.rate < 0) {
+          newErrors[`interestRate_${idx}`] = 'Lãi suất không được âm';
+        }
+      });
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.partyId) {
-      toast.error('Vui lòng chọn đối tác');
+
+    if (!validateForm()) {
+      toast.error('Vui lòng kiểm tra lại các thông tin còn thiếu hoặc sai sót');
       return;
     }
 
@@ -118,6 +142,14 @@ export default function DebtCreatePage() {
     const newRates = [...formData.interestRates];
     newRates[index][field] = value;
     setFormData({ ...formData, interestRates: newRates });
+
+    // Clear error if exists
+    const errorKey = `interestRate_${index}`;
+    if (errors[errorKey]) {
+      const newErrors = { ...errors };
+      delete newErrors[errorKey];
+      setErrors(newErrors);
+    }
   };
 
   const addInterestRate = () => {
@@ -225,9 +257,14 @@ export default function DebtCreatePage() {
                     <User size={16} />
                   </div>
                   <select
-                    className="w-full pl-12 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:border-emerald-500/50 transition-all outline-none appearance-none"
+                    className={`w-full pl-12 pr-4 py-3 bg-slate-950 border rounded-xl text-sm text-white focus:border-emerald-500/50 transition-all outline-none appearance-none ${
+                      errors.partyId ? 'border-rose-500/50 ring-2 ring-rose-500/10' : 'border-slate-800'
+                    }`}
                     value={formData.partyId}
-                    onChange={(e) => setFormData({ ...formData, partyId: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, partyId: e.target.value });
+                      if (errors.partyId) setErrors({ ...errors, partyId: '' });
+                    }}
                   >
                     <option value="">Chọn đối tác...</option>
                     {parties.map((p) => (
@@ -237,6 +274,7 @@ export default function DebtCreatePage() {
                     ))}
                   </select>
                 </div>
+                {errors.partyId && <p className="text-[10px] font-bold text-rose-500 ml-1">{errors.partyId}</p>}
               </div>
 
               <div className="space-y-2">
@@ -245,10 +283,18 @@ export default function DebtCreatePage() {
                 </label>
                 <Input
                   placeholder="VD: HĐ-2024-001"
-                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white"
+                  className={`w-full px-4 py-3 bg-slate-950 border rounded-xl text-sm text-white ${
+                    errors.internalCode ? 'border-rose-500/50 ring-2 ring-rose-500/10' : 'border-slate-800'
+                  }`}
                   value={formData.internalCode}
-                  onChange={(e) => setFormData({ ...formData, internalCode: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, internalCode: e.target.value });
+                    if (errors.internalCode) setErrors({ ...errors, internalCode: '' });
+                  }}
                 />
+                {errors.internalCode && (
+                  <p className="text-[10px] font-bold text-rose-500 ml-1">{errors.internalCode}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -283,9 +329,14 @@ export default function DebtCreatePage() {
                     <User size={16} />
                   </div>
                   <select
-                    className="w-full pl-12 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:border-emerald-500/50 transition-all outline-none appearance-none"
+                    className={`w-full pl-12 pr-4 py-3 bg-slate-950 border rounded-xl text-sm text-white focus:border-emerald-500/50 transition-all outline-none appearance-none ${
+                      errors.personInChargeId ? 'border-rose-500/50 ring-2 ring-rose-500/10' : 'border-slate-800'
+                    }`}
                     value={formData.personInChargeId}
-                    onChange={(e) => setFormData({ ...formData, personInChargeId: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, personInChargeId: e.target.value });
+                      if (errors.personInChargeId) setErrors({ ...errors, personInChargeId: '' });
+                    }}
                   >
                     <option value="">Chọn nhân viên phụ trách...</option>
                     {internalUsers.map((u) => (
@@ -295,6 +346,9 @@ export default function DebtCreatePage() {
                     ))}
                   </select>
                 </div>
+                {errors.personInChargeId && (
+                  <p className="text-[10px] font-bold text-rose-500 ml-1">{errors.personInChargeId}</p>
+                )}
               </div>
             </div>
           </div>
@@ -319,11 +373,17 @@ export default function DebtCreatePage() {
                   </div>
                   <Input
                     type="number"
-                    className="w-full pl-12 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white font-mono"
+                    className={`w-full pl-12 pr-4 py-3 bg-slate-950 border rounded-xl text-sm text-white font-mono ${
+                      errors.principal ? 'border-rose-500/50 ring-2 ring-rose-500/10' : 'border-slate-800'
+                    }`}
                     value={formData.principal}
-                    onChange={(e) => setFormData({ ...formData, principal: Number(e.target.value) })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, principal: Number(e.target.value) });
+                      if (errors.principal) setErrors({ ...errors, principal: '' });
+                    }}
                   />
                 </div>
+                {errors.principal && <p className="text-[10px] font-bold text-rose-500 ml-1">{errors.principal}</p>}
               </div>
 
               <div className="space-y-2">
@@ -332,10 +392,16 @@ export default function DebtCreatePage() {
                 </label>
                 <Input
                   type="number"
-                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white"
+                  className={`w-full px-4 py-3 bg-slate-950 border rounded-xl text-sm text-white ${
+                    errors.termMonths ? 'border-rose-500/50 ring-2 ring-rose-500/10' : 'border-slate-800'
+                  }`}
                   value={formData.termMonths}
-                  onChange={(e) => setFormData({ ...formData, termMonths: Number(e.target.value) })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, termMonths: Number(e.target.value) });
+                    if (errors.termMonths) setErrors({ ...errors, termMonths: '' });
+                  }}
                 />
+                {errors.termMonths && <p className="text-[10px] font-bold text-rose-500 ml-1">{errors.termMonths}</p>}
               </div>
 
               <div className="space-y-2">
@@ -348,11 +414,17 @@ export default function DebtCreatePage() {
                   </div>
                   <Input
                     type="date"
-                    className="w-full pl-12 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white"
+                    className={`w-full pl-12 pr-4 py-3 bg-slate-950 border rounded-xl text-sm text-white ${
+                      errors.issueDate ? 'border-rose-500/50 ring-2 ring-rose-500/10' : 'border-slate-800'
+                    }`}
                     value={formData.issueDate}
-                    onChange={(e) => setFormData({ ...formData, issueDate: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, issueDate: e.target.value });
+                      if (errors.issueDate) setErrors({ ...errors, issueDate: '' });
+                    }}
                   />
                 </div>
+                {errors.issueDate && <p className="text-[10px] font-bold text-rose-500 ml-1">{errors.issueDate}</p>}
               </div>
 
               <div className="space-y-2">
@@ -408,6 +480,7 @@ export default function DebtCreatePage() {
             {formData.interestMethod !== 'NONE' && (
               <InterestRateSection
                 interestRates={formData.interestRates}
+                errors={errors}
                 onAdd={addInterestRate}
                 onRemove={removeInterestRate}
                 onChange={handleInterestRateChange}
