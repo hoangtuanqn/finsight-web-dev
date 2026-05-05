@@ -1,11 +1,11 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
-import prisma from '../../lib/prisma';
+import { getDb } from '../config';
 
 export const getUserProfileTool = tool(
   async ({ userId }) => {
     try {
-      const user = await (prisma as any).user.findUnique({
+      const user = await getDb().user.findUnique({
         where: { id: userId },
         include: { investorProfile: true },
       });
@@ -40,10 +40,10 @@ export const getUserProfileTool = tool(
 export const simulateDtiTool = tool(
   async ({ userId, additionalDebt, additionalPayment }) => {
     try {
-      const user = await (prisma as any).user.findUnique({ where: { id: userId } });
+      const user = await getDb().user.findUnique({ where: { id: userId } });
       if (!user) return 'User not found';
 
-      const debts = await (prisma as any).debt.findMany({ where: { userId, status: 'ACTIVE' } });
+      const debts = await getDb().debt.findMany({ where: { userId, status: 'ACTIVE' } });
 
       let currentMinPayment = debts.reduce((sum: number, d: any) => sum + d.minPayment, 0);
       const newTotalPayment = currentMinPayment + (additionalPayment || 0);
