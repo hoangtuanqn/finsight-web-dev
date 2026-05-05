@@ -47,10 +47,18 @@ export default function PartiesPage() {
     bankAccounts: [],
   });
 
+  // Debounced search and filter effect
   useEffect(() => {
-    fetchParties();
+    const timer = setTimeout(() => {
+      fetchParties();
+    }, 400); // 400ms debounce
+
+    return () => clearTimeout(timer);
+  }, [search, filters]);
+
+  useEffect(() => {
     fetchInternalUsers();
-  }, [filters]); // Refetch when filters change
+  }, []);
 
   const fetchParties = async () => {
     try {
