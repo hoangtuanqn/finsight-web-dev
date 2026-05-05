@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import enterpriseDb from '../../prisma/enterprise.client';
-import { logAudit } from '../../utils/audit';
+import enterpriseDb from '../../prisma/enterprise.client.js';
+import { logAudit } from '../../utils/audit.js';
 
 /**
  * Helper to generate internal code based on role
@@ -44,12 +44,25 @@ export const createParty = async (req: Request, res: Response) => {
         where: { organizationId: orgId, taxCode },
       });
       if (existing) {
-        res.status(400).json({ success: false, error: 'Mã số thuế đã tồn tại trong tổ chức này' });
+        res.status(400).json({ success: false, error: 'Mã số thuế đã tồn tại trong hệ thống' });
         return;
       }
     }
 
-    // 2. Auto-generate internal code if not provided
+    // 2. Validation: Internal Code uniqueness
+    if (internalCode) {
+      const existingCode = await (enterpriseDb as any).party.findFirst({
+        where: { organizationId: orgId, internalCode },
+      });
+      if (existingCode) {
+        res
+          .status(400)
+          .json({ success: false, error: `Mã nội bộ "${internalCode}" đã tồn tại. Vui lòng chọn mã khác.` });
+        return;
+      }
+    }
+
+    // 3. Auto-generate internal code if not provided
     const finalInternalCode = internalCode || (await generateInternalCode(orgId, typeTags || []));
 
     // 3. Create Party with relations
@@ -102,6 +115,17 @@ export const createParty = async (req: Request, res: Response) => {
     res.status(201).json({ success: true, data: party });
   } catch (error: any) {
     console.error('Create Party Error:', error);
+
+    // Handle Prisma Unique Constraint specifically
+    if (error.code === 'P2002') {
+      const fields = error.meta?.target || [];
+      res.status(400).json({
+        success: false,
+        error: `Dữ liệu bị trùng lặp: ${fields.includes('internalCode') ? 'Mã nội bộ' : 'Mã số thuế'} đã tồn tại.`,
+      });
+      return;
+    }
+
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -136,6 +160,8 @@ export const getParties = async (req: Request, res: Response) => {
           personInCharge: {
             select: { id: true, fullName: true },
           },
+          contacts: true,
+          bankAccounts: true,
           _count: {
             select: { contacts: true },
           },
@@ -255,7 +281,7 @@ export const updateParty = async (req: Request, res: Response) => {
       userId,
       action: 'UPDATE',
       entityType: 'PARTY',
-      entityId: id,
+      entityId: id as string,
       oldValues: oldParty,
       newValues: party,
     });
@@ -298,7 +324,7 @@ export const toggleStatus = async (req: Request, res: Response) => {
       userId,
       action: 'TOGGLE_STATUS',
       entityType: 'PARTY',
-      entityId: id,
+      entityId: id as string,
       oldValues: { status: oldParty.status },
       newValues: { status },
       reason,
@@ -334,7 +360,7 @@ export const getAuditLogs = async (req: Request, res: Response) => {
 export const getUsers = async (req: Request, res: Response) => {
   try {
     const orgId = (req as any).organizationId;
-    const users = await (enterpriseDb as any).user.findMany({
+    const users = await (enterpriseDb as any).enterpriseUser.findMany({
       where: { organizationId: orgId },
       select: { id: true, fullName: true, email: true, roleTitle: true },
       orderBy: { fullName: 'asc' },

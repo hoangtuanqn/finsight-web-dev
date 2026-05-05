@@ -17,20 +17,28 @@ model Organization {
   shortName           String?
   businessType        String
   headquartersAddress String
+  
+  // Financial Health Thresholds for Covenant Analysis
+  equity              Float    @default(0)
+  annualRevenue       Float    @default(0)
+  maxDebtToEquity     Float    @default(3.0) // Typical bank covenant: 3x
+  minDSCR             Float    @default(1.2) // Typical bank covenant: 1.2x
 
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  users               User[]
+  users               EnterpriseUser[]
   parties             Party[]
   debtRecords         DebtRecord[]
   auditLogs           AuditLog[]
+  repaymentPlans      EnterpriseRepaymentPlan[]
+  notifications       EnterpriseNotification[]
 
   @@map("enterprise_organizations")
   @@schema("enterprise")
 }
 
-model User {
+model EnterpriseUser {
   id               String   @id @default(uuid())
   email            String   @unique
   passwordHash     String
@@ -42,7 +50,10 @@ model User {
   organization     Organization @relation(fields: [organizationId], references: [id])
 
   managedParties   Party[]      @relation("PersonInCharge")
+  managedDebts     DebtRecord[] @relation("DebtPersonInCharge")
+  notifications    EnterpriseNotification[]
   auditLogs        AuditLog[]
+  repaymentPlans   EnterpriseRepaymentPlan[]
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -66,14 +77,14 @@ model Party {
   organization   Organization @relation(fields: [organizationId], references: [id])
 
   personInChargeId String?
-  personInCharge   User? @relation("PersonInCharge", fields: [personInChargeId], references: [id])
+  personInCharge   EnterpriseUser? @relation("PersonInCharge", fields: [personInChargeId], references: [id])
 
   parentId       String?
   parent         Party?   @relation("PartnerGroup", fields: [parentId], references: [id])
   children       Party[]  @relation("PartnerGroup")
 
   contacts       Contact[]
-  bankAccounts   BankAccount[]
+  bankAccounts   EnterpriseBankAccount[]
   
   debtRecords    DebtRecord[]
   guaranteedDebts DebtRecord[] @relation("DebtGuarantor")
@@ -104,7 +115,7 @@ model Contact {
   @@schema("enterprise")
 }
 
-model BankAccount {
+model EnterpriseBankAccount {
   id            String   @id @default(uuid())
   partyId       String
   party         Party    @relation(fields: [partyId], references: [id], onDelete: Cascade)
@@ -124,8 +135,8 @@ model AuditLog {
   id             String   @id @default(uuid())
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
-  userId         String
-  user           User         @relation(fields: [userId], references: [id])
+  userId         String?
+  user           EnterpriseUser?        @relation(fields: [userId], references: [id])
   action         String   // CREATE, UPDATE, DELETE, TOGGLE_STATUS
   entityType     String   // PARTY, CONTACT, BANK_ACCOUNT, DEBT_RECORD
   entityId       String
@@ -162,6 +173,16 @@ model DebtRecord {
   
   status           String   @default("DRAFT") // DRAFT, ACTIVE, PARTIAL, PAID, OVERDUE, DISPUTED, WRITTEN_OFF
   
+  // Module 5: Overdue & Penalty tracking
+  overdueSince          DateTime? // First date debt became overdue
+  lastOverdueCheckDate  DateTime? // Idempotency: last date Job 1 processed this record
+  lastPenaltyDate       DateTime? // Idempotency: last date Job 2 calculated penalty
+  penaltyRate           Float     @default(0)   // %/day (e.g. 0.0003 = 0.03%)
+  gracePeriodDays       Int       @default(0)   // Days after dueDate before penalty starts
+  
+  personInChargeId String?
+  personInCharge   EnterpriseUser? @relation("DebtPersonInCharge", fields: [personInChargeId], references: [id])
+  
   internalCode     String?  // Reference number
   notes            String?  @db.Text
   
@@ -169,6 +190,8 @@ model DebtRecord {
   schedules        DebtSchedule[]
   transactions     DebtTransaction[]
   documents        DebtDocument[]
+  notifications    EnterpriseNotification[]
+  repaymentPlanItems EnterpriseRepaymentPlanItem[]
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -209,6 +232,8 @@ model DebtSchedule {
   remainingPrincipal Float // Balance after this payment
   
   status         String   @default("PENDING") // PENDING, PAID, PARTIAL, OVERDUE
+  isOverdue      Boolean  @default(false)
+  overdueSince   DateTime?
   
   triggerType    String   @default("DATE") // DATE, MILESTONE
   triggerCondition String? // e.g. "ACCEPTANCE", "WARRANTY_END"
@@ -262,5 +287,97 @@ model DebtDocument {
   createdAt      DateTime @default(now())
 
   @@map("enterprise_debt_documents")
+  @@schema("enterprise")
+}
+
+model JobLog {
+  id             String   @id @default(uuid())
+  organizationId String?
+  jobName        String   // JOB_OVERDUE, JOB_PENALTY, JOB_NOTIFY, JOB_REPORT
+  runAt          DateTime @default(now())
+  status         String   // RUNNING, SUCCESS, FAILED, PARTIAL
+  processedCount Int      @default(0)
+  failedCount    Int      @default(0)
+  errorLog       String?  @db.Text
+  durationMs     Int?
+  details        Json?    // Added this for flexible report data
+
+  @@map("enterprise_job_logs")
+  @@schema("enterprise")
+}
+
+model EnterpriseNotification {
+  id             String   @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  
+  targetUserId   String
+  targetUser     EnterpriseUser     @relation(fields: [targetUserId], references: [id])
+  
+  type           String   // TIME_BASED, EVENT_BASED
+  category       String   // OVERDUE, PENALTY, PAYMENT, NEW_DEBT, ESCALATION, LIMIT_BREACH
+  priority       String   @default("INFO") // URGENT, IMPORTANT, REMINDER, INFO
+  
+  title          String
+  content        String   @db.Text
+  data           Json?    // { debtId, partyId, amount, ... }
+  
+  isRead         Boolean  @default(false)
+  readAt         DateTime?
+  
+  acknowledgedAt DateTime?
+  snoozedUntil   DateTime?
+  
+  debtRecordId   String?
+  debtRecord     DebtRecord? @relation(fields: [debtRecordId], references: [id])
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("enterprise_notifications")
+  @@schema("enterprise")
+}
+
+model EnterpriseRepaymentPlan {
+  id             String   @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  
+  userId         String
+  user           EnterpriseUser         @relation(fields: [userId], references: [id])
+  
+  name           String
+  budget         Float
+  strategy       String   // AVALANCHE, SNOWBALL, OVERDUE_FIRST, COVENANT_RISK
+  month          Int      // 1-12
+  year           Int
+  
+  status         String   @default("DRAFT") // DRAFT, COMMITTED
+  notes          String?  @db.Text
+  
+  items          EnterpriseRepaymentPlanItem[]
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("enterprise_repayment_plans")
+  @@schema("enterprise")
+}
+
+model EnterpriseRepaymentPlanItem {
+  id              String   @id @default(uuid())
+  repaymentPlanId String
+  repaymentPlan   EnterpriseRepaymentPlan @relation(fields: [repaymentPlanId], references: [id], onDelete: Cascade)
+  
+  debtRecordId    String
+  debtRecord      DebtRecord @relation(fields: [debtRecordId], references: [id])
+  
+  priority        Int      // 1, 2, 3...
+  plannedAmount   Float
+  actualAmount    Float    @default(0) // Tracked later when payments are made
+  
+  reason          String?  @db.Text
+
+  @@map("enterprise_repayment_plan_items")
   @@schema("enterprise")
 }

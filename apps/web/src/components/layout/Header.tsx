@@ -200,6 +200,11 @@ export default function Header({ sidebarWidth = 260, isCollapsed, setIsCollapsed
     setSelectedNotif(n);
     setIsNotifModalOpen(true);
     setNotifOpen(false);
+
+    // Auto mark as read if it's unread
+    if (!n.isRead) {
+      markOne(n.id);
+    }
   };
 
   return (

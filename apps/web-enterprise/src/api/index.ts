@@ -100,6 +100,12 @@ export const enterpriseAuthAPI = {
   recordPayment: (debtId: string, data: any) => api.post(`/v1/enterprise/debts/${debtId}/transactions`, data),
   reverseTransaction: (transactionId: string, reason: string) =>
     api.post(`/v1/enterprise/debts/transactions/${transactionId}/reverse`, { reason }),
+
+  // REPAYMENT PLANNER
+  simulateRepayment: (data: { budget: number; strategy: string; excludeDebtIds?: string[] }) =>
+    api.post('/v1/enterprise/repayment-planner/simulate', data),
+  commitRepaymentPlan: (data: { name: string; budget: number; strategy: string; items: any[] }) =>
+    api.post('/v1/enterprise/repayment-planner/commit', data),
 };
 
 export default api;

@@ -1,5 +1,6 @@
 import { type DebtScheduleInput, generateSchedule } from '@repo/financial-core';
 import enterpriseDb from '../../prisma/enterprise.client';
+import { NotificationService } from './notification.service';
 
 export const createDebtRecord = async (data: {
   organizationId: string;
@@ -14,6 +15,9 @@ export const createDebtRecord = async (data: {
   interestRates: { rate: number; effectiveDate: Date }[];
   internalCode?: string;
   notes?: string;
+  personInChargeId?: string;
+  penaltyRate?: number;
+  gracePeriodDays?: number;
 }) => {
   return await (enterpriseDb as any).$transaction(async (tx: any) => {
     // 1. Credit Limit Validation for RECEIVABLE
@@ -49,7 +53,7 @@ export const createDebtRecord = async (data: {
       data: {
         organizationId: data.organizationId,
         partyId: data.partyId,
-        guarantorId: data.guarantorId,
+        guarantorId: data.guarantorId || null,
         type: data.type,
         origin: data.origin,
         principal: data.principal,
@@ -57,9 +61,12 @@ export const createDebtRecord = async (data: {
         interestMethod: data.interestMethod,
         issueDate: data.issueDate,
         dueDate: new Date(new Date(data.issueDate).setMonth(data.issueDate.getMonth() + data.termMonths)),
-        internalCode: data.internalCode,
-        notes: data.notes,
-        status: 'ACTIVE',
+        internalCode: data.internalCode || null,
+        notes: data.notes || null,
+        status: 'DRAFT',
+        personInChargeId: data.personInChargeId || null,
+        penaltyRate: data.penaltyRate || 0,
+        gracePeriodDays: data.gracePeriodDays || 0,
         interestRates: {
           create: data.interestRates.map((r) => ({
             rate: r.rate,
@@ -69,6 +76,7 @@ export const createDebtRecord = async (data: {
       },
       include: {
         interestRates: true,
+        party: { select: { name: true, personInChargeId: true } },
       },
     });
 
@@ -97,6 +105,24 @@ export const createDebtRecord = async (data: {
         isActivated: true,
       })),
     });
+
+    // 4. Gửi thông báo sự kiện
+    const recipientId = debt.personInChargeId || debt.party?.personInChargeId;
+    if (recipientId) {
+      await NotificationService.createNotification(
+        {
+          organizationId: debt.organizationId,
+          targetUserId: recipientId,
+          type: 'EVENT_BASED',
+          category: 'NEW_DEBT',
+          priority: 'IMPORTANT',
+          title: `📄 Khoản nợ mới được kích hoạt: ${debt.party?.name}`,
+          content: `Khoản nợ ${debt.internalCode} trị giá ${debt.principal.toLocaleString()}đ đã được tạo và kích hoạt. Ngày đến hạn cuối cùng: ${debt.dueDate.toLocaleDateString()}.`,
+          debtRecordId: debt.id,
+        },
+        tx,
+      );
+    }
 
     return debt;
   });
@@ -143,12 +169,21 @@ export const getDebtDetail = async (id: string, orgId: string) => {
   if (!debt) return null;
 
   // Calculate real-time outstanding
-  const paidPrincipal = debt.transactions
-    .filter((t: any) => t.type === 'PAYMENT' || t.type === 'REVERSAL')
-    .reduce((sum: number, t: any) => sum + t.principalPart, 0);
+  const paymentRelated = debt.transactions.filter((t: any) => t.type === 'PAYMENT' || t.type === 'REVERSAL');
+
+  const paidPrincipal = paymentRelated.reduce((sum: number, t: any) => sum + t.principalPart, 0);
+
+  const totalPenaltyAccrued = debt.transactions
+    .filter((t: any) => t.type === 'PENALTY')
+    .reduce((sum: number, t: any) => sum + t.amount, 0);
+
+  const totalPenaltyPaid = paymentRelated.reduce((sum: number, t: any) => sum + (t.penaltyPart || 0), 0);
 
   return {
     ...debt,
-    outstanding: debt.principal - paidPrincipal,
+    outstanding: Math.max(0, debt.principal - paidPrincipal),
+    totalPenaltyAccrued,
+    totalPenaltyPaid,
+    unpaidPenalty: Math.max(0, totalPenaltyAccrued - totalPenaltyPaid),
   };
 };
