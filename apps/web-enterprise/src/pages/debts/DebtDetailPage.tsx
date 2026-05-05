@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ArrowLeft, ChevronRight, FileSpreadsheet, Info, Layers, User } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ChevronRight, FileSpreadsheet, Info, Layers, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -105,9 +105,9 @@ export default function DebtDetailPage() {
           {['ACTIVE', 'PARTIAL', 'OVERDUE'].includes(debt.status) && (
             <button
               onClick={() => setIsPaymentModalOpen(true)}
-              className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white text-xs font-black rounded-xl hover:bg-emerald-500 hover:shadow-lg hover:shadow-emerald-500/30 transition-all"
+              className="group flex items-center gap-2 px-6 py-2.5 bg-blue-600 dark:bg-blue-500 text-white text-xs font-black rounded-xl hover:bg-blue-500 dark:hover:bg-blue-400 hover:shadow-lg hover:shadow-blue-500/30 transition-all active:scale-95"
             >
-              Ghi nhận thanh toán
+              <CheckCircle2 size={14} className="group-hover:scale-125 transition-transform" /> Ghi nhận thanh toán
             </button>
           )}
         </div>
