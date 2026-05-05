@@ -6,6 +6,7 @@ import { runOCR } from '../../utils/ocr';
 import ChatHistory from './ChatHistory';
 import DebtConfirmModal from './DebtConfirmModal';
 import MessageRenderer from './MessageRenderer';
+import UiSignalDispatcher from './UiSignalDispatcher';
 
 export default function AIChatbotModal() {
   const [isOpen, setIsOpen] = useState(false);
@@ -21,6 +22,7 @@ export default function AIChatbotModal() {
     sessionId,
     sessions,
     pendingAction,
+    pendingUiSignal,
     toolStatus,
     sendMessage,
     loadSession,
@@ -28,6 +30,7 @@ export default function AIChatbotModal() {
     removeSession,
     newChat,
     dismissAction,
+    dismissUiSignal,
     setToolStatus,
     setIsStreaming,
     setMessages,
@@ -477,8 +480,8 @@ export default function AIChatbotModal() {
         )}
       </AnimatePresence>
 
-      {/* Debt Confirmation Modal - rendered outside chat window, uses Portal internally */}
-      {pendingAction && (
+      {/* Legacy: Debt Confirmation from old form_population path */}
+      {pendingAction && !pendingUiSignal && (
         <DebtConfirmModal
           data={pendingAction}
           onConfirm={() => {
@@ -488,6 +491,28 @@ export default function AIChatbotModal() {
           onDismiss={dismissAction}
         />
       )}
+
+      {/* Typed UI Signal Dispatcher — handles all new signal types */}
+      <UiSignalDispatcher
+        signal={pendingUiSignal}
+        onDismiss={dismissUiSignal}
+        onConfirmed={(sig) => {
+          dismissUiSignal();
+          if (sig.action === 'DEBT_CONFIRMATION') {
+            sendMessage('Tôi đã xác nhận lưu khoản nợ thành công.');
+          }
+        }}
+        onFeedback={(status, reason) => {
+          if (status === 'confirmed') {
+            sendMessage('Tôi đã xác nhận lưu khoản nợ thành công.');
+          } else if (status === 'cancelled') {
+            sendMessage('Tôi đã hủy bỏ thao tác.');
+          } else if (status === 'failed') {
+            const msg = reason ? `Lưu khoản nợ thất bại: ${reason}` : 'Lưu khoản nợ thất bại, vui lòng thử lại.';
+            sendMessage(msg);
+          }
+        }}
+      />
 
       {/* Floating Trigger Button */}
       <motion.button
