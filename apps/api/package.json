@@ -10,8 +10,8 @@
     "start": "node dist/index.js",
     "type-check": "tsc --noEmit",
     "seed": "node prisma/seed.js",
-    "db:push": "npx prisma db push",
-    "db:generate": "npx prisma generate",
+    "db:push": "npx prisma db push && npx prisma db push --schema=prisma/enterprise/schema.prisma",
+    "db:generate": "npx prisma generate && npx prisma generate --schema=prisma/enterprise/schema.prisma",
     "db:studio": "npx prisma studio",
     "rag:ingest": "tsx src/agentic/rag/ingest.ts"
   },
