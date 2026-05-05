@@ -1,11 +1,11 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
-import prisma from '../../lib/prisma';
+import { getDb } from '../config';
 
 export const getUserDebtsTool = tool(
   async ({ userId }) => {
     try {
-      const debts = await (prisma as any).debt.findMany({
+      const debts = await getDb().debt.findMany({
         where: { userId, status: 'ACTIVE' },
       });
       if (debts.length === 0) return JSON.stringify({ message: 'Người dùng không có khoản nợ nào đang active.' });

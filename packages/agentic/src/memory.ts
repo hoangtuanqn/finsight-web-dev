@@ -1,16 +1,16 @@
 import { AIMessage, BaseMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
-import prisma from '../lib/prisma';
+import { getDb } from './config';
 import { getChatModel } from './llm-provider';
 
 export const getOrCreateSession = async (userId: string, sessionId: string | null = null) => {
   if (sessionId) {
-    const session = await (prisma as any).chatSession.findUnique({
+    const session = await getDb().chatSession.findUnique({
       where: { id: sessionId },
     });
     if (session && session.userId === userId) return session;
   }
 
-  return (prisma as any).chatSession.create({
+  return getDb().chatSession.create({
     data: { userId, title: 'Cuộc trò chuyện mới' },
   });
 };
@@ -22,7 +22,7 @@ export const saveMessage = async (
   actionType: string | null = null,
   payload: any = null,
 ) => {
-  return (prisma as any).chatMessage.create({
+  return getDb().chatMessage.create({
     data: {
       sessionId,
       role,
@@ -71,7 +71,7 @@ export const getSessionHistory = async (
   limit: number = 10,
   summarize: boolean = true,
 ): Promise<BaseMessage[]> => {
-  const messages = await (prisma as any).chatMessage.findMany({
+  const messages = await getDb().chatMessage.findMany({
     where: { sessionId },
     orderBy: { createdAt: 'desc' },
     take: limit,
@@ -88,7 +88,7 @@ export const getSessionHistory = async (
 
     return [
       new SystemMessage(`[Tóm tắt hội thoại trước đó]:\n${summary}`),
-      ...recentMessages.map((m) => mapDbMessageToLangChain(m)),
+      ...recentMessages.map((m: any) => mapDbMessageToLangChain(m)),
     ];
   }
 
@@ -124,7 +124,7 @@ function sanitizeAIContent(msg: any): string {
 }
 
 export const getCompactHistory = async (sessionId: string): Promise<BaseMessage[]> => {
-  const messages = await (prisma as any).chatMessage.findMany({
+  const messages = await getDb().chatMessage.findMany({
     where: { sessionId },
     orderBy: { createdAt: 'desc' },
     take: DB_FETCH_LIMIT,
@@ -191,7 +191,7 @@ function mapDbMessageToLangChain(m: any): BaseMessage {
 }
 
 export const updateSessionTitle = async (sessionId: string, title: string) => {
-  return (prisma as any).chatSession.update({
+  return getDb().chatSession.update({
     where: { id: sessionId },
     data: { title },
   });

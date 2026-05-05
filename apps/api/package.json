@@ -16,11 +16,8 @@
     "rag:ingest": "tsx src/agentic/rag/ingest.ts"
   },
   "dependencies": {
-    "@langchain/core": "^1.1.41",
-    "@langchain/google-genai": "^2.1.28",
-    "@langchain/langgraph": "^1.2.9",
-    "@langchain/openai": "^1.4.4",
     "@prisma/client": "^6.19.2",
+    "@repo/agentic": "*",
     "@repo/auth": "*",
     "@repo/financial-core": "*",
     "@repo/types": "*",
