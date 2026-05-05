@@ -10,7 +10,7 @@ export class AnalyticsController {
       const summary = await analyticsService.getSummary(organizationId);
       res.json(summary);
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ error: error.message });
     }
   }
 
@@ -21,7 +21,7 @@ export class AnalyticsController {
       const report = await analyticsService.getAgingReport(organizationId, (type as any) || 'RECEIVABLE');
       res.json(report);
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ error: error.message });
     }
   }
 
@@ -31,7 +31,7 @@ export class AnalyticsController {
       const projection = await analyticsService.getCashFlowProjection(organizationId);
       res.json(projection);
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ error: error.message });
     }
   }
 
@@ -41,7 +41,7 @@ export class AnalyticsController {
       const items = await analyticsService.getActionItems(organizationId);
       res.json(items);
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ error: error.message });
     }
   }
 }
