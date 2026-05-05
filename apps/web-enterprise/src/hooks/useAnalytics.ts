@@ -11,7 +11,7 @@ export const useAnalytics = () => {
       const response = await api.get('/v1/enterprise/analytics/summary');
       return response.data;
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Lỗi khi lấy dữ liệu tổng quan');
+      setError(err.response?.data?.error || 'Lỗi khi lấy dữ liệu tổng quan');
       throw err;
     } finally {
       setLoading(false);
@@ -24,7 +24,7 @@ export const useAnalytics = () => {
       const response = await api.get(`/v1/enterprise/analytics/aging?type=${type}`);
       return response.data;
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Lỗi khi lấy báo cáo tuổi nợ');
+      setError(err.response?.data?.error || 'Lỗi khi lấy báo cáo tuổi nợ');
       throw err;
     } finally {
       setLoading(false);
@@ -37,7 +37,7 @@ export const useAnalytics = () => {
       const response = await api.get('/v1/enterprise/analytics/cash-flow');
       return response.data;
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Lỗi khi lấy dự báo dòng tiền');
+      setError(err.response?.data?.error || 'Lỗi khi lấy dự báo dòng tiền');
       throw err;
     } finally {
       setLoading(false);
@@ -50,7 +50,7 @@ export const useAnalytics = () => {
       const response = await api.get('/v1/enterprise/analytics/action-items');
       return response.data;
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Lỗi khi lấy danh sách việc cần làm');
+      setError(err.response?.data?.error || 'Lỗi khi lấy danh sách việc cần làm');
       throw err;
     } finally {
       setLoading(false);

@@ -1,23 +1,13 @@
 import { generateSchedule, type InterestMethod } from '@repo/financial-core';
 import { Button, Input } from '@repo/ui';
 import { motion } from 'framer-motion';
-import {
-  Calculator,
-  Calendar,
-  ChevronRight,
-  DollarSign,
-  FileText,
-  Info,
-  Plus,
-  Save,
-  Trash2,
-  User,
-  Users,
-} from 'lucide-react';
+import { Calculator, Calendar, ChevronRight, DollarSign, FileText, Info, Save, User, Users } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { enterpriseAuthAPI } from '../../api';
+import { InterestRateSection } from '../../components/debts/InterestRateSection';
+import { SchedulePreview } from '../../components/debts/SchedulePreview';
 
 export default function DebtCreatePage() {
   const navigate = useNavigate();
@@ -107,7 +97,12 @@ export default function DebtCreatePage() {
 
     setIsLoading(true);
     try {
-      const res = await (enterpriseAuthAPI as any).createDebt(formData);
+      const payload = {
+        ...formData,
+        guarantorId: formData.guarantorId || null,
+        personInChargeId: formData.personInChargeId || null,
+      };
+      const res = await (enterpriseAuthAPI as any).createDebt(payload);
       if (res.data.success) {
         toast.success('Đã tạo khoản nợ thành công');
         navigate('/debts');
@@ -117,6 +112,12 @@ export default function DebtCreatePage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleInterestRateChange = (index: number, field: string, value: any) => {
+    const newRates = [...formData.interestRates];
+    newRates[index][field] = value;
+    setFormData({ ...formData, interestRates: newRates });
   };
 
   const addInterestRate = () => {
@@ -405,65 +406,12 @@ export default function DebtCreatePage() {
 
             {/* Floating Rates Section */}
             {formData.interestMethod !== 'NONE' && (
-              <div className="space-y-4 pt-4">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">
-                    Lãi suất thả nổi (%/năm)
-                  </label>
-                  <button
-                    type="button"
-                    onClick={addInterestRate}
-                    className="flex items-center gap-1 text-[10px] font-black text-emerald-500 uppercase hover:text-emerald-400 transition-colors"
-                  >
-                    <Plus size={12} /> Thêm bậc lãi suất
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  {formData.interestRates.map((rate: any, index: number) => (
-                    <div key={index} className="flex items-center gap-3 animate-in slide-in-from-right-2 duration-300">
-                      <div className="flex-1 grid grid-cols-2 gap-3 p-4 bg-slate-950 border border-slate-800 rounded-2xl">
-                        <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-slate-500">Lãi suất</span>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00"
-                            className="w-full bg-transparent border-none p-0 text-sm font-mono text-white h-auto"
-                            value={rate.rate}
-                            onChange={(e) => {
-                              const newRates = [...formData.interestRates];
-                              newRates[index].rate = Number(e.target.value);
-                              setFormData({ ...formData, interestRates: newRates });
-                            }}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-slate-500">Ngày áp dụng</span>
-                          <input
-                            type="date"
-                            className="w-full bg-transparent border-none p-0 text-sm text-white h-auto outline-none"
-                            value={rate.effectiveDate}
-                            onChange={(e) => {
-                              const newRates = [...formData.interestRates];
-                              newRates[index].effectiveDate = e.target.value;
-                              setFormData({ ...formData, interestRates: newRates });
-                            }}
-                          />
-                        </div>
-                      </div>
-                      {index > 0 && (
-                        <button
-                          onClick={() => removeInterestRate(index)}
-                          className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <InterestRateSection
+                interestRates={formData.interestRates}
+                onAdd={addInterestRate}
+                onRemove={removeInterestRate}
+                onChange={handleInterestRateChange}
+              />
             )}
           </div>
 
@@ -488,78 +436,11 @@ export default function DebtCreatePage() {
               <h2 className="text-lg font-bold text-white">Lịch trình Dự kiến</h2>
             </div>
 
-            {previewSchedule.length > 0 ? (
-              <div className="space-y-4">
-                <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Tổng phải trả</span>
-                    <span className="text-xl font-black text-emerald-500">
-                      {formatCurrency(previewSchedule.reduce((sum, p) => sum + p.totalAmount, 0))}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500">Tiền gốc:</span>
-                    <span className="text-white font-mono">{formatCurrency(formData.principal)}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs mt-1">
-                    <span className="text-slate-500">Tiền lãi:</span>
-                    <span className="text-white font-mono">
-                      {formatCurrency(previewSchedule.reduce((sum, p) => sum + p.interestAmount, 0))}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="max-h-100 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
-                  {previewSchedule.map((p, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-3 p-3 bg-slate-950/50 border border-slate-800/50 rounded-xl hover:border-emerald-500/30 transition-all group"
-                    >
-                      <div className="w-8 h-8 flex items-center justify-center bg-slate-900 rounded-lg text-[10px] font-black text-slate-500 group-hover:text-emerald-500 transition-colors">
-                        {p.period}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex justify-between">
-                          <span className="text-[10px] font-black text-white uppercase tracking-tighter">
-                            {new Date(p.dueDate).toLocaleDateString('vi-VN', { month: '2-digit', year: 'numeric' })}
-                          </span>
-                          <span className="text-[11px] font-black text-emerald-400 font-mono">
-                            {formatCurrency(p.totalAmount)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between mt-1">
-                          <span className="text-[9px] text-slate-500 font-medium">
-                            Gốc: {formatCurrency(p.principalAmount)}
-                          </span>
-                          <span className="text-[9px] text-slate-500 font-medium">
-                            Lãi: {formatCurrency(p.interestAmount)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="pt-4 border-t border-slate-800">
-                  <div className="flex items-start gap-3 p-3 bg-amber-500/5 border border-amber-500/10 rounded-xl">
-                    <Info size={16} className="text-amber-500 shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-amber-500/80 leading-relaxed">
-                      Lịch trình này chỉ mang tính chất tham khảo. Số liệu thực tế có thể thay đổi tùy thuộc vào ngày
-                      giải ngân và các khoản thanh toán thực tế.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="py-20 flex flex-col items-center justify-center text-center space-y-4">
-                <div className="w-16 h-16 bg-slate-950 rounded-full flex items-center justify-center border border-dashed border-slate-800">
-                  <Calculator size={24} className="text-slate-700" />
-                </div>
-                <p className="text-slate-500 text-xs font-medium max-w-50">
-                  Nhập số tiền và thời hạn để xem lịch trình dự kiến.
-                </p>
-              </div>
-            )}
+            <SchedulePreview
+              schedule={previewSchedule}
+              principal={formData.principal}
+              formatCurrency={formatCurrency}
+            />
           </div>
         </div>
       </div>

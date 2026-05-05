@@ -22,7 +22,9 @@ export default function DebtAuditTrail({ debtId }: { debtId: string }) {
   const fetchLogs = async () => {
     try {
       const res = await (enterpriseAuthAPI as any).getDebtAuditLogs(debtId);
-      setLogs(res.data.data);
+      if (res.data.success) {
+        setLogs(res.data.data);
+      }
     } catch (err) {
       console.error('Failed to fetch audit logs', err);
     } finally {
