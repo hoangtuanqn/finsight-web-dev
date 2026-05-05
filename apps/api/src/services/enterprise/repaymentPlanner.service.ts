@@ -17,6 +17,7 @@ interface SimulationDebt extends DebtRecord {
   monthlyInterest: number;
   penaltyAccrued: number;
   riskScore: number;
+  isRateIncreasing: boolean;
 }
 
 interface SimulationResult {
@@ -37,11 +38,16 @@ interface SimulationResult {
     totalAllocated: number;
     remainingBudget: number;
     fullyPaidCount: number;
-    totalInterestSaved: number; // Placeholder for future enhancement
+    totalInterestSaved: number;
   };
   alerts: {
     type: 'DANGER' | 'WARNING' | 'INFO';
     message: string;
+  }[];
+  optimalPoints?: {
+    budget: number;
+    fullyPaidCount: number;
+    impact: string;
   }[];
 }
 
@@ -62,33 +68,38 @@ export class RepaymentPlannerService {
         party: true,
         interestRates: {
           orderBy: { effectiveDate: 'desc' },
-          take: 1,
+          take: 2, // Check for floating rate trends
         },
       },
     });
 
-    // Transform and calculate initial metrics
     return debts.map((debt) => {
-      const currentRate = debt.interestRates[0]?.rate || 0;
+      const rates = debt.interestRates;
+      const currentRate = rates[0]?.rate || 0;
+      const previousRate = rates[1]?.rate || currentRate;
       const penaltyRate = debt.penaltyRate || 0;
 
-      // Calculate effective rate (simplified: contract rate + penalty if overdue)
+      const isRateIncreasing = currentRate > previousRate;
+
       let effectiveRate = currentRate;
       if (debt.status === 'OVERDUE') {
-        effectiveRate += penaltyRate * 365 * 100; // Convert daily penalty to annual %
+        effectiveRate += penaltyRate * 365 * 100;
       }
 
-      // Calculate monthly interest and penalty
       const monthlyInterest = (debt.outstanding * (currentRate / 100)) / 12;
       const monthlyPenalty = debt.status === 'OVERDUE' ? debt.outstanding * penaltyRate * 30 : 0;
+
+      // Default 1% prepayment penalty for bank loans as per business requirement 9.1
+      const prepaymentFee = debt.origin === 'FINANCIAL' ? debt.outstanding * 0.01 : 0;
 
       return {
         ...debt,
         effectiveAnnualRate: effectiveRate,
-        totalObligation: debt.outstanding + monthlyInterest + monthlyPenalty,
+        totalObligation: debt.outstanding + monthlyInterest + monthlyPenalty + prepaymentFee,
         monthlyInterest,
         penaltyAccrued: monthlyPenalty,
-        riskScore: 0, // Will be calculated by Covenant Risk strategy
+        riskScore: 0,
+        isRateIncreasing,
       } as SimulationDebt;
     });
   }
@@ -111,8 +122,6 @@ export class RepaymentPlannerService {
     });
 
     let allDebts = await this.getEligibleDebts(organizationId);
-
-    // Filter excluded debts
     let debts = allDebts.filter((d) => !excludeDebtIds.includes(d.id));
 
     if (debts.length === 0) {
@@ -160,11 +169,8 @@ export class RepaymentPlannerService {
         break;
     }
 
-    // Waterfall allocation
     let remainingBudget = budget;
     let fullyPaidCount = 0;
-    const totalDebt = allDebts.reduce((sum, d) => sum + d.outstanding, 0);
-    const deRatio = org?.equity ? totalDebt / org.equity : 0;
 
     const allocatedDebts = debts.map((debt, index) => {
       const plannedAmount = Math.min(remainingBudget, debt.totalObligation);
@@ -177,20 +183,15 @@ export class RepaymentPlannerService {
       const monthlyCost = debt.monthlyInterest + (debt.status === 'OVERDUE' ? debt.penaltyAccrued : 0);
       let monthsToPayoff: number | 'NEVER' = 'NEVER';
       let isDebtTrap = false;
-      let debtIncrease = 0;
 
       if (plannedAmount > 0) {
         if (plannedAmount <= monthlyCost && debt.outstanding > 0) {
           monthsToPayoff = 'NEVER';
           isDebtTrap = true;
-          debtIncrease = monthlyCost - plannedAmount;
         } else {
           const netPrincipalPayment = plannedAmount - monthlyCost;
           monthsToPayoff = Math.ceil(debt.outstanding / netPrincipalPayment);
         }
-      } else {
-        // No payment made this month
-        debtIncrease = monthlyCost;
       }
 
       return {
@@ -207,32 +208,26 @@ export class RepaymentPlannerService {
         reason: this.getReasonForStrategy(debt, strategy),
         monthsToPayoff,
         isDebtTrap,
-        debtIncrease,
       };
     });
 
-    // Generate alerts
     const alerts: { type: 'DANGER' | 'WARNING' | 'INFO'; message: string }[] = [];
-
     const trapDebts = allocatedDebts.filter((d) => d.isDebtTrap);
-    if (trapDebts.length > 0) {
-      const totalShortfall = trapDebts.reduce((sum, d) => {
-        const debtData = debts.find((orig) => orig.id === d.debtId);
-        if (!debtData) return sum;
-        const monthlyCost = debtData.monthlyInterest + (debtData.status === 'OVERDUE' ? debtData.penaltyAccrued : 0);
-        return sum + (monthlyCost - d.plannedAmount);
-      }, 0);
 
+    if (trapDebts.length > 0) {
       alerts.push({
         type: 'DANGER',
-        message: `Phát hiện ${trapDebts.length} khoản nợ đang rơi vào "Bẫy nợ". Tổng nợ của nhóm này sẽ tăng thêm ${totalShortfall.toLocaleString()}đ mỗi tháng. Cần bổ sung ít nhất số tiền này để dừng đà tăng nợ.`,
+        message: `Phát hiện ${trapDebts.length} khoản nợ đang rơi vào "Bẫy nợ". Tổng nợ sẽ tăng dần dù có trả nợ.`,
       });
     }
+
+    const totalDebt = allDebts.reduce((sum, d) => sum + d.outstanding, 0);
+    const deRatio = org?.equity ? totalDebt / org.equity : 0;
 
     if (org && deRatio > org.maxDebtToEquity) {
       alerts.push({
         type: 'DANGER',
-        message: `Chỉ số D/E hiện tại (${deRatio.toFixed(2)}x) đã vượt ngưỡng Covenant (${org.maxDebtToEquity}x). Nguy cơ bị ngân hàng yêu cầu tất toán trước hạn (Acceleration).`,
+        message: `Chỉ số D/E hiện tại (${deRatio.toFixed(2)}x) vượt ngưỡng Covenant (${org.maxDebtToEquity}x).`,
       });
     }
 
@@ -240,16 +235,7 @@ export class RepaymentPlannerService {
     if (budget < totalMinimum) {
       alerts.push({
         type: 'WARNING',
-        message: `Ngân sách hiện tại (${budget.toLocaleString()}đ) thấp hơn tổng lãi và phạt phát sinh hàng tháng (${totalMinimum.toLocaleString()}đ). Dư nợ tổng của doanh nghiệp sẽ tiếp tục tăng.`,
-      });
-    }
-
-    // Alert for excluded debts that are overdue
-    const excludedOverdue = allDebts.filter((d) => excludeDebtIds.includes(d.id) && d.status === 'OVERDUE');
-    if (excludedOverdue.length > 0) {
-      alerts.push({
-        type: 'WARNING',
-        message: `Có ${excludedOverdue.length} khoản nợ QUÁ HẠN bị loại khỏi kế hoạch. Các khoản này vẫn tiếp tục phát sinh phạt và ảnh hưởng xấu đến điểm tín dụng.`,
+        message: `Ngân sách thấp hơn tổng lãi và phạt phát sinh (${totalMinimum.toLocaleString()}đ).`,
       });
     }
 
@@ -263,6 +249,7 @@ export class RepaymentPlannerService {
         totalInterestSaved: 0,
       },
       alerts,
+      optimalPoints: this.findOptimalPoints(debts, budget),
     };
   }
 
@@ -270,43 +257,72 @@ export class RepaymentPlannerService {
     const totalDebt = debts.reduce((sum, d) => sum + d.outstanding, 0);
     const deRatio = org?.equity ? totalDebt / org.equity : 0;
 
+    const totalMonthlyService = debts.reduce((sum, d) => sum + d.monthlyInterest + d.penaltyAccrued, 0);
+    const monthlyRevenue = (org?.annualRevenue || 0) / 12;
+    const dscr = totalMonthlyService > 0 ? monthlyRevenue / totalMonthlyService : 100;
+
     debts.forEach((d) => {
       let score = 0;
       if (d.status === 'OVERDUE' && d.origin === 'FINANCIAL') score += 10;
       if (d.status === 'OVERDUE' && d.origin === 'TAX') score += 8;
-
       const daysToDue = (new Date(d.dueDate).getTime() - Date.now()) / 86400000;
       if (daysToDue > 0 && daysToDue <= 7) score += 6;
-
-      if (deRatio > (org?.maxDebtToEquity || 3) * 0.9 && d.origin === 'FINANCIAL') {
-        score += 5; // Extra priority to bank debts when close to D/E limit
-      }
-
+      if (deRatio > (org?.maxDebtToEquity || 3) * 0.9 && d.origin === 'FINANCIAL') score += 5;
+      if (dscr < (org?.minDSCR || 1.2) * 1.1 && d.origin === 'FINANCIAL') score += 4;
+      if (d.isRateIncreasing) score += 3;
       const overdueDays = d.overdueSince ? (Date.now() - new Date(d.overdueSince).getTime()) / 86400000 : 0;
       score += Math.floor(overdueDays / 10);
-
       d.riskScore = score;
     });
+  }
+
+  private findOptimalPoints(debts: SimulationDebt[], currentBudget: number) {
+    const points: any[] = [];
+    const testIncrements = [0.1, 0.2, 0.5];
+
+    const simulateAt = (testBudget: number) => {
+      let rem = testBudget;
+      let count = 0;
+      for (const d of debts) {
+        if (rem >= d.totalObligation) {
+          rem -= d.totalObligation;
+          count++;
+        }
+      }
+      return count;
+    };
+
+    const currentCount = simulateAt(currentBudget);
+
+    for (const inc of testIncrements) {
+      const testBudget = currentBudget * (1 + inc);
+      const count = simulateAt(testBudget);
+      if (count > currentCount) {
+        points.push({
+          budget: testBudget,
+          fullyPaidCount: count,
+          impact: `Thêm ${(inc * 100).toFixed(0)}% ngân sách sẽ giúp tất toán thêm ${count - currentCount} khoản nợ.`,
+        });
+      }
+    }
+    return points;
   }
 
   private getReasonForStrategy(debt: SimulationDebt, strategy: RepaymentStrategy): string {
     switch (strategy) {
       case RepaymentStrategy.AVALANCHE:
-        return `Lãi suất thực tế cao (${debt.effectiveAnnualRate.toFixed(2)}%/năm)`;
+        return `Lãi suất cao (${debt.effectiveAnnualRate.toFixed(2)}%/năm)`;
       case RepaymentStrategy.SNOWBALL:
         return `Dư nợ nhỏ (${debt.outstanding.toLocaleString()}đ)`;
       case RepaymentStrategy.OVERDUE_FIRST:
         return debt.status === 'OVERDUE' ? 'Đã quá hạn' : 'Sắp đến hạn';
       case RepaymentStrategy.COVENANT_RISK:
-        return `Điểm rủi ro cao (${debt.riskScore})`;
+        return `Rủi ro Covenant (${debt.riskScore})`;
       default:
         return '';
     }
   }
 
-  /**
-   * Commit a simulation results to a formal plan
-   */
   async commitPlan(
     organizationId: string,
     userId: string,
