@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
-import prisma from '../../lib/prisma';
+import { getDb } from '../config';
 import { getEmbeddingModel } from '../llm-provider';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
@@ -90,7 +90,7 @@ async function ingest() {
     for (const chunk of chunks) {
       totalChunks++;
 
-      const existing: any = await (prisma as any).$queryRawUnsafe(
+      const existing: any = await getDb().$queryRawUnsafe(
         `SELECT id FROM finance_knowledge WHERE metadata->>'contentHash' = $1 LIMIT 1`,
         chunk.hash,
       );
@@ -104,7 +104,7 @@ async function ingest() {
       const [embedding] = await embeddingModel.embedDocuments([chunk.text]);
 
       const vectorStr = `[${embedding.join(',')}]`;
-      await (prisma as any).$queryRawUnsafe(
+      await getDb().$queryRawUnsafe(
         `INSERT INTO finance_knowledge (id, title, content, chunk, category, embedding, metadata, "createdAt")
          VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5::vector, $6::jsonb, NOW())`,
         title,
@@ -125,7 +125,7 @@ async function ingest() {
   console.log(`   Mới (đã nhúng vector): ${newChunks}`);
   console.log(`   Bỏ qua (không đổi): ${skippedChunks}`);
 
-  await prisma.$disconnect();
+  await getDb().$disconnect();
   process.exit(0);
 }
 

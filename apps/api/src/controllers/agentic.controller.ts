@@ -1,5 +1,5 @@
+import { runAgenticChat } from '@repo/agentic';
 import { Response } from 'express';
-import { runAgenticChat } from '../agentic/agent';
 import prisma from '../lib/prisma';
 import { AuthenticatedRequest } from '../types';
 import { error, success } from '../utils/apiResponse';
