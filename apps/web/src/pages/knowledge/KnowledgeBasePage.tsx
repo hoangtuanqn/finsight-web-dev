@@ -80,6 +80,13 @@ function getArticleTime(article: any) {
   return new Date(article.createdAt || article.updatedAt || article.date || 0).getTime();
 }
 
+// tính thời gian đọc bài viết: tốc độ 200 từ/phút
+function getReadingTime(content: string = '') {
+  const words = content.trim().split(/\s+/).length;
+  const minutes = Math.max(1, Math.ceil(words / 200));
+  return `${minutes} phút đọc`;
+}
+
 export default function KnowledgeBasePage() {
   const [activeTab, setActiveTab] = useState('terms');
   const [selectedArticle, setSelectedArticle] = useState<any>(null);
@@ -553,18 +560,12 @@ export default function KnowledgeBasePage() {
                       {story.tags && story.tags.length > 0 && (
                         <div className="mb-4 flex flex-wrap gap-2">
                           {story.tags.map((tag: string) => (
-                            <button
+                            <span
                               key={tag}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setArticleFilters({ ...emptyArticleFilters, tag });
-                                setTempArticleFilters({ ...emptyArticleFilters, tag });
-                                window.scrollTo({ top: 0, behavior: 'smooth' });
-                              }}
-                              className="rounded-lg bg-blue-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-blue-400 transition-colors hover:bg-blue-500/20"
+                              className="rounded-lg bg-blue-500/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-blue-400"
                             >
                               {tag}
-                            </button>
+                            </span>
                           ))}
                         </div>
                       )}
@@ -577,7 +578,7 @@ export default function KnowledgeBasePage() {
 
                       <div className="mt-auto flex items-center justify-between border-t border-[var(--color-border)] pt-5">
                         <div className="flex items-center gap-2 text-[var(--color-text-muted)] text-[11px] font-bold">
-                          <Clock size={13} /> 5 phút đọc
+                          <Clock size={13} /> {getReadingTime(story.content)}
                         </div>
                         <span className="text-indigo-400 text-xs font-black uppercase tracking-widest flex items-center gap-1 group-hover:translate-x-1 transition-transform">
                           Đọc ngay <ChevronRight size={14} />
@@ -1006,21 +1007,18 @@ export default function KnowledgeBasePage() {
                       <span className="px-4 py-2 rounded-2xl bg-indigo-600/80 backdrop-blur-xl border border-indigo-400/20 text-white text-[11px] font-black uppercase tracking-wider flex items-center gap-2">
                         <User size={14} /> {selectedArticle.author}
                       </span>
+                      <span className="px-4 py-2 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/10 text-white text-[11px] font-black uppercase tracking-wider flex items-center gap-2">
+                        <Clock size={14} className="text-indigo-400" /> {getReadingTime(selectedArticle.content)}
+                      </span>
                       {selectedArticle.tags &&
                         selectedArticle.tags.length > 0 &&
                         selectedArticle.tags.map((tag: string) => (
-                          <button
+                          <span
                             key={tag}
-                            onClick={() => {
-                              setSelectedArticle(null);
-                              setArticleFilters({ ...emptyArticleFilters, tag });
-                              setTempArticleFilters({ ...emptyArticleFilters, tag });
-                              window.scrollTo({ top: 0, behavior: 'smooth' });
-                            }}
-                            className="px-4 py-2 rounded-2xl bg-blue-500/20 backdrop-blur-xl border border-blue-400/30 text-blue-300 hover:text-blue-200 hover:bg-blue-500/40 text-[11px] font-black uppercase tracking-wider transition-colors"
+                            className="px-4 py-2 rounded-2xl bg-blue-500/20 backdrop-blur-xl border border-blue-400/30 text-blue-300 text-[11px] font-black uppercase tracking-wider"
                           >
                             {tag}
-                          </button>
+                          </span>
                         ))}
                     </div>
                     <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter leading-none pr-12">
