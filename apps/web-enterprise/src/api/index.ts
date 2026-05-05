@@ -106,6 +106,8 @@ export const enterpriseAuthAPI = {
     api.post('/v1/enterprise/repayment-planner/simulate', data),
   commitRepaymentPlan: (data: { name: string; budget: number; strategy: string; items: any[] }) =>
     api.post('/v1/enterprise/repayment-planner/commit', data),
+  getExecutionReport: (month: number, year: number) =>
+    api.get('/v1/enterprise/repayment-planner/execution-report', { params: { month, year } }),
 };
 
 export default api;
