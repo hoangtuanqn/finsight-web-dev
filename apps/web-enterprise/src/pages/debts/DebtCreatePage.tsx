@@ -6,7 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { enterpriseAuthAPI } from '../../api';
-import { InterestRateSection } from '../../components/debts/InterestRateSection';
+import { InterestRateSection, type InterestRateType } from '../../components/debts/InterestRateSection';
 import { SchedulePreview } from '../../components/debts/SchedulePreview';
 
 export default function DebtCreatePage() {
@@ -14,6 +14,8 @@ export default function DebtCreatePage() {
   const [parties, setParties] = useState<any[]>([]);
   const [internalUsers, setInternalUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  const [interestRateType, setInterestRateType] = useState<InterestRateType>('FIXED');
 
   const [formData, setFormData] = useState<any>({
     type: 'RECEIVABLE',
@@ -24,7 +26,7 @@ export default function DebtCreatePage() {
     interestMethod: 'REDUCING_BALANCE' as InterestMethod,
     issueDate: new Date().toISOString().split('T')[0],
     termMonths: 12,
-    interestRates: [{ rate: 0, effectiveDate: new Date().toISOString().split('T')[0] }],
+    interestRates: [{ rate: 0, effectiveDate: new Date().toISOString().split('T')[0], rateType: 'FIXED' }],
     penaltyRate: 0,
     gracePeriodDays: 0,
     internalCode: '',
@@ -153,10 +155,14 @@ export default function DebtCreatePage() {
   };
 
   const addInterestRate = () => {
-    setFormData({
-      ...formData,
-      interestRates: [...formData.interestRates, { rate: 0, effectiveDate: new Date().toISOString().split('T')[0] }],
-    });
+    const today = new Date().toISOString().split('T')[0];
+    const newBracket =
+      interestRateType === 'REFERENCE'
+        ? { rate: 0, effectiveDate: today, rateType: 'REFERENCE', referenceBase: '', spread: 0 }
+        : interestRateType === 'MIXED'
+          ? { rate: 0, effectiveDate: today, rateType: 'FIXED' }
+          : { rate: 0, effectiveDate: today, rateType: interestRateType === 'FIXED' ? 'FIXED' : 'FLOATING' };
+    setFormData({ ...formData, interestRates: [...formData.interestRates, newBracket] });
   };
 
   const removeInterestRate = (index: number) => {
@@ -164,6 +170,19 @@ export default function DebtCreatePage() {
     const newRates = [...formData.interestRates];
     newRates.splice(index, 1);
     setFormData({ ...formData, interestRates: newRates });
+  };
+
+  const handleInterestRateTypeChange = (type: InterestRateType) => {
+    setInterestRateType(type);
+    const today = new Date().toISOString().split('T')[0];
+    const defaults: Record<InterestRateType, any[]> = {
+      FIXED: [{ rate: 0, effectiveDate: today, rateType: 'FIXED' }],
+      FLOATING: [{ rate: 0, effectiveDate: today, rateType: 'FLOATING' }],
+      REFERENCE: [{ rate: 0, effectiveDate: today, rateType: 'REFERENCE', referenceBase: '', spread: 0 }],
+      MIXED: [{ rate: 0, effectiveDate: today, rateType: 'FIXED' }],
+      STEP: [{ rate: 0, effectiveDate: today, rateType: 'FLOATING' }],
+    };
+    setFormData({ ...formData, interestRates: defaults[type] });
   };
 
   const formatCurrency = (amount: number) => {
@@ -476,11 +495,13 @@ export default function DebtCreatePage() {
               </div>
             </div>
 
-            {/* Floating Rates Section */}
+            {/* Interest Rate Section */}
             {formData.interestMethod !== 'NONE' && (
               <InterestRateSection
+                interestRateType={interestRateType}
                 interestRates={formData.interestRates}
                 errors={errors}
+                onTypeChange={handleInterestRateTypeChange}
                 onAdd={addInterestRate}
                 onRemove={removeInterestRate}
                 onChange={handleInterestRateChange}

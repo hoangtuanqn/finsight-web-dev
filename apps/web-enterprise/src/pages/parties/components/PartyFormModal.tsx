@@ -316,8 +316,8 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                         setFormData({ ...formData, contacts: updated });
                         if (errors.contactName) setErrors({ ...errors, contactName: '' });
                       }}
-                      className={`bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 h-12 rounded-xl text-slate-900 dark:text-white focus:ring-emerald-500/20 ${
-                        errors.contactName ? 'border-red-500 focus:ring-red-500/20' : ''
+                      className={`w-full bg-slate-50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-slate-900 dark:text-white focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none ${
+                        errors.contactName ? 'border-red-500/50 focus:border-red-500/50 focus:ring-red-500/5' : ''
                       }`}
                     />
                     {errors.contactName && <p className="text-red-500 text-xs mt-1 ml-1">{errors.contactName}</p>}
@@ -384,128 +384,129 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
             {activeTab === 'bank' && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {errors.bank && <p className="text-red-500 text-xs">{errors.bank}</p>}
-                {(formData.bankAccounts || [{ bankName: '', accountNumber: '', accountHolder: '', branch: '' }]).map(
-                  (bank: any, index: number) => (
-                    <div
-                      key={index}
-                      className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-slate-50/50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-slate-800/50"
-                    >
-                      <div className="space-y-2.5">
-                        <label className="text-[11px] font-bold text-slate-400 dark:text-slate-400 ml-1 uppercase tracking-wider">
-                          Tên Ngân hàng *
-                        </label>
-                        <div className="relative">
-                          <select
-                            className={`w-full bg-white dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-slate-900 dark:text-white appearance-none focus:outline-none focus:border-emerald-500/50 transition-all ${
-                              errors.bankName && index === (formData.bankAccounts?.length || 1) - 1
-                                ? 'border-red-500/50'
-                                : ''
-                            }`}
-                            value={bank.bankName || ''}
-                            onChange={(e) => {
-                              const updated = [...(formData.bankAccounts || [])];
-                              if (updated.length === 0)
-                                updated.push({ bankName: '', accountNumber: '', accountHolder: '', branch: '' });
-                              updated[index] = { ...bank, bankName: e.target.value };
-                              setFormData({ ...formData, bankAccounts: updated });
-                              if (errors.bankName) setErrors({ ...errors, bankName: '' });
-                            }}
+                {(formData.bankAccounts?.length
+                  ? formData.bankAccounts
+                  : [{ bankName: '', accountNumber: '', accountHolder: '', branch: '' }]
+                ).map((bank: any, index: number) => (
+                  <div
+                    key={index}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-slate-50/50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-slate-800/50"
+                  >
+                    <div className="space-y-2.5">
+                      <label className="text-[11px] font-bold text-slate-400 dark:text-slate-400 ml-1 uppercase tracking-wider">
+                        Tên Ngân hàng *
+                      </label>
+                      <div className="relative">
+                        <select
+                          className={`w-full bg-white dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-slate-900 dark:text-white appearance-none focus:outline-none focus:border-emerald-500/50 transition-all ${
+                            errors.bankName && index === (formData.bankAccounts?.length || 1) - 1
+                              ? 'border-red-500/50'
+                              : ''
+                          }`}
+                          value={bank.bankName || ''}
+                          onChange={(e) => {
+                            const updated = [...(formData.bankAccounts || [])];
+                            if (updated.length === 0)
+                              updated.push({ bankName: '', accountNumber: '', accountHolder: '', branch: '' });
+                            updated[index] = { ...bank, bankName: e.target.value };
+                            setFormData({ ...formData, bankAccounts: updated });
+                            if (errors.bankName) setErrors({ ...errors, bankName: '' });
+                          }}
+                        >
+                          <option
+                            value=""
+                            disabled
+                            className="bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500"
                           >
+                            Chọn ngân hàng...
+                          </option>
+                          {VIETNAM_BANKS.map((b) => (
                             <option
-                              value=""
-                              disabled
-                              className="bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500"
+                              key={b}
+                              value={b}
+                              className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                             >
-                              Chọn ngân hàng...
+                              {b}
                             </option>
-                            {VIETNAM_BANKS.map((b) => (
-                              <option
-                                key={b}
-                                value={b}
-                                className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
-                              >
-                                {b}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        {errors.bankName && index === (formData.bankAccounts?.length || 1) - 1 && (
-                          <p className="text-red-500 text-[10px] mt-1 ml-1">{errors.bankName}</p>
-                        )}
+                          ))}
+                        </select>
                       </div>
-
-                      <div className="space-y-2.5">
-                        <label className="text-[11px] font-bold text-slate-400 dark:text-slate-400 ml-1 uppercase tracking-wider">
-                          Số Tài Khoản *
-                        </label>
-                        <Input
-                          placeholder="0071001234567"
-                          className={`w-full bg-white dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-slate-900 dark:text-white font-mono ${
-                            errors.accountNumber && index === (formData.bankAccounts?.length || 1) - 1
-                              ? 'border-red-500/50'
-                              : ''
-                          }`}
-                          value={bank.accountNumber || ''}
-                          onChange={(e) => {
-                            const updated = [...(formData.bankAccounts || [])];
-                            if (updated.length === 0)
-                              updated.push({ bankName: '', accountNumber: '', accountHolder: '', branch: '' });
-                            updated[index] = { ...bank, accountNumber: e.target.value };
-                            setFormData({ ...formData, bankAccounts: updated });
-                            if (errors.accountNumber) setErrors({ ...errors, accountNumber: '' });
-                          }}
-                        />
-                        {errors.accountNumber && index === (formData.bankAccounts?.length || 1) - 1 && (
-                          <p className="text-red-500 text-[10px] mt-1 ml-1">{errors.accountNumber}</p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2.5">
-                        <label className="text-[11px] font-bold text-slate-400 dark:text-slate-400 ml-1 uppercase tracking-wider">
-                          Tên Chủ Tài Khoản *
-                        </label>
-                        <Input
-                          placeholder="CONG TY CP BETA XAY DUNG"
-                          className={`w-full bg-white dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-slate-900 dark:text-white uppercase ${
-                            errors.accountHolder && index === (formData.bankAccounts?.length || 1) - 1
-                              ? 'border-red-500/50'
-                              : ''
-                          }`}
-                          value={bank.accountHolder || ''}
-                          onChange={(e) => {
-                            const updated = [...(formData.bankAccounts || [])];
-                            if (updated.length === 0)
-                              updated.push({ bankName: '', accountNumber: '', accountHolder: '', branch: '' });
-                            updated[index] = { ...bank, accountHolder: e.target.value };
-                            setFormData({ ...formData, bankAccounts: updated });
-                            if (errors.accountHolder) setErrors({ ...errors, accountHolder: '' });
-                          }}
-                        />
-                        {errors.accountHolder && index === (formData.bankAccounts?.length || 1) - 1 && (
-                          <p className="text-red-500 text-[10px] mt-1 ml-1">{errors.accountHolder}</p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2.5">
-                        <label className="text-[11px] font-bold text-slate-400 dark:text-slate-400 ml-1 uppercase tracking-wider">
-                          Chi nhánh
-                        </label>
-                        <Input
-                          placeholder="Chi nhánh Quận 1"
-                          className="w-full bg-white dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-slate-900 dark:text-white focus:border-emerald-500/50 transition-all outline-none"
-                          value={bank.branch || ''}
-                          onChange={(e) => {
-                            const updated = [...(formData.bankAccounts || [])];
-                            if (updated.length === 0)
-                              updated.push({ bankName: '', accountNumber: '', accountHolder: '', branch: '' });
-                            updated[index] = { ...bank, branch: e.target.value };
-                            setFormData({ ...formData, bankAccounts: updated });
-                          }}
-                        />
-                      </div>
+                      {errors.bankName && index === (formData.bankAccounts?.length || 1) - 1 && (
+                        <p className="text-red-500 text-[10px] mt-1 ml-1">{errors.bankName}</p>
+                      )}
                     </div>
-                  ),
-                )}
+
+                    <div className="space-y-2.5">
+                      <label className="text-[11px] font-bold text-slate-400 dark:text-slate-400 ml-1 uppercase tracking-wider">
+                        Số Tài Khoản *
+                      </label>
+                      <Input
+                        placeholder="0071001234567"
+                        className={`w-full bg-white dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-slate-900 dark:text-white font-mono ${
+                          errors.accountNumber && index === (formData.bankAccounts?.length || 1) - 1
+                            ? 'border-red-500/50'
+                            : ''
+                        }`}
+                        value={bank.accountNumber || ''}
+                        onChange={(e) => {
+                          const updated = [...(formData.bankAccounts || [])];
+                          if (updated.length === 0)
+                            updated.push({ bankName: '', accountNumber: '', accountHolder: '', branch: '' });
+                          updated[index] = { ...bank, accountNumber: e.target.value };
+                          setFormData({ ...formData, bankAccounts: updated });
+                          if (errors.accountNumber) setErrors({ ...errors, accountNumber: '' });
+                        }}
+                      />
+                      {errors.accountNumber && index === (formData.bankAccounts?.length || 1) - 1 && (
+                        <p className="text-red-500 text-[10px] mt-1 ml-1">{errors.accountNumber}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <label className="text-[11px] font-bold text-slate-400 dark:text-slate-400 ml-1 uppercase tracking-wider">
+                        Tên Chủ Tài Khoản *
+                      </label>
+                      <Input
+                        placeholder="CONG TY CP BETA XAY DUNG"
+                        className={`w-full bg-white dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-slate-900 dark:text-white uppercase ${
+                          errors.accountHolder && index === (formData.bankAccounts?.length || 1) - 1
+                            ? 'border-red-500/50'
+                            : ''
+                        }`}
+                        value={bank.accountHolder || ''}
+                        onChange={(e) => {
+                          const updated = [...(formData.bankAccounts || [])];
+                          if (updated.length === 0)
+                            updated.push({ bankName: '', accountNumber: '', accountHolder: '', branch: '' });
+                          updated[index] = { ...bank, accountHolder: e.target.value };
+                          setFormData({ ...formData, bankAccounts: updated });
+                          if (errors.accountHolder) setErrors({ ...errors, accountHolder: '' });
+                        }}
+                      />
+                      {errors.accountHolder && index === (formData.bankAccounts?.length || 1) - 1 && (
+                        <p className="text-red-500 text-[10px] mt-1 ml-1">{errors.accountHolder}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <label className="text-[11px] font-bold text-slate-400 dark:text-slate-400 ml-1 uppercase tracking-wider">
+                        Chi nhánh
+                      </label>
+                      <Input
+                        placeholder="Chi nhánh Quận 1"
+                        className="w-full bg-white dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-slate-900 dark:text-white focus:border-emerald-500/50 transition-all outline-none"
+                        value={bank.branch || ''}
+                        onChange={(e) => {
+                          const updated = [...(formData.bankAccounts || [])];
+                          if (updated.length === 0)
+                            updated.push({ bankName: '', accountNumber: '', accountHolder: '', branch: '' });
+                          updated[index] = { ...bank, branch: e.target.value };
+                          setFormData({ ...formData, bankAccounts: updated });
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
