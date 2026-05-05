@@ -192,24 +192,29 @@ export class TransactionService {
       if (originalTx.reversedBy.length > 0) throw new Error('Giao dịch này đã được đảo ngược trước đó');
 
       // 1. Hoàn tác Lịch trình thanh toán (Schedules)
-      if (originalTx.principalPart > 0) {
-        let amountToRecover = originalTx.principalPart;
-        for (const schedule of debt.schedules) {
-          if (amountToRecover <= 0) break;
-          if ((schedule.paidPrincipal || 0) <= 0) continue;
+      let principalToRecover = originalTx.principalPart;
+      let interestToRecover = originalTx.interestPart || 0;
+      for (const schedule of debt.schedules) {
+        if (principalToRecover <= 0 && interestToRecover <= 0) break;
 
-          const canRecoverFromThis = Math.min(amountToRecover, schedule.paidPrincipal || 0);
-          const newPaid = (schedule.paidPrincipal || 0) - canRecoverFromThis;
+        const recoverPrincipal = Math.min(principalToRecover, schedule.paidPrincipal || 0);
+        const recoverInterest = Math.min(interestToRecover, schedule.paidInterest || 0);
 
-          await tx.debtSchedule.update({
-            where: { id: schedule.id },
-            data: {
-              paidPrincipal: newPaid,
-              status: newPaid <= 0 ? 'PENDING' : 'PARTIAL',
-            },
-          });
-          amountToRecover -= canRecoverFromThis;
-        }
+        if (recoverPrincipal <= 0 && recoverInterest <= 0) continue;
+
+        const newPaidPrincipal = (schedule.paidPrincipal || 0) - recoverPrincipal;
+        const newPaidInterest = (schedule.paidInterest || 0) - recoverInterest;
+
+        await tx.debtSchedule.update({
+          where: { id: schedule.id },
+          data: {
+            paidPrincipal: newPaidPrincipal,
+            paidInterest: newPaidInterest,
+            status: newPaidPrincipal <= 0 && newPaidInterest <= 0 ? 'PENDING' : 'PARTIAL',
+          },
+        });
+        principalToRecover -= recoverPrincipal;
+        interestToRecover -= recoverInterest;
       }
 
       // 2. Tạo giao dịch đảo ngược
@@ -219,6 +224,7 @@ export class TransactionService {
           type: 'REVERSAL',
           amount: -originalTx.amount,
           principalPart: -originalTx.principalPart,
+          interestPart: -(originalTx.interestPart || 0),
           penaltyPart: -originalTx.penaltyPart,
           paidAt: new Date(),
           notes: `Đảo ngược giao dịch ${originalTx.id}. Lý do: ${reason}`,
