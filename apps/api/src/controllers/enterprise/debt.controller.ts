@@ -230,27 +230,19 @@ export const updateDebt = async (req: Request, res: Response) => {
       personInChargeId,
       internalCode,
       guarantorId,
+      type,
+      origin,
+      partyId,
       principal,
       interestMethod,
       termMonths,
       issueDate,
       interestRates,
+      unlocked,
     } = req.body;
 
-    // Fields tài chính cốt lõi chỉ sửa được khi DRAFT
-    if (
-      !isDraft &&
-      (principal !== undefined ||
-        interestMethod !== undefined ||
-        termMonths !== undefined ||
-        issueDate !== undefined ||
-        interestRates !== undefined)
-    ) {
-      res
-        .status(400)
-        .json({ success: false, error: 'Chỉ có thể chỉnh sửa thông tin tài chính khi khoản nợ ở trạng thái DRAFT' });
-      return;
-    }
+    // Financial fields can be edited when DRAFT or when user explicitly unlocks
+    const canEditFinancial = isDraft || unlocked === true;
 
     const updateData: any = {};
     if (notes !== undefined) updateData.notes = notes;
@@ -259,21 +251,19 @@ export const updateDebt = async (req: Request, res: Response) => {
     if (personInChargeId !== undefined) updateData.personInChargeId = personInChargeId || null;
     if (internalCode !== undefined) updateData.internalCode = internalCode;
     if (guarantorId !== undefined) updateData.guarantorId = guarantorId || null;
+    if (type !== undefined) updateData.type = type;
+    if (origin !== undefined) updateData.origin = origin;
+    if (partyId !== undefined) updateData.partyId = partyId;
 
-    if (isDraft) {
+    if (canEditFinancial) {
       if (principal !== undefined) {
         updateData.principal = Number(principal);
-        updateData.outstanding = Number(principal);
+        if (isDraft) updateData.outstanding = Number(principal);
       }
       if (interestMethod !== undefined) updateData.interestMethod = interestMethod;
-      if (termMonths !== undefined && issueDate !== undefined) {
-        updateData.dueDate = new Date(
-          new Date(issueDate).setMonth(new Date(issueDate).getMonth() + Number(termMonths)),
-        );
-      } else if (termMonths !== undefined) {
-        updateData.dueDate = new Date(
-          new Date(oldDebt.issueDate).setMonth(new Date(oldDebt.issueDate).getMonth() + Number(termMonths)),
-        );
+      const baseIssueDate = issueDate ? new Date(issueDate) : new Date(oldDebt.issueDate);
+      if (termMonths !== undefined) {
+        updateData.dueDate = new Date(new Date(baseIssueDate).setMonth(baseIssueDate.getMonth() + Number(termMonths)));
       }
       if (issueDate !== undefined) updateData.issueDate = new Date(issueDate);
     }
@@ -282,8 +272,8 @@ export const updateDebt = async (req: Request, res: Response) => {
       // Update main record
       await tx.debtRecord.update({ where: { id }, data: updateData });
 
-      // Replace interest rates if provided and DRAFT
-      if (isDraft && interestRates !== undefined) {
+      // Replace interest rates if provided and financial editing is allowed
+      if (canEditFinancial && interestRates !== undefined) {
         await tx.debtInterestRate.deleteMany({ where: { debtRecordId: id } });
         await tx.debtInterestRate.createMany({
           data: interestRates.map((r: any) => ({
