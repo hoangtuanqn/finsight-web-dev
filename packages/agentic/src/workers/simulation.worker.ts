@@ -9,6 +9,18 @@ import { type AgentWorker, type WorkerOutput } from '../worker.interface.js';
 
 // ─── Tool: simulate_financial_risk ───────────────────────────────────────────
 
+export const simulateFinancialRiskSchema = z.object({
+  userId: z.string().describe('ID người dùng'),
+  additionalDebt: z.number().nullable().optional().describe('Tổng dư nợ vay thêm (VNĐ); 0 nếu không thêm'),
+  additionalMonthlyPayment: z.number().nullable().optional().describe('Số tiền phải trả thêm hàng tháng (VNĐ)'),
+  incomeShockPercent: z
+    .number()
+    .nullable()
+    .optional()
+    .describe('Phần trăm thu nhập bị giảm (0-100); 0 nếu không áp dụng'),
+  oneTimeExpense: z.number().nullable().optional().describe('Chi tiêu một lần lớn (VNĐ); 0 nếu không có'),
+});
+
 /**
  * Core simulation tool.
  * All arithmetic is done here — LLM must NOT self-calculate numbers.
@@ -91,17 +103,7 @@ const simulateFinancialRiskTool = tool(
       'Mô phỏng tác động tài chính khi thêm khoản nợ, tăng thanh toán, giảm thu nhập hoặc chi tiêu một lần. ' +
       'Tool tính DTI mới, dòng tiền mới và mức độ rủi ro. Gọi ngay khi người dùng hỏi "nếu tôi vay thêm", ' +
       '"nếu thu nhập giảm", "nếu tôi chi thêm". userId được hệ thống tự động cung cấp.',
-    schema: z.object({
-      userId: z.string().describe('ID người dùng'),
-      additionalDebt: z.number().nullable().optional().describe('Tổng dư nợ vay thêm (VNĐ); 0 nếu không thêm'),
-      additionalMonthlyPayment: z.number().nullable().optional().describe('Số tiền phải trả thêm hàng tháng (VNĐ)'),
-      incomeShockPercent: z
-        .number()
-        .nullable()
-        .optional()
-        .describe('Phần trăm thu nhập bị giảm (0-100); 0 nếu không áp dụng'),
-      oneTimeExpense: z.number().nullable().optional().describe('Chi tiêu một lần lớn (VNĐ); 0 nếu không có'),
-    }),
+    schema: simulateFinancialRiskSchema,
   },
 );
 

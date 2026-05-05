@@ -1,11 +1,16 @@
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { createReactAgent } from '@langchain/langgraph/prebuilt';
+import { type AgentGraphState } from './graph-state.js';
 import { checkIsOffTopicGuard, MAX_LENGTH_REPLY, OFF_TOPIC_REPLY } from './guard';
 import { getChatModel } from './llm-provider';
 import { getCompactHistory, getOrCreateSession, saveMessage, updateSessionTitle } from './memory';
+import { memoryCompressorNode } from './memory-compressor.js';
+import { getAgentUserProfile } from './personal-data.repository.js';
 import { DISCLAIMER_TEXT, FINSIGHT_PERSONA, TOOL_LABELS } from './prompts';
 import { routeIntent } from './router';
-import { createBoundTools, getToolsByIntent } from './tools/index';
+import { routerNode } from './router-node.js';
+import { createBoundTools, getToolsByIntent } from './tools/index.js';
+import { buildDefaultWorkerRegistry } from './worker.interface.js';
 
 const AGENT_TIMEOUT_MS = 30_000;
 
@@ -56,6 +61,94 @@ export const runAgenticChat = async (
       }
     }
     return { response: OFF_TOPIC_REPLY, actionType: null };
+  }
+
+  const isV2Enabled = process.env.AGENT_GRAPH_V2 === 'true';
+
+  if (isV2Enabled) {
+    console.log('[Agent] 🚀 Using V2 Orchestrator Pipeline');
+    try {
+      const session = await getOrCreateSession(userId, sessionId);
+      if (!sessionId) {
+        const title = extractSessionTitle(query);
+        await updateSessionTitle(session.id, title);
+      }
+
+      const state: AgentGraphState = {
+        userId,
+        sessionId: session.id,
+        input: query,
+        summary: '',
+        recentMessages: [],
+        activeContext: '',
+        intent: 'GENERAL_CHAT' as any,
+        worker: 'general',
+        textResponse: '',
+        uiSignal: null,
+        errors: [],
+      };
+
+      const compressed = await memoryCompressorNode(state);
+      state.summary = compressed.summary;
+      state.recentMessages = compressed.recentMessages;
+      state.activeContext = compressed.activeContext;
+      if (compressed.errors) state.errors.push(...compressed.errors);
+
+      const userProfile = await getAgentUserProfile(userId);
+      const strategyQuota = userProfile?.strategyQuota ?? null;
+
+      const routeResult = await routerNode(state, strategyQuota);
+      state.intent = routeResult.intent;
+      state.worker = routeResult.worker;
+      state.errors = routeResult.errors;
+
+      // Per-worker flag to allow selective rollout. Defaults to true if V2 is on.
+      const isWorkerV2Enabled = process.env[`AGENT_GRAPH_V2_${state.worker.toUpperCase()}`] !== 'false';
+
+      if (!isWorkerV2Enabled) {
+        console.log(`[Agent] 🕰️ Falling back to V1 Legacy Pipeline for worker: ${state.worker}`);
+        // Break out of V2 block to run V1 below
+      } else {
+        const registry = buildDefaultWorkerRegistry();
+        const worker = registry.resolve(state.worker) || registry.resolve('general')!;
+
+        const workerOutput = await worker.run(
+          state,
+          onTokenStream || (() => {}),
+          onToolStatus || (() => {}),
+          isAborted,
+        );
+
+        let actionTypeResponse = 'text_response';
+        let triggerPayload: any = null;
+
+        if (workerOutput.uiSignal && workerOutput.uiSignal.type !== 'NONE') {
+          actionTypeResponse = workerOutput.uiSignal.type;
+          triggerPayload = workerOutput.uiSignal;
+        } else if (workerOutput.uiSignal && workerOutput.uiSignal.type === 'NONE') {
+          actionTypeResponse = 'text_response';
+          triggerPayload = null;
+        }
+
+        await saveMessage(session.id, 'assistant', workerOutput.text, actionTypeResponse, triggerPayload);
+
+        console.log(`[Agent] ✅ V2 REQUEST COMPLETE [${elapsed()}]`);
+
+        return {
+          response: workerOutput.text,
+          sessionId: session.id,
+          actionType: actionTypeResponse,
+          triggerPayload,
+        };
+      }
+    } catch (e: any) {
+      console.error('[Agent] V2 error:', e);
+      const errorMsg = '❌ Hệ thống tư vấn đang gặp sự cố, vui lòng thử lại sau.';
+      if (onTokenStream) onTokenStream(errorMsg);
+      return { response: errorMsg, actionType: null };
+    }
+  } else {
+    console.log('[Agent] 🕰️ Using V1 Legacy Pipeline');
   }
 
   const intent = await routeIntent(query);
