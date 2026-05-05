@@ -85,12 +85,23 @@ export class DebtStatusService {
     return await (enterpriseDb as any).$transaction(async (tx: any) => {
       const debt = await tx.debtRecord.findUnique({
         where: { id: debtId, organizationId: orgId },
-        include: { party: { select: { name: true, personInChargeId: true } } },
+        include: {
+          party: { select: { name: true, personInChargeId: true } },
+          transactions: { where: { type: 'PAYMENT' }, select: { id: true }, take: 1 },
+        },
       });
       if (!debt || debt.status !== 'DISPUTED') throw new Error('Không hợp lệ');
 
       const outstanding = await this.getOutstandingBalance(debtId, tx);
-      const newStatus = outstanding <= 0 ? 'PAID' : new Date(debt.dueDate) < new Date() ? 'OVERDUE' : 'PARTIAL';
+      const hadPayments = debt.transactions.length > 0;
+      let newStatus: string;
+      if (outstanding <= 0) {
+        newStatus = 'PAID';
+      } else if (new Date(debt.dueDate) < new Date()) {
+        newStatus = 'OVERDUE';
+      } else {
+        newStatus = hadPayments ? 'PARTIAL' : 'ACTIVE';
+      }
 
       const updated = await tx.debtRecord.update({ where: { id: debtId }, data: { status: newStatus } });
       await this.logStatusChange(orgId, userId, debtId, 'DISPUTED', newStatus, 'Giải quyết tranh chấp', tx);
