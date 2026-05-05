@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ArrowLeft, ChevronRight, Download, Info, Layers, User } from 'lucide-react';
+import { ArrowLeft, ChevronRight, FileSpreadsheet, Info, Layers, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -9,6 +9,7 @@ import DebtStatusActions from '../../components/debts/DebtStatusActions';
 import { RecordPaymentModal } from '../../components/debts/RecordPaymentModal';
 import { RepaymentScheduleTable } from '../../components/debts/RepaymentScheduleTable';
 import { TransactionHistoryList } from '../../components/debts/TransactionHistoryList';
+import { exportDebtToExcel } from '../../utils/excelExport';
 
 export default function DebtDetailPage() {
   const { id } = useParams();
@@ -95,8 +96,11 @@ export default function DebtDetailPage() {
           </div>
         </div>
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-300 text-xs font-bold hover:bg-slate-800 transition-all">
-            <Download size={16} /> Xuất PDF
+          <button
+            onClick={() => exportDebtToExcel(debt)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-300 text-xs font-bold hover:bg-slate-800 transition-all"
+          >
+            <FileSpreadsheet size={16} className="text-emerald-500" /> Xuất Excel
           </button>
           {['ACTIVE', 'PARTIAL', 'OVERDUE'].includes(debt.status) && (
             <button
