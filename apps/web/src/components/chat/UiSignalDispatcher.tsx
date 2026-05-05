@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { type UiSignal } from '../../hooks/useAgenticChat';
 import DebtConfirmModal from './DebtConfirmModal';
 import DebtSummaryCard from './DebtSummaryCard';
+import InvestmentConfirmModal from './InvestmentConfirmModal';
 import RepaymentConfirmModal from './RepaymentConfirmModal';
 
 interface Props {
@@ -105,8 +106,9 @@ export default function UiSignalDispatcher({ signal, onDismiss, onConfirmed, onF
         );
 
       case 'INVESTMENT_CONFIRMATION':
-        console.info('[UiSignalDispatcher] INVESTMENT_CONFIRMATION — modal not yet implemented (Task 4.5)');
-        return null;
+        return (
+          <InvestmentConfirmModal data={(signal as any).data ?? null} onDismiss={onDismiss} onFeedback={onFeedback} />
+        );
 
       default:
         console.warn('[UiSignalDispatcher] Unknown SHOW_POPUP action:', (signal as any).action);

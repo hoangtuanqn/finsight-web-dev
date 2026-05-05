@@ -2,8 +2,11 @@ import { type AgentGraphState } from './graph-state.js';
 import { type UiSignal } from './ui-signal.js';
 import { debtExtractionWorker } from './workers/debt-extraction.worker.js';
 import { debtSummaryWorker } from './workers/debt-summary.worker.js';
+import { investmentWorker } from './workers/investment.worker.js';
+import { marketWorker } from './workers/market.worker.js';
 import { ragWorker } from './workers/rag.worker.js';
 import { repaymentWorker } from './workers/repayment.worker.js';
+import { simulationWorker } from './workers/simulation.worker.js';
 
 // ─── Tool event (status updates streamed to the client) ───────────────────────
 
@@ -158,13 +161,13 @@ export function buildDefaultWorkerRegistry(): WorkerRegistry {
     .register(maxLengthWorker)
     .register(generalChatWorker)
     .register(debtExtractionWorker) // Task 2.5 — real implementation
-    .register(repaymentWorker) // Task 2.6 — real repayment implementation
-    .register(createStubWorker('investment'))
-    .register(debtSummaryWorker) // Task 2.8 — real debt summary implementation
+    .register(repaymentWorker) // Task 2.6 — real implementation
+    .register(investmentWorker) // Task 2.7 — real implementation
+    .register(debtSummaryWorker) // Task 2.8 — real implementation
+    .register(simulationWorker) // Task 2.9 — real implementation
+    .register(marketWorker) // Task 2.10 — real implementation
     .register(createStubWorker('debt_list'))
-    .register(createStubWorker('simulation'))
-    .register(createStubWorker('market'))
-    .register(ragWorker); // Task 2.11 — real RAG implementation
+    .register(ragWorker); // Task 2.11 — real implementation
 
   return registry;
 }

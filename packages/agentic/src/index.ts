@@ -19,5 +19,11 @@ export * from './workers/debt-extraction.worker.js';
 // Phase 2.6 – Repayment Worker
 export * from './workers/repayment.worker.js';
 
+// Phase 2.9 – Simulation Worker
+export * from './workers/simulation.worker.js';
+
+// Phase 2.10 – Market Worker
+export * from './workers/market.worker.js';
+
 // Phase 2.11 – RAG Worker
 export * from './workers/rag.worker.js';
