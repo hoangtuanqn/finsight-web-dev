@@ -8,10 +8,44 @@ import { error, success } from '../utils/apiResponse';
 export async function chatWithAgent(req: AuthenticatedRequest, res: Response) {
   const { message, sessionId, ocrText } = req.body;
 
-  // Validate before SSE headers are flushed — can still use HTTP error codes here.
   if (!message || typeof message !== 'string' || message.trim().length === 0) {
     return error(res, 'Message is required', 400);
   }
+
+  // --- AI REQUEST LIMIT CHECK ---
+  const user = await (prisma as any).user.findUnique({
+    where: { id: req.userId },
+    select: { level: true, aiRequestCount: true, aiRequestResetAt: true },
+  });
+
+  if (!user) return error(res, 'User not found', 404);
+
+  let currentCount = user.aiRequestCount;
+  const now = new Date();
+  const resetAt = new Date(user.aiRequestResetAt);
+
+  // Reset count if it's a new month
+  if (now.getMonth() !== resetAt.getMonth() || now.getFullYear() !== resetAt.getFullYear()) {
+    currentCount = 0;
+    await (prisma as any).user.update({
+      where: { id: req.userId },
+      data: { aiRequestCount: 0, aiRequestResetAt: now },
+    });
+  }
+
+  // Determine limit
+  const limit = user.level === 'BASIC' ? 5 : user.level === 'PRO' ? 100 : Infinity;
+
+  if (currentCount >= limit) {
+    return error(
+      res,
+      user.level === 'BASIC'
+        ? 'Bạn đã hết lượt hỏi AI trong tháng này (5/5). Vui lòng nâng cấp gói Pro để tiếp tục.'
+        : 'Bạn đã hết lượt hỏi AI trong tháng này. Vui lòng quay lại vào tháng sau hoặc nâng cấp gói cao hơn.',
+      403,
+    );
+  }
+  // -------------------------------
 
   // OCR requests carry a larger payload — allow up to 20 000 chars for the combined message.
   const maxMessageLen = ocrText ? 20_000 : 2_000;
@@ -38,8 +72,14 @@ export async function chatWithAgent(req: AuthenticatedRequest, res: Response) {
 
     if (ocrText) {
       finalMessage = `[Nội dung tài liệu đính kèm (OCR):\n${ocrText}]\n\nYêu cầu của tôi: ${message.trim()}`;
-      console.log(`[OCR] finalMessage length: ${finalMessage.length} chars`);
     }
+
+    // Increment AI request count
+    const updatedUser = await (prisma as any).user.update({
+      where: { id: req.userId },
+      data: { aiRequestCount: { increment: 1 } },
+      select: { aiRequestCount: true },
+    });
 
     const result = await runAgenticChat(
       req.userId as string,
@@ -78,6 +118,7 @@ export async function chatWithAgent(req: AuthenticatedRequest, res: Response) {
         actionType: result.actionType ?? null,
         uiSignal: null,
         triggerPayload: result.triggerPayload ?? null,
+        aiRequestCount: updatedUser.aiRequestCount, // Send updated count back
       });
     }
   } catch (err) {

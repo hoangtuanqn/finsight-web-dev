@@ -5,8 +5,8 @@ import { AuthenticatedRequest } from '../types';
 import { error, success } from '../utils/apiResponse';
 
 const PLAN_PRICES: Record<string, number> = {
-  PRO: 49000,
-  PROMAX: 99000,
+  PRO: 299000,
+  PROMAX: 499000,
 };
 
 const BANK_NAME = process.env.SEPAY_BANK_NAME || 'MBBank';

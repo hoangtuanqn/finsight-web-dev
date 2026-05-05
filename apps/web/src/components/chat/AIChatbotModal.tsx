@@ -1,7 +1,9 @@
 import { AnimatePresence, motion, type Variants } from 'framer-motion';
 import {
+  AlertTriangle,
   Bot,
   CheckCircle2,
+  Crown,
   Loader2,
   Maximize2,
   MessageSquare,
@@ -16,6 +18,8 @@ import {
   X,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { useAgenticChat } from '../../hooks/useAgenticChat';
 import { useVoiceRecorder } from '../../hooks/useVoiceRecorder';
 import { runOCR } from '../../utils/ocr';
@@ -44,6 +48,9 @@ export default function AIChatbotModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const navigate = useNavigate();
+  const { user, setUser } = useAuth() as any;
+
   const [inputValue, setInputValue] = useState('');
   const [selectedImage, setSelectedImage] = useState(null); // { file, preview, base64 }
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
@@ -83,7 +90,17 @@ export default function AIChatbotModal() {
     setToolStatus,
     setIsStreaming,
     setMessages,
-  } = useAgenticChat();
+  } = useAgenticChat({
+    onChatDone: (meta) => {
+      if (meta.aiRequestCount !== undefined) {
+        setUser((prev: any) => ({ ...prev, aiRequestCount: meta.aiRequestCount }));
+      }
+    },
+  });
+
+  // AI Limit constants
+  const AI_LIMIT = user?.level === 'BASIC' ? 5 : user?.level === 'PRO' ? 100 : Infinity;
+  const isOverLimit = user?.aiRequestCount >= AI_LIMIT && !isStreaming;
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -395,7 +412,7 @@ export default function AIChatbotModal() {
 
                 {/* Messages List Area */}
                 <div
-                  className={`flex-1 flex flex-col min-w-0 overflow-hidden ${
+                  className={`flex-1 flex flex-col min-w-0 overflow-hidden relative ${
                     isMaximized ? 'max-w-5xl mx-auto w-full' : ''
                   }`}
                 >
@@ -520,147 +537,197 @@ export default function AIChatbotModal() {
 
                     <div ref={messagesEndRef} className="h-4" />
                   </div>
+
+                  {/* Limit Overlay */}
+                  <AnimatePresence>
+                    {isOverLimit && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 z-[60] bg-slate-950/70 backdrop-blur-md flex flex-col items-center justify-center p-8 text-center"
+                      >
+                        <motion.div
+                          initial={{ scale: 0.9, y: 20 }}
+                          animate={{ scale: 1, y: 0 }}
+                          className="max-w-[320px] flex flex-col items-center"
+                        >
+                          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-6 ring-1 ring-amber-500/20">
+                            <AlertTriangle className="w-8 h-8 text-amber-500" />
+                          </div>
+                          <h4 className="text-xl font-bold text-white mb-2">Đã hết lượt hỏi AI</h4>
+                          <p className="text-slate-400 text-sm leading-relaxed mb-8">
+                            Bạn đã sử dụng hết{' '}
+                            <strong className="text-white">
+                              {user.aiRequestCount}/{AI_LIMIT}
+                            </strong>{' '}
+                            lượt hỏi AI trong tháng này. Nâng cấp ngay để tiếp tục trải nghiệm.
+                          </p>
+
+                          <button
+                            onClick={() => {
+                              setIsOpen(false);
+                              navigate('/upgrade');
+                            }}
+                            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm shadow-xl shadow-blue-900/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                          >
+                            <Crown className="w-4 h-4 text-amber-300" />
+                            Nâng cấp tài khoản
+                          </button>
+
+                          <button
+                            onClick={() => setIsOpen(false)}
+                            className="mt-4 text-slate-500 text-xs font-medium hover:text-white transition-colors"
+                          >
+                            Để sau
+                          </button>
+                        </motion.div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
 
               {/* Input Control Area */}
-              <div className="px-6 py-6 border-t border-white/5 bg-white/[0.02] backdrop-blur-2xl shrink-0">
-                <div className={`mx-auto ${isMaximized ? 'max-w-4xl' : 'w-full'} flex flex-col gap-4`}>
-                  {/* Image Preview Container */}
-                  <AnimatePresence>
-                    {selectedImage && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className="flex items-center gap-4 p-3 rounded-2xl bg-white/[0.05] border border-white/10 ring-1 ring-blue-500/10 shadow-lg"
-                      >
-                        <img
-                          src={selectedImage.preview}
-                          alt="Preview"
-                          className="w-16 h-16 rounded-xl object-cover ring-2 ring-blue-500/30"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-white truncate">{selectedImage.file.name}</p>
-                          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-tighter">
-                            {(selectedImage.file.size / 1024).toFixed(0)} KB
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => setSelectedImage(null)}
-                          className="p-2 rounded-xl bg-white/5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/20 transition-all"
-                        >
-                          <X className="w-5 h-5" />
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  <form onSubmit={handleSend} className="relative">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageSelect}
-                      className="hidden"
-                    />
-
-                    <div className="flex items-center gap-3 p-1.5 rounded-[22px] bg-white/[0.04] border border-white/10 transition-all duration-300 focus-within:border-blue-500/50 focus-within:bg-white/[0.06] focus-within:ring-4 focus-within:ring-blue-500/5 group shadow-inner">
-                      {/* Attach Icon */}
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isStreaming || isVoiceRecording || isVoiceTranscribing}
-                        className={`w-11 h-11 flex items-center justify-center rounded-[18px] transition-all ${
-                          selectedImage
-                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/30'
-                            : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
-                        } disabled:opacity-30 shrink-0`}
-                        title="Đính kèm"
-                      >
-                        <Paperclip className="w-5 h-5" />
-                      </button>
-
-                      {/* Microphone Button */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (isVoiceRecording) stopRecording();
-                          else if (voiceState === 'idle') startRecording();
-                        }}
-                        disabled={isStreaming || isVoiceTranscribing || !!selectedImage}
-                        title={isVoiceRecording ? 'Dừng ghi âm' : 'Ghi âm giọng nói'}
-                        className={`relative w-11 h-11 flex items-center justify-center rounded-[18px] transition-all shrink-0 disabled:opacity-30 ${
-                          isVoiceRecording
-                            ? 'bg-rose-600 text-white shadow-lg shadow-rose-900/40'
-                            : isVoiceTranscribing
-                              ? 'bg-amber-500/20 text-amber-400'
-                              : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
-                        }`}
-                      >
-                        {isVoiceTranscribing ? (
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : isVoiceRecording ? (
-                          <>
-                            {/* Pulsing ring */}
-                            <span className="absolute inset-0 rounded-[18px] bg-rose-500 animate-ping opacity-30" />
-                            <MicOff className="w-5 h-5 relative z-10" />
-                          </>
-                        ) : (
-                          <Mic className="w-5 h-5" />
-                        )}
-                      </button>
-
-                      <input
-                        type="text"
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        placeholder={
-                          isVoiceRecording
-                            ? 'Đang ghi âm... (bấm mic để dừng)'
-                            : isVoiceTranscribing
-                              ? 'Đang chuyển giọng nói thành văn bản...'
-                              : selectedImage
-                                ? 'Thêm mô tả về ảnh...'
-                                : 'Hỏi bất kỳ điều gì về tài chính...'
-                        }
-                        maxLength={2000}
-                        className="flex-1 px-2 py-3 text-[15px] bg-transparent border-none outline-none text-white placeholder:text-slate-500/70"
-                        disabled={isStreaming || isVoiceRecording || isVoiceTranscribing}
-                      />
-
-                      {/* Send Button */}
-                      <button
-                        type="submit"
-                        disabled={
-                          (!inputValue.trim() && !selectedImage) ||
-                          isStreaming ||
-                          isVoiceRecording ||
-                          isVoiceTranscribing
-                        }
-                        className="w-11 h-11 flex items-center justify-center rounded-[18px] bg-gradient-to-tr from-blue-500 to-indigo-600 text-white transition-all shadow-lg shadow-blue-900/40 hover:shadow-blue-500/40 hover:scale-105 active:scale-95 disabled:opacity-30 disabled:scale-100 shrink-0"
-                      >
-                        <Send className="w-5 h-5" />
-                      </button>
-                    </div>
-
-                    {/* Voice error message */}
+              {!isOverLimit && (
+                <div className="px-6 py-6 border-t border-white/5 bg-white/[0.02] backdrop-blur-2xl shrink-0">
+                  <div className={`mx-auto ${isMaximized ? 'max-w-4xl' : 'w-full'} flex flex-col gap-4`}>
+                    {/* Image Preview Container */}
                     <AnimatePresence>
-                      {voiceError && (
-                        <motion.p
-                          initial={{ opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0 }}
-                          className="mt-2 text-[12px] font-semibold text-rose-400 flex items-center gap-1.5"
+                      {selectedImage && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          className="flex items-center gap-4 p-3 rounded-2xl bg-white/[0.05] border border-white/10 ring-1 ring-blue-500/10 shadow-lg"
                         >
-                          <MicOff className="w-3.5 h-3.5" />
-                          {voiceError}
-                        </motion.p>
+                          <img
+                            src={selectedImage.preview}
+                            alt="Preview"
+                            className="w-16 h-16 rounded-xl object-cover ring-2 ring-blue-500/30"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-white truncate">{selectedImage.file.name}</p>
+                            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-tighter">
+                              {(selectedImage.file.size / 1024).toFixed(0)} KB
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => setSelectedImage(null)}
+                            className="p-2 rounded-xl bg-white/5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/20 transition-all"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </motion.div>
                       )}
                     </AnimatePresence>
-                  </form>
+
+                    <form onSubmit={handleSend} className="relative">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageSelect}
+                        className="hidden"
+                      />
+
+                      <div className="flex items-center gap-3 p-1.5 rounded-[22px] bg-white/[0.04] border border-white/10 transition-all duration-300 focus-within:border-blue-500/50 focus-within:bg-white/[0.06] focus-within:ring-4 focus-within:ring-blue-500/5 group shadow-inner">
+                        {/* Attach Icon */}
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isStreaming || isVoiceRecording || isVoiceTranscribing}
+                          className={`w-11 h-11 flex items-center justify-center rounded-[18px] transition-all ${
+                            selectedImage
+                              ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/30'
+                              : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                          } disabled:opacity-30 shrink-0`}
+                          title="Đính kèm"
+                        >
+                          <Paperclip className="w-5 h-5" />
+                        </button>
+
+                        {/* Microphone Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isVoiceRecording) stopRecording();
+                            else if (voiceState === 'idle') startRecording();
+                          }}
+                          disabled={isStreaming || isVoiceTranscribing || !!selectedImage}
+                          title={isVoiceRecording ? 'Dừng ghi âm' : 'Ghi âm giọng nói'}
+                          className={`relative w-11 h-11 flex items-center justify-center rounded-[18px] transition-all shrink-0 disabled:opacity-30 ${
+                            isVoiceRecording
+                              ? 'bg-rose-600 text-white shadow-lg shadow-rose-900/40'
+                              : isVoiceTranscribing
+                                ? 'bg-amber-500/20 text-amber-400'
+                                : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                          }`}
+                        >
+                          {isVoiceTranscribing ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : isVoiceRecording ? (
+                            <>
+                              {/* Pulsing ring */}
+                              <span className="absolute inset-0 rounded-[18px] bg-rose-500 animate-ping opacity-30" />
+                              <MicOff className="w-5 h-5 relative z-10" />
+                            </>
+                          ) : (
+                            <Mic className="w-5 h-5" />
+                          )}
+                        </button>
+
+                        <input
+                          type="text"
+                          value={inputValue}
+                          onChange={(e) => setInputValue(e.target.value)}
+                          placeholder={
+                            isVoiceRecording
+                              ? 'Đang ghi âm... (bấm mic để dừng)'
+                              : isVoiceTranscribing
+                                ? 'Đang chuyển giọng nói thành văn bản...'
+                                : selectedImage
+                                  ? 'Thêm mô tả về ảnh...'
+                                  : 'Hỏi bất kỳ điều gì về tài chính...'
+                          }
+                          maxLength={2000}
+                          className="flex-1 px-2 py-3 text-[15px] bg-transparent border-none outline-none text-white placeholder:text-slate-500/70"
+                          disabled={isStreaming || isVoiceRecording || isVoiceTranscribing}
+                        />
+
+                        {/* Send Button */}
+                        <button
+                          type="submit"
+                          disabled={
+                            (!inputValue.trim() && !selectedImage) ||
+                            isStreaming ||
+                            isVoiceRecording ||
+                            isVoiceTranscribing
+                          }
+                          className="w-11 h-11 flex items-center justify-center rounded-[18px] bg-gradient-to-tr from-blue-500 to-indigo-600 text-white transition-all shadow-lg shadow-blue-900/40 hover:shadow-blue-500/40 hover:scale-105 active:scale-95 disabled:opacity-30 disabled:scale-100 shrink-0"
+                        >
+                          <Send className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      {/* Voice error message */}
+                      <AnimatePresence>
+                        {voiceError && (
+                          <motion.p
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0 }}
+                            className="mt-2 text-[12px] font-semibold text-rose-400 flex items-center gap-1.5"
+                          >
+                            <MicOff className="w-3.5 h-3.5" />
+                            {voiceError}
+                          </motion.p>
+                        )}
+                      </AnimatePresence>
+                    </form>
+                  </div>
                 </div>
-              </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
