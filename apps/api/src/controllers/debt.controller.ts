@@ -5,10 +5,10 @@ import emailService from '../services/email.service';
 import { AuthenticatedRequest } from '../types';
 import { error, success } from '../utils/apiResponse';
 import {
-  calcAPY,
   calcDebtToIncomeRatio,
   calcEAR,
   detectDominoRisk,
+  getEffectiveAPR,
   resolveRepaymentExtraBudget,
   simulateRepaymentWithExtraBudget,
 } from '../utils/calculations';
@@ -55,7 +55,6 @@ export async function getAllDebts(req: AuthenticatedRequest, res: Response) {
     const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
 
     let debtsWithCalc = debts.map((debt: any) => {
-      const apy = calcAPY(debt.apr);
       const ear = calcEAR(
         debt.apr,
         debt.feeProcessing,
@@ -66,7 +65,7 @@ export async function getAllDebts(req: AuthenticatedRequest, res: Response) {
         debt.originalAmount,
       );
       const daysUntil = debt.dueDay >= currentDay ? debt.dueDay - currentDay : daysInMonth - currentDay + debt.dueDay;
-      return { ...debt, apy, ear, daysUntil };
+      return { ...debt, ear, daysUntil };
     });
 
     if (dueInDays) {
@@ -165,7 +164,8 @@ export async function getDebtById(req: AuthenticatedRequest, res: Response) {
     });
     if (!debt) return error(res, 'Debt not found', 404);
 
-    const apy = calcAPY(debt.apr);
+    const effectiveAPR = getEffectiveAPR(debt.apr, debt.rateType, debt.originalAmount, debt.termMonths);
+
     const ear = calcEAR(
       debt.apr,
       debt.feeProcessing,
@@ -177,7 +177,7 @@ export async function getDebtById(req: AuthenticatedRequest, res: Response) {
     );
     const earBreakdown = {
       apr: debt.apr,
-      compoundEffect: apy - debt.apr,
+      interestEffect: effectiveAPR - debt.apr,
       processingFee: debt.termMonths > 0 ? (debt.feeProcessing / debt.termMonths) * 12 : 0,
       insuranceFee: debt.feeInsurance,
       managementFee: debt.feeManagement,
@@ -203,7 +203,7 @@ export async function getDebtById(req: AuthenticatedRequest, res: Response) {
       }));
 
     return success(res, {
-      debt: { ...debt, apy, ear },
+      debt: { ...debt, ear },
       earBreakdown,
       paymentHistory: debt.payments,
       chartData,
@@ -602,7 +602,8 @@ export async function getEarAnalysis(req: AuthenticatedRequest, res: Response) {
     });
 
     const analysis = debts.map((d: any) => {
-      const apy = calcAPY(d.apr);
+      const effectiveAPR = getEffectiveAPR(d.apr, d.rateType, d.originalAmount, d.termMonths);
+
       const ear = calcEAR(
         d.apr,
         d.feeProcessing || 0,
@@ -610,7 +611,7 @@ export async function getEarAnalysis(req: AuthenticatedRequest, res: Response) {
         d.feeManagement || 0,
         d.termMonths || 12,
         d.rateType,
-        d.initialPrincipal,
+        d.originalAmount,
       );
       return {
         id: d.id,
@@ -618,11 +619,10 @@ export async function getEarAnalysis(req: AuthenticatedRequest, res: Response) {
         platform: d.platform,
         balance: d.balance,
         apr: d.apr,
-        apy,
         ear,
         earBreakdown: {
           apr: d.apr,
-          compoundEffect: apy - d.apr,
+          interestEffect: effectiveAPR - d.apr,
           processingFee: d.termMonths > 0 ? (d.feeProcessing / d.termMonths) * 12 : 0,
           insuranceFee: d.feeInsurance,
           managementFee: d.feeManagement,
