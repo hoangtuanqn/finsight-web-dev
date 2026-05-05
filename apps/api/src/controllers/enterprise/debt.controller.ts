@@ -1,3 +1,4 @@
+import { generateSchedule, type DebtScheduleInput } from '@repo/financial-core';
 import { Request, Response } from 'express';
 import enterpriseDb from '../../prisma/enterprise.client.js';
 import * as debtService from '../../services/enterprise/debt.service.js';
@@ -201,6 +202,163 @@ export const recordPayment = async (req: Request, res: Response) => {
 
     res.status(201).json({ success: true, data: transaction });
   } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+export const updateDebt = async (req: Request, res: Response) => {
+  try {
+    const orgId = (req as any).organizationId;
+    const userId = (req as any).userId;
+    const { id } = req.params;
+
+    const oldDebt = await (enterpriseDb as any).debtRecord.findFirst({
+      where: { id, organizationId: orgId },
+      include: { interestRates: { orderBy: { effectiveDate: 'asc' } } },
+    });
+
+    if (!oldDebt) {
+      res.status(404).json({ success: false, error: 'Không tìm thấy khoản nợ' });
+      return;
+    }
+
+    const isDraft = oldDebt.status === 'DRAFT';
+    const {
+      notes,
+      penaltyRate,
+      gracePeriodDays,
+      personInChargeId,
+      internalCode,
+      guarantorId,
+      principal,
+      interestMethod,
+      termMonths,
+      issueDate,
+      interestRates,
+    } = req.body;
+
+    // Fields tài chính cốt lõi chỉ sửa được khi DRAFT
+    if (
+      !isDraft &&
+      (principal !== undefined ||
+        interestMethod !== undefined ||
+        termMonths !== undefined ||
+        issueDate !== undefined ||
+        interestRates !== undefined)
+    ) {
+      res
+        .status(400)
+        .json({ success: false, error: 'Chỉ có thể chỉnh sửa thông tin tài chính khi khoản nợ ở trạng thái DRAFT' });
+      return;
+    }
+
+    const updateData: any = {};
+    if (notes !== undefined) updateData.notes = notes;
+    if (penaltyRate !== undefined) updateData.penaltyRate = Number(penaltyRate);
+    if (gracePeriodDays !== undefined) updateData.gracePeriodDays = Number(gracePeriodDays);
+    if (personInChargeId !== undefined) updateData.personInChargeId = personInChargeId || null;
+    if (internalCode !== undefined) updateData.internalCode = internalCode;
+    if (guarantorId !== undefined) updateData.guarantorId = guarantorId || null;
+
+    if (isDraft) {
+      if (principal !== undefined) {
+        updateData.principal = Number(principal);
+        updateData.outstanding = Number(principal);
+      }
+      if (interestMethod !== undefined) updateData.interestMethod = interestMethod;
+      if (termMonths !== undefined && issueDate !== undefined) {
+        updateData.dueDate = new Date(
+          new Date(issueDate).setMonth(new Date(issueDate).getMonth() + Number(termMonths)),
+        );
+      } else if (termMonths !== undefined) {
+        updateData.dueDate = new Date(
+          new Date(oldDebt.issueDate).setMonth(new Date(oldDebt.issueDate).getMonth() + Number(termMonths)),
+        );
+      }
+      if (issueDate !== undefined) updateData.issueDate = new Date(issueDate);
+    }
+
+    await (enterpriseDb as any).$transaction(async (tx: any) => {
+      // Update main record
+      await tx.debtRecord.update({ where: { id }, data: updateData });
+
+      // Replace interest rates if provided and DRAFT
+      if (isDraft && interestRates !== undefined) {
+        await tx.debtInterestRate.deleteMany({ where: { debtRecordId: id } });
+        await tx.debtInterestRate.createMany({
+          data: interestRates.map((r: any) => ({
+            debtRecordId: id,
+            rate: Number(r.rate),
+            effectiveDate: new Date(r.effectiveDate),
+            rateType: r.rateType || 'FIXED',
+            referenceBase: r.referenceBase || null,
+            spread: r.spread != null ? Number(r.spread) : null,
+          })),
+        });
+
+        // Rebuild schedule
+        const finalPrincipal = principal !== undefined ? Number(principal) : oldDebt.principal;
+        const finalMethod = interestMethod || oldDebt.interestMethod;
+        const finalTermMonths =
+          termMonths !== undefined
+            ? Number(termMonths)
+            : Math.round(
+                (new Date(oldDebt.dueDate).getTime() - new Date(oldDebt.issueDate).getTime()) /
+                  (1000 * 60 * 60 * 24 * 30),
+              );
+        const finalIssueDate = issueDate ? new Date(issueDate) : new Date(oldDebt.issueDate);
+
+        const scheduleInput: DebtScheduleInput = {
+          principal: finalPrincipal,
+          issueDate: finalIssueDate,
+          termMonths: finalTermMonths,
+          interestMethod: finalMethod,
+          interestRates: interestRates.map((r: any) => ({
+            rate: Number(r.rate),
+            effectiveDate: new Date(r.effectiveDate),
+          })),
+        };
+        const periods = generateSchedule(scheduleInput);
+        await tx.debtSchedule.deleteMany({ where: { debtRecordId: id } });
+        await tx.debtSchedule.createMany({
+          data: periods.map((p) => ({
+            debtRecordId: id,
+            period: p.period,
+            dueDate: p.dueDate,
+            principalAmount: p.principalAmount,
+            interestAmount: p.interestAmount,
+            totalAmount: p.totalAmount,
+            remainingPrincipal: p.remainingPrincipal,
+            status: 'PENDING',
+            triggerType: 'DATE',
+            isActivated: true,
+          })),
+        });
+      }
+    });
+
+    const updatedDebt = await (enterpriseDb as any).debtRecord.findFirst({
+      where: { id },
+      include: {
+        interestRates: { orderBy: { effectiveDate: 'asc' } },
+        schedules: { orderBy: { period: 'asc' } },
+        party: { select: { name: true } },
+      },
+    });
+
+    await logAudit({
+      organizationId: orgId,
+      userId,
+      action: 'UPDATE',
+      entityType: 'DEBT_RECORD',
+      entityId: id,
+      oldValues: oldDebt,
+      newValues: updatedDebt,
+    });
+
+    res.status(200).json({ success: true, data: updatedDebt });
+  } catch (error: any) {
+    console.error('Update Debt Error:', error);
     res.status(400).json({ success: false, error: error.message });
   }
 };
