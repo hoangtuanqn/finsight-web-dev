@@ -17,6 +17,9 @@ export const createDebt = async (req: Request, res: Response) => {
         req.body.interestRates?.map((r: any) => ({
           rate: Number(r.rate),
           effectiveDate: new Date(r.effectiveDate),
+          rateType: r.rateType || 'FIXED',
+          referenceBase: r.referenceBase || null,
+          spread: r.spread != null ? Number(r.spread) : null,
         })) || [],
     };
 
