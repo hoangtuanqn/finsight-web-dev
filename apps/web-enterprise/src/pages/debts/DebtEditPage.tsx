@@ -1,19 +1,7 @@
 import { generateSchedule, type InterestMethod } from '@repo/financial-core';
 import { Button, Input } from '@repo/ui';
 import { motion } from 'framer-motion';
-import {
-  Calculator,
-  Calendar,
-  ChevronRight,
-  DollarSign,
-  FileText,
-  Info,
-  Lock,
-  Save,
-  Unlock,
-  User,
-  Users,
-} from 'lucide-react';
+import { Calculator, Calendar, ChevronRight, DollarSign, FileText, Info, Lock, Save, User, Users } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -291,38 +279,6 @@ export default function DebtEditPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* ── Left Column: Form ── */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Unlock Warning if not DRAFT */}
-          {formData.status !== 'DRAFT' && (
-            <div
-              className={`p-6 rounded-3xl border transition-all flex items-center justify-between gap-6 ${isUnlocked ? 'bg-amber-500/10 border-amber-500/30' : 'bg-slate-900 border-slate-800'}`}
-            >
-              <div className="flex items-center gap-4">
-                <div
-                  className={`p-3 rounded-2xl ${isUnlocked ? 'bg-amber-500 text-white' : 'bg-slate-800 text-slate-500'}`}
-                >
-                  {isUnlocked ? <Unlock size={24} /> : <Lock size={24} />}
-                </div>
-                <div>
-                  <h3 className="text-white font-bold">
-                    {isUnlocked ? 'Đã mở khóa điều khoản tài chính' : 'Điều khoản tài chính đang khóa'}
-                  </h3>
-                  <p className="text-slate-400 text-sm">
-                    {isUnlocked
-                      ? 'Cẩn thận! Thay đổi sẽ làm tính toán lại toàn bộ lịch trình thanh toán.'
-                      : 'Hồ sơ đã kích hoạt. Cần mở khóa để thay đổi Số tiền, Lãi suất, Thời hạn.'}
-                  </p>
-                </div>
-              </div>
-              <Button
-                appName="web-enterprise"
-                onClick={() => setIsUnlocked(!isUnlocked)}
-                className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${isUnlocked ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-amber-600 text-white hover:bg-amber-500 shadow-lg shadow-amber-600/20'}`}
-              >
-                {isUnlocked ? 'Đóng lại' : 'Mở khóa sửa'}
-              </Button>
-            </div>
-          )}
-
           {/* Section: Thông tin chung */}
           <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-8 space-y-6">
             <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
