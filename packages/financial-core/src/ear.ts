@@ -21,9 +21,8 @@ export function convertFlatToReducingAPR(principal: number, flatAPR: number, ter
   while (error > tolerance && iterations < 100) {
     const term1 = Math.pow(1 + r, termMonths);
     const f = (principal * (r * term1)) / (term1 - 1) - monthlyPayment;
-
-    const fPrime = principal * ((term1 * (1 + r * termMonths) - 1) / Math.pow(term1 - 1, 2));
-
+    const fPrime =
+      principal * ((term1 * (term1 - 1) - r * termMonths * Math.pow(1 + r, termMonths - 1)) / Math.pow(term1 - 1, 2));
     const nextR = r - f / fPrime;
     error = Math.abs(nextR - r);
     r = nextR;
@@ -47,10 +46,9 @@ export function calcEAR(
     effectiveAPR = convertFlatToReducingAPR(initialPrincipal, apr, termMonths);
   }
 
-  const apy = calcAPY(effectiveAPR);
   const annualizedProcessingFee = termMonths > 0 ? (feeProcessing / termMonths) * 12 : 0;
   const totalAnnualFees = Math.min(annualizedProcessingFee + feeInsurance + feeManagement, 300);
-  return apy + totalAnnualFees;
+  return effectiveAPR + totalAnnualFees;
 }
 
 export function calcReducingMonthlyPayment(principal: number, apr: number, termMonths: number): number {
