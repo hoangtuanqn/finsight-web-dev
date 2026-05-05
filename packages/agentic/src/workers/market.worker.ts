@@ -147,46 +147,34 @@ const getStockIndexTool = tool(
 const getMarketPricesWrapperTool = tool(
   async () => {
     try {
-      const [crypto, gold] = await Promise.allSettled([
-        withTimeout(getMarketService().fetchCryptoPrices(), 5000, {
-          bitcoin: { price: 0, change24h: 0, error: 'timeout' },
-          ethereum: { price: 0, change24h: 0, error: 'timeout' },
-        }),
-        withTimeout(getMarketService().fetchGoldPrice(), 5000, {
-          buy: 0,
-          sell: 0,
-          unit: 'VND/chỉ',
-          source: 'SJC',
-          updatedAt: new Date().toISOString(),
-          error: 'timeout',
-        }),
+      const [cryptoResult, goldResult] = await Promise.allSettled([
+        withTimeout(getMarketService().fetchCryptoPrices(), 5000, null as any),
+        withTimeout(getMarketService().fetchGoldPrice(), 5000, null as any),
       ]);
 
-      const cryptoData = crypto.status === 'fulfilled' ? crypto.value : null;
-      const goldData = gold.status === 'fulfilled' ? gold.value : null;
+      const cryptoData: any = cryptoResult.status === 'fulfilled' ? cryptoResult.value : null;
+      const goldData: any = goldResult.status === 'fulfilled' ? goldResult.value : null;
 
       return JSON.stringify({
         prices: {
-          'BTC/USD':
-            cryptoData && !('error' in cryptoData.bitcoin)
-              ? `$${cryptoData.bitcoin.price.toLocaleString('en-US')}`
-              : 'N/A',
+          'BTC/USD': cryptoData?.bitcoin?.price
+            ? `$${(cryptoData.bitcoin.price as number).toLocaleString('en-US')}`
+            : 'N/A',
           'BTC 24h':
-            cryptoData && !('error' in cryptoData.bitcoin) ? `${cryptoData.bitcoin.change24h?.toFixed(2)}%` : 'N/A',
-          'ETH/USD':
-            cryptoData && !('error' in cryptoData.ethereum)
-              ? `$${cryptoData.ethereum.price.toLocaleString('en-US')}`
-              : 'N/A',
+            cryptoData?.bitcoin?.change24h != null ? `${(cryptoData.bitcoin.change24h as number).toFixed(2)}%` : 'N/A',
+          'ETH/USD': cryptoData?.ethereum?.price
+            ? `$${(cryptoData.ethereum.price as number).toLocaleString('en-US')}`
+            : 'N/A',
           'ETH 24h':
-            cryptoData && !('error' in cryptoData.ethereum) ? `${cryptoData.ethereum.change24h?.toFixed(2)}%` : 'N/A',
-          'Vàng SJC (mua)':
-            goldData && !('error' in goldData) && goldData.buy
-              ? `${goldData.buy.toLocaleString('vi-VN')} ${goldData.unit}`
+            cryptoData?.ethereum?.change24h != null
+              ? `${(cryptoData.ethereum.change24h as number).toFixed(2)}%`
               : 'N/A',
-          'Vàng SJC (bán)':
-            goldData && !('error' in goldData) && goldData.sell
-              ? `${goldData.sell.toLocaleString('vi-VN')} ${goldData.unit}`
-              : 'N/A',
+          'Vàng SJC (mua)': goldData?.buy
+            ? `${(goldData.buy as number).toLocaleString('vi-VN')} ${goldData.unit}`
+            : 'N/A',
+          'Vàng SJC (bán)': goldData?.sell
+            ? `${(goldData.sell as number).toLocaleString('vi-VN')} ${goldData.unit}`
+            : 'N/A',
         },
         source: 'CoinGecko, BTMC/SJC',
         timestamp: new Date().toISOString(),
