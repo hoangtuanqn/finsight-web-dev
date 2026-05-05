@@ -76,7 +76,7 @@ export const RepaymentExecutionReport: React.FC = () => {
 
   if (!report?.plan) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] p-8 bg-(--color-bg-secondary)/30 rounded-3xl border border-(--color-border-primary) border-dashed">
+      <div className="flex flex-col items-center justify-center min-h-[400px] p-8 bg-(--color-bg-secondary)/20 rounded-3xl border border-(--color-border) border-dashed">
         <Calendar className="w-12 h-12 text-(--color-text-muted) mb-4" />
         <h3 className="text-lg font-bold text-(--color-text-primary)">Chưa có kế hoạch cho tháng này</h3>
         <p className="text-sm text-(--color-text-muted) mt-2 text-center max-w-md">
@@ -91,7 +91,7 @@ export const RepaymentExecutionReport: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Controls */}
-      <div className="flex items-center justify-between p-4 bg-(--color-bg-secondary) rounded-3xl border border-(--color-border-primary)">
+      <div className="flex items-center justify-between p-4 bg-(--color-bg-secondary)/50 rounded-3xl border border-(--color-border)">
         <div className="flex items-center gap-2">
           <Calendar className="w-5 h-5 text-blue-500" />
           <h2 className="font-bold text-(--color-text-primary)">
@@ -102,7 +102,7 @@ export const RepaymentExecutionReport: React.FC = () => {
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            className="bg-(--color-bg-primary) border border-(--color-border-primary) rounded-xl px-3 py-1.5 text-xs font-bold text-(--color-text-primary) outline-none focus:ring-1 focus:ring-blue-500"
+            className="bg-(--color-bg-primary) border border-(--color-border) rounded-xl px-3 py-1.5 text-xs font-bold text-(--color-text-primary) outline-none focus:ring-1 focus:ring-blue-500"
           >
             {Array.from({ length: 12 }, (_, i) => (
               <option key={i + 1} value={i + 1}>
@@ -113,7 +113,7 @@ export const RepaymentExecutionReport: React.FC = () => {
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="bg-(--color-bg-primary) border border-(--color-border-primary) rounded-xl px-3 py-1.5 text-xs font-bold text-(--color-text-primary) outline-none focus:ring-1 focus:ring-blue-500"
+            className="bg-(--color-bg-primary) border border-(--color-border) rounded-xl px-3 py-1.5 text-xs font-bold text-(--color-text-primary) outline-none focus:ring-1 focus:ring-blue-500"
           >
             {[2024, 2025, 2026].map((y) => (
               <option key={y} value={y}>
@@ -132,7 +132,7 @@ export const RepaymentExecutionReport: React.FC = () => {
 
       {/* Header Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="p-5 rounded-3xl bg-(--color-bg-secondary) border border-(--color-border-primary)">
+        <div className="p-5 rounded-3xl bg-(--color-bg-secondary)/50 border border-(--color-border)">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold text-(--color-text-muted) uppercase tracking-wider">Tỷ lệ tuân thủ</span>
             <Target className="w-4 h-4 text-blue-500" />
@@ -152,7 +152,7 @@ export const RepaymentExecutionReport: React.FC = () => {
           </div>
         </div>
 
-        <div className="p-5 rounded-3xl bg-(--color-bg-secondary) border border-(--color-border-primary)">
+        <div className="p-5 rounded-3xl bg-(--color-bg-secondary)/50 border border-(--color-border)">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold text-(--color-text-muted) uppercase tracking-wider">
               Thực chi vs Kế hoạch
@@ -165,7 +165,7 @@ export const RepaymentExecutionReport: React.FC = () => {
           </div>
         </div>
 
-        <div className="p-5 rounded-3xl bg-(--color-bg-secondary) border border-(--color-border-primary)">
+        <div className="p-5 rounded-3xl bg-(--color-bg-secondary)/50 border border-(--color-border)">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold text-(--color-text-muted) uppercase tracking-wider">
               Khoản nợ hoàn thành
@@ -203,8 +203,8 @@ export const RepaymentExecutionReport: React.FC = () => {
       </div>
 
       {/* Details Table */}
-      <div className="bg-(--color-bg-secondary) rounded-3xl border border-(--color-border-primary) overflow-hidden">
-        <div className="p-6 border-b border-(--color-border-primary) flex items-center justify-between">
+      <div className="bg-(--color-bg-secondary)/50 rounded-3xl border border-(--color-border) overflow-hidden">
+        <div className="p-6 border-b border-(--color-border) flex items-center justify-between">
           <h3 className="font-bold text-(--color-text-primary)">Chi tiết đối soát từng khoản nợ</h3>
           <span className="text-xs px-3 py-1 bg-(--color-bg-primary) rounded-full font-bold text-(--color-text-muted)">
             {report.plan.name}
@@ -213,7 +213,7 @@ export const RepaymentExecutionReport: React.FC = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-(--color-border-primary) bg-(--color-bg-primary)/30">
+              <tr className="border-b border-(--color-border) bg-(--color-bg-primary)/30">
                 <th className="px-6 py-4 text-[10px] font-black uppercase text-(--color-text-muted)">Ưu tiên</th>
                 <th className="px-6 py-4 text-[10px] font-black uppercase text-(--color-text-muted)">
                   Khoản nợ / Đối tác
@@ -232,7 +232,7 @@ export const RepaymentExecutionReport: React.FC = () => {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-(--color-border-primary)">
+            <tbody className="divide-y divide-(--color-border)">
               {items.map((item) => (
                 <tr key={item.debtId} className="hover:bg-(--color-bg-primary)/20 transition-colors">
                   <td className="px-6 py-4">
