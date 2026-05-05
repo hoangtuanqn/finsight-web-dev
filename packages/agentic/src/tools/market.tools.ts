@@ -1,11 +1,11 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
-import { fetchCryptoPrices, fetchFearGreedIndex, fetchGoldPrice } from '../../services/market.service';
+import { getMarketService } from '../config';
 
 export const getMarketSentimentTool = tool(
   async () => {
     try {
-      const data = await fetchFearGreedIndex();
+      const data = await getMarketService().fetchFearGreedIndex();
       return JSON.stringify({
         value: data.value,
         label: data.label,
@@ -33,7 +33,10 @@ export const getMarketSentimentTool = tool(
 export const getMarketPricesTool = tool(
   async () => {
     try {
-      const [crypto, gold] = await Promise.all([fetchCryptoPrices(), fetchGoldPrice()]);
+      const [crypto, gold] = await Promise.all([
+        getMarketService().fetchCryptoPrices(),
+        getMarketService().fetchGoldPrice(),
+      ]);
 
       return JSON.stringify({
         prices: {

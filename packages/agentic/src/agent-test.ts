@@ -1,12 +1,14 @@
-import { PrismaClient } from '@prisma/client';
 import dotenv from 'dotenv';
 import path from 'path';
 import { runAgenticChat } from './agent';
+import { initAgentic } from './config';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
-const prisma = new PrismaClient();
+const prisma = (globalThis as any).prisma || {};
 const mockSessionId = 'test-session-' + Date.now();
+
+initAgentic(prisma);
 
 const queries = ['DTI là gì hả bạn, giải thích tôi nghe coi?', 'Vay ngân hàng 10 triệu lãi 5% có ổn không?', 'Ngủ đi'];
 

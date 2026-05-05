@@ -38,3 +38,6 @@ yarn-error.log*
 *.pem
 
 apps/api/server_error.log
+
+AgentDocs/
+
