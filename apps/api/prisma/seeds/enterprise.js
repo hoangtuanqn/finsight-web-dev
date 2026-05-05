@@ -56,11 +56,11 @@ export async function seedEnterprise(prisma) {
   });
 
   // 3. Create Enterprise Users
-  const passwordHash = await bcrypt.hash('admin123', 10);
+  const passwordHash = await bcrypt.hash('admin@123', 10);
 
   const cfo = await prisma.enterpriseUser.create({
     data: {
-      email: 'tin.tran@alphamfg.vn',
+      email: 'finsight@gmail.com',
       passwordHash,
       fullName: 'Trần Văn Tín',
       roleTitle: 'Giám đốc Tài chính (CFO)',
