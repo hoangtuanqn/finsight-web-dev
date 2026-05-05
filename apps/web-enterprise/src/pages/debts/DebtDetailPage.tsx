@@ -1,10 +1,11 @@
 import { motion } from 'framer-motion';
-import { ArrowLeft, CheckCircle2, ChevronRight, FileSpreadsheet, Info, Layers, User } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ChevronRight, Edit2, FileSpreadsheet, Info, Layers, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { enterpriseAuthAPI } from '../../api';
 import DebtAuditTrail from '../../components/debts/DebtAuditTrail';
+import { DebtEditModal } from '../../components/debts/DebtEditModal';
 import DebtStatusActions from '../../components/debts/DebtStatusActions';
 import { RecordPaymentModal } from '../../components/debts/RecordPaymentModal';
 import { RepaymentScheduleTable } from '../../components/debts/RepaymentScheduleTable';
@@ -17,11 +18,28 @@ export default function DebtDetailPage() {
   const [debt, setDebt] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isReversing, setIsReversing] = useState<string | null>(null);
+  const [internalUsers, setInternalUsers] = useState<any[]>([]);
+  const [parties, setParties] = useState<any[]>([]);
 
   useEffect(() => {
     fetchDebt();
+    fetchUsersAndParties();
   }, [id]);
+
+  const fetchUsersAndParties = async () => {
+    try {
+      const [usersRes, partiesRes] = await Promise.all([
+        (enterpriseAuthAPI as any).getUsers(),
+        (enterpriseAuthAPI as any).getParties({}),
+      ]);
+      if (usersRes.data.success) setInternalUsers(usersRes.data.data);
+      if (partiesRes.data.success) setParties(partiesRes.data.data);
+    } catch {
+      // non-critical, ignore
+    }
+  };
 
   const fetchDebt = async () => {
     try {
@@ -96,6 +114,12 @@ export default function DebtDetailPage() {
           </div>
         </div>
         <div className="flex gap-3">
+          <button
+            onClick={() => setIsEditModalOpen(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-300 text-xs font-bold hover:bg-slate-800 transition-all"
+          >
+            <Edit2 size={16} className="text-amber-400" /> Chỉnh sửa
+          </button>
           <button
             onClick={() => exportDebtToExcel(debt)}
             className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-300 text-xs font-bold hover:bg-slate-800 transition-all"
@@ -215,6 +239,15 @@ export default function DebtDetailPage() {
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
         debt={debt}
+        onSuccess={fetchDebt}
+      />
+
+      <DebtEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        debt={debt}
+        internalUsers={internalUsers}
+        parties={parties}
         onSuccess={fetchDebt}
       />
     </motion.div>
