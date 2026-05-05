@@ -33,6 +33,7 @@ export interface SseDonePayload {
   uiSignal: UiSignal | null;
   /** @deprecated use uiSignal — kept for legacy clients */
   triggerPayload?: unknown;
+  aiRequestCount?: number;
 }
 
 export interface SseErrorPayload {
@@ -180,6 +181,7 @@ export class SseWriter {
     actionType: string | null;
     uiSignal?: UiSignal | null;
     triggerPayload?: unknown;
+    aiRequestCount?: number;
   }): void {
     if (this.closed) return;
     const payload: SseDonePayload = {
@@ -188,6 +190,7 @@ export class SseWriter {
       actionType: meta.actionType,
       uiSignal: meta.uiSignal ?? null,
       triggerPayload: meta.triggerPayload ?? null,
+      aiRequestCount: meta.aiRequestCount,
     };
     const json = JSON.stringify(payload);
 
