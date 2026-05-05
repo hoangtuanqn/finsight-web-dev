@@ -43,7 +43,14 @@ export async function streamChat(message, sessionId, onToken, onDone, onError, o
 
     if (!res.ok) {
       const errText = await res.text();
-      onError?.(errText || 'Lỗi kết nối server');
+      let displayError = errText;
+      try {
+        const json = JSON.parse(errText);
+        displayError = json.error || displayError;
+      } catch {
+        /* ignore */
+      }
+      onError?.(displayError || 'Lỗi kết nối server');
       return;
     }
 

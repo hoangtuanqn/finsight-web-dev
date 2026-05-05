@@ -27,6 +27,8 @@ model User {
   referralCodeUsed String?
   commissionBalance Float    @default(0)
   totalCommissionEarned Float @default(0)
+  aiRequestCount   Int       @default(0)
+  aiRequestResetAt DateTime  @default(now())
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   twoFactorSecret String?
