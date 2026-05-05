@@ -74,18 +74,21 @@ export class TransactionService {
 
       // Step 2: Interest — lấy từ schedule period chưa thanh toán đầu tiên
       const unpaidSchedules = debt.schedules.filter((s: any) => s.status !== 'PAID');
-      const pendingInterest = unpaidSchedules.reduce(
-        (sum: number, s: any) => sum + Math.max(0, (s.interestAmount || 0) - (s.paidInterest || 0)),
-        0,
-      );
-      const interestToPay = Math.min(remainingAmount, pendingInterest);
-      remainingAmount -= interestToPay;
+      const pendingInterest =
+        Math.round(
+          unpaidSchedules.reduce(
+            (sum: number, s: any) => sum + Math.max(0, (s.interestAmount || 0) - (s.paidInterest || 0)),
+            0,
+          ) * 100,
+        ) / 100;
+      const interestToPay = Math.round(Math.min(remainingAmount, pendingInterest) * 100) / 100;
+      remainingAmount = Math.round((remainingAmount - interestToPay) * 100) / 100;
 
       // Step 3: Principal
-      const principalToPay = Math.min(remainingAmount, debt.outstanding);
-      remainingAmount -= principalToPay;
+      const principalToPay = Math.round(Math.min(remainingAmount, debt.outstanding) * 100) / 100;
+      remainingAmount = Math.round((remainingAmount - principalToPay) * 100) / 100;
 
-      const newOutstanding = Math.max(0, debt.outstanding - principalToPay);
+      const newOutstanding = Math.max(0, Math.round((debt.outstanding - principalToPay) * 100) / 100);
 
       // Update Schedules: phân bổ interest trước, sau đó principal
       let interestToDistribute = interestToPay;
@@ -95,17 +98,18 @@ export class TransactionService {
         if (schedule.status === 'PAID') continue;
 
         const scheduleInterestRemaining = Math.max(0, (schedule.interestAmount || 0) - (schedule.paidInterest || 0));
-        const interestPayToThis = Math.min(interestToDistribute, scheduleInterestRemaining);
-        const newPaidInterest = (schedule.paidInterest || 0) + interestPayToThis;
-        interestToDistribute -= interestPayToThis;
+        const interestPayToThis = Math.round(Math.min(interestToDistribute, scheduleInterestRemaining) * 100) / 100;
+        const newPaidInterest = Math.round(((schedule.paidInterest || 0) + interestPayToThis) * 100) / 100;
+        interestToDistribute = Math.round((interestToDistribute - interestPayToThis) * 100) / 100;
 
-        const schedulePrincipalRemaining = schedule.principalAmount - (schedule.paidPrincipal || 0);
-        const principalPayToThis = Math.min(principalToDistribute, schedulePrincipalRemaining);
-        const newPaidPrincipal = (schedule.paidPrincipal || 0) + principalPayToThis;
-        principalToDistribute -= principalPayToThis;
+        const schedulePrincipalRemaining = Math.max(0, (schedule.principalAmount || 0) - (schedule.paidPrincipal || 0));
+        const principalPayToThis = Math.round(Math.min(principalToDistribute, schedulePrincipalRemaining) * 100) / 100;
+        const newPaidPrincipal = Math.round(((schedule.paidPrincipal || 0) + principalPayToThis) * 100) / 100;
+        principalToDistribute = Math.round((principalToDistribute - principalPayToThis) * 100) / 100;
 
+        // Use small epsilon (0.1) to handle rounding differences when comparing
         const isFullyPaid =
-          newPaidPrincipal >= schedule.principalAmount && newPaidInterest >= (schedule.interestAmount || 0);
+          newPaidPrincipal >= schedule.principalAmount - 0.1 && newPaidInterest >= (schedule.interestAmount || 0) - 0.1;
 
         await tx.debtSchedule.update({
           where: { id: schedule.id },

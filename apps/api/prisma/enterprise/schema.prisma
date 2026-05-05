@@ -204,10 +204,13 @@ model DebtInterestRate {
   id           String   @id @default(uuid())
   debtRecordId String
   debtRecord   DebtRecord @relation(fields: [debtRecordId], references: [id], onDelete: Cascade)
-  
-  rate         Float    // Percentage (e.g. 8.5)
+
+  rate          Float    // Percentage (e.g. 8.5) — total effective rate used for calculation
   effectiveDate DateTime // When this rate starts being active
-  
+  rateType      String   @default("FIXED") // FIXED, FLOATING, REFERENCE
+  referenceBase String?  // e.g. "VCB", "SOFR" — used when rateType = REFERENCE
+  spread        Float?   // Basis points added on top of referenceBase (%)
+
   createdAt    DateTime @default(now())
 
   @@map("enterprise_debt_interest_rates")
