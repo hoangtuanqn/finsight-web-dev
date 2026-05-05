@@ -9,6 +9,7 @@ import { SocketProvider } from './context/SocketContext';
 import DashboardPage from './pages/DashboardPage';
 import DebtCreatePage from './pages/debts/DebtCreatePage';
 import DebtDetailPage from './pages/debts/DebtDetailPage';
+import DebtEditPage from './pages/debts/DebtEditPage';
 import DebtListPage from './pages/debts/DebtListPage';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
@@ -56,6 +57,7 @@ export default function App() {
                 <Route path="/debts" element={<DebtListPage />} />
                 <Route path="/debts/new" element={<DebtCreatePage />} />
                 <Route path="/debts/:id" element={<DebtDetailPage />} />
+                <Route path="/debts/:id/edit" element={<DebtEditPage />} />
                 <Route path="/repayment-planner" element={<RepaymentPlanner />} />
               </Route>
               <Route path="*" element={<Navigate to="/home" />} />
