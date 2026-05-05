@@ -138,7 +138,7 @@ export const simulationWorker: AgentWorker = {
       tools: [simulateFinancialRiskTool] as any,
     });
 
-    const systemPrompt = SIMULATION_SYSTEM.replaceAll('{userId}', state.userId);
+    const systemPrompt = SIMULATION_SYSTEM.split('{userId}').join(state.userId);
 
     // Build context from memory
     const recentCtx = state.recentMessages
