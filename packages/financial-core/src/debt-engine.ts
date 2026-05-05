@@ -7,8 +7,11 @@
 export type InterestMethod = 'REDUCING_BALANCE' | 'EMI' | 'BULLET' | 'NONE';
 
 export interface InterestRateSchedule {
-  rate: number; // Annual percentage (e.g. 8.5)
+  rate: number; // Annual percentage (e.g. 8.5) — total effective rate used for calculation
   effectiveDate: Date;
+  rateType?: 'FIXED' | 'FLOATING' | 'REFERENCE'; // metadata only, does not affect calculation
+  referenceBase?: string; // e.g. "VCB", "SOFR"
+  spread?: number; // basis points added on top of referenceBase (%)
 }
 
 export interface DebtScheduleInput {
