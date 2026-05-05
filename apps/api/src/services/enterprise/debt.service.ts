@@ -12,7 +12,7 @@ export const createDebtRecord = async (data: {
   interestMethod: 'REDUCING_BALANCE' | 'EMI' | 'BULLET' | 'NONE';
   issueDate: Date;
   termMonths: number;
-  interestRates: { rate: number; effectiveDate: Date }[];
+  interestRates: { rate: number; effectiveDate: Date; rateType?: string; referenceBase?: string; spread?: number }[];
   internalCode?: string;
   notes?: string;
   personInChargeId?: string;
@@ -71,6 +71,9 @@ export const createDebtRecord = async (data: {
           create: data.interestRates.map((r) => ({
             rate: r.rate,
             effectiveDate: r.effectiveDate,
+            rateType: r.rateType || 'FIXED',
+            referenceBase: r.referenceBase || null,
+            spread: r.spread ?? null,
           })),
         },
       },
