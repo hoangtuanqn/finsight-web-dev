@@ -45,6 +45,7 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
   isEdit,
 }) => {
   const [activeTab, setActiveTab] = useState<'general' | 'contact' | 'bank'>('general');
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const tabs = [
     { id: 'general', label: 'Thông tin chung', icon: Building2 },
@@ -52,15 +53,51 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
     { id: 'bank', label: 'Ngân hàng', icon: Banknote },
   ] as const;
 
+  const validateStep = (step: 'general' | 'contact' | 'bank') => {
+    const newErrors: Record<string, string> = {};
+
+    if (step === 'general') {
+      if (!formData.name?.trim()) newErrors.name = 'Tên đối tác là bắt buộc';
+      if (!formData.internalCode?.trim()) newErrors.internalCode = 'Mã nội bộ là bắt buộc';
+      if (formData.typeTags?.length === 0) newErrors.typeTags = 'Vui lòng chọn ít nhất một vai trò';
+    }
+
+    if (step === 'contact') {
+      const contacts = formData.contacts || [];
+      if (contacts.length === 0 || !contacts[0]?.name?.trim()) {
+        newErrors.contactName = 'Tên người liên hệ chính là bắt buộc';
+      }
+    }
+
+    if (step === 'bank') {
+      const bankAccounts = formData.bankAccounts || [];
+      if (bankAccounts.length === 0) {
+        newErrors.bank = 'Vui lòng thêm ít nhất một tài khoản ngân hàng';
+      } else {
+        const lastBank = bankAccounts[bankAccounts.length - 1];
+        if (!lastBank.bankName?.trim()) newErrors.bankName = 'Tên ngân hàng là bắt buộc';
+        if (!lastBank.accountNumber?.trim()) newErrors.accountNumber = 'Số tài khoản là bắt buộc';
+        if (!lastBank.accountHolder?.trim()) newErrors.accountHolder = 'Chủ tài khoản là bắt buộc';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (activeTab !== 'bank') {
-      // If not on the last tab, move to the next tab instead of submitting
-      if (activeTab === 'general') setActiveTab('contact');
-      else if (activeTab === 'contact') setActiveTab('bank');
+      if (validateStep(activeTab)) {
+        if (activeTab === 'general') setActiveTab('contact');
+        else if (activeTab === 'contact') setActiveTab('bank');
+      }
       return;
     }
-    onSubmit(e);
+
+    if (validateStep('bank')) {
+      onSubmit(e);
+    }
   };
 
   return (
@@ -107,12 +144,17 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                         Tên Pháp Nhân *
                       </label>
                       <Input
-                        required
-                        placeholder="Ví dụ: Công ty TNHH Giải pháp FinSight"
-                        className="w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none"
+                        placeholder="Công ty TNHH FinSight"
+                        className={`w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none ${
+                          errors.name ? 'border-red-500/50 focus:border-red-500/50 focus:ring-red-500/5' : ''
+                        }`}
                         value={formData.name || ''}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        onChange={(e) => {
+                          setFormData({ ...formData, name: e.target.value });
+                          if (errors.name) setErrors({ ...errors, name: '' });
+                        }}
                       />
+                      {errors.name && <p className="text-red-500 text-[10px] mt-1 ml-1">{errors.name}</p>}
                     </div>
                     <div className="space-y-2.5">
                       <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
@@ -127,13 +169,13 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                     </div>
                     <div className="space-y-2.5">
                       <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
-                        Mã Nội Bộ
+                        Mã Số Thuế
                       </label>
                       <Input
-                        placeholder="Ví dụ: KH-001"
+                        placeholder="0123456789"
                         className="w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none font-mono"
-                        value={formData.internalCode || ''}
-                        onChange={(e) => setFormData({ ...formData, internalCode: e.target.value })}
+                        value={formData.taxCode || ''}
+                        onChange={(e) => setFormData({ ...formData, taxCode: e.target.value })}
                       />
                     </div>
                   </div>
@@ -141,15 +183,22 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2.5">
                       <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
-                        Mã Số Thuế *
+                        Mã Nội Bộ *
                       </label>
                       <Input
-                        required
-                        placeholder="0123456789"
-                        className="w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none font-mono"
-                        value={formData.taxCode || ''}
-                        onChange={(e) => setFormData({ ...formData, taxCode: e.target.value })}
+                        placeholder="C001"
+                        className={`w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none ${
+                          errors.internalCode ? 'border-red-500/50 focus:border-red-500/50 focus:ring-red-500/5' : ''
+                        }`}
+                        value={formData.internalCode || ''}
+                        onChange={(e) => {
+                          setFormData({ ...formData, internalCode: e.target.value });
+                          if (errors.internalCode) setErrors({ ...errors, internalCode: '' });
+                        }}
                       />
+                      {errors.internalCode && (
+                        <p className="text-red-500 text-[10px] mt-1 ml-1">{errors.internalCode}</p>
+                      )}
                     </div>
                     <div className="space-y-2.5">
                       <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
@@ -192,28 +241,28 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
 
                 {/* Section: Roles */}
                 <div className="space-y-4 pt-4 border-t border-slate-800/50">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-widest">
-                      Vai trò đối tác
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer group">
+                  <div className="flex items-center justify-between p-4 bg-slate-900/30 rounded-2xl border border-slate-800/50">
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-300">VAI TRÒ ĐỐI TÁC</h4>
+                      {errors.typeTags && <p className="text-red-500 text-[10px] mt-1">{errors.typeTags}</p>}
+                    </div>
+                    <div className="flex items-center gap-3">
                       <div
-                        className={`w-10 h-5 rounded-full p-1 transition-all ${formData.isRelatedParty ? 'bg-emerald-500' : 'bg-slate-800'}`}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer transition-all ${
+                          formData.isRelatedParty ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-500'
+                        }`}
+                        onClick={() => setFormData({ ...formData, isRelatedParty: !formData.isRelatedParty })}
                       >
                         <div
-                          className={`w-3 h-3 bg-white rounded-full transition-all ${formData.isRelatedParty ? 'translate-x-5' : 'translate-x-0'}`}
-                        />
+                          className={`w-4 h-4 rounded-full border-2 transition-all flex items-center justify-center ${
+                            formData.isRelatedParty ? 'border-emerald-400' : 'border-slate-600'
+                          }`}
+                        >
+                          {formData.isRelatedParty && <div className="w-2 h-2 rounded-full bg-emerald-400" />}
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-wider">Bên Liên Quan</span>
                       </div>
-                      <input
-                        type="checkbox"
-                        className="hidden"
-                        checked={formData.isRelatedParty || false}
-                        onChange={(e) => setFormData({ ...formData, isRelatedParty: e.target.checked })}
-                      />
-                      <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-widest">
-                        Bên Liên Quan
-                      </span>
-                    </label>
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-3">
                     {['CUSTOMER', 'SUPPLIER', 'BANK', 'STATE', 'INTERNAL'].map((tag) => (
@@ -244,21 +293,22 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
             {activeTab === 'contact' && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2.5">
-                    <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
-                      Họ và Tên
-                    </label>
+                  <div className="space-y-2">
                     <Input
-                      placeholder="Nguyễn Văn Bình"
-                      className="w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white"
+                      placeholder="Họ Tên Người Liên Hệ"
                       value={formData.contacts?.[0]?.name || ''}
                       onChange={(e) => {
                         const current = formData.contacts || [];
                         const first = current[0] || { name: '', position: '', email: '', phone: '', isPrimary: true };
                         const updated = [{ ...first, name: e.target.value }, ...current.slice(1)];
                         setFormData({ ...formData, contacts: updated });
+                        if (errors.contactName) setErrors({ ...errors, contactName: '' });
                       }}
+                      className={`bg-slate-900/50 border-slate-700 h-12 rounded-xl focus:ring-emerald-500/20 ${
+                        errors.contactName ? 'border-red-500 focus:ring-red-500/20' : ''
+                      }`}
                     />
+                    {errors.contactName && <p className="text-red-500 text-xs mt-1 ml-1">{errors.contactName}</p>}
                   </div>
                   <div className="space-y-2.5">
                     <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
@@ -319,78 +369,121 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
 
             {activeTab === 'bank' && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-400 uppercase ml-1">Tên Ngân hàng</label>
-                    <select
-                      className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl p-4 text-white appearance-none focus:outline-none focus:border-emerald-500/50 transition-all"
-                      value={formData.bankAccounts?.[0]?.bankName || ''}
-                      onChange={(e) => {
-                        const current = formData.bankAccounts || [];
-                        const first = current[0] || { bankName: '', accountNumber: '', accountHolder: '', branch: '' };
-                        const updated = [{ ...first, bankName: e.target.value }, ...current.slice(1)];
-                        setFormData({ ...formData, bankAccounts: updated });
-                      }}
+                {errors.bank && <p className="text-red-500 text-xs">{errors.bank}</p>}
+                {(formData.bankAccounts || [{ bankName: '', accountNumber: '', accountHolder: '', branch: '' }]).map(
+                  (bank: any, index: number) => (
+                    <div
+                      key={index}
+                      className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-slate-900/30 rounded-2xl border border-slate-800/50"
                     >
-                      <option value="" disabled className="bg-slate-900">
-                        Chọn ngân hàng...
-                      </option>
-                      {VIETNAM_BANKS.map((bank) => (
-                        <option key={bank} value={bank} className="bg-slate-900 text-white">
-                          {bank}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-2.5">
-                    <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
-                      Số Tài Khoản
-                    </label>
-                    <Input
-                      placeholder="0071001234567"
-                      className="w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white font-mono"
-                      value={formData.bankAccounts?.[0]?.accountNumber || ''}
-                      onChange={(e) => {
-                        const current = formData.bankAccounts || [];
-                        const first = current[0] || { bankName: '', accountNumber: '', accountHolder: '', branch: '' };
-                        const updated = [{ ...first, accountNumber: e.target.value }, ...current.slice(1)];
-                        setFormData({ ...formData, bankAccounts: updated });
-                      }}
-                    />
-                  </div>
-                  <div className="space-y-2.5">
-                    <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
-                      Tên Chủ Tài Khoản
-                    </label>
-                    <Input
-                      placeholder="CONG TY CP BETA XAY DUNG"
-                      className="w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white uppercase"
-                      value={formData.bankAccounts?.[0]?.accountHolder || ''}
-                      onChange={(e) => {
-                        const current = formData.bankAccounts || [];
-                        const first = current[0] || { bankName: '', accountNumber: '', accountHolder: '', branch: '' };
-                        const updated = [{ ...first, accountHolder: e.target.value }, ...current.slice(1)];
-                        setFormData({ ...formData, bankAccounts: updated });
-                      }}
-                    />
-                  </div>
-                  <div className="space-y-2.5">
-                    <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
-                      Chi nhánh
-                    </label>
-                    <Input
-                      placeholder="Chi nhánh Quận 1"
-                      className="w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white"
-                      value={formData.bankAccounts?.[0]?.branch || ''}
-                      onChange={(e) => {
-                        const current = formData.bankAccounts || [];
-                        const first = current[0] || { bankName: '', accountNumber: '', accountHolder: '', branch: '' };
-                        const updated = [{ ...first, branch: e.target.value }, ...current.slice(1)];
-                        setFormData({ ...formData, bankAccounts: updated });
-                      }}
-                    />
-                  </div>
-                </div>
+                      <div className="space-y-2.5">
+                        <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
+                          Tên Ngân hàng *
+                        </label>
+                        <div className="relative">
+                          <select
+                            className={`w-full bg-slate-950/50 border border-slate-800 rounded-2xl p-4 text-white appearance-none focus:outline-none focus:border-emerald-500/50 transition-all ${
+                              errors.bankName && index === (formData.bankAccounts?.length || 1) - 1
+                                ? 'border-red-500/50'
+                                : ''
+                            }`}
+                            value={bank.bankName || ''}
+                            onChange={(e) => {
+                              const updated = [...(formData.bankAccounts || [])];
+                              if (updated.length === 0)
+                                updated.push({ bankName: '', accountNumber: '', accountHolder: '', branch: '' });
+                              updated[index] = { ...bank, bankName: e.target.value };
+                              setFormData({ ...formData, bankAccounts: updated });
+                              if (errors.bankName) setErrors({ ...errors, bankName: '' });
+                            }}
+                          >
+                            <option value="" disabled className="bg-slate-900 text-slate-500">
+                              Chọn ngân hàng...
+                            </option>
+                            {VIETNAM_BANKS.map((b) => (
+                              <option key={b} value={b} className="bg-slate-900 text-white">
+                                {b}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        {errors.bankName && index === (formData.bankAccounts?.length || 1) - 1 && (
+                          <p className="text-red-500 text-[10px] mt-1 ml-1">{errors.bankName}</p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2.5">
+                        <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
+                          Số Tài Khoản *
+                        </label>
+                        <Input
+                          placeholder="0071001234567"
+                          className={`w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white font-mono ${
+                            errors.accountNumber && index === (formData.bankAccounts?.length || 1) - 1
+                              ? 'border-red-500/50'
+                              : ''
+                          }`}
+                          value={bank.accountNumber || ''}
+                          onChange={(e) => {
+                            const updated = [...(formData.bankAccounts || [])];
+                            if (updated.length === 0)
+                              updated.push({ bankName: '', accountNumber: '', accountHolder: '', branch: '' });
+                            updated[index] = { ...bank, accountNumber: e.target.value };
+                            setFormData({ ...formData, bankAccounts: updated });
+                            if (errors.accountNumber) setErrors({ ...errors, accountNumber: '' });
+                          }}
+                        />
+                        {errors.accountNumber && index === (formData.bankAccounts?.length || 1) - 1 && (
+                          <p className="text-red-500 text-[10px] mt-1 ml-1">{errors.accountNumber}</p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2.5">
+                        <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
+                          Tên Chủ Tài Khoản *
+                        </label>
+                        <Input
+                          placeholder="CONG TY CP BETA XAY DUNG"
+                          className={`w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white uppercase ${
+                            errors.accountHolder && index === (formData.bankAccounts?.length || 1) - 1
+                              ? 'border-red-500/50'
+                              : ''
+                          }`}
+                          value={bank.accountHolder || ''}
+                          onChange={(e) => {
+                            const updated = [...(formData.bankAccounts || [])];
+                            if (updated.length === 0)
+                              updated.push({ bankName: '', accountNumber: '', accountHolder: '', branch: '' });
+                            updated[index] = { ...bank, accountHolder: e.target.value };
+                            setFormData({ ...formData, bankAccounts: updated });
+                            if (errors.accountHolder) setErrors({ ...errors, accountHolder: '' });
+                          }}
+                        />
+                        {errors.accountHolder && index === (formData.bankAccounts?.length || 1) - 1 && (
+                          <p className="text-red-500 text-[10px] mt-1 ml-1">{errors.accountHolder}</p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2.5">
+                        <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
+                          Chi nhánh
+                        </label>
+                        <Input
+                          placeholder="Chi nhánh Quận 1"
+                          className="w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white"
+                          value={bank.branch || ''}
+                          onChange={(e) => {
+                            const updated = [...(formData.bankAccounts || [])];
+                            if (updated.length === 0)
+                              updated.push({ bankName: '', accountNumber: '', accountHolder: '', branch: '' });
+                            updated[index] = { ...bank, branch: e.target.value };
+                            setFormData({ ...formData, bankAccounts: updated });
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ),
+                )}
               </div>
             )}
           </div>
