@@ -21,29 +21,31 @@ export const PartiesTable: React.FC<PartiesTableProps> = ({
   formatCurrency,
 }) => {
   return (
-    <div className="bg-slate-900/40 border border-slate-800/50 rounded-[2.5rem] overflow-hidden backdrop-blur-md shadow-2xl">
+    <div className="bg-white/40 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/50 rounded-[2.5rem] overflow-hidden backdrop-blur-md shadow-sm dark:shadow-2xl">
       <Table>
-        <TableHeader className="bg-slate-950/40">
-          <TableRow className="border-slate-800 hover:bg-transparent">
-            <TableHead className="pl-8 font-bold text-slate-300">Thông tin Đối Tác</TableHead>
-            <TableHead className="font-bold text-slate-300">Mã Số / MST</TableHead>
-            <TableHead className="font-bold text-slate-300">Vai Trò</TableHead>
-            <TableHead className="text-right font-bold text-slate-300">Hạn Mức</TableHead>
-            <TableHead className="font-bold text-slate-300">Trạng Thái</TableHead>
-            <TableHead className="font-bold text-slate-300 text-right pr-6">Thao tác</TableHead>
+        <TableHeader className="bg-slate-50/50 dark:bg-slate-950/40">
+          <TableRow className="border-slate-200 dark:border-slate-800 hover:bg-transparent">
+            <TableHead className="pl-8 font-bold text-slate-600 dark:text-slate-300">Thông tin Đối Tác</TableHead>
+            <TableHead className="font-bold text-slate-600 dark:text-slate-300">Mã Số / MST</TableHead>
+            <TableHead className="font-bold text-slate-600 dark:text-slate-300">Vai Trò</TableHead>
+            <TableHead className="text-right font-bold text-slate-600 dark:text-slate-300">Hạn Mức</TableHead>
+            <TableHead className="font-bold text-slate-600 dark:text-slate-300">Trạng Thái</TableHead>
+            <TableHead className="font-bold text-slate-600 dark:text-slate-300 text-right pr-6">Thao tác</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {parties.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={6} className="py-20 text-center">
-                <div className="flex flex-col items-center justify-center space-y-4">
-                  <div className="w-16 h-16 rounded-3xl bg-slate-800/50 flex items-center justify-center border border-slate-700/50 text-slate-500">
-                    <Search size={32} />
+            <TableRow className="hover:bg-transparent">
+              <TableCell colSpan={6} className="py-24 text-center">
+                <div className="flex flex-col items-center justify-center space-y-6">
+                  <div className="w-20 h-20 rounded-[2rem] bg-slate-100 dark:bg-slate-800/50 flex items-center justify-center border border-slate-200 dark:border-slate-700/50 text-slate-400 dark:text-slate-500 shadow-sm">
+                    <Search size={36} />
                   </div>
-                  <div>
-                    <p className="text-white font-bold text-lg">Không tìm thấy đối tác</p>
-                    <p className="text-slate-500 text-sm">Vui lòng thử lại với từ khóa hoặc bộ lọc khác.</p>
+                  <div className="space-y-2">
+                    <p className="text-slate-900 dark:text-white font-black text-xl">Không tìm thấy đối tác</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm max-w-[300px] mx-auto">
+                      Vui lòng thử lại với từ khóa hoặc bộ lọc khác để tìm thấy kết quả phù hợp.
+                    </p>
                   </div>
                 </div>
               </TableCell>
@@ -52,31 +54,35 @@ export const PartiesTable: React.FC<PartiesTableProps> = ({
             parties.map((party) => (
               <TableRow
                 key={party.id}
-                className="border-slate-800/50 hover:bg-emerald-500/[0.02] transition-all cursor-pointer group"
+                className="border-slate-100 dark:border-slate-800/50 hover:bg-emerald-500/[0.04] dark:hover:bg-emerald-500/[0.02] transition-all cursor-pointer group"
                 onClick={() => onRowClick(party)}
               >
                 <TableCell className="pl-8 py-5">
                   <div className="flex items-center gap-4">
-                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center border border-slate-700/50 group-hover:border-emerald-500/30 transition-all shadow-lg">
-                      <User size={20} className="text-slate-400 group-hover:text-emerald-400" />
+                    <div className="w-11 h-11 rounded-2xl bg-white dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700/50 group-hover:border-emerald-500/30 transition-all shadow-sm dark:shadow-lg">
+                      <User size={20} className="text-slate-400 group-hover:text-emerald-500 transition-colors" />
                     </div>
                     <div>
-                      <p className="font-bold text-white group-hover:text-emerald-400 transition-colors leading-tight">
+                      <p className="font-black text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors leading-tight">
                         {party.name}
                       </p>
                       {party.shortName && (
-                        <p className="text-xs text-slate-500 font-medium mt-0.5">{party.shortName}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5 uppercase tracking-tighter">
+                          {party.shortName}
+                        </p>
                       )}
                     </div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="space-y-1">
-                    <p className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                    <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 font-mono">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
                       {party.internalCode}
                     </p>
-                    <p className="text-xs text-slate-400 font-medium">{party.taxCode || 'Chưa cập nhật MST'}</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-tight">
+                      {party.taxCode || 'Chưa cập nhật MST'}
+                    </p>
                   </div>
                 </TableCell>
                 <TableCell>
@@ -84,7 +90,7 @@ export const PartiesTable: React.FC<PartiesTableProps> = ({
                     {party.typeTags.map((tag) => (
                       <span
                         key={tag}
-                        className="px-2 py-0.5 bg-slate-800 text-[10px] font-black rounded-lg text-slate-400 border border-slate-700 uppercase tracking-tight"
+                        className="px-2.5 py-0.5 bg-slate-100/80 dark:bg-slate-800 text-[9px] font-black rounded-lg text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 uppercase tracking-widest"
                       >
                         {tag}
                       </span>
@@ -92,16 +98,18 @@ export const PartiesTable: React.FC<PartiesTableProps> = ({
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
-                  <p className="font-mono text-[14px] font-bold text-white">{formatCurrency(party.creditLimit)}</p>
+                  <p className="font-mono text-[14px] font-black text-slate-900 dark:text-white">
+                    {formatCurrency(party.creditLimit)}
+                  </p>
                   {party.isRelatedParty && (
-                    <span className="text-[9px] font-black bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded uppercase mt-1 inline-block">
-                      Nội Bộ
+                    <span className="text-[9px] font-black bg-amber-500/10 text-amber-600 dark:text-amber-500 px-1.5 py-0.5 rounded uppercase mt-1 inline-block border border-amber-500/20">
+                      Bên Liên Quan
                     </span>
                   )}
                 </TableCell>
                 <TableCell>
                   <span
-                    className={`px-3 py-1 text-[11px] font-black rounded-full border ${getStatusStyle(party.status)}`}
+                    className={`px-3 py-1 text-[11px] font-black rounded-full border shadow-sm ${getStatusStyle(party.status)}`}
                   >
                     {getStatusLabel(party.status)}
                   </span>
@@ -110,10 +118,10 @@ export const PartiesTable: React.FC<PartiesTableProps> = ({
                   <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => onToggleStatus(party, party.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE')}
-                      className={`w-10 h-10 flex items-center justify-center rounded-xl border border-slate-800 transition-all ${
+                      className={`w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 transition-all shadow-sm dark:shadow-none ${
                         party.status === 'ACTIVE'
-                          ? 'text-slate-400 hover:text-amber-500 hover:border-amber-500/30 hover:bg-amber-500/5'
-                          : 'text-slate-400 hover:text-emerald-500 hover:border-emerald-500/30 hover:bg-emerald-500/5'
+                          ? 'text-slate-400 hover:text-amber-500 hover:border-amber-500/30 hover:bg-amber-500/10'
+                          : 'text-slate-400 hover:text-emerald-500 hover:border-emerald-500/30 hover:bg-emerald-500/10'
                       }`}
                       title="Đổi trạng thái"
                     >
@@ -121,7 +129,7 @@ export const PartiesTable: React.FC<PartiesTableProps> = ({
                     </button>
                     <button
                       onClick={() => onToggleStatus(party, 'BLACKLIST')}
-                      className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:border-rose-500/30 hover:bg-rose-500/5 border border-slate-800 rounded-xl transition-all"
+                      className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:border-rose-500/30 hover:bg-rose-500/10 border border-slate-200 dark:border-slate-800 rounded-xl transition-all shadow-sm dark:shadow-none"
                       title="Đưa vào Blacklist"
                     >
                       <ShieldAlert size={18} />

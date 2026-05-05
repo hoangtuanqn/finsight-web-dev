@@ -37,29 +37,29 @@ export const PartyDetailDrawer: React.FC<PartyDetailDrawerProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[100]"
+            className="fixed inset-0 bg-slate-950/40 dark:bg-slate-950/60 backdrop-blur-sm z-[100]"
           />
           <motion.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 bottom-0 w-full max-w-[500px] bg-slate-900 border-l border-slate-800 shadow-2xl z-[101] overflow-hidden flex flex-col"
+            className="fixed right-0 top-0 bottom-0 w-full max-w-[500px] bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl z-[101] overflow-hidden flex flex-col"
           >
             {/* Drawer Header */}
-            <div className="p-8 border-b border-slate-800 bg-slate-900/50 backdrop-blur-md">
+            <div className="p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur-md">
               <div className="flex justify-between items-start mb-6">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center border border-emerald-500/30">
-                  <Building2 size={28} className="text-emerald-400" />
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/10 dark:from-emerald-500/20 to-teal-500/10 dark:to-teal-500/20 flex items-center justify-center border border-emerald-500/20 dark:border-emerald-500/30">
+                  <Building2 size={28} className="text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <button
                   onClick={onClose}
-                  className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all"
+                  className="w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none"
                 >
                   <X size={20} />
                 </button>
               </div>
-              <h2 className="text-2xl font-black text-white mb-2">{party.name}</h2>
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">{party.name}</h2>
               <div className="flex items-center gap-3">
                 <span
                   className={`px-3 py-0.5 text-[10px] font-black rounded-full border ${getStatusStyle(party.status)}`}
@@ -67,8 +67,8 @@ export const PartyDetailDrawer: React.FC<PartyDetailDrawerProps> = ({
                   {getStatusLabel(party.status)}
                 </span>
                 {party.isRelatedParty && (
-                  <span className="px-3 py-0.5 text-[10px] font-black bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-full uppercase">
-                    Nội Bộ
+                  <span className="px-3 py-0.5 text-[10px] font-black bg-amber-500/10 text-amber-600 dark:text-amber-500 border border-amber-500/20 rounded-full uppercase">
+                    Bên Liên Quan
                   </span>
                 )}
               </div>
@@ -79,48 +79,58 @@ export const PartyDetailDrawer: React.FC<PartyDetailDrawerProps> = ({
               {/* Basic Info Section */}
               <div className="space-y-6">
                 <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                     Thông tin chi tiết
                   </span>
-                  <div className="h-px flex-1 bg-slate-800" />
+                  <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800" />
                 </div>
                 <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-1">
-                    <p className="text-[11px] font-bold text-slate-500 uppercase">Mã số nội bộ</p>
-                    <p className="text-sm font-bold text-emerald-400 font-mono">{party.internalCode}</p>
+                    <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase">Mã số nội bộ</p>
+                    <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                      {party.internalCode}
+                    </p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[11px] font-bold text-slate-500 uppercase">Mã số thuế</p>
-                    <p className="text-sm font-bold text-white font-mono">{party.taxCode || 'N/A'}</p>
+                    <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase">Mã số thuế</p>
+                    <p className="text-sm font-black text-slate-900 dark:text-white font-mono">
+                      {party.taxCode || 'N/A'}
+                    </p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[11px] font-bold text-slate-500 uppercase">Hạn mức nợ</p>
-                    <p className="text-sm font-bold text-white font-mono">{formatCurrency(party.creditLimit)}</p>
+                    <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase">Hạn mức nợ</p>
+                    <p className="text-sm font-black text-slate-900 dark:text-white font-mono">
+                      {formatCurrency(party.creditLimit)}
+                    </p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[11px] font-bold text-slate-500 uppercase">Ngày gia nhập</p>
-                    <p className="text-sm font-bold text-white">
+                    <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase">Ngày gia nhập</p>
+                    <p className="text-sm font-black text-slate-900 dark:text-white">
                       {new Date(party.createdAt).toLocaleDateString('vi-VN')}
                     </p>
                   </div>
                 </div>
 
-                <div className="p-4 bg-slate-950/50 rounded-2xl border border-slate-800">
+                <div className="p-4 bg-slate-50/50 dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 bg-emerald-500/10 rounded-lg text-emerald-400">
+                    <div className="p-2 bg-emerald-500/10 dark:bg-emerald-500/10 rounded-lg text-emerald-600 dark:text-emerald-400">
                       <ShieldCheck size={16} />
                     </div>
-                    <p className="text-[11px] font-black text-slate-300 uppercase tracking-widest">
+                    <p className="text-[11px] font-black text-slate-900 dark:text-slate-300 uppercase tracking-widest">
                       Người phụ trách nội bộ
                     </p>
                   </div>
                   <div className="flex items-center gap-3 pl-1">
-                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-bold text-emerald-400 border border-slate-700">
+                    <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center text-[10px] font-black text-emerald-600 dark:text-emerald-400 border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none">
                       {party.personInCharge?.fullName?.charAt(0) || 'N'}
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-white">{party.personInCharge?.fullName || 'Chưa gán'}</p>
-                      <p className="text-[10px] text-slate-500 font-medium">{party.personInCharge?.email || 'N/A'}</p>
+                      <p className="text-xs font-black text-slate-900 dark:text-white">
+                        {party.personInCharge?.fullName || 'Chưa gán'}
+                      </p>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                        {party.personInCharge?.email || 'N/A'}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -130,42 +140,42 @@ export const PartyDetailDrawer: React.FC<PartyDetailDrawerProps> = ({
               {party.contacts && party.contacts.length > 0 && (
                 <div className="space-y-6">
                   <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                       Người liên hệ
                     </span>
-                    <div className="h-px flex-1 bg-slate-800" />
+                    <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800" />
                   </div>
                   <div className="space-y-4">
                     {party.contacts.map((contact: any, idx: number) => (
                       <div
                         key={idx}
-                        className="p-5 bg-slate-950/30 rounded-[1.5rem] border border-slate-800/50 relative overflow-hidden group"
+                        className="p-5 bg-slate-50/50 dark:bg-slate-950/30 rounded-[1.5rem] border border-slate-100 dark:border-slate-800/50 relative overflow-hidden group shadow-sm dark:shadow-none"
                       >
                         <div className="absolute top-0 right-0 p-3">
                           <User
                             size={16}
-                            className="text-slate-800 group-hover:text-emerald-500/20 transition-colors"
+                            className="text-slate-200 dark:text-slate-800 group-hover:text-emerald-500/20 transition-colors"
                           />
                         </div>
-                        <p className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                        <p className="text-sm font-black text-slate-900 dark:text-white mb-3 flex items-center gap-2">
                           {contact.name}
                           {contact.isPrimary && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase">
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 uppercase font-black">
                               Chính
                             </span>
                           )}
                         </p>
                         <div className="space-y-2">
                           {contact.position && (
-                            <div className="flex items-center gap-2 text-xs text-slate-400">
-                              <Building2 size={12} className="text-slate-600" /> {contact.position}
+                            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                              <Building2 size={12} className="text-slate-400 dark:text-slate-600" /> {contact.position}
                             </div>
                           )}
-                          <div className="flex items-center gap-2 text-xs text-slate-400">
-                            <Mail size={12} className="text-slate-600" /> {contact.email || 'N/A'}
+                          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                            <Mail size={12} className="text-slate-400 dark:text-slate-600" /> {contact.email || 'N/A'}
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-slate-400">
-                            <Phone size={12} className="text-slate-600" /> {contact.phone || 'N/A'}
+                          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                            <Phone size={12} className="text-slate-400 dark:text-slate-600" /> {contact.phone || 'N/A'}
                           </div>
                         </div>
                       </div>
@@ -178,42 +188,54 @@ export const PartyDetailDrawer: React.FC<PartyDetailDrawerProps> = ({
               {party.bankAccounts && party.bankAccounts.length > 0 && (
                 <div className="space-y-6">
                   <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                       Thông tin ngân hàng
                     </span>
-                    <div className="h-px flex-1 bg-slate-800" />
+                    <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800" />
                   </div>
                   <div className="space-y-4">
                     {party.bankAccounts.map((bank: any, idx: number) => (
                       <div
                         key={idx}
-                        className="p-5 bg-slate-950/30 rounded-[1.5rem] border border-slate-800/50 relative overflow-hidden group"
+                        className="p-5 bg-slate-50/50 dark:bg-slate-950/30 rounded-[1.5rem] border border-slate-100 dark:border-slate-800/50 relative overflow-hidden group shadow-sm dark:shadow-none"
                       >
                         <div className="absolute top-0 right-0 p-3">
                           <Banknote
                             size={16}
-                            className="text-slate-800 group-hover:text-emerald-500/20 transition-colors"
+                            className="text-slate-200 dark:text-slate-800 group-hover:text-emerald-500/20 transition-colors"
                           />
                         </div>
                         <div className="space-y-3">
                           <div>
-                            <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Ngân hàng</p>
-                            <p className="text-sm font-bold text-white">{bank.bankName}</p>
+                            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">
+                              Ngân hàng
+                            </p>
+                            <p className="text-sm font-black text-slate-900 dark:text-white">{bank.bankName}</p>
                           </div>
                           <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Số tài khoản</p>
-                              <p className="text-sm font-bold text-emerald-400 font-mono">{bank.accountNumber}</p>
+                              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">
+                                Số tài khoản
+                              </p>
+                              <p className="text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                                {bank.accountNumber}
+                              </p>
                             </div>
                             <div>
-                              <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Chủ tài khoản</p>
-                              <p className="text-xs font-bold text-white uppercase">{bank.accountHolder}</p>
+                              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">
+                                Chủ tài khoản
+                              </p>
+                              <p className="text-xs font-black text-slate-900 dark:text-white uppercase">
+                                {bank.accountHolder}
+                              </p>
                             </div>
                           </div>
                           {bank.branch && (
                             <div>
-                              <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Chi nhánh</p>
-                              <p className="text-xs text-slate-400">{bank.branch}</p>
+                              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mb-1">
+                                Chi nhánh
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{bank.branch}</p>
                             </div>
                           )}
                         </div>
@@ -226,22 +248,22 @@ export const PartyDetailDrawer: React.FC<PartyDetailDrawerProps> = ({
               {/* Activity Log Section */}
               <div className="space-y-6">
                 <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                     Lịch sử hoạt động
                   </span>
-                  <div className="h-px flex-1 bg-slate-800" />
+                  <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800" />
                 </div>
                 <div className="space-y-6 pl-2">
                   {auditLogs.length > 0 ? (
                     auditLogs.map((log, idx) => (
                       <div
                         key={log.id}
-                        className="relative pl-6 border-l border-slate-800 last:border-transparent pb-6 last:pb-0"
+                        className="relative pl-6 border-l border-slate-100 dark:border-slate-800 last:border-transparent pb-6 last:pb-0"
                       >
-                        <div className="absolute left-[-5px] top-0 w-[9px] h-[9px] rounded-full bg-slate-800 border border-slate-700" />
+                        <div className="absolute left-[-5px] top-0 w-[9px] h-[9px] rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" />
                         <div className="space-y-1">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-slate-300">
+                            <span className="text-xs font-black text-slate-700 dark:text-slate-300">
                               {log.action === 'CREATE'
                                 ? 'Khởi tạo đối tác'
                                 : log.action === 'UPDATE'
@@ -250,15 +272,18 @@ export const PartyDetailDrawer: React.FC<PartyDetailDrawerProps> = ({
                                     ? `Thay đổi trạng thái: ${getStatusLabel(log.newValues?.status)}`
                                     : log.action}
                             </span>
-                            <span className="text-[10px] font-medium text-slate-500">
+                            <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">
                               {new Date(log.createdAt).toLocaleDateString('vi-VN')}
                             </span>
                           </div>
-                          <p className="text-xs text-slate-400 leading-relaxed">
-                            Thực hiện bởi <span className="text-emerald-400 font-bold">{log.user?.fullName}</span>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                            Thực hiện bởi{' '}
+                            <span className="text-emerald-600 dark:text-emerald-400 font-black">
+                              {log.user?.fullName}
+                            </span>
                           </p>
                           {log.reason && (
-                            <div className="mt-2 p-2 bg-slate-950 rounded-lg border border-slate-800 text-[11px] text-amber-500/80 italic">
+                            <div className="mt-2 p-2 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-100 dark:border-slate-800 text-[11px] text-amber-600 dark:text-amber-500/80 italic font-medium">
                               Lý do: {log.reason}
                             </div>
                           )}
@@ -266,18 +291,18 @@ export const PartyDetailDrawer: React.FC<PartyDetailDrawerProps> = ({
                       </div>
                     ))
                   ) : (
-                    <p className="text-xs text-slate-500 italic">Chưa có lịch sử ghi lại</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 italic">Chưa có lịch sử ghi lại</p>
                   )}
                 </div>
               </div>
             </div>
 
             {/* Drawer Footer Actions */}
-            <div className="p-6 bg-slate-950/50 border-t border-slate-800 flex items-center gap-3">
+            <div className="p-6 bg-slate-50/50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-slate-800 flex items-center gap-3">
               {party.status === 'ACTIVE' && (
                 <Button
                   appName="web-enterprise"
-                  className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-sm"
+                  className="px-6 py-2.5 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-md dark:shadow-none"
                   onClick={onEdit}
                 >
                   Chỉnh Sửa
@@ -287,7 +312,7 @@ export const PartyDetailDrawer: React.FC<PartyDetailDrawerProps> = ({
               {party.status === 'BLACKLIST' ? (
                 <Button
                   appName="web-enterprise"
-                  className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm"
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition-all"
                   onClick={() => onToggleStatus('ACTIVE')}
                 >
                   Gỡ khỏi Blacklist
@@ -296,14 +321,14 @@ export const PartyDetailDrawer: React.FC<PartyDetailDrawerProps> = ({
                 <>
                   <Button
                     appName="web-enterprise"
-                    className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-sm"
+                    className="px-6 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-xl font-black text-xs uppercase tracking-widest shadow-sm dark:shadow-none transition-all"
                     onClick={() => onToggleStatus(party.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE')}
                   >
                     {party.status === 'ACTIVE' ? 'Ngừng hoạt động' : 'Kích hoạt lại'}
                   </Button>
                   <Button
                     appName="web-enterprise"
-                    className="px-6 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-sm"
+                    className="px-6 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-rose-500/20 transition-all ml-auto"
                     onClick={() => onToggleStatus('BLACKLIST')}
                   >
                     Blacklist
