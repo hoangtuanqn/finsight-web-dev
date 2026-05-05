@@ -109,7 +109,7 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
     >
       <div className="flex flex-col h-[60vh] -m-6">
         {/* Tabs Navigation */}
-        <div className="flex items-center gap-1 p-3 bg-slate-950/50 border-b border-slate-800/50">
+        <div className="flex items-center gap-1 p-3 bg-slate-50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-slate-800/50">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -120,11 +120,14 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-2xl text-xs font-bold transition-all ${
                   isActive
-                    ? 'bg-emerald-500/10 text-emerald-400 shadow-[inset_0_0_20px_rgba(16,185,129,0.05)]'
-                    : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/30'
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-sm dark:shadow-[inset_0_0_20px_rgba(16,185,129,0.05)] ring-1 ring-emerald-500/20'
+                    : 'text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-300 hover:bg-white dark:hover:bg-slate-800/30'
                 }`}
               >
-                <Icon size={16} className={isActive ? 'text-emerald-400' : 'text-slate-600'} />
+                <Icon
+                  size={16}
+                  className={isActive ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-600'}
+                />
                 {tab.label}
                 {isActive && <div className="w-1 h-1 rounded-full bg-emerald-500 ml-1 animate-pulse" />}
               </button>
@@ -140,12 +143,12 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2.5">
-                      <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
+                      <label className="text-[11px] font-bold text-slate-400 dark:text-slate-400 ml-1 uppercase tracking-wider">
                         Tên Pháp Nhân *
                       </label>
                       <Input
                         placeholder="Công ty TNHH FinSight"
-                        className={`w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none ${
+                        className={`w-full bg-slate-50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-slate-900 dark:text-white focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none ${
                           errors.name ? 'border-red-500/50 focus:border-red-500/50 focus:ring-red-500/5' : ''
                         }`}
                         value={formData.name || ''}
@@ -157,23 +160,23 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                       {errors.name && <p className="text-red-500 text-[10px] mt-1 ml-1">{errors.name}</p>}
                     </div>
                     <div className="space-y-2.5">
-                      <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
+                      <label className="text-[11px] font-bold text-slate-400 dark:text-slate-400 ml-1 uppercase tracking-wider">
                         Tên Viết Tắt
                       </label>
                       <Input
                         placeholder="Ví dụ: FinSight Solutions"
-                        className="w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none"
+                        className="w-full bg-slate-50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-slate-900 dark:text-white focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none"
                         value={formData.shortName || ''}
                         onChange={(e) => setFormData({ ...formData, shortName: e.target.value })}
                       />
                     </div>
                     <div className="space-y-2.5">
-                      <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
+                      <label className="text-[11px] font-bold text-slate-400 dark:text-slate-400 ml-1 uppercase tracking-wider">
                         Mã Số Thuế
                       </label>
                       <Input
                         placeholder="0123456789"
-                        className="w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none font-mono"
+                        className="w-full bg-slate-50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-slate-900 dark:text-white focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none font-mono"
                         value={formData.taxCode || ''}
                         onChange={(e) => setFormData({ ...formData, taxCode: e.target.value })}
                       />
@@ -182,12 +185,12 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2.5">
-                      <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
+                      <label className="text-[11px] font-bold text-slate-400 dark:text-slate-400 ml-1 uppercase tracking-wider">
                         Mã Nội Bộ *
                       </label>
                       <Input
                         placeholder="C001"
-                        className={`w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none ${
+                        className={`w-full bg-slate-50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-slate-900 dark:text-white focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none ${
                           errors.internalCode ? 'border-red-500/50 focus:border-red-500/50 focus:ring-red-500/5' : ''
                         }`}
                         value={formData.internalCode || ''}
@@ -201,37 +204,37 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                       )}
                     </div>
                     <div className="space-y-2.5">
-                      <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
+                      <label className="text-[11px] font-bold text-slate-400 dark:text-slate-400 ml-1 uppercase tracking-wider">
                         Hạn Mức Tín Dụng (VND)
                       </label>
                       <Input
                         type="number"
                         placeholder="500,000,000"
-                        className="w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none font-mono"
+                        className="w-full bg-slate-50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-slate-900 dark:text-white focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none font-mono"
                         value={formData.creditLimit}
                         onChange={(e) => setFormData({ ...formData, creditLimit: Number(e.target.value) })}
                       />
                     </div>
                     <div className="space-y-2.5">
-                      <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
+                      <label className="text-[11px] font-bold text-slate-400 dark:text-slate-400 ml-1 uppercase tracking-wider">
                         Người Phụ Trách
                       </label>
                       <div className="relative">
                         <select
-                          className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl p-4 text-white focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none appearance-none cursor-pointer"
+                          className="w-full bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-slate-900 dark:text-white focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none appearance-none cursor-pointer"
                           value={formData.personInChargeId || ''}
                           onChange={(e) => setFormData({ ...formData, personInChargeId: e.target.value })}
                         >
-                          <option value="" className="bg-slate-900">
+                          <option value="" className="bg-white dark:bg-slate-900">
                             Chọn nhân viên
                           </option>
                           {internalUsers.map((u) => (
-                            <option key={u.id} value={u.id} className="bg-slate-900">
+                            <option key={u.id} value={u.id} className="bg-white dark:bg-slate-900">
                               {u.fullName} ({u.roleTitle || 'Nhân viên'})
                             </option>
                           ))}
                         </select>
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-slate-500">
                           <User size={16} />
                         </div>
                       </div>
@@ -240,25 +243,31 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                 </div>
 
                 {/* Section: Roles */}
-                <div className="space-y-4 pt-4 border-t border-slate-800/50">
-                  <div className="flex items-center justify-between p-4 bg-slate-900/30 rounded-2xl border border-slate-800/50">
+                <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800/50">
+                  <div className="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-slate-800/50">
                     <div>
-                      <h4 className="text-sm font-bold text-slate-300">VAI TRÒ ĐỐI TÁC</h4>
+                      <h4 className="text-sm font-black text-slate-900 dark:text-slate-300">VAI TRÒ ĐỐI TÁC</h4>
                       {errors.typeTags && <p className="text-red-500 text-[10px] mt-1">{errors.typeTags}</p>}
                     </div>
                     <div className="flex items-center gap-3">
                       <div
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer transition-all ${
-                          formData.isRelatedParty ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-500'
+                          formData.isRelatedParty
+                            ? 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 ring-1 ring-emerald-500/20'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500'
                         }`}
                         onClick={() => setFormData({ ...formData, isRelatedParty: !formData.isRelatedParty })}
                       >
                         <div
                           className={`w-4 h-4 rounded-full border-2 transition-all flex items-center justify-center ${
-                            formData.isRelatedParty ? 'border-emerald-400' : 'border-slate-600'
+                            formData.isRelatedParty
+                              ? 'border-emerald-500 dark:border-emerald-400'
+                              : 'border-slate-300 dark:border-slate-600'
                           }`}
                         >
-                          {formData.isRelatedParty && <div className="w-2 h-2 rounded-full bg-emerald-400" />}
+                          {formData.isRelatedParty && (
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400" />
+                          )}
                         </div>
                         <span className="text-[10px] font-black uppercase tracking-wider">Bên Liên Quan</span>
                       </div>
@@ -278,8 +287,8 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                         }}
                         className={`px-6 py-2.5 rounded-xl border text-xs font-bold transition-all ${
                           formData.typeTags?.includes(tag)
-                            ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400 shadow-[0_0_15px_-3px_rgba(16,185,129,0.3)]'
-                            : 'bg-slate-950/30 border-slate-800 text-slate-500 hover:border-slate-700'
+                            ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-600 dark:text-emerald-400 shadow-sm dark:shadow-[0_0_15px_-3px_rgba(16,185,129,0.3)] ring-1 ring-emerald-500/20'
+                            : 'bg-white dark:bg-slate-950/30 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 hover:border-slate-300 dark:hover:border-slate-700 hover:text-slate-900 dark:hover:text-slate-300 shadow-sm dark:shadow-none'
                         }`}
                       >
                         {tag}
@@ -294,8 +303,11 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
+                    <label className="text-[11px] font-bold text-slate-400 dark:text-slate-400 ml-1 uppercase tracking-wider">
+                      Họ Tên Người Liên Hệ *
+                    </label>
                     <Input
-                      placeholder="Họ Tên Người Liên Hệ"
+                      placeholder="Nguyễn Văn A"
                       value={formData.contacts?.[0]?.name || ''}
                       onChange={(e) => {
                         const current = formData.contacts || [];
@@ -304,19 +316,19 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                         setFormData({ ...formData, contacts: updated });
                         if (errors.contactName) setErrors({ ...errors, contactName: '' });
                       }}
-                      className={`bg-slate-900/50 border-slate-700 h-12 rounded-xl focus:ring-emerald-500/20 ${
+                      className={`bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 h-12 rounded-xl text-slate-900 dark:text-white focus:ring-emerald-500/20 ${
                         errors.contactName ? 'border-red-500 focus:ring-red-500/20' : ''
                       }`}
                     />
                     {errors.contactName && <p className="text-red-500 text-xs mt-1 ml-1">{errors.contactName}</p>}
                   </div>
                   <div className="space-y-2.5">
-                    <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
+                    <label className="text-[11px] font-bold text-slate-400 dark:text-slate-400 ml-1 uppercase tracking-wider">
                       Chức vụ
                     </label>
                     <Input
                       placeholder="Giám đốc Tài chính"
-                      className="w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white"
+                      className="w-full bg-slate-50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-slate-900 dark:text-white focus:border-emerald-500/50 transition-all outline-none"
                       value={formData.contacts?.[0]?.position || ''}
                       onChange={(e) => {
                         const current = formData.contacts || [];
@@ -327,12 +339,12 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                     />
                   </div>
                   <div className="space-y-2.5">
-                    <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
+                    <label className="text-[11px] font-bold text-slate-400 dark:text-slate-400 ml-1 uppercase tracking-wider">
                       Số điện thoại
                     </label>
                     <Input
                       placeholder="091 234 5678"
-                      className="w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white"
+                      className="w-full bg-slate-50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-slate-900 dark:text-white focus:border-emerald-500/50 transition-all outline-none"
                       value={formData.contacts?.[0]?.phone || ''}
                       onChange={(e) => {
                         const current = formData.contacts || [];
@@ -343,11 +355,13 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                     />
                   </div>
                   <div className="space-y-2.5">
-                    <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">Email</label>
+                    <label className="text-[11px] font-bold text-slate-400 dark:text-slate-400 ml-1 uppercase tracking-wider">
+                      Email
+                    </label>
                     <Input
                       type="email"
                       placeholder="binh.nguyen@beta-xd.vn"
-                      className="w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white"
+                      className="w-full bg-slate-50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-slate-900 dark:text-white focus:border-emerald-500/50 transition-all outline-none"
                       value={formData.contacts?.[0]?.email || ''}
                       onChange={(e) => {
                         const current = formData.contacts || [];
@@ -358,8 +372,8 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                     />
                   </div>
                 </div>
-                <div className="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
-                  <p className="text-[10px] text-emerald-400 leading-relaxed font-medium">
+                <div className="p-4 bg-emerald-500/5 dark:bg-emerald-500/5 border border-emerald-500/10 dark:border-emerald-500/10 rounded-2xl">
+                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 leading-relaxed font-black">
                     Lưu ý: Đây là thông tin liên hệ chính sẽ được sử dụng để gửi các thông báo nhắc nợ tự động qua
                     Email/Zalo.
                   </p>
@@ -374,15 +388,15 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                   (bank: any, index: number) => (
                     <div
                       key={index}
-                      className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-slate-900/30 rounded-2xl border border-slate-800/50"
+                      className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-slate-50/50 dark:bg-slate-900/30 rounded-2xl border border-slate-100 dark:border-slate-800/50"
                     >
                       <div className="space-y-2.5">
-                        <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
+                        <label className="text-[11px] font-bold text-slate-400 dark:text-slate-400 ml-1 uppercase tracking-wider">
                           Tên Ngân hàng *
                         </label>
                         <div className="relative">
                           <select
-                            className={`w-full bg-slate-950/50 border border-slate-800 rounded-2xl p-4 text-white appearance-none focus:outline-none focus:border-emerald-500/50 transition-all ${
+                            className={`w-full bg-white dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-slate-900 dark:text-white appearance-none focus:outline-none focus:border-emerald-500/50 transition-all ${
                               errors.bankName && index === (formData.bankAccounts?.length || 1) - 1
                                 ? 'border-red-500/50'
                                 : ''
@@ -397,11 +411,19 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                               if (errors.bankName) setErrors({ ...errors, bankName: '' });
                             }}
                           >
-                            <option value="" disabled className="bg-slate-900 text-slate-500">
+                            <option
+                              value=""
+                              disabled
+                              className="bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500"
+                            >
                               Chọn ngân hàng...
                             </option>
                             {VIETNAM_BANKS.map((b) => (
-                              <option key={b} value={b} className="bg-slate-900 text-white">
+                              <option
+                                key={b}
+                                value={b}
+                                className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                              >
                                 {b}
                               </option>
                             ))}
@@ -413,12 +435,12 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                       </div>
 
                       <div className="space-y-2.5">
-                        <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
+                        <label className="text-[11px] font-bold text-slate-400 dark:text-slate-400 ml-1 uppercase tracking-wider">
                           Số Tài Khoản *
                         </label>
                         <Input
                           placeholder="0071001234567"
-                          className={`w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white font-mono ${
+                          className={`w-full bg-white dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-slate-900 dark:text-white font-mono ${
                             errors.accountNumber && index === (formData.bankAccounts?.length || 1) - 1
                               ? 'border-red-500/50'
                               : ''
@@ -439,12 +461,12 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                       </div>
 
                       <div className="space-y-2.5">
-                        <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
+                        <label className="text-[11px] font-bold text-slate-400 dark:text-slate-400 ml-1 uppercase tracking-wider">
                           Tên Chủ Tài Khoản *
                         </label>
                         <Input
                           placeholder="CONG TY CP BETA XAY DUNG"
-                          className={`w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white uppercase ${
+                          className={`w-full bg-white dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-slate-900 dark:text-white uppercase ${
                             errors.accountHolder && index === (formData.bankAccounts?.length || 1) - 1
                               ? 'border-red-500/50'
                               : ''
@@ -465,12 +487,12 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                       </div>
 
                       <div className="space-y-2.5">
-                        <label className="text-[11px] font-bold text-slate-400 ml-1 uppercase tracking-wider">
+                        <label className="text-[11px] font-bold text-slate-400 dark:text-slate-400 ml-1 uppercase tracking-wider">
                           Chi nhánh
                         </label>
                         <Input
                           placeholder="Chi nhánh Quận 1"
-                          className="w-full bg-slate-950/50 border-slate-800 rounded-2xl p-4 text-white"
+                          className="w-full bg-white dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-slate-900 dark:text-white focus:border-emerald-500/50 transition-all outline-none"
                           value={bank.branch || ''}
                           onChange={(e) => {
                             const updated = [...(formData.bankAccounts || [])];
@@ -489,13 +511,13 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between gap-4 p-8 border-t border-slate-800/50 bg-slate-950/20">
+          <div className="flex items-center justify-between gap-4 p-8 border-t border-slate-100 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-950/20">
             <div className="flex gap-2">
               {activeTab !== 'general' && (
                 <Button
                   appName="web-enterprise"
                   type="button"
-                  className="px-6 py-2.5 bg-slate-800 text-slate-300 font-bold rounded-xl hover:bg-slate-700 transition-colors"
+                  className="px-6 py-2.5 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-none"
                   onClick={() => {
                     if (activeTab === 'bank') setActiveTab('contact');
                     else if (activeTab === 'contact') setActiveTab('general');
@@ -510,7 +532,7 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
               <Button
                 appName="web-enterprise"
                 type="button"
-                className="px-6 py-2.5 text-slate-400 font-bold hover:text-white transition-colors"
+                className="px-6 py-2.5 text-slate-400 dark:text-slate-400 font-bold hover:text-slate-900 dark:hover:text-white transition-colors"
                 onClick={(e) => {
                   e.preventDefault();
                   onClose();
@@ -522,10 +544,10 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
               <Button
                 appName="web-enterprise"
                 type={activeTab === 'bank' ? 'submit' : 'button'}
-                className={`px-8 py-2.5 font-bold rounded-xl shadow-lg transition-all ${
+                className={`px-8 py-2.5 font-black rounded-xl shadow-lg transition-all uppercase tracking-widest text-xs ${
                   activeTab === 'bank'
                     ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/20'
-                    : 'bg-slate-800 text-white border border-slate-700 hover:bg-slate-700'
+                    : 'bg-slate-900 dark:bg-slate-800 text-white border border-slate-800 dark:border-slate-700 hover:bg-slate-800 dark:hover:bg-slate-700'
                 }`}
                 onClick={(e) => {
                   if (activeTab !== 'bank') {
