@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi.js';
+import relativeTime from 'dayjs/plugin/relativeTime';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertCircle,
@@ -15,6 +16,7 @@ import {
 import { useEffect, useState } from 'react';
 import { useNotifications } from '../hooks/useNotifications';
 
+dayjs.extend(relativeTime);
 dayjs.locale('vi');
 
 const CATEGORY_MAP: any = {
