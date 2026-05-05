@@ -1,5 +1,9 @@
 import { Router } from 'express';
-import { calculateSimulation, commitPlan } from '../../controllers/enterprise/repaymentPlanner.controller';
+import {
+  calculateSimulation,
+  commitPlan,
+  getExecutionReport,
+} from '../../controllers/enterprise/repaymentPlanner.controller';
 import { authenticate } from '../../middleware/auth.middleware';
 
 const router = Router();
@@ -13,10 +17,12 @@ router.use(authenticate);
  */
 router.post('/simulate', calculateSimulation);
 
-/**
- * @route POST /api/v1/enterprise/repayment-planner/commit
- * @desc Save a simulation result as a committed plan
- */
 router.post('/commit', commitPlan);
+
+/**
+ * @route GET /api/v1/enterprise/repayment-planner/execution-report
+ * @desc Get a report comparing committed plan vs actual payments
+ */
+router.get('/execution-report', getExecutionReport);
 
 export default router;
