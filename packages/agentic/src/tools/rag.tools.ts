@@ -7,6 +7,7 @@ import { searchKnowledge } from '../rag/retriever';
  * `similarity = 1 - cosine_distance` — higher is more relevant.
  * Chunks below this threshold are considered unrelated to the knowledge query.
  */
+// Chấp nhận mức 0.7
 export const RAG_SIMILARITY_THRESHOLD = 0.7;
 
 /**
@@ -34,7 +35,7 @@ export type RagToolResult = RagRelevantResult | RagNoRelevantResult;
 export const knowledgeSearchTool = tool(
   async ({ query, category }) => {
     try {
-      const rawResults = await searchKnowledge(query, 3, category || null);
+      const rawResults = await searchKnowledge(query, 5, category || null);
 
       if (rawResults.length === 0) {
         const noResult: RagNoRelevantResult = {
