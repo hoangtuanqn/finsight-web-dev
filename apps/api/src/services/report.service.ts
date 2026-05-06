@@ -15,7 +15,7 @@ import {
 const require = createRequire(import.meta.url);
 const ExcelJS = require('exceljs');
 
-const LOGO_URL = 'https://i.ibb.co/84xLmWTK/LOGO.png';
+const LOGO_URL = 'https://i.ibb.co/ksGVB17M/Light-Mode.png';
 const LOGO_PATH = path.resolve(process.cwd(), '..', 'LOGO.png');
 
 const __filename = fileURLToPath(import.meta.url);
