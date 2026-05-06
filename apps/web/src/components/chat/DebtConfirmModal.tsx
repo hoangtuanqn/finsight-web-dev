@@ -5,12 +5,19 @@ import { createPortal } from 'react-dom';
 import { debtAPI } from '../../api/index';
 import FormattedInput from '../../components/common/FormattedInput';
 
-export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
+interface DebtConfirmModalProps {
+  data: unknown;
+  onConfirm?: () => void;
+  onDismiss: () => void;
+  onFeedback?: (status: 'confirmed' | 'cancelled' | 'failed', reason?: string) => void;
+}
+
+export default function DebtConfirmModal({ data, onConfirm, onDismiss, onFeedback }: DebtConfirmModalProps) {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [showFees, setShowFees] = useState(false);
 
-  // Parse incoming data
+  // Normalize data: support both new DebtConfirmationData shape and old parsedData shape
   const parsed =
     typeof data === 'string'
       ? (() => {
@@ -21,9 +28,20 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
           }
         })()
       : data;
-  const debtInfo = parsed?.parsedData || parsed || {};
+  const src: Record<string, any> = (parsed as any)?.parsedData ?? parsed ?? {};
 
-  // Editable form state - initialized from AI-parsed data
+  // Map new field names (DebtConfirmationData) → internal form names
+  const aiName = src.loanName ?? src.name ?? '';
+  const aiAmount = src.principalAmount ?? src.originalAmount ?? null;
+  const aiApr = src.interestRateAPR ?? src.apr ?? null;
+  const aiTerm = src.termMonths ?? null; // Task 4.3: NO default 12
+  const aiBalance = src.balance ?? null;
+  const aiMinPayment = src.minPayment ?? null;
+  const aiStartDate = src.borrowDate ?? src.startDate ?? ''; // Task 4.3: NO default today
+  const aiDueDay = src.dueDay ?? ''; // Task 4.3: NO default 15
+  const aiRateType = src.rateType ?? 'REDUCING';
+  const aiNotes = src.notes ?? '';
+
   const [form, setForm] = useState({
     name: '',
     originalAmount: '',
@@ -38,35 +56,44 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
     feeManagement: '0',
     rateType: 'REDUCING',
     notes: '',
+    _manualBalance: false,
+    _manualMinPayment: false,
   });
 
-  // Initialize form from debtInfo on mount
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
-    const amt = debtInfo.originalAmount || 0;
-    const term = debtInfo.termMonths || 12;
+    const amt = aiAmount != null ? String(aiAmount) : '';
+    const term = aiTerm != null ? String(aiTerm) : '';
+
+    // Auto-calc minPayment only when AI provided both fields
+    let autoMin = '';
+    if (aiMinPayment != null) {
+      autoMin = String(aiMinPayment);
+    } else if (aiAmount && aiTerm) {
+      autoMin = String(Math.round(aiAmount / aiTerm));
+    }
 
     setForm({
-      name: debtInfo.name || '',
-      originalAmount: amt ? String(amt) : '',
-      balance: debtInfo.balance ? String(debtInfo.balance) : amt ? String(amt) : '',
-      apr: debtInfo.apr !== undefined && debtInfo.apr !== null ? String(debtInfo.apr) : '',
-      termMonths: term ? String(term) : '',
-      minPayment: debtInfo.minPayment ? String(debtInfo.minPayment) : amt && term ? String(Math.round(amt / term)) : '',
-      startDate: debtInfo.startDate || today,
-      dueDay: debtInfo.dueDay ? String(debtInfo.dueDay) : '15',
-      feeProcessing: debtInfo.feeProcessing ? String(debtInfo.feeProcessing) : '0',
-      feeInsurance: debtInfo.feeInsurance ? String(debtInfo.feeInsurance) : '0',
-      feeManagement: debtInfo.feeManagement ? String(debtInfo.feeManagement) : '0',
-      rateType: debtInfo.rateType || 'REDUCING',
-      notes: debtInfo.notes || '',
+      name: aiName,
+      originalAmount: amt,
+      balance: aiBalance != null ? String(aiBalance) : amt,
+      apr: aiApr != null ? String(aiApr) : '',
+      termMonths: term,
+      minPayment: autoMin,
+      startDate: aiStartDate,
+      dueDay: aiDueDay != null && aiDueDay !== '' ? String(aiDueDay) : '',
+      feeProcessing: src.feeProcessing != null ? String(src.feeProcessing) : '0',
+      feeInsurance: src.feeInsurance != null ? String(src.feeInsurance) : '0',
+      feeManagement: src.feeManagement != null ? String(src.feeManagement) : '0',
+      rateType: aiRateType,
+      notes: aiNotes,
+      _manualBalance: false,
+      _manualMinPayment: false,
     });
   }, []);
 
-  const updateField = (field, value) => {
+  const updateField = (field: string, value: string) => {
     setForm((prev) => {
-      const next = { ...prev, [field]: value };
-      // Auto-calculate minPayment when originalAmount or termMonths changes
+      const next: any = { ...prev, [field]: value };
       if (field === 'originalAmount' || field === 'termMonths') {
         const amt = field === 'originalAmount' ? +value : +prev.originalAmount;
         const term = field === 'termMonths' ? +value : +prev.termMonths;
@@ -74,7 +101,6 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
           next.minPayment = String(Math.round(amt / term));
         }
       }
-      // Auto-sync balance with originalAmount if balance hasn't been manually edited
       if (field === 'originalAmount' && !prev._manualBalance) {
         next.balance = value;
       }
@@ -82,15 +108,14 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
     });
   };
 
-  // Validation
-  const validate = () => {
+  const validate = (): string | null => {
     if (!form.name.trim()) return 'Vui lòng nhập tên tổ chức tín dụng.';
     if (!+form.originalAmount || +form.originalAmount <= 0) return 'Số tiền gốc phải lớn hơn 0.';
     if (!+form.balance || +form.balance <= 0) return 'Dư nợ hiện tại phải lớn hơn 0.';
     if (+form.balance > +form.originalAmount) return 'Dư nợ không được lớn hơn số tiền gốc.';
     if (form.apr === '' || +form.apr < 0) return 'Lãi suất APR không hợp lệ.';
     if (+form.apr > 100) return 'Lãi suất APR không được vượt quá 100%.';
-    if (!+form.termMonths || +form.termMonths <= 0) return 'Kỳ hạn phải lớn hơn 0.';
+    if (!+form.termMonths || +form.termMonths <= 0) return 'Kỳ hạn phải lớn hơn 0 tháng.';
     if (!+form.minPayment || +form.minPayment <= 0) return 'Số tiền trả tối thiểu/tháng phải lớn hơn 0.';
     if (+form.minPayment > +form.balance) return 'Số tiền trả tối thiểu không được lớn hơn dư nợ.';
     if (!form.startDate) return 'Vui lòng chọn ngày vay.';
@@ -126,23 +151,37 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
         notes: form.notes || null,
       });
       window.dispatchEvent(new Event('Finsight:DebtUpdated'));
+      onFeedback?.('confirmed');
       onConfirm?.();
-    } catch (err) {
+    } catch (err: any) {
       const msg = err?.response?.data?.error || 'Lỗi khi lưu khoản nợ. Vui lòng thử lại.';
       setError(msg);
+      const safeReason = msg.length > 120 ? msg.slice(0, 120) : msg;
+      onFeedback?.('failed', safeReason);
     } finally {
       setLoading(false);
     }
   };
 
-  const formatVND = (v) => {
+  const handleDismiss = () => {
+    onFeedback?.('cancelled');
+    onDismiss();
+  };
+
+  const formatVND = (v: string) => {
     const num = Number(v);
     return isNaN(num) || num === 0 ? '' : num.toLocaleString('vi-VN') + 'đ';
   };
 
   if (!data) return null;
 
-  // Render as portal to escape chat window constraints
+  const inputCls = 'w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all';
+  const inputStyle = {
+    background: 'var(--color-bg-secondary)',
+    color: 'var(--color-text-primary)',
+    border: '1px solid var(--color-border)',
+  };
+
   const modalContent = (
     <AnimatePresence>
       <motion.div
@@ -152,7 +191,7 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
         className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
         style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }}
         onClick={(e) => {
-          if (e.target === e.currentTarget) onDismiss();
+          if (e.target === e.currentTarget) handleDismiss();
         }}
       >
         <motion.div
@@ -161,19 +200,13 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
           exit={{ scale: 0.92, y: 30, opacity: 0 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           className="w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl max-h-[90vh] flex flex-col"
-          style={{
-            background: 'var(--color-bg-primary)',
-            border: '1px solid var(--color-border)',
-          }}
+          style={{ background: 'var(--color-bg-primary)', border: '1px solid var(--color-border)' }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div
             className="p-5 flex items-center justify-between border-b flex-shrink-0"
-            style={{
-              borderColor: 'var(--color-border)',
-              background: 'var(--color-bg-elevated)',
-            }}
+            style={{ borderColor: 'var(--color-border)', background: 'var(--color-bg-elevated)' }}
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full flex items-center justify-center bg-amber-500/10">
@@ -184,12 +217,12 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
                   Xác nhận khoản nợ mới
                 </h3>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
-                  Kiểm tra và chỉnh sửa trước khi lưu
+                  Kiểm tra và bổ sung thông tin còn thiếu trước khi lưu
                 </p>
               </div>
             </div>
             <button
-              onClick={onDismiss}
+              onClick={handleDismiss}
               className="p-2 rounded-full hover:bg-slate-500/10 transition-colors"
               style={{ color: 'var(--color-text-secondary)' }}
             >
@@ -197,10 +230,10 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
             </button>
           </div>
 
-          {/* Body - scrollable */}
+          {/* Body */}
           <div className="p-5 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-700">
             <div className="space-y-4">
-              {/* Tên tổ chức tín dụng */}
+              {/* Tên */}
               <div>
                 <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
                   Tên tổ chức tín dụng <span className="text-rose-400">*</span>
@@ -210,16 +243,12 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
                   value={form.name}
                   onChange={(e) => updateField('name', e.target.value)}
                   placeholder="VD: Vietcombank, FE Credit..."
-                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
-                  style={{
-                    background: 'var(--color-bg-secondary)',
-                    color: 'var(--color-text-primary)',
-                    border: '1px solid var(--color-border)',
-                  }}
+                  className={inputCls}
+                  style={inputStyle}
                 />
               </div>
 
-              {/* Row: Số tiền gốc + Dư nợ */}
+              {/* Số tiền gốc + Dư nợ */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
@@ -260,7 +289,7 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
                 </div>
               </div>
 
-              {/* Row: APR + Kỳ hạn */}
+              {/* APR + Kỳ hạn */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
@@ -274,12 +303,8 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
                     min="0"
                     max="100"
                     step="0.1"
-                    className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
-                    style={{
-                      background: 'var(--color-bg-secondary)',
-                      color: 'var(--color-text-primary)',
-                      border: '1px solid var(--color-border)',
-                    }}
+                    className={inputCls}
+                    style={inputStyle}
                   />
                 </div>
                 <div>
@@ -290,19 +315,15 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
                     type="number"
                     value={form.termMonths}
                     onChange={(e) => updateField('termMonths', e.target.value)}
-                    placeholder="12"
+                    placeholder="Nhập kỳ hạn"
                     min="1"
-                    className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
-                    style={{
-                      background: 'var(--color-bg-secondary)',
-                      color: 'var(--color-text-primary)',
-                      border: '1px solid var(--color-border)',
-                    }}
+                    className={inputCls}
+                    style={inputStyle}
                   />
                 </div>
               </div>
 
-              {/* Row: Min payment + Ngày đáo hạn */}
+              {/* Min payment + Due day */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
@@ -332,15 +353,11 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
                     type="number"
                     value={form.dueDay}
                     onChange={(e) => updateField('dueDay', e.target.value)}
-                    placeholder="15"
+                    placeholder="Nhập ngày"
                     min="1"
                     max="31"
-                    className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
-                    style={{
-                      background: 'var(--color-bg-secondary)',
-                      color: 'var(--color-text-primary)',
-                      border: '1px solid var(--color-border)',
-                    }}
+                    className={inputCls}
+                    style={inputStyle}
                   />
                 </div>
               </div>
@@ -355,24 +372,18 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
                   value={form.startDate}
                   onChange={(e) => updateField('startDate', e.target.value)}
                   max={new Date().toISOString().split('T')[0]}
-                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
-                  style={{
-                    background: 'var(--color-bg-secondary)',
-                    color: 'var(--color-text-primary)',
-                    border: '1px solid var(--color-border)',
-                  }}
+                  className={inputCls}
+                  style={inputStyle}
                 />
               </div>
 
-              {/* Loại lãi suất */}
+              {/* Rate type */}
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => updateField('rateType', 'REDUCING')}
                   className={`px-3 py-2.5 rounded-xl text-xs font-medium transition-all flex flex-col items-center gap-1 border ${form.rateType === 'REDUCING' ? 'border-emerald-500 bg-emerald-500/10' : 'border-transparent bg-slate-500/10'}`}
-                  style={{
-                    color: form.rateType === 'REDUCING' ? '#34d399' : 'var(--color-text-secondary)',
-                  }}
+                  style={{ color: form.rateType === 'REDUCING' ? '#34d399' : 'var(--color-text-secondary)' }}
                 >
                   <span className={form.rateType === 'REDUCING' ? 'text-emerald-400 font-bold' : ''}>
                     Dư nợ giảm dần
@@ -383,25 +394,20 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
                   type="button"
                   onClick={() => updateField('rateType', 'FLAT')}
                   className={`px-3 py-2.5 rounded-xl text-xs font-medium transition-all flex flex-col items-center gap-1 border ${form.rateType === 'FLAT' ? 'border-amber-500 bg-amber-500/10' : 'border-transparent bg-slate-500/10'}`}
-                  style={{
-                    color: form.rateType === 'FLAT' ? '#fbbf24' : 'var(--color-text-secondary)',
-                  }}
+                  style={{ color: form.rateType === 'FLAT' ? '#fbbf24' : 'var(--color-text-secondary)' }}
                 >
                   <span className={form.rateType === 'FLAT' ? 'text-amber-400 font-bold' : ''}>Lãi suất phẳng</span>
                   <span className="text-[10px] opacity-60 font-normal">FLAT</span>
                 </button>
               </div>
 
-              {/* Collapsible: Phí ẩn */}
+              {/* Collapsible fees */}
               <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--color-border)' }}>
                 <button
                   type="button"
                   onClick={() => setShowFees(!showFees)}
                   className="w-full px-3 py-2.5 flex items-center justify-between text-xs font-medium transition-colors hover:opacity-80"
-                  style={{
-                    background: 'var(--color-bg-secondary)',
-                    color: 'var(--color-text-secondary)',
-                  }}
+                  style={{ background: 'var(--color-bg-secondary)', color: 'var(--color-text-secondary)' }}
                 >
                   <span>📋 Phí ẩn (không bắt buộc)</span>
                   {showFees ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -417,63 +423,34 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
                     >
                       <div className="p-3 space-y-3" style={{ background: 'var(--color-bg-secondary)' }}>
                         <div className="grid grid-cols-3 gap-2">
-                          <div>
-                            <label className="block text-[10px] mb-1" style={{ color: 'var(--color-text-secondary)' }}>
-                              Phí xử lý (%)
-                            </label>
-                            <input
-                              type="number"
-                              value={form.feeProcessing}
-                              onChange={(e) => updateField('feeProcessing', e.target.value)}
-                              min="0"
-                              max="100"
-                              step="0.1"
-                              className="w-full px-2 py-1.5 rounded-lg text-xs outline-none"
-                              style={{
-                                background: 'var(--color-bg-primary)',
-                                color: 'var(--color-text-primary)',
-                                border: '1px solid var(--color-border)',
-                              }}
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] mb-1" style={{ color: 'var(--color-text-secondary)' }}>
-                              Phí bảo hiểm (%)
-                            </label>
-                            <input
-                              type="number"
-                              value={form.feeInsurance}
-                              onChange={(e) => updateField('feeInsurance', e.target.value)}
-                              min="0"
-                              max="100"
-                              step="0.1"
-                              className="w-full px-2 py-1.5 rounded-lg text-xs outline-none"
-                              style={{
-                                background: 'var(--color-bg-primary)',
-                                color: 'var(--color-text-primary)',
-                                border: '1px solid var(--color-border)',
-                              }}
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] mb-1" style={{ color: 'var(--color-text-secondary)' }}>
-                              Phí quản lý (%)
-                            </label>
-                            <input
-                              type="number"
-                              value={form.feeManagement}
-                              onChange={(e) => updateField('feeManagement', e.target.value)}
-                              min="0"
-                              max="100"
-                              step="0.1"
-                              className="w-full px-2 py-1.5 rounded-lg text-xs outline-none"
-                              style={{
-                                background: 'var(--color-bg-primary)',
-                                color: 'var(--color-text-primary)',
-                                border: '1px solid var(--color-border)',
-                              }}
-                            />
-                          </div>
+                          {[
+                            ['feeProcessing', 'Phí xử lý (%)'],
+                            ['feeInsurance', 'Phí bảo hiểm (%)'],
+                            ['feeManagement', 'Phí quản lý (%)'],
+                          ].map(([field, label]) => (
+                            <div key={field}>
+                              <label
+                                className="block text-[10px] mb-1"
+                                style={{ color: 'var(--color-text-secondary)' }}
+                              >
+                                {label}
+                              </label>
+                              <input
+                                type="number"
+                                value={(form as any)[field]}
+                                onChange={(e) => updateField(field, e.target.value)}
+                                min="0"
+                                max="100"
+                                step="0.1"
+                                className="w-full px-2 py-1.5 rounded-lg text-xs outline-none"
+                                style={{
+                                  background: 'var(--color-bg-primary)',
+                                  color: 'var(--color-text-primary)',
+                                  border: '1px solid var(--color-border)',
+                                }}
+                              />
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </motion.div>
@@ -481,7 +458,7 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
                 </AnimatePresence>
               </div>
 
-              {/* Ghi chú */}
+              {/* Notes */}
               <div>
                 <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
                   Ghi chú
@@ -491,17 +468,12 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
                   value={form.notes}
                   onChange={(e) => updateField('notes', e.target.value)}
                   placeholder="Ghi chú thêm (không bắt buộc)"
-                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
-                  style={{
-                    background: 'var(--color-bg-secondary)',
-                    color: 'var(--color-text-primary)',
-                    border: '1px solid var(--color-border)',
-                  }}
+                  className={inputCls}
+                  style={inputStyle}
                 />
               </div>
             </div>
 
-            {/* Error message */}
             {error && (
               <div className="mt-3 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20">
                 <p className="text-xs text-rose-400">{error}</p>
@@ -509,10 +481,10 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
             )}
           </div>
 
-          {/* Footer Actions */}
+          {/* Footer */}
           <div className="p-5 pt-0 flex gap-3 flex-shrink-0">
             <button
-              onClick={onDismiss}
+              onClick={handleDismiss}
               className="flex-1 py-3 rounded-xl text-sm font-medium transition-colors"
               style={{
                 background: 'var(--color-bg-secondary)',
@@ -541,6 +513,5 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss }) {
     </AnimatePresence>
   );
 
-  // 5.6: Render qua Portal để thoát khỏi khung chat 400x580px
   return createPortal(modalContent, document.body);
 }

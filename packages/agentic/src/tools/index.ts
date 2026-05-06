@@ -1,4 +1,4 @@
-import { getUserDebtsTool, parseDebtFromTextTool } from './debt.tools';
+import { getUserDebtsTool, parseDebtFromTextTool, parseDebtInformationTool } from './debt.tools';
 import { getUserProfileTool, simulateDtiTool } from './finance.tools';
 import { getMarketPricesTool, getMarketSentimentTool } from './market.tools';
 import { knowledgeSearchTool } from './rag.tools';
@@ -7,6 +7,7 @@ export { createBoundTools } from './bind-tools';
 export const ALL_TOOLS = [
   getUserDebtsTool,
   parseDebtFromTextTool,
+  parseDebtInformationTool,
   getUserProfileTool,
   simulateDtiTool,
   getMarketPricesTool,
@@ -17,6 +18,7 @@ export const ALL_TOOLS = [
 export const TOOLS_BY_INTENT: Record<string, any[]> = {
   GENERAL_CHAT: [],
   DATA_ENTRY: [parseDebtFromTextTool],
+  DEBT_EXTRACTION: [parseDebtInformationTool],
   PERSONAL_QUERY: [getUserDebtsTool, getUserProfileTool, simulateDtiTool],
   WHAT_IF: [getUserDebtsTool, getUserProfileTool, simulateDtiTool],
   INVESTMENT_ADVICE: [getMarketPricesTool, getMarketSentimentTool, getUserProfileTool, knowledgeSearchTool],

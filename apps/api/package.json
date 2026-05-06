@@ -13,7 +13,7 @@
     "db:push": "npx prisma db push && npx prisma db push --schema=prisma/enterprise/schema.prisma",
     "db:generate": "npx prisma generate && npx prisma generate --schema=prisma/enterprise/schema.prisma",
     "db:studio": "npx prisma studio",
-    "rag:ingest": "tsx src/agentic/rag/ingest.ts"
+    "rag:ingest": "tsx ../../packages/agentic/src/rag/ingest.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",
