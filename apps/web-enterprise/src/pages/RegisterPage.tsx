@@ -180,7 +180,7 @@ export default function RegisterPage() {
           <img
             src={dark ? 'https://i.ibb.co/WmGtp2t/Dark-Mode.png' : 'https://i.ibb.co/ksGVB17M/Light-Mode.png'}
             alt="FinSight Logo"
-            className="h-12 w-auto drop-shadow-sm"
+            className="h-10 w-auto drop-shadow-sm"
           />
         </Link>
 
