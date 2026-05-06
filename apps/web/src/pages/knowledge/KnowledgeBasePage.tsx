@@ -9,68 +9,21 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
-  Edit3,
   Filter,
   LayoutGrid,
   Lightbulb,
   List,
   Loader2,
-  Plus,
-  Save,
   Search,
   Share2,
-  Trash2,
   User,
   X,
 } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
+import { useEffect, useMemo, useState } from 'react';
 import knowledgeData from '../../data/knowledgeBase.json';
-import { useArticles, useCreateArticle, useDeleteArticle, useUpdateArticle } from '../../hooks/useArticleQuery';
+import { useArticles } from '../../hooks/useArticleQuery';
 
 const ITEMS_PER_PAGE = 10;
-
-type ArticleFormData = {
-  title: string;
-  author: string;
-  date: string;
-  imageUrl: string;
-  excerpt: string;
-  content: string;
-  tags: string[];
-};
-
-type ArticleFilters = {
-  search: string;
-  author: string;
-  dateRange: string;
-  sortBy: string;
-  tag: string;
-};
-
-const emptyArticleFilters: ArticleFilters = {
-  search: '',
-  author: '',
-  dateRange: '',
-  sortBy: 'newest',
-  tag: '',
-};
-
-function getTodayValue() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function getEmptyArticleForm(): ArticleFormData {
-  return {
-    title: '',
-    author: 'FinSight Team',
-    date: getTodayValue(),
-    imageUrl: '',
-    excerpt: '',
-    content: '',
-    tags: [],
-  };
-}
 
 function normalizeText(value: string) {
   return value.toLowerCase().trim();
@@ -90,10 +43,7 @@ function getReadingTime(content: string = '') {
 export default function KnowledgeBasePage() {
   const [activeTab, setActiveTab] = useState('terms');
   const [selectedArticle, setSelectedArticle] = useState<any>(null);
-  const [editingArticle, setEditingArticle] = useState<any>(null);
-  const [deletingArticle, setDeletingArticle] = useState<any>(null);
-  const [isArticleFormOpen, setIsArticleFormOpen] = useState(false);
-  const [articleForm, setArticleForm] = useState<ArticleFormData>(getEmptyArticleForm);
+
   const [articleFilters, setArticleFilters] = useState<ArticleFilters>(emptyArticleFilters);
   const [tempArticleFilters, setTempArticleFilters] = useState<ArticleFilters>(emptyArticleFilters);
   const [showArticleFilters, setShowArticleFilters] = useState(false);
@@ -102,11 +52,7 @@ export default function KnowledgeBasePage() {
   const [currentPage, setCurrentPage] = useState(1);
 
   const { data: articles, isLoading } = useArticles() as { data: any[] | undefined; isLoading: boolean };
-  const { mutate: createArticle, isPending: isCreatingArticle } = useCreateArticle();
-  const { mutate: updateArticle, isPending: isUpdatingArticle } = useUpdateArticle();
-  const { mutate: deleteArticle, isPending: isDeletingArticle } = useDeleteArticle();
 
-  const isSavingArticle = isCreatingArticle || isUpdatingArticle;
   const articleList = articles || [];
 
   useEffect(() => {
@@ -118,76 +64,6 @@ export default function KnowledgeBasePage() {
   useEffect(() => {
     localStorage.setItem('finsight_article_view', articleViewMode);
   }, [articleViewMode]);
-
-  const openCreateArticle = () => {
-    setEditingArticle(null);
-    setArticleForm(getEmptyArticleForm());
-    setIsArticleFormOpen(true);
-  };
-
-  const openEditArticle = (article: any) => {
-    setEditingArticle(article);
-    setArticleForm({
-      title: article.title || '',
-      author: article.author || 'FinSight Team',
-      date: article.date || getTodayValue(),
-      imageUrl: article.imageUrl || '',
-      excerpt: article.excerpt || '',
-      content: article.content || '',
-      tags: article.tags || [],
-    });
-    setIsArticleFormOpen(true);
-  };
-
-  const closeArticleForm = () => {
-    if (isSavingArticle) return;
-    setIsArticleFormOpen(false);
-    setEditingArticle(null);
-    setArticleForm(getEmptyArticleForm());
-  };
-
-  const updateArticleForm = (field: keyof ArticleFormData, value: string | string[]) => {
-    setArticleForm((current) => ({ ...current, [field]: value }));
-  };
-
-  const handleSaveArticle = (event: React.FormEvent) => {
-    event.preventDefault();
-
-    const data = {
-      ...articleForm,
-      category: 'STORY',
-    };
-
-    const options = {
-      onSuccess: () => {
-        toast.success(editingArticle ? 'Đã cập nhật bài viết.' : 'Đã thêm bài viết.');
-        closeArticleForm();
-        setSelectedArticle(null);
-      },
-      onError: () => toast.error('Không thể lưu bài viết.'),
-    };
-
-    if (editingArticle) {
-      updateArticle({ id: editingArticle.id, data }, options);
-    } else {
-      createArticle(data, options);
-    }
-  };
-
-  const handleDeleteArticle = () => {
-    if (!deletingArticle) return;
-
-    deleteArticle(deletingArticle.id, {
-      onSuccess: () => {
-        toast.success('Đã xóa bài viết.');
-        setDeletingArticle(null);
-        if (selectedArticle?.id === deletingArticle.id) {
-          setSelectedArticle(null);
-        }
-      },
-      onError: () => toast.error('Không thể xóa bài viết.'),
-    });
-  };
 
   const handleApplyArticleFilters = () => {
     setArticleFilters(tempArticleFilters);
@@ -393,13 +269,6 @@ export default function KnowledgeBasePage() {
                 <List size={18} />
               </button>
             </div>
-            <button
-              onClick={openCreateArticle}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-500 px-5 py-3 text-sm font-black text-white shadow-xl shadow-indigo-500/20 transition-all hover:scale-[1.02] active:scale-95"
-            >
-              <Plus size={16} />
-              Thêm bài viết
-            </button>
           </div>
         )}
       </div>
@@ -490,14 +359,6 @@ export default function KnowledgeBasePage() {
             exit={{ opacity: 0, y: -10 }}
             className="min-h-[400px]"
           >
-            <div className="mb-6 flex items-center gap-3 rounded-2xl border border-yellow-500/20 bg-yellow-500/10 p-4">
-              <Lightbulb className="text-yellow-500 shrink-0" size={20} />
-              <p className="text-sm font-medium text-yellow-500/90">
-                <strong className="font-bold text-yellow-500">Lưu ý:</strong> Thông tin chưa được xác thực, chỉ mang
-                tính chất tham khảo.
-              </p>
-            </div>
-
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-32 gap-5">
                 <div className="relative">
@@ -769,203 +630,6 @@ export default function KnowledgeBasePage() {
         )}
       </AnimatePresence>
 
-      {/* Article Form Modal */}
-      <AnimatePresence>
-        {isArticleFormOpen && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 md:p-8">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={closeArticleForm}
-              className="absolute inset-0 bg-black/75 backdrop-blur-md"
-            />
-
-            <motion.form
-              initial={{ opacity: 0, scale: 0.94, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.94, y: 20 }}
-              onSubmit={handleSaveArticle}
-              className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-[32px] border border-[var(--color-border)] bg-[var(--color-bg-primary)] p-6 md:p-8 shadow-2xl"
-            >
-              <div className="mb-6 flex items-start justify-between gap-4">
-                <div>
-                  <p className="mb-2 text-[11px] font-black uppercase tracking-widest text-indigo-400">
-                    {editingArticle ? 'Chỉnh sửa bài viết' : 'Thêm bài viết'}
-                  </p>
-                  <h2 className="text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
-                    {editingArticle ? 'Cập nhật bài viết thực tế' : 'Tạo bài viết thực tế'}
-                  </h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={closeArticleForm}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)] transition-all hover:text-[var(--color-text-primary)]"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <label className="space-y-2">
-                  <span className="text-[11px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
-                    Tiêu đề
-                  </span>
-                  <input
-                    value={articleForm.title}
-                    onChange={(event) => updateArticleForm('title', event.target.value)}
-                    required
-                    className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-4 py-3 text-sm outline-none transition-all focus:border-indigo-500"
-                  />
-                </label>
-                <label className="space-y-2">
-                  <span className="text-[11px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
-                    Tác giả
-                  </span>
-                  <input
-                    value={articleForm.author}
-                    onChange={(event) => updateArticleForm('author', event.target.value)}
-                    className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-4 py-3 text-sm outline-none transition-all focus:border-indigo-500"
-                  />
-                </label>
-                <label className="space-y-2">
-                  <span className="text-[11px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
-                    Ngày
-                  </span>
-                  <input
-                    value={articleForm.date}
-                    onChange={(event) => updateArticleForm('date', event.target.value)}
-                    className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-4 py-3 text-sm outline-none transition-all focus:border-indigo-500"
-                  />
-                </label>
-                <label className="space-y-2">
-                  <span className="text-[11px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
-                    URL ảnh
-                  </span>
-                  <input
-                    value={articleForm.imageUrl}
-                    onChange={(event) => updateArticleForm('imageUrl', event.target.value)}
-                    required
-                    placeholder="https://..."
-                    className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-4 py-3 text-sm outline-none transition-all focus:border-indigo-500"
-                  />
-                </label>
-              </div>
-
-              <label className="mt-4 block space-y-2">
-                <span className="text-[11px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
-                  Mô tả ngắn
-                </span>
-                <textarea
-                  value={articleForm.excerpt}
-                  onChange={(event) => updateArticleForm('excerpt', event.target.value)}
-                  required
-                  rows={3}
-                  className="w-full resize-none rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-4 py-3 text-sm outline-none transition-all focus:border-indigo-500"
-                />
-              </label>
-
-              <label className="mt-4 block space-y-2">
-                <span className="text-[11px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
-                  Thuật ngữ (Tags) - Cách nhau bằng dấu phẩy
-                </span>
-                <input
-                  value={articleForm.tags.join(', ')}
-                  onChange={(event) =>
-                    updateArticleForm(
-                      'tags',
-                      event.target.value
-                        .split(',')
-                        .map((t) => t.trim())
-                        .filter(Boolean),
-                    )
-                  }
-                  placeholder="Ví dụ: Lãi kép, Lãi suất, Đầu tư"
-                  className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-4 py-3 text-sm outline-none transition-all focus:border-indigo-500"
-                />
-              </label>
-
-              <label className="mt-4 block space-y-2">
-                <span className="text-[11px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
-                  Nội dung
-                </span>
-                <textarea
-                  value={articleForm.content}
-                  onChange={(event) => updateArticleForm('content', event.target.value)}
-                  required
-                  rows={10}
-                  className="w-full resize-y rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-4 py-3 text-sm leading-relaxed outline-none transition-all focus:border-indigo-500"
-                />
-              </label>
-
-              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={closeArticleForm}
-                  disabled={isSavingArticle}
-                  className="rounded-2xl bg-[var(--color-bg-secondary)] px-5 py-3 text-sm font-black text-[var(--color-text-secondary)] transition-all hover:text-[var(--color-text-primary)] disabled:opacity-50"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSavingArticle}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-500 px-6 py-3 text-sm font-black text-white transition-all hover:scale-[1.02] disabled:opacity-50"
-                >
-                  {isSavingArticle ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                  {editingArticle ? 'Lưu thay đổi' : 'Thêm bài viết'}
-                </button>
-              </div>
-            </motion.form>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Delete Article Modal */}
-      <AnimatePresence>
-        {deletingArticle && (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => !isDeletingArticle && setDeletingArticle(null)}
-              className="absolute inset-0 bg-black/75 backdrop-blur-md"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.94, y: 16 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.94, y: 16 }}
-              className="relative w-full max-w-lg rounded-[32px] border border-red-500/25 bg-[var(--color-bg-primary)] p-7 shadow-2xl"
-            >
-              <h2 className="text-2xl font-black text-[var(--color-text-primary)]">Xóa bài viết?</h2>
-              <p className="mt-3 text-sm leading-relaxed text-[var(--color-text-secondary)]">
-                Bài viết "{deletingArticle.title}" sẽ bị xóa khỏi danh sách Bài viết thực tế.
-              </p>
-              <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  disabled={isDeletingArticle}
-                  onClick={() => setDeletingArticle(null)}
-                  className="rounded-2xl bg-[var(--color-bg-secondary)] px-5 py-3 text-sm font-black text-[var(--color-text-secondary)] transition-all hover:text-[var(--color-text-primary)] disabled:opacity-50"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="button"
-                  disabled={isDeletingArticle}
-                  onClick={handleDeleteArticle}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 py-3 text-sm font-black text-white transition-all hover:bg-red-500 disabled:opacity-50"
-                >
-                  {isDeletingArticle ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                  Xóa bài viết
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
       {/* Article Detail Modal */}
       <AnimatePresence>
         {selectedArticle && (
@@ -1050,23 +714,6 @@ export default function KnowledgeBasePage() {
                       </button>
                       <button className="flex items-center gap-2 text-[var(--color-text-muted)] hover:text-indigo-400 font-bold text-sm transition-colors">
                         <Bookmark size={18} /> Lưu bài viết
-                      </button>
-                    </div>
-                    <div className="grid w-full grid-cols-1 gap-3 sm:w-auto sm:grid-cols-2">
-                      <button
-                        onClick={() => {
-                          openEditArticle(selectedArticle);
-                          setSelectedArticle(null);
-                        }}
-                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-600 px-5 py-3 text-sm font-black uppercase tracking-widest text-white transition-all hover:bg-slate-500 active:scale-95 dark:bg-white/10 dark:hover:bg-white/15"
-                      >
-                        <Edit3 size={16} /> Chỉnh sửa
-                      </button>
-                      <button
-                        onClick={() => setDeletingArticle(selectedArticle)}
-                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 py-3 text-sm font-black uppercase tracking-widest text-white transition-all hover:bg-red-500 active:scale-95 dark:bg-red-500/20 dark:hover:bg-red-500/30"
-                      >
-                        <Trash2 size={16} /> Xóa bài viết
                       </button>
                     </div>
                     <button
