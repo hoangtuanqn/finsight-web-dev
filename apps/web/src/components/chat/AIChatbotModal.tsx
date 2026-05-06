@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, type Variants } from 'framer-motion';
 import { Bot, Maximize2, MessageSquare, Minimize2, Paperclip, Send, Sparkles, User, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useAgenticChat } from '../../hooks/useAgenticChat';
@@ -176,7 +176,7 @@ export default function AIChatbotModal() {
   // Modal dimensions & positioning logic
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
-  const modalVariants = {
+  const modalVariants: Variants = {
     closed: {
       opacity: 0,
       scale: 0.8,
@@ -389,6 +389,37 @@ export default function AIChatbotModal() {
                       </div>
                     )}
 
+                    {/* Typed UI Signal Dispatcher — handles SHOW_POPUP and REDIRECT */}
+                    {pendingUiSignal?.type !== 'SHOW_INTERACTIVE_CARD' && (
+                      <UiSignalDispatcher
+                        signal={pendingUiSignal}
+                        onDismiss={dismissUiSignal}
+                        isModalOpen={!!pendingAction}
+                        onFeedback={(status, reason) => {
+                          const action = pendingUiSignal?.action || 'DEBT_CONFIRMATION';
+                          if (status === 'confirmed') {
+                            if (action === 'REPAYMENT_CONFIRMATION') {
+                              sendMessage(
+                                'Tôi đã cập nhật kế hoạch phân bổ mới, mời bạn xem chi tiết trên màn hình.',
+                                null,
+                                null,
+                                true,
+                              );
+                            } else {
+                              sendMessage('Tôi đã xác nhận lưu khoản nợ thành công.', null, null, true);
+                            }
+                          } else if (status === 'cancelled') {
+                            sendMessage('Tôi đã hủy bỏ thao tác.', null, null, true);
+                          } else if (status === 'failed') {
+                            const actionName = action === 'REPAYMENT_CONFIRMATION' ? 'kế hoạch' : 'khoản nợ';
+                            const msg = reason
+                              ? `Lưu ${actionName} thất bại: ${reason}`
+                              : `Lưu ${actionName} thất bại, vui lòng thử lại.`;
+                            sendMessage(msg, null, null, true);
+                          }
+                        }}
+                      />
+                    )}
                     {/* Streaming Indicator */}
                     {isStreaming &&
                       messages[messages.length - 1]?.role === 'assistant' &&
