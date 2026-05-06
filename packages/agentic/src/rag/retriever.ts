@@ -1,4 +1,4 @@
-import prisma from '../../lib/prisma';
+import { getDb } from '../config';
 import { getEmbeddingModel } from '../llm-provider';
 
 export async function searchKnowledge(query: string, topK: number = 3, category: string | null = null): Promise<any[]> {
@@ -31,7 +31,7 @@ export async function searchKnowledge(query: string, topK: number = 3, category:
     params = [vectorStr, topK];
   }
 
-  const results: any = await (prisma as any).$queryRawUnsafe(sql, ...params);
+  const results: any = await getDb().$queryRawUnsafe(sql, ...params);
 
   return results.map((r: any) => ({
     title: r.title,

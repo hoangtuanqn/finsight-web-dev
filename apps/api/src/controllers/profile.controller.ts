@@ -16,7 +16,19 @@ export async function getInvestorProfile(req: AuthenticatedRequest, res: Respons
 
 export async function createInvestorProfile(req: AuthenticatedRequest, res: Response) {
   try {
-    const { capital, monthlyAdd, goal, horizon, riskLevel, riskScore, savingsRate, inflationRate } = req.body;
+    const existingProfile = await (prisma as any).investorProfile.findUnique({
+      where: { userId: req.userId },
+    });
+
+    const capital = req.body.capital ?? existingProfile?.capital;
+    const monthlyAdd = req.body.monthlyAdd ?? existingProfile?.monthlyAdd;
+    const goal = req.body.goal ?? existingProfile?.goal;
+    const horizon = req.body.horizon ?? existingProfile?.horizon;
+    const riskLevel = req.body.riskLevel ?? existingProfile?.riskLevel;
+    const riskScore = req.body.riskScore ?? existingProfile?.riskScore;
+    const savingsRate = req.body.savingsRate ?? existingProfile?.savingsRate;
+    const inflationRate = req.body.inflationRate ?? existingProfile?.inflationRate;
+
     const profile = await (prisma as any).investorProfile.upsert({
       where: { userId: req.userId },
       update: {
@@ -52,7 +64,26 @@ export async function createInvestorProfile(req: AuthenticatedRequest, res: Resp
 
 export async function updateInvestorProfile(req: AuthenticatedRequest, res: Response) {
   try {
-    const data = { ...req.body, lastUpdated: new Date() };
+    const existingProfile = await (prisma as any).investorProfile.findUnique({
+      where: { userId: req.userId },
+    });
+
+    if (!existingProfile) {
+      return error(res, 'Profile not found', 404);
+    }
+
+    const data = {
+      capital: req.body.capital ?? existingProfile.capital,
+      monthlyAdd: req.body.monthlyAdd ?? existingProfile.monthlyAdd,
+      goal: req.body.goal ?? existingProfile.goal,
+      horizon: req.body.horizon ?? existingProfile.horizon,
+      riskLevel: req.body.riskLevel ?? existingProfile.riskLevel,
+      riskScore: req.body.riskScore ?? existingProfile.riskScore,
+      savingsRate: req.body.savingsRate ?? existingProfile.savingsRate,
+      inflationRate: req.body.inflationRate ?? existingProfile.inflationRate,
+      lastUpdated: new Date(),
+    };
+
     const profile = await (prisma as any).investorProfile.update({
       where: { userId: req.userId },
       data,

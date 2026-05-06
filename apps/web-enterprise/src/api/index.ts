@@ -91,6 +91,7 @@ export const enterpriseAuthAPI = {
   getDebts: (params: any) => api.get('/v1/enterprise/debts', { params }),
   getDebt: (id: string) => api.get(`/v1/enterprise/debts/${id}`),
   createDebt: (data: any) => api.post('/v1/enterprise/debts', data),
+  updateDebt: (id: string, data: any) => api.patch(`/v1/enterprise/debts/${id}`, data),
   activateDebt: (id: string) => api.patch(`/v1/enterprise/debts/${id}/activate`),
   disputeDebt: (id: string, reason: string) => api.patch(`/v1/enterprise/debts/${id}/dispute`, { reason }),
   resolveDispute: (id: string) => api.patch(`/v1/enterprise/debts/${id}/resolve`),
@@ -106,6 +107,9 @@ export const enterpriseAuthAPI = {
     api.post('/v1/enterprise/repayment-planner/simulate', data),
   commitRepaymentPlan: (data: { name: string; budget: number; strategy: string; items: any[] }) =>
     api.post('/v1/enterprise/repayment-planner/commit', data),
+  getExecutionReport: (month: number, year: number) =>
+    api.get('/v1/enterprise/repayment-planner/execution-report', { params: { month, year } }),
+  getEligibleDebts: () => api.get('/v1/enterprise/repayment-planner/eligible-debts'),
 };
 
 export default api;

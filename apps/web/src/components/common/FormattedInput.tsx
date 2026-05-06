@@ -10,6 +10,7 @@ interface FormattedInputProps {
   suffix?: string;
   icon?: LucideIcon;
   className?: string;
+  style?: React.CSSProperties;
   placeholder?: string;
   maxValue?: number;
   readOnly?: boolean;
@@ -23,6 +24,7 @@ export default function FormattedInput({
   suffix,
   icon: Icon,
   className = '',
+  style,
   placeholder,
   maxValue = kind === 'integer' ? 100000000000 : undefined,
   readOnly = false,
@@ -146,6 +148,7 @@ export default function FormattedInput({
           }
         }}
         className={`${className}${suffix ? ' pr-10' : ''}${Icon ? ' pl-11' : ''}`}
+        style={style}
         placeholder={placeholder}
         readOnly={readOnly}
       />

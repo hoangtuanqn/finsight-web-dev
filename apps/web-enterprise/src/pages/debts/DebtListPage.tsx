@@ -18,6 +18,8 @@ export default function DebtListPage() {
     { id: 'RECEIVABLE', label: 'Phải thu' },
     { id: 'PAYABLE', label: 'Phải trả' },
     { id: 'RISK', label: 'Rủi ro & Quá hạn' },
+    { id: 'PAID', label: 'Đã tất toán' },
+    { id: 'WRITTEN_OFF', label: 'Đã xóa' },
   ];
 
   useEffect(() => {
@@ -92,17 +94,49 @@ export default function DebtListPage() {
     : debts;
 
   const getDisplayedDebts = () => {
+    const getStatusWeight = (status: string) => {
+      switch (status) {
+        case 'OVERDUE':
+        case 'DISPUTED':
+          return 0; // Highest priority
+        case 'ACTIVE':
+        case 'PARTIAL':
+          return 1; // Active
+        case 'DRAFT':
+          return 2; // New
+        case 'PAID':
+        case 'WRITTEN_OFF':
+          return 3; // Completed/Archived
+        default:
+          return 4;
+      }
+    };
+
+    const sortFn = (a: any, b: any) => {
+      const weightA = getStatusWeight(a.status);
+      const weightB = getStatusWeight(b.status);
+
+      if (weightA !== weightB) {
+        return weightA - weightB;
+      }
+
+      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    };
+
     switch (activeTab) {
       case 'RECEIVABLE':
-        return searchedDebts.filter((d) => d.type === 'RECEIVABLE');
+        return [...searchedDebts].filter((d) => d.type === 'RECEIVABLE').sort(sortFn);
       case 'PAYABLE':
-        return searchedDebts.filter((d) => d.type === 'PAYABLE');
+        return [...searchedDebts].filter((d) => d.type === 'PAYABLE').sort(sortFn);
       case 'RISK':
-        return searchedDebts.filter((d) => d.status === 'OVERDUE' || d.status === 'DISPUTED');
+        return [...searchedDebts].filter((d) => d.status === 'OVERDUE' || d.status === 'DISPUTED').sort(sortFn);
+      case 'PAID':
+        return [...searchedDebts].filter((d) => d.status === 'PAID').sort(sortFn);
+      case 'WRITTEN_OFF':
+        return [...searchedDebts].filter((d) => d.status === 'WRITTEN_OFF').sort(sortFn);
       case 'OVERVIEW':
       default:
-        // Sort by closest due date for overview
-        return [...searchedDebts].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+        return [...searchedDebts].sort(sortFn);
     }
   };
 
@@ -111,7 +145,12 @@ export default function DebtListPage() {
   const stats = {
     receivable: debts.filter((d) => d.type === 'RECEIVABLE').reduce((sum, d) => sum + d.outstanding, 0),
     payable: debts.filter((d) => d.type === 'PAYABLE').reduce((sum, d) => sum + d.outstanding, 0),
-    overdueCount: debts.filter((d) => d.status === 'OVERDUE').length,
+    receivableCount: debts.filter((d) => d.type === 'RECEIVABLE').length,
+    payableCount: debts.filter((d) => d.type === 'PAYABLE').length,
+    overdueCount: debts.filter((d) => d.status === 'OVERDUE' || d.status === 'DISPUTED').length,
+    paidCount: debts.filter((d) => d.status === 'PAID').length,
+    writtenOffCount: debts.filter((d) => d.status === 'WRITTEN_OFF').length,
+    totalCount: debts.length,
   };
 
   return (
@@ -181,16 +220,45 @@ export default function DebtListPage() {
             if (tab.id === 'RECEIVABLE') activeClass = 'bg-emerald-500/10 text-emerald-500';
             if (tab.id === 'PAYABLE') activeClass = 'bg-rose-500/10 text-rose-500';
             if (tab.id === 'RISK') activeClass = 'bg-amber-500/10 text-amber-500';
+            if (tab.id === 'PAID') activeClass = 'bg-blue-500/10 text-blue-500';
+            if (tab.id === 'WRITTEN_OFF') activeClass = 'bg-rose-500/10 text-rose-500';
+
+            const getCount = () => {
+              switch (tab.id) {
+                case 'RECEIVABLE':
+                  return stats.receivableCount;
+                case 'PAYABLE':
+                  return stats.payableCount;
+                case 'RISK':
+                  return stats.overdueCount;
+                case 'PAID':
+                  return stats.paidCount;
+                case 'WRITTEN_OFF':
+                  return stats.writtenOffCount;
+                case 'OVERVIEW':
+                default:
+                  return stats.totalCount;
+              }
+            };
+
+            const count = getCount();
 
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                className={`px-5 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2 ${
                   isActive ? activeClass : 'text-slate-500 hover:text-slate-300'
                 }`}
               >
                 {tab.label}
+                {count > 0 && (
+                  <span
+                    className={`px-1.5 py-0.5 rounded-md text-[10px] ${isActive ? 'bg-current/10' : 'bg-slate-800 text-slate-500'}`}
+                  >
+                    {count}
+                  </span>
+                )}
               </button>
             );
           })}

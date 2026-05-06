@@ -133,7 +133,7 @@ export default function LoginPage() {
             {/* Brand Logo */}
             <Link to="/" className="mb-10 transition-transform hover:scale-105 active:scale-95">
               <img
-                src="https://i.ibb.co/84xLmWTK/LOGO.png"
+                src={dark ? 'https://i.ibb.co/WmGtp2t/Dark-Mode.png' : 'https://i.ibb.co/ksGVB17M/Light-Mode.png'}
                 alt="FinSight Logo"
                 className="h-14 w-auto drop-shadow-sm"
               />

@@ -9,6 +9,7 @@ import {
   recordPayment,
   resolveDispute,
   reverseTransaction,
+  updateDebt,
   writeOffDebt,
 } from '../../controllers/enterprise/debt.controller';
 import { authenticate } from '../../middleware/auth.middleware';
@@ -20,11 +21,12 @@ router.use(authenticate);
 router.post('/', createDebt);
 router.get('/', getDebts);
 router.get('/:id', getDebt);
+router.patch('/:id', updateDebt);
 router.get('/:id/audit-logs', getDebtAuditLogs);
 
-// Transactions
-router.post('/:id/transactions', recordPayment);
+// Transactions — specific route must come before parameterised /:id/transactions
 router.post('/transactions/:transactionId/reverse', reverseTransaction);
+router.post('/:id/transactions', recordPayment);
 
 // Status management
 router.patch('/:id/activate', activateDebt);
