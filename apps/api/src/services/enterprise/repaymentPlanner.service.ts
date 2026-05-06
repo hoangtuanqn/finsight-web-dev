@@ -176,8 +176,13 @@ export class RepaymentPlannerService {
       };
     }
 
+    // Calculate risk scores if needed BEFORE sorting
+    if (strategy === RepaymentStrategy.COVENANT_RISK && org) {
+      this.calculateRiskScores(debts, org);
+    }
+
     // Sort based on strategy
-    this.sortDebtsByStrategy(debts, strategy, org);
+    this.sortDebtsByStrategy(debts, strategy);
 
     let remainingBudget = budget;
     let fullyPaidCount = 0;
@@ -302,13 +307,13 @@ export class RepaymentPlannerService {
     };
   }
 
-  private sortDebtsByStrategy(debts: any[], strategy: RepaymentStrategy, org?: any) {
+  private sortDebtsByStrategy(debts: any[], strategy: RepaymentStrategy) {
     switch (strategy) {
       case RepaymentStrategy.AVALANCHE:
         debts.sort((a, b) => b.effectiveAnnualRate - a.effectiveAnnualRate);
         break;
       case RepaymentStrategy.SNOWBALL:
-        debts.sort((a, b) => a.outstanding - b.outstanding);
+        debts.sort((a, b) => Number(a.outstanding) - Number(b.outstanding));
         break;
       case RepaymentStrategy.OVERDUE_FIRST:
         debts.sort((a, b) => {
@@ -328,7 +333,6 @@ export class RepaymentPlannerService {
         });
         break;
       case RepaymentStrategy.COVENANT_RISK:
-        if (org) this.calculateRiskScores(debts, org);
         debts.sort((a, b) => b.riskScore - a.riskScore);
         break;
     }
@@ -342,14 +346,14 @@ export class RepaymentPlannerService {
   ): { [debtId: string]: { monthsToPayoff: number | 'NEVER'; isDebtTrap: boolean } } {
     const simDebts = debts.map((d) => ({
       id: d.id,
-      outstanding: d.outstanding,
+      outstanding: Number(d.outstanding),
       effectiveAnnualRate: d.effectiveAnnualRate,
       origin: d.origin,
       status: d.status,
       riskScore: d.riskScore,
       overdueSince: d.overdueSince,
-      monthsCount: 0,
-      isPaidOff: d.outstanding <= 0,
+      monthsCount: 0 as number | 'NEVER',
+      isPaidOff: Number(d.outstanding) <= 0,
       isDebtTrap: false,
     }));
 
@@ -389,7 +393,6 @@ export class RepaymentPlannerService {
       this.sortDebtsByStrategy(
         monthlyRequirements.map((req) => req.debt),
         strategy,
-        org,
       );
 
       for (const req of monthlyRequirements) {
@@ -438,10 +441,13 @@ export class RepaymentPlannerService {
   }
 
   private calculateRiskScores(debts: SimulationDebt[] | any[], org: any) {
-    const totalDebt = debts.reduce((sum, d) => sum + d.outstanding, 0);
+    const totalDebt = (debts as any[]).reduce((sum: number, d: any) => sum + Number(d.outstanding), 0);
     const deRatio = org?.equity ? totalDebt / org.equity : 0;
 
-    const totalMonthlyService = debts.reduce((sum, d) => sum + d.monthlyInterest + d.penaltyAccrued, 0);
+    const totalMonthlyService = (debts as any[]).reduce(
+      (sum: number, d: any) => sum + Number(d.monthlyInterest || 0) + Number(d.penaltyAccrued || 0),
+      0,
+    );
     const monthlyRevenue = (org?.annualRevenue || 0) / 12;
     const dscr = totalMonthlyService > 0 ? monthlyRevenue / totalMonthlyService : 100;
 
