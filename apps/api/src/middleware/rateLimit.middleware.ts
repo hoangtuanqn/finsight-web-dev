@@ -12,7 +12,7 @@ export function agenticRateLimit(req: AuthenticatedRequest, res: Response, next:
   if (!redis) return next(); // No Redis → skip rate limiting
 
   const key = `ratelimit:agentic:${req.userId}`;
-  const LIMIT = 20;
+  const LIMIT = 50;
   const WINDOW_SECONDS = 60;
 
   redis
