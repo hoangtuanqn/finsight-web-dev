@@ -172,15 +172,44 @@ export class RepaymentPlannerService {
     let remainingBudget = budget;
     let fullyPaidCount = 0;
 
-    const allocatedDebts = debts.map((debt, index) => {
-      const plannedAmount = Math.min(remainingBudget, debt.totalObligation);
-      remainingBudget -= plannedAmount;
+    // Phase 1: Calculate and allocate base minimum payment (Interest + Penalty) for ALL debts
+    const allocations = debts.map((debt) => {
+      const monthlyCost = debt.monthlyInterest + (debt.status === 'OVERDUE' ? debt.penaltyAccrued : 0);
+      return {
+        debt,
+        monthlyCost,
+        baseAllocation: 0,
+        extraAllocation: 0,
+      };
+    });
+
+    // Allocate base minimums first (even if it's not the highest priority, we must cover interest to avoid default)
+    for (const alloc of allocations) {
+      if (remainingBudget <= 0) break;
+      const amountToPay = Math.min(remainingBudget, alloc.monthlyCost);
+      alloc.baseAllocation = amountToPay;
+      remainingBudget -= amountToPay;
+    }
+
+    // Phase 2: Allocate remaining budget according to priority strategy (Avalanche/Snowball etc)
+    for (const alloc of allocations) {
+      if (remainingBudget <= 0) break;
+      const principalRemaining = alloc.debt.totalObligation - alloc.baseAllocation;
+      if (principalRemaining > 0) {
+        const amountToPay = Math.min(remainingBudget, principalRemaining);
+        alloc.extraAllocation = amountToPay;
+        remainingBudget -= amountToPay;
+      }
+    }
+
+    // Phase 3: Calculate outcomes
+    const allocatedDebts = allocations.map(({ debt, monthlyCost, baseAllocation, extraAllocation }, index) => {
+      const plannedAmount = baseAllocation + extraAllocation;
 
       if (plannedAmount >= debt.totalObligation) {
         fullyPaidCount++;
       }
 
-      const monthlyCost = debt.monthlyInterest + (debt.status === 'OVERDUE' ? debt.penaltyAccrued : 0);
       let monthsToPayoff: number | 'NEVER' = 'NEVER';
       let isDebtTrap = false;
 
