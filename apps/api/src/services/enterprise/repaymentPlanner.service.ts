@@ -12,6 +12,7 @@ export enum RepaymentStrategy {
 
 interface SimulationDebt extends DebtRecord {
   party: Party;
+  interestRates: any[]; // Include the relation
   effectiveAnnualRate: number;
   totalObligation: number;
   monthlyInterest: number;
@@ -25,6 +26,11 @@ interface SimulationResult {
     debtId: string;
     debtName: string;
     partyName: string;
+    internalCode: string;
+    principal: number;
+    interestRate: number;
+    interestMethod: string;
+    dueDate: Date;
     outstanding: number;
     plannedAmount: number;
     remainingAfter: number;
@@ -86,21 +92,23 @@ export class RepaymentPlannerService {
         effectiveRate += penaltyRate * 365 * 100;
       }
 
-      const monthlyInterest = (debt.outstanding * (currentRate / 100)) / 12;
-      const monthlyPenalty = debt.status === 'OVERDUE' ? debt.outstanding * penaltyRate * 30 : 0;
+      const monthlyInterest = (Number(debt.outstanding) * (Number(currentRate) / 100)) / 12;
+      const monthlyPenalty = debt.status === 'OVERDUE' ? Number(debt.outstanding) * Number(penaltyRate) * 30 : 0;
 
       // Default 1% prepayment penalty for bank loans as per business requirement 9.1
-      const prepaymentFee = debt.origin === 'FINANCIAL' ? debt.outstanding * 0.01 : 0;
+      const prepaymentFee = debt.origin === 'FINANCIAL' ? Number(debt.outstanding) * 0.01 : 0;
 
       return {
         ...debt,
+        principal: Number(debt.principal),
+        outstanding: Number(debt.outstanding),
         effectiveAnnualRate: effectiveRate,
-        totalObligation: debt.outstanding + monthlyInterest + monthlyPenalty + prepaymentFee,
+        totalObligation: Number(debt.outstanding) + monthlyInterest + monthlyPenalty + prepaymentFee,
         monthlyInterest,
         penaltyAccrued: monthlyPenalty,
         riskScore: 0,
         isRateIncreasing,
-      } as SimulationDebt;
+      } as unknown as SimulationDebt;
     });
   }
 
@@ -197,12 +205,17 @@ export class RepaymentPlannerService {
       return {
         debtId: debt.id,
         debtName: debt.internalCode || 'N/A',
+        internalCode: debt.internalCode || 'N/A',
         partyName: debt.party.name,
-        outstanding: debt.outstanding,
+        principal: Number(debt.principal),
+        interestRate: Number(debt.interestRates[0]?.rate || 0),
+        interestMethod: debt.interestMethod,
+        dueDate: debt.dueDate,
+        outstanding: Number(debt.outstanding),
         plannedAmount,
         remainingAfter: Math.max(
           0,
-          debt.outstanding - (plannedAmount - monthlyCost > 0 ? plannedAmount - monthlyCost : 0),
+          Number(debt.outstanding) - (plannedAmount - monthlyCost > 0 ? plannedAmount - monthlyCost : 0),
         ),
         priority: index + 1,
         reason: this.getReasonForStrategy(debt, strategy),
