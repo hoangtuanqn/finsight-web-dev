@@ -24,7 +24,7 @@ describe('Task 5.2 - Contract tests cho Router và Worker outputs', () => {
         input: ragHappyPath.input, // "DTI là gì và tôi nên duy trì ở mức nào?"
         summary: '',
         recentMessages: [],
-        activeContext: {},
+        activeContext: '',
         intent: AgentIntent.GENERAL_CHAT,
         worker: 'general',
         textResponse: '',
@@ -45,7 +45,7 @@ describe('Task 5.2 - Contract tests cho Router và Worker outputs', () => {
         input: debtExtractionHappyPath.input, // "Tôi vừa vay FE Credit 10 triệu..."
         summary: '',
         recentMessages: [],
-        activeContext: {},
+        activeContext: '',
         intent: AgentIntent.GENERAL_CHAT,
         worker: 'general',
         textResponse: '',
@@ -65,7 +65,7 @@ describe('Task 5.2 - Contract tests cho Router và Worker outputs', () => {
         input: debtSummaryHappyPath.input, // "Tình trạng nợ của tôi hiện nay thế nào?"
         summary: '',
         recentMessages: [],
-        activeContext: {},
+        activeContext: '',
         intent: AgentIntent.GENERAL_CHAT,
         worker: 'general',
         textResponse: '',
@@ -85,7 +85,7 @@ describe('Task 5.2 - Contract tests cho Router và Worker outputs', () => {
         input: marketOverviewHappyPath.input, // "Tình hình thị trường hiện tại như thế nào?"
         summary: '',
         recentMessages: [],
-        activeContext: {},
+        activeContext: '',
         intent: AgentIntent.GENERAL_CHAT,
         worker: 'general',
         textResponse: '',
