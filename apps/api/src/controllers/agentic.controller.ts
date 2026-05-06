@@ -1,6 +1,6 @@
 import { runAgenticChat, SSE_HEADERS, SseWriter } from '@repo/agentic';
 import { Response } from 'express';
-import OpenAI from 'openai';
+import OpenAI, { toFile } from 'openai';
 import prisma from '../lib/prisma';
 import { AuthenticatedRequest } from '../types';
 import { error, success } from '../utils/apiResponse';
@@ -192,5 +192,41 @@ export async function extractOcr(req: AuthenticatedRequest, res: Response) {
   } catch (err) {
     console.error('[OCR Error]', err);
     return error(res, 'Lỗi server khi parse ảnh');
+  }
+}
+
+/** POST /api/agentic/voice — Transcribe audio file via FPT Whisper STT */
+export async function transcribeVoice(req: AuthenticatedRequest, res: Response) {
+  if (!req.file) {
+    return error(res, 'Không tìm thấy file audio', 400);
+  }
+
+  const { buffer, mimetype, originalname } = req.file;
+
+  if (buffer.length === 0) {
+    return error(res, 'File audio rỗng', 400);
+  }
+
+  try {
+    const audioFile = await toFile(buffer, originalname || 'recording.webm', { type: mimetype || 'audio/webm' });
+
+    const transcription = await openaiClient.audio.transcriptions.create({
+      file: audioFile,
+      model: 'FPT.AI-whisper-large-v3-turbo',
+      language: 'vi',
+      response_format: 'json',
+    });
+
+    const text = transcription.text?.trim() ?? '';
+
+    if (!text) {
+      return error(res, 'Không nhận diện được giọng nói, vui lòng thử lại.', 422);
+    }
+
+    console.log(`[Voice STT] Transcribed ${buffer.length} bytes → "${text.substring(0, 60)}..."`);
+    return success(res, { text });
+  } catch (err) {
+    console.error('[Voice STT Error]', err);
+    return error(res, 'Lỗi chuyển đổi giọng nói, vui lòng thử lại sau.');
   }
 }
