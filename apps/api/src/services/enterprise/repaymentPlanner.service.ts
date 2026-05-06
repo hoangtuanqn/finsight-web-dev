@@ -64,7 +64,7 @@ export class RepaymentPlannerService {
   /**
    * Fetches eligible debts for planning (ACTIVE, PARTIAL, OVERDUE and PAYABLE)
    */
-  private async getEligibleDebts(organizationId: string): Promise<SimulationDebt[]> {
+  public async getEligibleDebts(organizationId: string): Promise<SimulationDebt[]> {
     const debts = await prisma.debtRecord.findMany({
       where: {
         organizationId,

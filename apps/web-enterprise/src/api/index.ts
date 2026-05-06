@@ -109,6 +109,7 @@ export const enterpriseAuthAPI = {
     api.post('/v1/enterprise/repayment-planner/commit', data),
   getExecutionReport: (month: number, year: number) =>
     api.get('/v1/enterprise/repayment-planner/execution-report', { params: { month, year } }),
+  getEligibleDebts: () => api.get('/v1/enterprise/repayment-planner/eligible-debts'),
 };
 
 export default api;
