@@ -35,7 +35,7 @@ const FEEDBACK_MESSAGES: Record<string, { success: string; name: string }> = {
     name: 'kế hoạch trả nợ',
   },
   INVESTMENT_CONFIRMATION: {
-    success: 'Tôi đã xác nhận lưu kế hoạch đầu tư thành công.',
+    success: 'Tôi đã tạo kế hoạch đầu tư thành công.',
     name: 'kế hoạch đầu tư',
   },
   DEBT_CONFIRMATION: {
@@ -472,17 +472,19 @@ export default function AIChatbotModal() {
                           <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Khám phá tiềm năng
                         </p>
                         <div className="flex flex-wrap gap-2.5">
-                          {['DTI là gì?', 'Tư vấn trả nợ', 'Phân tích tài chính', 'Kiểm tra nợ xấu'].map((q) => (
-                            <motion.button
-                              whileHover={{ scale: 1.02, backgroundColor: 'rgba(255,255,255,0.08)' }}
-                              whileTap={{ scale: 0.98 }}
-                              key={q}
-                              onClick={() => sendMessage(q)}
-                              className="px-5 py-2.5 rounded-2xl text-[13px] font-semibold text-slate-300 bg-white/[0.03] border border-white/10 hover:border-blue-500/40 transition-all cursor-pointer shadow-sm"
-                            >
-                              {q}
-                            </motion.button>
-                          ))}
+                          {['DTI là gì?', 'Giá vàng hiện tại là bao nhiêu ?', 'Tình hình tài chính của tôi ?'].map(
+                            (q) => (
+                              <motion.button
+                                whileHover={{ scale: 1.02, backgroundColor: 'rgba(255,255,255,0.08)' }}
+                                whileTap={{ scale: 0.98 }}
+                                key={q}
+                                onClick={() => sendMessage(q)}
+                                className="px-5 py-2.5 rounded-2xl text-[13px] font-semibold text-slate-300 bg-white/[0.03] border border-white/10 hover:border-blue-500/40 transition-all cursor-pointer shadow-sm"
+                              >
+                                {q}
+                              </motion.button>
+                            ),
+                          )}
                         </div>
                       </div>
                     )}

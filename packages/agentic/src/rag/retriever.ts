@@ -4,6 +4,8 @@ import { fileURLToPath } from 'url';
 import { getDb } from '../config';
 import { getEmbeddingModel } from '../llm-provider';
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 export interface KnowledgeSearchResult {
   title: string;
   chunk: string;
@@ -13,7 +15,42 @@ export interface KnowledgeSearchResult {
   lexicalScore?: number;
 }
 
-const KNOWN_FINANCE_TERMS = new Set(['apr', 'dca', 'dti', 'ear', 'etf', 'fomo', 'snowball', 'avalanche']);
+// ─── Finance term registry (expanded) ─────────────────────────────────────────
+
+/**
+ * Exact finance acronyms and key terms that get boosted scoring.
+ * Lower-cased so they match after normalizeForSearch().
+ */
+const KNOWN_FINANCE_TERMS = new Set([
+  // Core debt/loan
+  'apr',
+  'ear',
+  'dti',
+  'ltv',
+  // Investment
+  'dca',
+  'etf',
+  'roi',
+  'irr',
+  'npv',
+  'cagr',
+  'nav',
+  // Market
+  'fomo',
+  'vix',
+  'fdi',
+  // Strategy
+  'snowball',
+  'avalanche',
+  // Banking / compliance
+  'kyc',
+  'aml',
+  // Misc
+  'ebit',
+  'ebitda',
+]);
+
+// ─── Stop words ───────────────────────────────────────────────────────────────
 
 const STOP_WORDS = new Set([
   'anh',
@@ -25,11 +62,11 @@ const STOP_WORDS = new Set([
   'cua',
   'duoc',
   'dong',
-  'gi',
+  // 'gi'  intentionally excluded: "là gì" is a meaningful definition signal
   'hay',
   'hinh',
   'lich',
-  'la',
+  // 'la'  intentionally excluded: "là gì" pair must survive tokenization
   'minh',
   'mot',
   'nao',
@@ -43,6 +80,27 @@ const STOP_WORDS = new Set([
   'va',
   've',
 ]);
+
+// ─── RRF constant ─────────────────────────────────────────────────────────────
+
+/** Standard RRF k-constant. Higher values reduce the impact of rank gaps. */
+const K_RRF = 60;
+
+// ─── Knowledge doc cache ──────────────────────────────────────────────────────
+
+interface CachedKnowledgeDoc {
+  title: string;
+  category: string;
+  tags: string[];
+  chunks: string[];
+  /** fs.statSync().mtimeMs at cache time — used for invalidation. */
+  mtimeMs: number;
+}
+
+/** Per-file cache keyed by absolute file path. Invalidated on mtime change. */
+const knowledgeDocCache = new Map<string, CachedKnowledgeDoc>();
+
+// ─── Normalizers ──────────────────────────────────────────────────────────────
 
 function normalizeForSearch(value: string): string {
   return value
@@ -61,6 +119,8 @@ function tokenizeQuery(query: string): string[] {
 
   return [...new Set(tokens)];
 }
+
+// ─── Frontmatter parser ───────────────────────────────────────────────────────
 
 function parseFrontmatter(content: string) {
   const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
@@ -88,6 +148,8 @@ function parseFrontmatter(content: string) {
   return { metadata, body: match[2].trim() };
 }
 
+// ─── Chunking ─────────────────────────────────────────────────────────────────
+
 function hasNonHeadingText(markdown: string): boolean {
   return markdown.split(/\r?\n/).some((line) => {
     const trimmed = line.trim();
@@ -105,6 +167,8 @@ function chunkMarkdownBody(body: string, docTitle: string): string[] {
   return body.trim().length > 20 ? [`# ${docTitle}\n\n${body.trim()}`] : [];
 }
 
+// ─── Knowledge dir resolution ─────────────────────────────────────────────────
+
 function knowledgeDirCandidates(): string[] {
   const moduleDir = path.dirname(fileURLToPath(import.meta.url));
   return [
@@ -118,6 +182,39 @@ function knowledgeDirCandidates(): string[] {
 function resolveKnowledgeDir(): string | null {
   return knowledgeDirCandidates().find((candidate) => fs.existsSync(candidate)) ?? null;
 }
+
+// ─── Cached doc loader ────────────────────────────────────────────────────────
+
+/**
+ * Load and parse a knowledge doc from disk, using an in-memory cache
+ * keyed by the file's modification time. Cache is automatically invalidated
+ * when the underlying .md file changes.
+ */
+function loadDocCached(filePath: string): CachedKnowledgeDoc {
+  const stat = fs.statSync(filePath);
+  const cached = knowledgeDocCache.get(filePath);
+
+  if (cached && cached.mtimeMs === stat.mtimeMs) {
+    return cached;
+  }
+
+  const raw = fs.readFileSync(filePath, 'utf-8');
+  const { metadata, body } = parseFrontmatter(raw);
+  const title = metadata.title || path.basename(filePath).replace(/\.md$/, '');
+
+  const doc: CachedKnowledgeDoc = {
+    title,
+    category: metadata.category || 'CONCEPT',
+    tags: Array.isArray(metadata.tags) ? metadata.tags : [],
+    chunks: chunkMarkdownBody(body, title),
+    mtimeMs: stat.mtimeMs,
+  };
+
+  knowledgeDocCache.set(filePath, doc);
+  return doc;
+}
+
+// ─── Keyword scoring ──────────────────────────────────────────────────────────
 
 function scoreKeywordMatch(query: string, title: string, chunk: string, tags: string[]): number {
   const queryTokens = tokenizeQuery(query);
@@ -175,43 +272,7 @@ function keywordSimilarity(score: number): string {
   return Math.min(0.99, 0.72 + score / 100).toFixed(4);
 }
 
-export function searchLocalKnowledge(
-  query: string,
-  topK: number = 3,
-  category: string | null = null,
-): KnowledgeSearchResult[] {
-  const knowledgeDir = resolveKnowledgeDir();
-  if (!knowledgeDir) return [];
-
-  const matches: KnowledgeSearchResult[] = [];
-  const files = fs.readdirSync(knowledgeDir).filter((file) => file.endsWith('.md'));
-
-  for (const file of files) {
-    const raw = fs.readFileSync(path.join(knowledgeDir, file), 'utf-8');
-    const { metadata, body } = parseFrontmatter(raw);
-    const title = metadata.title || file.replace(/\.md$/, '');
-    const docCategory = metadata.category || 'CONCEPT';
-    const tags = Array.isArray(metadata.tags) ? metadata.tags : [];
-
-    if (category && docCategory !== category) continue;
-
-    for (const chunk of chunkMarkdownBody(body, title)) {
-      const lexicalScore = scoreKeywordMatch(query, title, chunk, tags);
-      if (lexicalScore <= 0) continue;
-
-      matches.push({
-        title,
-        chunk,
-        category: docCategory,
-        similarity: keywordSimilarity(lexicalScore),
-        matchType: 'keyword',
-        lexicalScore,
-      });
-    }
-  }
-
-  return matches.sort((a, b) => (b.lexicalScore ?? 0) - (a.lexicalScore ?? 0)).slice(0, topK);
-}
+// ─── Deduplication ────────────────────────────────────────────────────────────
 
 function dedupeResults(results: KnowledgeSearchResult[]): KnowledgeSearchResult[] {
   const seen = new Set<string>();
@@ -227,18 +288,87 @@ function dedupeResults(results: KnowledgeSearchResult[]): KnowledgeSearchResult[
   return deduped;
 }
 
-export async function searchKnowledge(
-  query: string,
-  topK: number = 3,
-  category: string | null = null,
-): Promise<KnowledgeSearchResult[]> {
-  const localResults = searchLocalKnowledge(query, topK, category);
-  let vectorResults: KnowledgeSearchResult[] = [];
+// ─── RRF helpers ──────────────────────────────────────────────────────────────
 
-  if (localResults.length > 0 && parseFloat(localResults[0].similarity) >= 0.9) {
-    return localResults;
+/** Stable identity key for a chunk across keyword and vector result sets. */
+function chunkKey(r: KnowledgeSearchResult): string {
+  return `${r.title}::${r.chunk.slice(0, 100)}`;
+}
+
+/**
+ * Reciprocal Rank Fusion.
+ * score(d) = Σ  1 / (K_RRF + rank_i(d))
+ *
+ * Chunks that rank highly in BOTH keyword and vector search float to the top.
+ * Chunks absent from one source are penalised but not eliminated.
+ */
+function applyRRF(
+  keywordResults: KnowledgeSearchResult[],
+  vectorResults: KnowledgeSearchResult[],
+  topK: number,
+): KnowledgeSearchResult[] {
+  const keywordRank = new Map<string, number>();
+  keywordResults.forEach((r, i) => keywordRank.set(chunkKey(r), i + 1));
+
+  const vectorRank = new Map<string, number>();
+  vectorResults.forEach((r, i) => vectorRank.set(chunkKey(r), i + 1));
+
+  const allChunks = dedupeResults([...keywordResults, ...vectorResults]);
+
+  return allChunks
+    .map((chunk) => {
+      const key = chunkKey(chunk);
+      // Missing from a list → penalise as if ranked after the last position
+      const kRank = keywordRank.get(key) ?? keywordResults.length + K_RRF;
+      const vRank = vectorRank.get(key) ?? vectorResults.length + K_RRF;
+      const rrfScore = 1 / (K_RRF + kRank) + 1 / (K_RRF + vRank);
+      return { chunk, rrfScore };
+    })
+    .sort((a, b) => b.rrfScore - a.rrfScore)
+    .slice(0, topK)
+    .map((item) => item.chunk);
+}
+
+// ─── Keyword search (local .md files) ────────────────────────────────────────
+
+export function searchLocalKnowledge(
+  query: string,
+  topK: number = 5,
+  category: string | null = null,
+): KnowledgeSearchResult[] {
+  const knowledgeDir = resolveKnowledgeDir();
+  if (!knowledgeDir) return [];
+
+  const matches: KnowledgeSearchResult[] = [];
+  const files = fs.readdirSync(knowledgeDir).filter((file) => file.endsWith('.md'));
+
+  for (const file of files) {
+    const filePath = path.join(knowledgeDir, file);
+    const doc = loadDocCached(filePath); // mtime-invalidated cache
+
+    if (category && doc.category !== category) continue;
+
+    for (const chunk of doc.chunks) {
+      const lexicalScore = scoreKeywordMatch(query, doc.title, chunk, doc.tags);
+      if (lexicalScore <= 0) continue;
+
+      matches.push({
+        title: doc.title,
+        chunk,
+        category: doc.category,
+        similarity: keywordSimilarity(lexicalScore),
+        matchType: 'keyword',
+        lexicalScore,
+      });
+    }
   }
 
+  return matches.sort((a, b) => (b.lexicalScore ?? 0) - (a.lexicalScore ?? 0)).slice(0, topK);
+}
+
+// ─── Vector search (pgvector) ─────────────────────────────────────────────────
+
+async function searchVector(query: string, topK: number, category: string | null): Promise<KnowledgeSearchResult[]> {
   try {
     const embeddingModel = getEmbeddingModel();
     const queryEmbedding = await embeddingModel.embedQuery(query);
@@ -271,18 +401,52 @@ export async function searchKnowledge(
 
     const results: any = await getDb().$queryRawUnsafe(sql, ...params);
 
-    vectorResults = results.map((r: any) => ({
+    return results.map((r: any) => ({
       title: r.title,
       chunk: r.chunk,
       category: r.category,
       similarity: parseFloat(r.similarity).toFixed(4),
-      matchType: 'vector',
+      matchType: 'vector' as const,
     }));
   } catch (err: any) {
-    console.warn('[searchKnowledge] Vector search unavailable, using local knowledge fallback:', err.message);
+    console.warn('[searchKnowledge] Vector search unavailable, using keyword fallback:', err.message);
+    return [];
   }
+}
 
-  return dedupeResults([...localResults, ...vectorResults])
-    .sort((a, b) => parseFloat(b.similarity) - parseFloat(a.similarity))
-    .slice(0, topK);
+// ─── Hybrid search with RRF ───────────────────────────────────────────────────
+
+/**
+ * Hybrid knowledge search using Reciprocal Rank Fusion.
+ *
+ * Pipeline:
+ * 1. Run keyword and vector searches in parallel (no early return).
+ * 2. If only one source available, fall back gracefully.
+ * 3. Both available → apply RRF to merge rankings.
+ *
+ * This replaces the old "similarity ≥ 0.9 → skip vector" early-return logic,
+ * which caused the system to miss semantically relevant documents.
+ */
+export async function searchKnowledge(
+  query: string,
+  topK: number = 5,
+  category: string | null = null,
+): Promise<KnowledgeSearchResult[]> {
+  // Fetch K candidates from each source (more input = better RRF quality)
+  const candidateK = topK * 2;
+
+  const [keywordResults, vectorResults] = await Promise.all([
+    Promise.resolve(searchLocalKnowledge(query, candidateK, category)),
+    searchVector(query, candidateK, category),
+  ]);
+
+  // Both empty → nothing found
+  if (keywordResults.length === 0 && vectorResults.length === 0) return [];
+
+  // One source unavailable → graceful degradation
+  if (vectorResults.length === 0) return keywordResults.slice(0, topK);
+  if (keywordResults.length === 0) return vectorResults.slice(0, topK);
+
+  // Both available → RRF fusion
+  return applyRRF(keywordResults, vectorResults, topK);
 }
