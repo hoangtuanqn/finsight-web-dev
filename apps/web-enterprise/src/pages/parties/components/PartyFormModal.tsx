@@ -1,6 +1,7 @@
 import { Button, Input, Modal } from '@repo/ui';
 import { Banknote, Building2, Contact, User } from 'lucide-react';
 import React, { useState } from 'react';
+import FormattedInput from '../../../components/common/FormattedInput';
 import type { Party } from '../types';
 
 interface PartyFormModalProps {
@@ -207,12 +208,12 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
                       <label className="text-[11px] font-bold text-slate-400 dark:text-slate-400 ml-1 uppercase tracking-wider">
                         Hạn Mức Tín Dụng (VND)
                       </label>
-                      <Input
-                        type="number"
+                      <FormattedInput
                         placeholder="500,000,000"
                         className="w-full bg-slate-50 dark:bg-slate-950/50 border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-slate-900 dark:text-white focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 transition-all outline-none font-mono"
                         value={formData.creditLimit}
-                        onChange={(e) => setFormData({ ...formData, creditLimit: Number(e.target.value) })}
+                        onValueChange={(val) => setFormData({ ...formData, creditLimit: Number(val) })}
+                        suffix="đ"
                       />
                     </div>
                     <div className="space-y-2.5">
