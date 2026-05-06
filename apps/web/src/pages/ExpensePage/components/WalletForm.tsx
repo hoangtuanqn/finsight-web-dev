@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Building2, Check, ChevronDown, Info, Key, Link2, Search, X, Zap } from 'lucide-react';
 import { useState } from 'react';
+import FormattedInput from '../../../components/common/FormattedInput';
 import { useWalletMutations } from '../../../hooks/useWalletQuery';
 import { INPUT_CLASSES, LABEL_CLASSES } from '../constants';
 
@@ -543,20 +544,14 @@ export function WalletForm({ wallet, onClose }: WalletFormProps) {
             <label className={LABEL_CLASSES}>
               {isBank && syncEnabled ? 'Số dư (tự động cập nhật)' : 'Số dư ban đầu'}
             </label>
-            <div className="relative">
-              <input
-                type="number"
-                value={form.balance}
-                onChange={(e) => set('balance', e.target.value)}
-                placeholder="0"
-                min="0"
-                readOnly={isBank && syncEnabled && !!wallet?.sepayToken}
-                className={INPUT_CLASSES + ' pr-10'}
-              />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] text-sm font-black">
-                đ
-              </span>
-            </div>
+            <FormattedInput
+              value={form.balance}
+              onValueChange={(value) => set('balance', value)}
+              placeholder="0"
+              readOnly={isBank && syncEnabled && !!wallet?.sepayToken}
+              className={INPUT_CLASSES}
+              suffix="đ"
+            />
           </div>
 
           {/* Submit */}
