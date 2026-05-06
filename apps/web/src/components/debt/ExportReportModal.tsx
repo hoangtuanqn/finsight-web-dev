@@ -11,7 +11,7 @@ import {
   ShieldCheck,
   X,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { reportAPI } from '../../api';
 import { useDebts } from '../../hooks/useDebtQuery';
@@ -29,6 +29,18 @@ const ExportReportModal = ({ isOpen, onClose }) => {
   const hasNoDebts = !debtsLoading && debts.length === 0;
 
   const [dateError, setDateError] = useState('');
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      if (scrollRef.current) {
+        scrollRef.current.scrollTo({
+          top: scrollRef.current.scrollHeight,
+          behavior: 'smooth',
+        });
+      }
+    }, 100);
+  };
 
   const validateDates = () => {
     if (timeRange !== 'custom') return true;
@@ -145,7 +157,7 @@ const ExportReportModal = ({ isOpen, onClose }) => {
             </div>
 
             {/* Content */}
-            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+            <div ref={scrollRef} className="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
               {!success && (
                 <div className="space-y-6">
                   {hasNoDebts ? (
@@ -275,7 +287,10 @@ const ExportReportModal = ({ isOpen, onClose }) => {
                       <div className="grid grid-cols-2 gap-4">
                         <button
                           disabled={loadingType !== null}
-                          onClick={() => setSelectedFormat('pdf')}
+                          onClick={() => {
+                            setSelectedFormat('pdf');
+                            scrollToBottom();
+                          }}
                           className={`flex flex-col items-center gap-2 p-4 rounded-2xl transition-all border ${
                             selectedFormat === 'pdf'
                               ? 'bg-red-500/10 border-red-500/50 shadow-lg shadow-red-500/10'
@@ -294,7 +309,10 @@ const ExportReportModal = ({ isOpen, onClose }) => {
 
                         <button
                           disabled={loadingType !== null}
-                          onClick={() => setSelectedFormat('excel')}
+                          onClick={() => {
+                            setSelectedFormat('excel');
+                            scrollToBottom();
+                          }}
                           className={`flex flex-col items-center gap-2 p-4 rounded-2xl transition-all border ${
                             selectedFormat === 'excel'
                               ? 'bg-emerald-500/10 border-emerald-500/50 shadow-lg shadow-emerald-500/10'
