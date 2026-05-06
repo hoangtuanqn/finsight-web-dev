@@ -4,6 +4,7 @@ import { Calculator, Calendar, DollarSign, FileText, Info, Lock, Save, Unlock, U
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { enterpriseAuthAPI } from '../../api';
+import FormattedInput from '../common/FormattedInput';
 import { InterestRateSection, type InterestRateBracket, type InterestRateType } from './InterestRateSection';
 
 interface DebtEditModalProps {
@@ -417,14 +418,14 @@ export const DebtEditModal: React.FC<DebtEditModalProps> = ({
                     <DollarSign size={16} />
                   </div>
                   {canEditFinancial ? (
-                    <Input
-                      type="number"
+                    <FormattedInput
                       className={`w-full pl-12 pr-4 py-3 bg-slate-950 border rounded-xl text-sm text-white font-mono ${errors.principal ? 'border-rose-500/50 ring-2 ring-rose-500/10' : 'border-slate-800'}`}
                       value={formData.principal || ''}
-                      onChange={(e) => {
-                        setFormData({ ...formData, principal: e.target.value });
+                      onValueChange={(val) => {
+                        setFormData({ ...formData, principal: Number(val) });
                         if (errors.principal) setErrors({ ...errors, principal: '' });
                       }}
+                      suffix="đ"
                     />
                   ) : (
                     <input

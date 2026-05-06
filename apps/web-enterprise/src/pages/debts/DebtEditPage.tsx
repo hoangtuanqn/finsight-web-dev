@@ -6,6 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { enterpriseAuthAPI } from '../../api';
+import FormattedInput from '../../components/common/FormattedInput';
 import { InterestRateSection, type InterestRateType } from '../../components/debts/InterestRateSection';
 import { SchedulePreview } from '../../components/debts/SchedulePreview';
 
@@ -437,16 +438,16 @@ export default function DebtEditPage() {
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
                     <DollarSign size={16} />
                   </div>
-                  <Input
-                    type="number"
+                  <FormattedInput
                     className={`w-full pl-12 pr-4 py-3 bg-slate-950 border rounded-xl text-sm text-white font-mono ${
                       errors.principal ? 'border-rose-500/50 ring-2 ring-rose-500/10' : 'border-slate-800'
                     }`}
                     value={formData.principal}
-                    onChange={(e) => {
-                      setFormData({ ...formData, principal: Number(e.target.value) });
+                    onValueChange={(val) => {
+                      setFormData({ ...formData, principal: Number(val) });
                       if (errors.principal) setErrors({ ...errors, principal: '' });
                     }}
+                    suffix="đ"
                   />
                 </div>
                 {errors.principal && <p className="text-[10px] font-bold text-rose-500 ml-1">{errors.principal}</p>}

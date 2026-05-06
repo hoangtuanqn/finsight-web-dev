@@ -2,6 +2,7 @@ import { Button } from '@repo/ui/button';
 import { AlertCircle, Calendar, CheckCircle2, CreditCard, DollarSign, FileText, Hash, Info, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { enterpriseAuthAPI } from '../../api';
+import FormattedInput from '../common/FormattedInput';
 
 interface RecordPaymentModalProps {
   isOpen: boolean;
@@ -137,13 +138,12 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ isOpen, 
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
                   <DollarSign size={18} />
                 </div>
-                <input
-                  required
-                  type="number"
-                  placeholder="0.00"
+                <FormattedInput
                   className="w-full h-14 pl-12 pr-4 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white font-mono text-lg focus:border-blue-500 focus:outline-none transition-all shadow-inner"
                   value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  onValueChange={(val) => setFormData({ ...formData, amount: val })}
+                  suffix="đ"
+                  placeholder="0"
                 />
               </div>
             </div>
