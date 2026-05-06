@@ -92,9 +92,8 @@ export async function runPenaltyJob(orgId?: string): Promise<{
           continue;
         }
 
-        // ── Tính penalty ────────────────────────────────────────────────
-        // Tính trên outstanding gốc, KHÔNG tính lãi kép trên penalty cũ
-        const penaltyAmount = Math.round(debt.outstanding * dailyRate * 100) / 100;
+        // Calculate penalty and round to nearest integer (important for VND)
+        const penaltyAmount = Math.round(debt.outstanding * dailyRate);
 
         if (penaltyAmount <= 0) continue;
 

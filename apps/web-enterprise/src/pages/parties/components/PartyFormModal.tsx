@@ -134,6 +134,46 @@ export const PartyFormModal: React.FC<PartyFormModalProps> = ({
               </button>
             );
           })}
+
+          {!isEdit && (
+            <button
+              type="button"
+              onClick={() => {
+                setFormData({
+                  ...formData,
+                  name: 'Công ty TNHH Hòa Bình',
+                  shortName: 'Hoa Binh Construction',
+                  taxCode: '0302568421',
+                  internalCode: 'SUP-HBC-001',
+                  creditLimit: 1000000000,
+                  typeTags: ['SUPPLIER', 'INTERNAL'],
+                  isRelatedParty: false,
+                  personInChargeId: internalUsers[0]?.id || '',
+                  contacts: [
+                    {
+                      name: 'Lê Hoàng Nam',
+                      position: 'Giám đốc Dự án',
+                      phone: '0912345678',
+                      email: 'nam.le@hoabinh.vn',
+                      isPrimary: true,
+                    },
+                  ],
+                  bankAccounts: [
+                    {
+                      bankName: 'Vietcombank (VCB)',
+                      accountNumber: '0071001234567',
+                      accountHolder: 'CONG TY CP XD HOA BINH',
+                      branch: 'Chi nhánh TP.HCM',
+                    },
+                  ],
+                });
+                setErrors({});
+              }}
+              className="ml-2 px-3 py-3 rounded-2xl text-[10px] font-black uppercase tracking-tighter bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-all"
+            >
+              🚀 Nhập Nhanh
+            </button>
+          )}
         </div>
 
         <form onSubmit={handleFormSubmit} className="flex-1 flex flex-col overflow-hidden">
