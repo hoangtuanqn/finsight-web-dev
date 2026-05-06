@@ -93,9 +93,9 @@ export const authSchemas = {
     }),
 
   profile: z.object({
-    fullName: z.string().min(1, 'Họ tên không được để trống').max(50),
-    monthlyIncome: z.number().min(0),
-    extraBudget: z.number().min(0),
+    fullName: z.string().min(1, 'Họ tên không được để trống').max(50).optional(),
+    monthlyIncome: z.number().min(0).optional(),
+    extraBudget: z.number().min(0).optional(),
     capital: z.number().min(0).optional(),
     goal: z.enum(['GROWTH', 'INCOME', 'STABILITY', 'SPECULATION']).optional(),
     horizon: z.enum(['SHORT', 'MEDIUM', 'LONG']).optional(),

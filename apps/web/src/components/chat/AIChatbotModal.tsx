@@ -5,7 +5,9 @@ import { useAgenticChat } from '../../hooks/useAgenticChat';
 import { runOCR } from '../../utils/ocr';
 import ChatHistory from './ChatHistory';
 import DebtConfirmModal from './DebtConfirmModal';
+import DebtSummaryCard from './DebtSummaryCard';
 import MessageRenderer from './MessageRenderer';
+import UiSignalDispatcher from './UiSignalDispatcher';
 
 export default function AIChatbotModal() {
   const [isOpen, setIsOpen] = useState(false);
@@ -21,6 +23,7 @@ export default function AIChatbotModal() {
     sessionId,
     sessions,
     pendingAction,
+    pendingUiSignal,
     toolStatus,
     sendMessage,
     loadSession,
@@ -28,6 +31,7 @@ export default function AIChatbotModal() {
     removeSession,
     newChat,
     dismissAction,
+    dismissUiSignal,
     setToolStatus,
     setIsStreaming,
     setMessages,
@@ -382,6 +386,12 @@ export default function AIChatbotModal() {
                     </div>
                   )}
 
+                {/* Inline Interactive Card (e.g. DebtSummaryCard) — Task 4.6 */}
+                {pendingUiSignal?.type === 'SHOW_INTERACTIVE_CARD' &&
+                  pendingUiSignal.action === 'DEBT_SUMMARY_ACTIONS' && (
+                    <DebtSummaryCard buttons={(pendingUiSignal as any).buttons ?? []} onNavigated={dismissUiSignal} />
+                  )}
+
                 <div ref={messagesEndRef} />
               </div>
             </div>
@@ -477,8 +487,8 @@ export default function AIChatbotModal() {
         )}
       </AnimatePresence>
 
-      {/* Debt Confirmation Modal - rendered outside chat window, uses Portal internally */}
-      {pendingAction && (
+      {/* Legacy: Debt Confirmation from old form_population path */}
+      {pendingAction && !pendingUiSignal && (
         <DebtConfirmModal
           data={pendingAction}
           onConfirm={() => {
@@ -486,6 +496,39 @@ export default function AIChatbotModal() {
             sendMessage('Tôi đã xác nhận lưu khoản nợ thành công.');
           }}
           onDismiss={dismissAction}
+        />
+      )}
+
+      {/* Typed UI Signal Dispatcher — handles SHOW_POPUP and REDIRECT */}
+      {pendingUiSignal?.type !== 'SHOW_INTERACTIVE_CARD' && (
+        <UiSignalDispatcher
+          signal={pendingUiSignal}
+          onDismiss={dismissUiSignal}
+          isModalOpen={!!pendingAction}
+          onConfirmed={(sig) => {
+            dismissUiSignal();
+            if (sig.action === 'DEBT_CONFIRMATION') {
+              sendMessage('Tôi đã xác nhận lưu khoản nợ thành công.');
+            }
+          }}
+          onFeedback={(status, reason) => {
+            const action = pendingUiSignal?.action || 'DEBT_CONFIRMATION';
+            if (status === 'confirmed') {
+              if (action === 'REPAYMENT_CONFIRMATION') {
+                sendMessage('Tôi đã cập nhật kế hoạch phân bổ mới, mời bạn xem chi tiết trên màn hình.');
+              } else {
+                sendMessage('Tôi đã xác nhận lưu khoản nợ thành công.');
+              }
+            } else if (status === 'cancelled') {
+              sendMessage('Tôi đã hủy bỏ thao tác.');
+            } else if (status === 'failed') {
+              const actionName = action === 'REPAYMENT_CONFIRMATION' ? 'kế hoạch' : 'khoản nợ';
+              const msg = reason
+                ? `Lưu ${actionName} thất bại: ${reason}`
+                : `Lưu ${actionName} thất bại, vui lòng thử lại.`;
+              sendMessage(msg);
+            }
+          }}
         />
       )}
 

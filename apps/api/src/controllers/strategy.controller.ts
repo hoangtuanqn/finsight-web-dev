@@ -108,31 +108,59 @@ export async function generateStrategy(req: AuthenticatedRequest, res: Response)
       );
     }
 
-    const strategy = await (prisma as any).aIStrategy.create({
-      data: {
-        userId: req.userId,
-        sentimentValue,
-        sentimentLabel: result.sentimentLabel,
-        riskLevel: user.investorProfile.riskLevel,
-        savings: result.savings,
-        gold: result.gold,
-        stocks: result.stocks,
-        bonds: result.bonds,
-        crypto: result.crypto,
-        recommendation: result.recommendation,
-        marketViews: result.marketViews,
-        assetSnapshot: Object.keys(assetSnapshot).length > 0 ? assetSnapshot : undefined,
-      },
-    });
+    // ── Task 3.2: Atomic quota decrement + strategy create in one transaction ──
+    // Conditional update (WHERE strategyQuota > 0) prevents race conditions where
+    // two concurrent requests both pass the initial guard and both decrement,
+    // causing quota to go negative.
+    let strategy: any;
+    let updatedUser: any;
 
-    const updatedUser = await (prisma as any).user.update({
-      where: { id: req.userId },
-      data: { strategyQuota: { decrement: 1 } },
-      select: { strategyQuota: true },
-    });
+    try {
+      [strategy, updatedUser] = await (prisma as any).$transaction(async (tx: any) => {
+        // CAS: decrement only when quota is still > 0 at commit time
+        const updated = await tx.user.updateMany({
+          where: { id: req.userId, strategyQuota: { gt: 0 } },
+          data: { strategyQuota: { decrement: 1 } },
+        });
+
+        if (updated.count === 0) {
+          throw new Error('QUOTA_EXHAUSTED');
+        }
+
+        const newStrategy = await tx.aIStrategy.create({
+          data: {
+            userId: req.userId,
+            sentimentValue,
+            sentimentLabel: result.sentimentLabel,
+            riskLevel: user.investorProfile.riskLevel,
+            savings: result.savings,
+            gold: result.gold,
+            stocks: result.stocks,
+            bonds: result.bonds,
+            crypto: result.crypto,
+            recommendation: result.recommendation,
+            marketViews: result.marketViews,
+            assetSnapshot: Object.keys(assetSnapshot).length > 0 ? assetSnapshot : undefined,
+          },
+        });
+
+        const refreshedUser = await tx.user.findUnique({
+          where: { id: req.userId },
+          select: { strategyQuota: true },
+        });
+
+        return [newStrategy, refreshedUser];
+      });
+    } catch (txErr: any) {
+      if (txErr.message === 'QUOTA_EXHAUSTED') {
+        console.info(`[InvestmentAdvisor] strategy-generate:quota-race user=${shortUserId(req.userId)}`);
+        return error(res, 'Bạn đã hết lượt tạo chiến lược. Nâng cấp tài khoản để nhận thêm lượt.', 403);
+      }
+      throw txErr;
+    }
 
     console.info(
-      `[InvestmentAdvisor] strategy-generate:complete user=${shortUserId(req.userId)} strategy=${strategy.id} sentiment=${sentimentValue} dataQuality=${result.optimization?.marketDataQuality || 'unknown'} quotaAfter=${updatedUser.strategyQuota} durationMs=${Date.now() - startedAt}`,
+      `[InvestmentAdvisor] strategy-generate:complete user=${shortUserId(req.userId)} strategy=${strategy.id} sentiment=${sentimentValue} dataQuality=${result.optimization?.marketDataQuality || 'unknown'} quotaAfter=${updatedUser?.strategyQuota} durationMs=${Date.now() - startedAt}`,
     );
 
     invalidateCache([`investment:allocation:${req.userId}:*`]);

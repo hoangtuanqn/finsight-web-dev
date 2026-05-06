@@ -1,6 +1,7 @@
 import { AIMessage, BaseMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { getDb } from './config';
 import { getChatModel } from './llm-provider';
+import { type UiSignal } from './ui-signal.js';
 
 export const getOrCreateSession = async (userId: string, sessionId: string | null = null) => {
   if (sessionId) {
@@ -15,20 +16,33 @@ export const getOrCreateSession = async (userId: string, sessionId: string | nul
   });
 };
 
+/**
+ * Save a chat message to the session.
+ *
+ * For assistant messages with a UI signal:
+ * - `actionType`: the signal action enum (e.g. `DEBT_CONFIRMATION`).
+ * - `uiSignal`: the full validated UiSignal object stored in `payload`.
+ *
+ * Legacy callers can still pass a raw `payload` object; `uiSignal` takes
+ * precedence when both are supplied.
+ */
 export const saveMessage = async (
   sessionId: string,
   role: string,
   content: string,
   actionType: string | null = null,
-  payload: any = null,
+  payload: UiSignal | unknown | null = null,
+  uiSignal?: UiSignal | null,
 ) => {
+  const storedPayload = uiSignal !== undefined ? (uiSignal ?? null) : (payload ?? null);
+
   return getDb().chatMessage.create({
     data: {
       sessionId,
       role,
       content,
       actionType,
-      payload,
+      payload: storedPayload as any,
     },
   });
 };

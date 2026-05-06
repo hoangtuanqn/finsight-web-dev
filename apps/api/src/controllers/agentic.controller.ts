@@ -1,4 +1,4 @@
-import { runAgenticChat } from '@repo/agentic';
+import { runAgenticChat, SSE_HEADERS, SseWriter } from '@repo/agentic';
 import { Response } from 'express';
 import prisma from '../lib/prisma';
 import { AuthenticatedRequest } from '../types';
@@ -7,6 +7,7 @@ import { error, success } from '../utils/apiResponse';
 export async function chatWithAgent(req: AuthenticatedRequest, res: Response) {
   const { message, sessionId, ocrText } = req.body;
 
+  // Validate before SSE headers are flushed — can still use HTTP error codes here.
   if (!message || typeof message !== 'string' || message.trim().length === 0) {
     return error(res, 'Message is required', 400);
   }
@@ -15,24 +16,22 @@ export async function chatWithAgent(req: AuthenticatedRequest, res: Response) {
     return error(res, 'Message too long (max 2000 characters)', 400);
   }
 
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  res.setHeader('X-Accel-Buffering', 'no');
+  // Flush SSE headers — after this point all errors must go through SSE event: error.
+  Object.entries(SSE_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
   res.flushHeaders();
 
-  const heartbeat = setInterval(() => {
-    res.write(`:ping\n\n`);
-  }, 15000);
+  const writer = new SseWriter(res, { legacyCompat: true, heartbeatMs: 15_000 });
+  writer.startHeartbeat();
+
+  let clientDisconnected = false;
+  req.on('close', () => {
+    clientDisconnected = true;
+    writer.close();
+    console.log('[SSE] Client disconnected, writer closed');
+  });
 
   try {
     let finalMessage = message.trim();
-
-    let clientDisconnected = false;
-    req.on('close', () => {
-      clientDisconnected = true;
-      console.log('[SSE] Client disconnected, suppressing further writes');
-    });
 
     if (ocrText) {
       finalMessage = `[Nội dung tài liệu đính kèm (OCR):\n${ocrText}]\n\nYêu cầu của tôi: ${message.trim()}`;
@@ -44,37 +43,48 @@ export async function chatWithAgent(req: AuthenticatedRequest, res: Response) {
       finalMessage,
       sessionId || null,
 
+      // onTokenStream → event: message (+ legacy data: { token })
       (token: string) => {
         if (clientDisconnected) return;
-        res.write(`data: ${JSON.stringify({ token })}\n\n`);
+        writer.sendToken(token);
       },
 
+      // onToolStatus → event: status (+ legacy data: { status })
       (status: string | null) => {
-        if (clientDisconnected || !status) return;
-        res.write(`data: ${JSON.stringify({ status })}\n\n`);
+        if (clientDisconnected) return;
+        if (status) {
+          writer.sendStatus(status);
+        } else {
+          writer.clearStatus();
+        }
       },
 
+      // isAborted
       () => clientDisconnected,
     );
 
-    res.write(
-      `data: ${JSON.stringify({
-        done: true,
+    if (!clientDisconnected) {
+      // Emit ui_signal as a dedicated event before done when present.
+      if (result.triggerPayload) {
+        writer.sendUiSignal(result.triggerPayload);
+      }
+
+      // event: done always carries sessionId, actionType, uiSignal.
+      writer.sendDone({
         sessionId: result.sessionId,
-        actionType: result.actionType,
-        triggerPayload: result.triggerPayload || null,
-      })}\n\n`,
-    );
+        actionType: result.actionType ?? null,
+        uiSignal: null,
+        triggerPayload: result.triggerPayload ?? null,
+      });
+    }
   } catch (err) {
-    console.error('chatWithAgent error:', err);
-    res.write(
-      `data: ${JSON.stringify({
-        done: true,
-        error: 'Hệ thống gặp sự cố, vui lòng thử lại sau.',
-      })}\n\n`,
-    );
+    console.error('[chatWithAgent] error after SSE headers:', err);
+    // Must NOT use res.status() here — headers already flushed.
+    if (!clientDisconnected) {
+      writer.sendError('Hệ thống gặp sự cố, vui lòng thử lại sau.');
+    }
   } finally {
-    clearInterval(heartbeat);
+    writer.close();
     res.end();
   }
 }
