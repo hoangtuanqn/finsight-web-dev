@@ -33,7 +33,16 @@ router.use(agenticRateLimit);
 // Routes
 router.post('/chat', chatWithAgent);
 router.post('/ocr', extractOcr);
-router.post('/voice', voiceUpload.single('audio'), transcribeVoice);
+router.post(
+  '/voice',
+  (req, res, next) => {
+    voiceUpload.single('audio')(req, res, (err) => {
+      if (err) return res.status(400).json({ error: err.message });
+      next();
+    });
+  },
+  transcribeVoice,
+);
 router.post('/repayment-setup', repaymentSetup);
 router.get('/sessions', getSessions);
 router.get('/sessions/:id', getSessionMessages);

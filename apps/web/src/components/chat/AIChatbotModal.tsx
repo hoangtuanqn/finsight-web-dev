@@ -29,6 +29,7 @@ export default function AIChatbotModal() {
   const [showHistory, setShowHistory] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [selectedImage, setSelectedImage] = useState(null); // { file, preview, base64 }
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -79,6 +80,13 @@ export default function AIChatbotModal() {
       }
     }
   }, [messages, isStreaming, toolStatus]);
+
+  // Reactive isMobile: updates on window resize
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
 
   // Load sessions when history panel opens
   useEffect(() => {
@@ -201,9 +209,6 @@ export default function AIChatbotModal() {
 
   // Determine status display text
   const statusText = isStreaming ? toolStatus || '🤔 Đang suy nghĩ...' : 'Sẵn sàng';
-
-  // Modal dimensions & positioning logic
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   const modalVariants: Variants = {
     closed: {

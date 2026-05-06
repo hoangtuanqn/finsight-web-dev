@@ -208,10 +208,13 @@ export async function transcribeVoice(req: AuthenticatedRequest, res: Response) 
   }
 
   try {
-    console.log(`[Voice STT] Processing ${buffer.length} bytes via FPT Cloud Whisper...`);
+    const mimeType = req.file.mimetype || 'audio/mp4';
+    const ext = mimeType.includes('mp4') ? 'm4a' : mimeType.includes('ogg') ? 'ogg' : 'webm';
+    console.log(`[Voice STT] Processing ${buffer.length} bytes (${mimeType}) via FPT Cloud Whisper...`);
 
-    // Use standard .webm extension as produced by browser
-    const audioFile = await toFile(buffer, 'recording.webm', { type: 'audio/webm' });
+    // Pass as Blob — matches FPT's own documentation example (no toFile wrapper overhead)
+    const audioBlob = new Blob([buffer], { type: mimeType });
+    const audioFile = await toFile(audioBlob, `recording.${ext}`, { type: mimeType });
 
     const transcription = await openaiClient.audio.transcriptions.create({
       file: audioFile,
@@ -226,17 +229,16 @@ export async function transcribeVoice(req: AuthenticatedRequest, res: Response) 
       return error(res, 'Không nhận diện được giọng nói, vui lòng thử lại.', 422);
     }
 
-    console.log(`[Voice STT] Success → "${text.substring(0, 60)}..."`);
+    console.log(`[Voice STT] Success → "${text.substring(0, 60)}${text.length > 60 ? '...' : ''}"`);
     return success(res, { text });
   } catch (err: any) {
-    // Safer logging without JSON.stringify circular risk
     const errorMessage = err.message || 'Unknown error';
-    const errorData = err.response?.data || err.error || null;
+    const errorStatus = err?.status ?? err?.response?.status ?? 500;
+    const errorBody = err?.response?.data ?? err?.error ?? err?.body ?? null;
 
-    console.error('[Voice STT Error]:', errorMessage);
-    if (errorData) console.error('[Voice STT Error Data]:', errorData);
+    console.error(`[Voice STT Error] status=${errorStatus} message=${errorMessage}`);
+    if (errorBody) console.error('[Voice STT Error Body]:', JSON.stringify(errorBody, null, 2));
 
-    const status = err?.status || 500;
-    return error(res, `Lỗi chuyển đổi giọng nói (Mã lỗi: ${status}). Vui lòng thử lại sau.`);
+    return error(res, `Lỗi chuyển đổi giọng nói (Mã lỗi: ${errorStatus}). Vui lòng thử lại sau.`);
   }
 }
