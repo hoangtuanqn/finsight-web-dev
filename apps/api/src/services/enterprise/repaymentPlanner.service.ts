@@ -12,6 +12,7 @@ export enum RepaymentStrategy {
 
 interface SimulationDebt extends DebtRecord {
   party: Party;
+  interestRates: any[]; // Include the relation
   effectiveAnnualRate: number;
   totalObligation: number;
   monthlyInterest: number;
@@ -28,6 +29,11 @@ interface SimulationResult {
     debtId: string;
     debtName: string;
     partyName: string;
+    internalCode: string;
+    principal: number;
+    interestRate: number;
+    interestMethod: string;
+    dueDate: Date;
     outstanding: number;
     plannedAmount: number;
     remainingAfter: number;
@@ -98,24 +104,31 @@ export class RepaymentPlannerService {
         effectiveRate += penaltyRate * 365 * 100;
       }
 
-      const monthlyInterest = (debt.outstanding * (currentRate / 100)) / 12;
-      const penaltyAccrued = debt.status === 'OVERDUE' ? debt.outstanding * penaltyRate * 30 : 0;
+      const outstandingNum = Number(debt.outstanding);
+      const currentRateNum = Number(currentRate);
+      const penaltyRateNum = Number(penaltyRate);
+
+      const penaltyAccrued = debt.status === 'OVERDUE' ? outstandingNum * penaltyRateNum * 30 : 0;
 
       // Calculate mandatory from schedules
       const schedules = (debt as any).schedules || [];
       const mandatoryPrincipal = schedules.reduce(
-        (sum: number, s: any) => sum + (s.principalAmount - s.paidPrincipal),
+        (sum: number, s: any) => sum + (Number(s.principalAmount) - Number(s.paidPrincipal)),
         0,
       );
-      const mandatoryInterest = schedules.reduce((sum: number, s: any) => sum + (s.interestAmount - s.paidInterest), 0);
+      const mandatoryInterest = schedules.reduce(
+        (sum: number, s: any) => sum + (Number(s.interestAmount) - Number(s.paidInterest)),
+        0,
+      );
       const mandatoryPayment = penaltyAccrued + mandatoryInterest + mandatoryPrincipal;
 
-      const remainingOutstandingIfBasePaid = Math.max(0, debt.outstanding - mandatoryPrincipal);
-      const prepaymentFeeNeeded = 0; // Removed: debt.origin === 'FINANCIAL' ? remainingOutstandingIfBasePaid * 0.01 : 0;
-      const totalObligation = mandatoryPayment + remainingOutstandingIfBasePaid + prepaymentFeeNeeded;
+      const remainingOutstandingIfBasePaid = Math.max(0, outstandingNum - mandatoryPrincipal);
+      const totalObligation = mandatoryPayment + remainingOutstandingIfBasePaid;
 
       return {
         ...debt,
+        principal: Number(debt.principal),
+        outstanding: Number(debt.outstanding),
         effectiveAnnualRate: effectiveRate,
         totalObligation,
         monthlyInterest: mandatoryInterest,
@@ -125,7 +138,7 @@ export class RepaymentPlannerService {
         mandatoryPrincipal,
         mandatoryInterest,
         mandatoryPayment,
-      } as SimulationDebt;
+      } as unknown as SimulationDebt;
     });
   }
 
@@ -230,8 +243,13 @@ export class RepaymentPlannerService {
         return {
           debtId: debt.id,
           debtName: debt.internalCode || 'N/A',
+          internalCode: debt.internalCode || 'N/A',
           partyName: debt.party.name,
-          outstanding: debt.outstanding,
+          principal: Number(debt.principal),
+          interestRate: Number((debt as any).interestRates?.[0]?.rate || 0),
+          interestMethod: debt.interestMethod,
+          dueDate: debt.dueDate,
+          outstanding: Number(debt.outstanding),
           plannedAmount,
           remainingAfter,
           priority: index + 1,
