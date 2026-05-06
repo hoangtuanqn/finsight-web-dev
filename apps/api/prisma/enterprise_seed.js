@@ -8,7 +8,6 @@ async function main() {
 
   // 0. Clear existing data
   console.log('🧹 Clearing existing enterprise data...');
-  // Delete in reverse dependency order
   await prisma.enterpriseRepaymentPlanItem.deleteMany({});
   await prisma.enterpriseRepaymentPlan.deleteMany({});
   await prisma.debtTransaction.deleteMany({});
@@ -30,367 +29,170 @@ async function main() {
   const org = await prisma.organization.create({
     data: {
       taxCode: '0123456789',
-      name: 'Công ty Cổ phần Techcom Enterprise',
-      shortName: 'TechcomEnt',
-      businessType: 'Công nghệ thông tin',
-      headquartersAddress: 'Toà nhà Keangnam, Phạm Hùng, Hà Nội',
-      equity: 50000000000, // 50 tỷ
-      annualRevenue: 120000000000, // 120 tỷ
-      maxDebtToEquity: 2.5,
-      minDSCR: 1.5,
+      name: 'Tập đoàn Công nghệ Đa quốc gia FinSight',
+      shortName: 'FinSight Corp',
+      businessType: 'Công nghệ & Đầu tư',
+      headquartersAddress: 'Lô E2, Khu Công nghệ cao, Quận 9, TP. HCM',
+      equity: 500000000000, // 500 tỷ
+      annualRevenue: 1200000000000, // 1.200 tỷ (1.2 Trình)
+      maxDebtToEquity: 3.0,
+      minDSCR: 1.2,
     },
   });
-  console.log('✅ Organization created:', org.name);
 
-  // 2. Create Admin User
+  // 2. Create Admin
   const passwordHash = await bcrypt.hash('admin123', 10);
   const admin = await prisma.enterpriseUser.create({
     data: {
       email: 'admin@enterprise.vn',
       passwordHash,
-      fullName: 'Quản trị viên Hệ thống',
-      roleTitle: 'Giám đốc Tài chính (CFO)',
+      fullName: 'Giám đốc Tài chính',
+      roleTitle: 'CFO',
       phoneNumber: '0987654321',
       organizationId: org.id,
     },
   });
-  console.log('✅ Admin user created:', admin.email);
 
-  // 3. Create Parties (Customers, Suppliers, Banks)
-  // Party 1: Customer
-  const customer = await prisma.party.create({
-    data: {
-      organizationId: org.id,
-      taxCode: '0312345678',
-      name: 'Công ty Cổ phần Bán lẻ Vina',
-      shortName: 'VinaRetail',
-      internalCode: 'KH-001',
-      typeTags: ['CUSTOMER'],
-      creditLimit: 5000000000, // 5 tỷ
-      personInChargeId: admin.id,
-      status: 'ACTIVE',
-      isRelatedParty: false,
-      contacts: {
-        create: [
-          {
-            name: 'Nguyễn Văn Khách',
-            position: 'Giám đốc Mua hàng',
-            email: 'khachhang@vinaretail.com',
-            phone: '0901234567',
-            isPrimary: true,
-          },
-        ],
-      },
-    },
-  });
-
-  // Party 2: Supplier
-  const supplier = await prisma.party.create({
-    data: {
-      organizationId: org.id,
-      taxCode: '0101234567',
-      name: 'Công ty TNHH Cung ứng Toàn cầu',
-      shortName: 'GlobalSupply',
-      internalCode: 'NCC-001',
-      typeTags: ['SUPPLIER'],
-      creditLimit: 2000000000, // 2 tỷ
-      personInChargeId: admin.id,
-      status: 'ACTIVE',
-      isRelatedParty: true, // Related party for testing
-      contacts: {
-        create: [
-          {
-            name: 'Trần Thị Cung',
-            position: 'Trưởng phòng Kinh doanh',
-            email: 'sales@globalsupply.com',
-            phone: '0912345678',
-            isPrimary: true,
-          },
-        ],
-      },
-      bankAccounts: {
-        create: [
-          {
-            bankName: 'Vietcombank',
-            accountNumber: '1012345678',
-            accountHolder: 'CÔNG TY TNHH CUNG ỨNG TOÀN CẦU',
-            branch: 'Chi nhánh Hà Nội',
-          },
-        ],
-      },
-    },
-  });
-
-  // Party 3: Bank
+  // 3. Create Parties
   const bank = await prisma.party.create({
     data: {
       organizationId: org.id,
-      taxCode: '0100112437',
       name: 'Ngân hàng TMCP Ngoại thương Việt Nam',
       shortName: 'Vietcombank',
-      internalCode: 'NH-001',
+      internalCode: 'BNK-VCB',
       typeTags: ['BANK'],
-      creditLimit: 10000000000, // 10 tỷ
       status: 'ACTIVE',
     },
   });
-  console.log('✅ Parties created');
 
-  // 4. Create Debt Records (Khoản phải thu & Khoản phải trả)
+  const taxAuthority = await prisma.party.create({
+    data: {
+      organizationId: org.id,
+      name: 'Tổng cục Thuế Việt Nam',
+      shortName: 'VNTax',
+      internalCode: 'TAX-AUTHORITY',
+      typeTags: ['TAX_AUTHORITY'],
+      status: 'ACTIVE',
+    },
+  });
 
-  // Khoản phải thu (Receivable from Customer)
+  const supplier = await prisma.party.create({
+    data: {
+      organizationId: org.id,
+      name: 'Amazon Web Services (AWS)',
+      shortName: 'AWS',
+      internalCode: 'SUP-AWS',
+      typeTags: ['SUPPLIER'],
+      status: 'ACTIVE',
+    },
+  });
+
+  // 4. Create 10 Diverse Debts
   const today = new Date();
+  const lastMonth = new Date(today);
+  lastMonth.setMonth(lastMonth.getMonth() - 1);
   const nextMonth = new Date(today);
   nextMonth.setMonth(nextMonth.getMonth() + 1);
 
-  const receivable = await prisma.debtRecord.create({
-    data: {
-      organizationId: org.id,
-      partyId: customer.id,
-      type: 'RECEIVABLE',
-      origin: 'TRADE',
-      principal: 1200000000, // 1.2 tỷ
-      outstanding: 1200000000,
-      interestMethod: 'NONE',
-      issueDate: today,
-      dueDate: nextMonth,
-      status: 'ACTIVE',
-      internalCode: 'AR-2023-001',
-      personInChargeId: admin.id,
-      notes: 'Hợp đồng cung cấp phần mềm ERP',
-      penaltyRate: 0.0005, // 0.05% per day
-      gracePeriodDays: 3,
-      schedules: {
-        create: [
-          {
-            period: 1,
-            dueDate: nextMonth,
-            principalAmount: 1200000000,
-            interestAmount: 0,
-            totalAmount: 1200000000,
-            remainingPrincipal: 0,
-          },
-        ],
-      },
-    },
-  });
-
-  // Khoản phải trả (Payable to Supplier)
-  const lastMonth = new Date(today);
-  lastMonth.setMonth(lastMonth.getMonth() - 1);
-
-  const payable = await prisma.debtRecord.create({
-    data: {
-      organizationId: org.id,
-      partyId: supplier.id,
-      type: 'PAYABLE',
-      origin: 'TRADE',
-      principal: 500000000, // 500 triệu
-      outstanding: 500000000,
-      interestMethod: 'NONE',
-      issueDate: lastMonth,
-      dueDate: today,
-      status: 'ACTIVE',
-      internalCode: 'AP-2023-001',
-      personInChargeId: admin.id,
-      notes: 'Nhập lô hàng server',
-      penaltyRate: 0.001, // 0.1% per day
-      gracePeriodDays: 0,
-      schedules: {
-        create: [
-          {
-            period: 1,
-            dueDate: today,
-            principalAmount: 500000000,
-            interestAmount: 0,
-            totalAmount: 500000000,
-            remainingPrincipal: 0,
-          },
-        ],
-      },
-    },
-  });
-
-  // Khoản vay ngân hàng (Bank Loan - Payable)
-  const nextYear = new Date(today);
-  nextYear.setFullYear(nextYear.getFullYear() + 1);
-
-  const bankLoan = await prisma.debtRecord.create({
-    data: {
-      organizationId: org.id,
-      partyId: bank.id,
-      type: 'PAYABLE',
+  const debts = [
+    {
+      code: 'LN-BIDV-30B',
+      principal: 30000000000,
+      rate: 8.2,
       origin: 'FINANCIAL',
-      principal: 5000000000, // 5 tỷ
-      outstanding: 5000000000,
-      interestMethod: 'REDUCING_BALANCE',
-      issueDate: today,
-      dueDate: nextYear,
-      status: 'ACTIVE',
-      internalCode: 'LN-VCB-001',
-      personInChargeId: admin.id,
-      notes: 'Vay vốn lưu động 12 tháng',
-      penaltyRate: 0.0003,
-      gracePeriodDays: 5,
-      interestRates: {
-        create: [
-          {
-            rate: 8.5,
-            effectiveDate: today,
-            rateType: 'FIXED',
-          },
-        ],
-      },
-      schedules: {
-        create: Array.from({ length: 12 }).map((_, i) => {
-          const date = new Date(today);
-          date.setMonth(date.getMonth() + i + 1);
-          // Simplified equal principal payment
-          const principalAmount = 5000000000 / 12;
-          const remainingPrincipal = 5000000000 - principalAmount * (i + 1);
-          const interestAmount = (5000000000 - principalAmount * i) * (8.5 / 100 / 12);
-
-          return {
-            period: i + 1,
-            dueDate: date,
-            principalAmount,
-            interestAmount,
-            totalAmount: principalAmount + interestAmount,
-            remainingPrincipal: Math.max(0, remainingPrincipal),
-          };
-        }),
-      },
+      notes: 'Vay đầu tư dây chuyền sản xuất',
     },
-  });
-
-  // Floating Rate Loan
-  const floatingLoan = await prisma.debtRecord.create({
-    data: {
-      organizationId: org.id,
-      partyId: bank.id,
-      type: 'PAYABLE',
+    {
+      code: 'LN-VCB-10B',
+      principal: 10000000000,
+      rate: 7.5,
       origin: 'FINANCIAL',
-      principal: 2000000000, // 2 tỷ
-      outstanding: 2000000000,
-      interestMethod: 'REDUCING_BALANCE',
-      issueDate: lastMonth,
-      dueDate: nextYear,
-      status: 'ACTIVE',
-      internalCode: 'LN-VCB-002',
-      personInChargeId: admin.id,
-      notes: 'Vay lãi suất tham chiếu SOFR',
-      penaltyRate: 0.0003,
-      gracePeriodDays: 5,
-      interestRates: {
-        create: [
-          {
-            rate: 7.2, // Base + Spread
-            effectiveDate: lastMonth,
-            rateType: 'REFERENCE',
-            referenceBase: 'SOFR',
-            spread: 2.5,
-          },
-        ],
-      },
-      schedules: {
-        create: [
-          {
-            period: 1,
-            dueDate: today,
-            principalAmount: 0,
-            interestAmount: 2000000000 * (7.2 / 100 / 12),
-            totalAmount: 2000000000 * (7.2 / 100 / 12),
-            remainingPrincipal: 2000000000,
-          },
-        ],
-      },
+      notes: 'Hạn mức thấu chi vốn lưu động',
     },
-  });
-
-  // Khoản phải thu quá hạn (Overdue Receivable)
-  const overdueDate = new Date(today);
-  overdueDate.setMonth(overdueDate.getMonth() - 2);
-  const overdueDueDate = new Date(today);
-  overdueDueDate.setMonth(overdueDueDate.getMonth() - 1);
-
-  const overdueReceivable = await prisma.debtRecord.create({
-    data: {
-      organizationId: org.id,
-      partyId: customer.id,
-      type: 'RECEIVABLE',
-      origin: 'TRADE',
-      principal: 800000000, // 800 triệu
-      outstanding: 800000000,
-      interestMethod: 'NONE',
-      issueDate: overdueDate,
-      dueDate: overdueDueDate,
+    {
+      code: 'TX-VAT-5B',
+      principal: 5000000000,
+      rate: 11.0,
+      origin: 'TAX',
       status: 'OVERDUE',
-      internalCode: 'AR-2023-002',
-      personInChargeId: admin.id,
-      notes: 'Khoản thu quá hạn từ tháng trước',
-      overdueSince: overdueDueDate,
-      penaltyRate: 0.0005,
-      gracePeriodDays: 2,
-      schedules: {
-        create: [
-          {
-            period: 1,
-            dueDate: overdueDueDate,
-            principalAmount: 800000000,
-            interestAmount: 0,
-            totalAmount: 800000000,
-            remainingPrincipal: 0,
-            status: 'OVERDUE',
-            isOverdue: true,
-            overdueSince: overdueDueDate,
-          },
-        ],
-      },
+      overdueSince: lastMonth,
+      notes: 'Thuế VAT quý 4/2023',
     },
-  });
-
-  // Create a partial payment transaction for the Supplier payable
-  await prisma.debtTransaction.create({
-    data: {
-      debtRecordId: payable.id,
-      type: 'PAYMENT',
-      amount: 100000000, // 100 triệu
-      principalPart: 100000000,
-      paymentMethod: 'BANK_TRANSFER',
-      reference: 'CK123456',
-      notes: 'Thanh toán đợt 1',
-      balanceSnapshot: 400000000,
+    { code: 'AP-AWS-2B', principal: 2000000000, rate: 0, origin: 'TRADE', notes: 'Phí hạ tầng Cloud' },
+    { code: 'LN-SHB-15B', principal: 15000000000, rate: 13.5, origin: 'FINANCIAL', notes: 'Vay tín chấp lãi suất cao' },
+    {
+      code: 'BD-INT-20B',
+      principal: 20000000000,
+      rate: 10.5,
+      origin: 'FINANCIAL',
+      notes: 'Trái phiếu doanh nghiệp đợt 1',
     },
-  });
-
-  // Update the payable outstanding and schedule
-  await prisma.debtRecord.update({
-    where: { id: payable.id },
-    data: {
-      outstanding: 400000000,
-      status: 'PARTIAL',
+    {
+      code: 'LN-MIF-1B',
+      principal: 1000000000,
+      rate: 18.0,
+      origin: 'FINANCIAL',
+      notes: 'Vay nóng giải quyết thanh khoản',
     },
-  });
+    {
+      code: 'AP-MICS-3B',
+      principal: 3000000000,
+      rate: 0,
+      origin: 'TRADE',
+      status: 'OVERDUE',
+      overdueSince: lastMonth,
+      notes: 'Tiền bản quyền phần mềm',
+    },
+    { code: 'LN-OWN-5B', principal: 5000000000, rate: 4.5, origin: 'INTERNAL', notes: 'Vay mượn từ Hội đồng quản trị' },
+    {
+      code: 'PN-CONT-500M',
+      principal: 500000000,
+      rate: 15.0,
+      origin: 'OTHER',
+      status: 'OVERDUE',
+      overdueSince: lastMonth,
+      notes: 'Phạt vi phạm tiến độ dự án',
+    },
+  ];
 
-  const payableSchedule = await prisma.debtSchedule.findFirst({
-    where: { debtRecordId: payable.id },
-  });
-
-  if (payableSchedule) {
-    await prisma.debtSchedule.update({
-      where: { id: payableSchedule.id },
+  for (const d of debts) {
+    await prisma.debtRecord.create({
       data: {
-        paidPrincipal: 100000000,
-        status: 'PARTIAL',
-        remainingPrincipal: 400000000,
+        organizationId: org.id,
+        partyId: d.origin === 'TAX' ? taxAuthority.id : d.origin === 'TRADE' ? supplier.id : bank.id,
+        type: 'PAYABLE',
+        origin: d.origin,
+        principal: d.principal,
+        outstanding: d.principal,
+        interestMethod: 'REDUCING_BALANCE',
+        issueDate: lastMonth,
+        dueDate: nextMonth,
+        status: d.status || 'ACTIVE',
+        internalCode: d.code,
+        personInChargeId: admin.id,
+        notes: d.notes,
+        overdueSince: d.overdueSince,
+        interestRates: {
+          create: [{ rate: d.rate, effectiveDate: lastMonth, rateType: 'FIXED' }],
+        },
+        schedules: {
+          create: [
+            {
+              period: 1,
+              dueDate: nextMonth,
+              principalAmount: d.principal,
+              interestAmount: (d.principal * d.rate) / 100 / 12,
+              totalAmount: d.principal + (d.principal * d.rate) / 100 / 12,
+              remainingPrincipal: 0,
+            },
+          ],
+        },
       },
     });
   }
 
-  console.log('✅ Debt Records and Transactions created');
-
-  console.log('🎉 Enterprise seed data successfully created!');
-  console.log('Login: admin@enterprise.vn / admin123');
+  console.log('✅ 10 diverse debt records created.');
+  console.log('🎉 Enterprise seed finished!');
 }
 
 main()
