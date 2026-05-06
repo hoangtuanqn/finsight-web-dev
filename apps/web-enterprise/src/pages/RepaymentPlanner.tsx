@@ -1,3 +1,4 @@
+import { Button } from '@repo/ui';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertCircle,
@@ -6,10 +7,14 @@ import {
   CheckCircle2,
   Clock,
   Info,
+  Lightbulb,
   Save,
+  ShieldAlert,
   ShieldCheck,
   Snowflake,
   TrendingDown,
+  TrendingUp,
+  X,
   Zap,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -62,6 +67,8 @@ export default function RepaymentPlanner() {
   const [activeTab, setActiveTab] = useState<'simulation' | 'execution'>('simulation');
   const [budget, setBudget] = useState<number>(100000000); // Default 100M
   const [strategy, setStrategy] = useState<RepaymentStrategy>(RepaymentStrategy.AVALANCHE);
+  const [isTrapModalOpen, setIsTrapModalOpen] = useState(false);
+  const [selectedTrapDebt, setSelectedTrapDebt] = useState<any>(null);
   const [excludeDebtIds, setExcludeDebtIds] = useState<string[]>([]);
   const [planName, setPlanName] = useState(`Kế hoạch trả nợ tháng ${new Date().getMonth() + 1}`);
 
@@ -440,9 +447,15 @@ export default function RepaymentPlanner() {
                               </td>
                               <td className="px-6 py-5">
                                 {debt.isDebtTrap ? (
-                                  <span className="flex items-center gap-1.5 text-red-400 text-xs font-bold bg-red-400/10 px-3 py-1 rounded-full w-fit">
+                                  <button
+                                    onClick={() => {
+                                      setSelectedTrapDebt(debt);
+                                      setIsTrapModalOpen(true);
+                                    }}
+                                    className="flex items-center gap-1.5 text-red-400 text-xs font-bold bg-red-400/10 px-3 py-1 rounded-full w-fit hover:bg-red-400/20 transition-all cursor-pointer border border-red-400/20"
+                                  >
                                     <AlertCircle className="w-3 h-3" /> Bẫy nợ
-                                  </span>
+                                  </button>
                                 ) : debt.monthsToPayoff === 'NEVER' ? (
                                   <span className="text-xs text-(--color-text-muted)">Không khả thi</span>
                                 ) : debt.plannedAmount > 0 ? (
@@ -496,6 +509,104 @@ export default function RepaymentPlanner() {
           <RepaymentExecutionReport />
         </motion.div>
       )}
+
+      {/* Debt Trap Explanation Modal */}
+      <AnimatePresence>
+        {isTrapModalOpen && selectedTrapDebt && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsTrapModalOpen(false)}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden"
+            >
+              {/* Header */}
+              <div className="relative h-32 bg-linear-to-br from-red-600/20 to-orange-600/20 flex items-center justify-center border-b border-slate-800">
+                <div className="absolute top-4 right-4">
+                  <button
+                    onClick={() => setIsTrapModalOpen(false)}
+                    className="p-2 rounded-full bg-slate-800/50 text-slate-400 hover:text-white transition-colors"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                <div className="flex flex-col items-center">
+                  <div className="p-3 rounded-2xl bg-red-500/20 border border-red-500/30 mb-2">
+                    <ShieldAlert className="w-8 h-8 text-red-500" />
+                  </div>
+                  <h2 className="text-xl font-black text-white">Cảnh báo "Bẫy nợ"</h2>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-8 space-y-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-red-400">
+                    <AlertCircle size={18} />
+                    <h3 className="font-bold">Tại sao khoản nợ này là bẫy?</h3>
+                  </div>
+                  <p className="text-sm text-slate-400 leading-relaxed">
+                    Khoản nợ <span className="text-white font-bold">{selectedTrapDebt.debtName}</span> hiện có mức lãi
+                    suất <span className="text-red-400 font-bold">{selectedTrapDebt.interestRate}%</span>. Với ngân sách
+                    phân bổ hiện tại, số tiền bạn trả{' '}
+                    <span className="font-bold text-white">không đủ hoặc chỉ vừa đủ</span> để bù đắp tiền lãi phát sinh
+                    hàng tháng.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-800/50 border border-slate-700/50 space-y-3">
+                  <div className="flex items-center gap-2 text-blue-400">
+                    <Lightbulb size={18} />
+                    <h3 className="font-bold text-sm">Lời khuyên từ AI FinSight</h3>
+                  </div>
+                  <ul className="space-y-2">
+                    <li className="flex items-start gap-2 text-xs text-slate-400">
+                      <div className="mt-1 w-1 h-1 rounded-full bg-blue-500 shrink-0" />
+                      Tăng ngân sách trả nợ hàng tháng lên ít nhất 15-20% để bắt đầu giảm được tiền gốc.
+                    </li>
+                    <li className="flex items-start gap-2 text-xs text-slate-400">
+                      <div className="mt-1 w-1 h-1 rounded-full bg-blue-500 shrink-0" />
+                      Ưu tiên tất toán khoản này theo chiến lược{' '}
+                      <span className="text-blue-400 font-bold">Avalanche</span> để chặn đứng lãi suất kép.
+                    </li>
+                    <li className="flex items-start gap-2 text-xs text-slate-400">
+                      <div className="mt-1 w-1 h-1 rounded-full bg-blue-500 shrink-0" />
+                      Liên hệ chủ nợ để đàm phán giảm lãi suất hoặc chuyển đổi sang khoản vay có lãi suất thấp hơn.
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="flex flex-col gap-3 pt-2">
+                  <Button
+                    appName="web-enterprise"
+                    onClick={() => setIsTrapModalOpen(false)}
+                    className="w-full py-4 rounded-2xl bg-slate-800 text-white font-bold hover:bg-slate-700 transition-all flex items-center justify-center gap-2"
+                  >
+                    Tôi đã hiểu rủi ro
+                  </Button>
+                  <Button
+                    appName="web-enterprise"
+                    onClick={() => {
+                      setIsTrapModalOpen(false);
+                      setStrategy(RepaymentStrategy.AVALANCHE);
+                    }}
+                    className="w-full py-4 rounded-2xl bg-blue-600 text-white font-black hover:bg-blue-500 shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
+                  >
+                    <TrendingUp size={18} /> Chuyển sang Avalanche
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
