@@ -58,6 +58,16 @@ export const useRepaymentPlanner = () => {
   const [loading, setLoading] = useState(false);
   const [committing, setCommitting] = useState(false);
   const [result, setResult] = useState<SimulationResult | null>(null);
+  const [eligibleDebts, setEligibleDebts] = useState<any[]>([]);
+
+  const fetchEligibleDebts = useCallback(async () => {
+    try {
+      const response = await enterpriseAuthAPI.getEligibleDebts();
+      setEligibleDebts(response.data);
+    } catch (error) {
+      console.error('Error fetching eligible debts:', error);
+    }
+  }, []);
 
   const simulate = useCallback(async (budget: number, strategy: RepaymentStrategy, excludeDebtIds: string[] = []) => {
     setLoading(true);
@@ -94,9 +104,11 @@ export const useRepaymentPlanner = () => {
   return {
     simulate,
     commitPlan,
+    fetchEligibleDebts,
     loading,
     committing,
     result,
+    eligibleDebts,
     setResult,
   };
 };
