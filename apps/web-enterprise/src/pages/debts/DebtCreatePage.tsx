@@ -158,11 +158,9 @@ export default function DebtCreatePage() {
   const addInterestRate = () => {
     const today = new Date().toISOString().split('T')[0];
     const newBracket =
-      interestRateType === 'REFERENCE'
-        ? { rate: 0, effectiveDate: today, rateType: 'REFERENCE', referenceBase: '', spread: 0 }
-        : interestRateType === 'MIXED'
-          ? { rate: 0, effectiveDate: today, rateType: 'FIXED' }
-          : { rate: 0, effectiveDate: today, rateType: interestRateType === 'FIXED' ? 'FIXED' : 'FLOATING' };
+      interestRateType === 'MIXED'
+        ? { rate: 0, effectiveDate: today, rateType: 'FIXED' }
+        : { rate: 0, effectiveDate: today, rateType: interestRateType === 'FIXED' ? 'FIXED' : 'FLOATING' };
     setFormData({ ...formData, interestRates: [...formData.interestRates, newBracket] });
   };
 
@@ -179,7 +177,6 @@ export default function DebtCreatePage() {
     const defaults: Record<InterestRateType, any[]> = {
       FIXED: [{ rate: 0, effectiveDate: today, rateType: 'FIXED' }],
       FLOATING: [{ rate: 0, effectiveDate: today, rateType: 'FLOATING' }],
-      REFERENCE: [{ rate: 0, effectiveDate: today, rateType: 'REFERENCE', referenceBase: '', spread: 0 }],
       MIXED: [{ rate: 0, effectiveDate: today, rateType: 'FIXED' }],
       STEP: [{ rate: 0, effectiveDate: today, rateType: 'FLOATING' }],
     };
@@ -204,6 +201,32 @@ export default function DebtCreatePage() {
           <p className="text-slate-400 text-sm mt-1">Khởi tạo hồ sơ nợ và tự động sinh lịch trình thanh toán.</p>
         </div>
         <div className="flex gap-3">
+          <Button
+            appName="web-enterprise"
+            type="button"
+            className="px-6 py-2.5 rounded-xl bg-amber-500/10 text-amber-500 text-sm font-black hover:bg-amber-500/20 transition-all cursor-pointer border border-amber-500/20"
+            onClick={() => {
+              const hbcParty = parties.find((p) => p.name.includes('Hòa Bình') || p.internalCode === 'SUP-HBC-001');
+              setFormData({
+                ...formData,
+                partyId: hbcParty?.id || parties[0]?.id || '',
+                internalCode: 'HĐ-2024-HBC-001',
+                principal: 2500000000,
+                termMonths: 12,
+                issueDate: '2024-01-01',
+                interestMethod: 'REDUCING_BALANCE',
+                interestRates: [{ rate: 8.5, effectiveDate: '2024-01-01', rateType: 'FIXED' }],
+                penaltyRate: 0.0003,
+                personInChargeId: internalUsers[0]?.id || '',
+                origin: 'TRADE',
+                type: 'RECEIVABLE',
+              });
+              setInterestRateType('FIXED');
+              setErrors({});
+            }}
+          >
+            🚀 Nhập Nhanh
+          </Button>
           <Button
             appName="web-enterprise"
             className="px-6 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-sm font-bold hover:bg-slate-700 transition-all cursor-pointer"
