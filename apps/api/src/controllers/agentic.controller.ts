@@ -1,5 +1,6 @@
 import { runAgenticChat, SSE_HEADERS, SseWriter } from '@repo/agentic';
 import { Response } from 'express';
+import OpenAI from 'openai';
 import prisma from '../lib/prisma';
 import { AuthenticatedRequest } from '../types';
 import { error, success } from '../utils/apiResponse';
@@ -150,5 +151,46 @@ export async function deleteSession(req: AuthenticatedRequest, res: Response) {
   } catch (err) {
     console.error('deleteSession error:', err);
     return error(res, 'Internal server error');
+  }
+}
+
+const openaiClient = new OpenAI({
+  apiKey: process.env.LLM_API_KEY,
+  baseURL: 'https://mkp-api.fptcloud.com',
+});
+
+export async function extractOcr(req: AuthenticatedRequest, res: Response) {
+  const { base64Image } = req.body;
+  if (!base64Image || typeof base64Image !== 'string') {
+    return error(res, 'Missing base64Image', 400);
+  }
+
+  try {
+    const response = await openaiClient.chat.completions.create({
+      model: 'gemma-4-26B-A4B-it',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Extract all the text in this image accurately. Respond with only the extracted text.',
+            },
+            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Image}` } },
+          ],
+        },
+      ],
+      temperature: 0.1,
+      max_tokens: 1024,
+    });
+
+    const text = response.choices[0]?.message?.content || '';
+    if (!text || text.trim().length === 0) {
+      return error(res, 'Không thể đọc chữ từ ảnh', 400);
+    }
+    return success(res, { text: text.trim() });
+  } catch (err) {
+    console.error('[OCR Error]', err);
+    return error(res, 'Lỗi server khi parse ảnh');
   }
 }
