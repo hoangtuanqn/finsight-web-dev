@@ -33,6 +33,11 @@ export interface SimulationResult {
     type: 'DANGER' | 'WARNING' | 'INFO';
     message: string;
   }[];
+  optimalPoints?: {
+    budget: number;
+    fullyPaidCount: number;
+    impact: string;
+  }[];
 }
 
 export const useRepaymentPlanner = () => {

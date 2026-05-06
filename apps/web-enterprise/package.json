@@ -22,7 +22,9 @@
     "axios": "^1.13.6",
     "dayjs": "^1.11.20",
     "driver.js": "^1.4.0",
+    "exceljs": "^4.4.0",
     "face-api.js": "^0.22.2",
+    "file-saver": "^2.0.5",
     "formdata": "^0.10.4",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.8.0",
@@ -45,9 +47,10 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@repo/typescript-config": "*",
     "@eslint/js": "^9.39.4",
+    "@repo/typescript-config": "*",
     "@tailwindcss/vite": "^4.2.4",
+    "@types/file-saver": "^2.0.7",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
