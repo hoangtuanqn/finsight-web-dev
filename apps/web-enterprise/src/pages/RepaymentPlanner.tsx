@@ -18,7 +18,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import FormattedInput from '../components/common/FormattedInput';
 import { RepaymentExecutionReport } from '../components/debts/RepaymentExecutionReport';
 import { RepaymentStrategy, useRepaymentPlanner } from '../hooks/useRepaymentPlanner';
@@ -63,7 +63,8 @@ const STRATEGIES = [
 ];
 
 export default function RepaymentPlanner() {
-  const { simulate, commitPlan, loading, committing, result } = useRepaymentPlanner();
+  const { simulate, commitPlan, fetchEligibleDebts, loading, committing, result, eligibleDebts } =
+    useRepaymentPlanner();
 
   const [activeTab, setActiveTab] = useState<'simulation' | 'execution'>('simulation');
   const [budget, setBudget] = useState<number>(100000000); // Default 100M
@@ -75,8 +76,29 @@ export default function RepaymentPlanner() {
   const [excludeDebtIds, setExcludeDebtIds] = useState<string[]>([]);
   const [planName, setPlanName] = useState(`Kế hoạch trả nợ tháng ${new Date().getMonth() + 1}`);
 
-  const handleSimulate = () => {
-    simulate(budget, strategy, excludeDebtIds);
+  useEffect(() => {
+    fetchEligibleDebts();
+  }, [fetchEligibleDebts]);
+
+  // Initial simulation
+  useEffect(() => {
+    if (activeTab === 'simulation' && eligibleDebts.length > 0 && !result) {
+      simulate(budget, strategy, excludeDebtIds);
+    }
+  }, [eligibleDebts]);
+
+  // Auto-simulate on budget or exclusion change
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (activeTab === 'simulation' && eligibleDebts.length > 0) {
+        simulate(budget, strategy, excludeDebtIds);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [budget, excludeDebtIds]);
+
+  const handleSimulate = (newStrategy?: RepaymentStrategy) => {
+    simulate(budget, newStrategy || strategy, excludeDebtIds);
   };
 
   const handleCommit = () => {
@@ -178,7 +200,10 @@ export default function RepaymentPlanner() {
                     {STRATEGIES.map((s) => (
                       <button
                         key={s.id}
-                        onClick={() => setStrategy(s.id)}
+                        onClick={() => {
+                          setStrategy(s.id);
+                          handleSimulate(s.id);
+                        }}
                         className={`p-4 rounded-2xl border transition-all duration-300 text-left relative overflow-hidden group ${
                           strategy === s.id
                             ? `${s.bg} ${s.border} ring-1 ring-${s.color.split('-')[1]}-500/20`
@@ -218,17 +243,17 @@ export default function RepaymentPlanner() {
                     <span className="text-[10px] text-(--color-text-muted) uppercase">Tùy chọn</span>
                   </div>
                   <div className="max-h-40 overflow-y-auto space-y-2 p-3 rounded-2xl bg-(--color-bg-secondary)/30 border border-(--color-border) custom-scrollbar">
-                    {result?.debts?.map((d) => (
-                      <label key={d.debtId} className="flex items-center gap-3 cursor-pointer group">
+                    {eligibleDebts.map((d) => (
+                      <label key={d.id} className="flex items-center gap-3 cursor-pointer group">
                         <div className="relative flex items-center justify-center">
                           <input
                             type="checkbox"
-                            checked={excludeDebtIds.includes(d.debtId)}
+                            checked={excludeDebtIds.includes(d.id)}
                             onChange={(e) => {
                               if (e.target.checked) {
-                                setExcludeDebtIds([...excludeDebtIds, d.debtId]);
+                                setExcludeDebtIds([...excludeDebtIds, d.id]);
                               } else {
-                                setExcludeDebtIds(excludeDebtIds.filter((id) => id !== d.debtId));
+                                setExcludeDebtIds(excludeDebtIds.filter((id) => id !== d.id));
                               }
                             }}
                             className="peer appearance-none w-5 h-5 rounded-lg border border-(--color-border) checked:bg-blue-500 checked:border-transparent transition-all"
@@ -236,32 +261,17 @@ export default function RepaymentPlanner() {
                           <CheckCircle2 className="absolute w-3 h-3 text-white opacity-0 peer-checked:opacity-100 pointer-events-none transition-opacity" />
                         </div>
                         <span className="text-xs text-(--color-text-muted) group-hover:text-(--color-text-primary) transition-colors truncate">
-                          {d.debtName}
+                          {d.internalCode || 'Khoản nợ không tên'} - {formatCurrency(Number(d.outstanding))}
                         </span>
                       </label>
                     ))}
-                    {(!result || result.debts.length === 0) && (
+                    {eligibleDebts.length === 0 && (
                       <p className="text-[10px] text-(--color-text-muted) italic text-center py-4">
                         Chưa có dữ liệu nợ để loại trừ
                       </p>
                     )}
                   </div>
                 </div>
-
-                <button
-                  onClick={handleSimulate}
-                  disabled={loading}
-                  className="w-full py-4 rounded-2xl bg-linear-to-r from-blue-600 to-indigo-600 text-white font-bold shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:translate-y-0"
-                >
-                  {loading ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <TrendingDown className="w-5 h-5" />
-                      Chạy Mô phỏng
-                    </>
-                  )}
-                </button>
               </div>
             </div>
           </div>
