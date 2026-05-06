@@ -3,6 +3,7 @@ import { AlertTriangle, CheckCircle2, ChevronDown, ChevronUp, X } from 'lucide-r
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { debtAPI } from '../../api/index';
+import FormattedInput from '../../components/common/FormattedInput';
 
 interface DebtConfirmModalProps {
   data: unknown;
@@ -253,36 +254,38 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss, onFeedbac
                   <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
                     Số tiền gốc (VNĐ) <span className="text-rose-400">*</span>
                   </label>
-                  <input
-                    type="number"
+                  <FormattedInput
                     value={form.originalAmount}
-                    onChange={(e) => updateField('originalAmount', e.target.value)}
+                    onValueChange={(val) => updateField('originalAmount', val)}
                     placeholder="10000000"
-                    min="0"
-                    className={inputCls}
-                    style={inputStyle}
+                    className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
+                    style={{
+                      background: 'var(--color-bg-secondary)',
+                      color: 'var(--color-text-primary)',
+                      border: '1px solid var(--color-border)',
+                    }}
+                    suffix="đ"
                   />
-                  {+form.originalAmount > 0 && (
-                    <p className="text-[10px] mt-1 text-emerald-400">{formatVND(form.originalAmount)}</p>
-                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
                     Dư nợ hiện tại (VNĐ) <span className="text-rose-400">*</span>
                   </label>
-                  <input
-                    type="number"
+                  <FormattedInput
                     value={form.balance}
-                    onChange={(e) => {
-                      updateField('balance', e.target.value);
-                      setForm((p) => ({ ...p, _manualBalance: true }));
+                    onValueChange={(val) => {
+                      updateField('balance', val);
+                      setForm((prev) => ({ ...prev, _manualBalance: true }));
                     }}
                     placeholder="10000000"
-                    min="0"
-                    className={inputCls}
-                    style={inputStyle}
+                    className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
+                    style={{
+                      background: 'var(--color-bg-secondary)',
+                      color: 'var(--color-text-primary)',
+                      border: '1px solid var(--color-border)',
+                    }}
+                    suffix="đ"
                   />
-                  {+form.balance > 0 && <p className="text-[10px] mt-1 text-emerald-400">{formatVND(form.balance)}</p>}
                 </div>
               </div>
 
@@ -326,21 +329,21 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss, onFeedbac
                   <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>
                     Trả tối thiểu/tháng (VNĐ) <span className="text-rose-400">*</span>
                   </label>
-                  <input
-                    type="number"
+                  <FormattedInput
                     value={form.minPayment}
-                    onChange={(e) => {
-                      updateField('minPayment', e.target.value);
-                      setForm((p) => ({ ...p, _manualMinPayment: true }));
+                    onValueChange={(val) => {
+                      updateField('minPayment', val);
+                      setForm((prev) => ({ ...prev, _manualMinPayment: true }));
                     }}
                     placeholder="833333"
-                    min="0"
-                    className={inputCls}
-                    style={inputStyle}
+                    className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
+                    style={{
+                      background: 'var(--color-bg-secondary)',
+                      color: 'var(--color-text-primary)',
+                      border: '1px solid var(--color-border)',
+                    }}
+                    suffix="đ"
                   />
-                  {+form.minPayment > 0 && (
-                    <p className="text-[10px] mt-1 text-emerald-400">{formatVND(form.minPayment)}</p>
-                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--color-text-secondary)' }}>

@@ -3,18 +3,20 @@ import { Button, Input } from '@repo/ui';
 import { motion } from 'framer-motion';
 import { Calculator, Calendar, ChevronRight, DollarSign, FileText, Info, Save, User, Users } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { enterpriseAuthAPI } from '../../api';
 import FormattedInput from '../../components/common/FormattedInput';
 import { InterestRateSection, type InterestRateType } from '../../components/debts/InterestRateSection';
 import { SchedulePreview } from '../../components/debts/SchedulePreview';
 
-export default function DebtCreatePage() {
+export default function DebtEditPage() {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [parties, setParties] = useState<any[]>([]);
   const [internalUsers, setInternalUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
 
   const [interestRateType, setInterestRateType] = useState<InterestRateType>('FIXED');
 
@@ -33,39 +35,74 @@ export default function DebtCreatePage() {
     internalCode: '',
     notes: '',
     personInChargeId: '',
+    status: 'DRAFT',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [previewSchedule, setPreviewSchedule] = useState<any[]>([]);
 
   useEffect(() => {
-    fetchParties();
-    fetchUsers();
-  }, []);
+    fetchData();
+  }, [id]);
 
   useEffect(() => {
     updatePreview();
   }, [formData.principal, formData.termMonths, formData.interestMethod, formData.interestRates, formData.issueDate]);
 
-  const fetchParties = async () => {
+  const fetchData = async () => {
+    if (!id) return;
+    setIsLoadingData(true);
     try {
-      const res = await (enterpriseAuthAPI as any).getParties();
-      if (res.data.success) {
-        setParties(res.data.data);
-      }
-    } catch (err) {
-      toast.error('Không thể tải danh sách đối tác');
-    }
-  };
+      const [debtRes, partiesRes, usersRes] = await Promise.all([
+        enterpriseAuthAPI.getDebt(id),
+        enterpriseAuthAPI.getParties({}),
+        enterpriseAuthAPI.getUsers(),
+      ]);
 
-  const fetchUsers = async () => {
-    try {
-      const res = await (enterpriseAuthAPI as any).getUsers();
-      if (res.data.success) {
-        setInternalUsers(res.data.data);
+      if (partiesRes.data.success) setParties(partiesRes.data.data);
+      if (usersRes.data.success) setInternalUsers(usersRes.data.data);
+
+      if (debtRes.data.success) {
+        const debt = debtRes.data.data;
+
+        const firstRate = debt.interestRates?.[0];
+        let type: InterestRateType = 'FIXED';
+        if (firstRate?.rateType === 'FLOATING') type = 'FLOATING';
+        if (firstRate?.rateType === 'REFERENCE') type = 'REFERENCE';
+        setInterestRateType(type);
+
+        setFormData({
+          type: debt.type,
+          partyId: debt.partyId,
+          guarantorId: debt.guarantorId || '',
+          origin: debt.origin,
+          principal: debt.principal,
+          interestMethod: debt.interestMethod,
+          issueDate: new Date(debt.issueDate).toISOString().split('T')[0],
+          termMonths:
+            Math.round(
+              (new Date(debt.dueDate).getTime() - new Date(debt.issueDate).getTime()) / (1000 * 60 * 60 * 24 * 30.44),
+            ) || 1,
+          interestRates: debt.interestRates.map((r: any) => ({
+            rate: r.rate,
+            effectiveDate: new Date(r.effectiveDate).toISOString().split('T')[0],
+            rateType: r.rateType,
+            referenceBase: r.referenceBase || '',
+            spread: r.spread || 0,
+          })),
+          penaltyRate: debt.penaltyRate,
+          gracePeriodDays: debt.gracePeriodDays,
+          internalCode: debt.internalCode,
+          notes: debt.notes || '',
+          personInChargeId: debt.personInChargeId || '',
+          status: debt.status,
+        });
       }
     } catch (err) {
-      // ignore
+      toast.error('Không thể tải dữ liệu khoản nợ');
+      navigate('/debts');
+    } finally {
+      setIsLoadingData(false);
     }
   };
 
@@ -129,13 +166,13 @@ export default function DebtCreatePage() {
         guarantorId: formData.guarantorId || null,
         personInChargeId: formData.personInChargeId || null,
       };
-      const res = await (enterpriseAuthAPI as any).createDebt(payload);
+      const res = await enterpriseAuthAPI.updateDebt(id!, payload);
       if (res.data.success) {
-        toast.success('Đã tạo khoản nợ thành công');
-        navigate('/debts');
+        toast.success('Đã cập nhật khoản nợ thành công');
+        navigate(`/debts/${id}`);
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Lỗi khi tạo khoản nợ');
+      toast.error(err.response?.data?.error || 'Lỗi khi cập nhật khoản nợ');
     } finally {
       setIsLoading(false);
     }
@@ -146,7 +183,6 @@ export default function DebtCreatePage() {
     newRates[index][field] = value;
     setFormData({ ...formData, interestRates: newRates });
 
-    // Clear error if exists
     const errorKey = `interestRate_${index}`;
     if (errors[errorKey]) {
       const newErrors = { ...errors };
@@ -190,6 +226,15 @@ export default function DebtCreatePage() {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
   };
 
+  if (isLoadingData) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
+        <p className="text-slate-400 font-medium">Đang tải dữ liệu hồ sơ nợ...</p>
+      </div>
+    );
+  }
+
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="pb-20 space-y-8">
       {/* ── Header ── */}
@@ -198,16 +243,18 @@ export default function DebtCreatePage() {
           <div className="flex items-center gap-2 text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">
             <span>Khoản nợ</span>
             <ChevronRight size={12} />
-            <span className="text-emerald-500">Tạo mới</span>
+            <span>Hồ sơ {formData.internalCode}</span>
+            <ChevronRight size={12} />
+            <span className="text-amber-500">Chỉnh sửa</span>
           </div>
-          <h1 className="text-3xl font-black text-white">Ghi nhận Khoản nợ mới</h1>
-          <p className="text-slate-400 text-sm mt-1">Khởi tạo hồ sơ nợ và tự động sinh lịch trình thanh toán.</p>
+          <h1 className="text-3xl font-black text-white">Chỉnh sửa Khoản nợ</h1>
+          <p className="text-slate-400 text-sm mt-1">Cập nhật thông tin hồ sơ và các điều khoản tài chính.</p>
         </div>
         <div className="flex gap-3">
           <Button
             appName="web-enterprise"
             className="px-6 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-sm font-bold hover:bg-slate-700 transition-all cursor-pointer"
-            onClick={() => navigate('/debts')}
+            onClick={() => navigate(`/debts/${id}`)}
           >
             Hủy bỏ
           </Button>
@@ -217,7 +264,7 @@ export default function DebtCreatePage() {
             className="flex items-center gap-2 px-8 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-black hover:bg-emerald-500 hover:shadow-lg hover:shadow-emerald-500/30 transition-all cursor-pointer"
             onClick={handleSubmit}
           >
-            <Save size={18} /> {isLoading ? 'Đang lưu...' : 'Lưu hồ sơ'}
+            <Save size={18} /> {isLoading ? 'Đang lưu...' : 'Lưu thay đổi'}
           </Button>
         </div>
       </div>
@@ -374,7 +421,7 @@ export default function DebtCreatePage() {
           </div>
 
           {/* Section: Điều khoản tài chính */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-8 space-y-6">
+          <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-8 space-y-6 transition-all">
             <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
               <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg">
                 <Calculator size={20} />
@@ -480,7 +527,6 @@ export default function DebtCreatePage() {
                     placeholder="VD: 0.0003 cho 0.03%"
                   />
                 </div>
-                <p className="text-[10px] text-slate-500 ml-1">0.03% (0.0003) là mức phạt chuẩn theo luật VN.</p>
               </div>
 
               <div className="space-y-2">
