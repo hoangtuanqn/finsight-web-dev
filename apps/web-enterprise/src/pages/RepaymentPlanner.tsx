@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   Calculator,
   CheckCircle2,
+  ChevronRight,
   Clock,
   Info,
   Lightbulb,
@@ -69,6 +70,8 @@ export default function RepaymentPlanner() {
   const [strategy, setStrategy] = useState<RepaymentStrategy>(RepaymentStrategy.AVALANCHE);
   const [isTrapModalOpen, setIsTrapModalOpen] = useState(false);
   const [selectedTrapDebt, setSelectedTrapDebt] = useState<any>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedDetailDebt, setSelectedDetailDebt] = useState<any>(null);
   const [excludeDebtIds, setExcludeDebtIds] = useState<string[]>([]);
   const [planName, setPlanName] = useState(`Kế hoạch trả nợ tháng ${new Date().getMonth() + 1}`);
 
@@ -410,6 +413,16 @@ export default function RepaymentPlanner() {
                                 <div>
                                   <p className="font-bold text-(--color-text-primary) flex items-center gap-2">
                                     {debt.debtName}
+                                    <button
+                                      onClick={() => {
+                                        setSelectedDetailDebt(debt);
+                                        setIsDetailModalOpen(true);
+                                      }}
+                                      className="p-1 rounded-lg hover:bg-slate-800 text-slate-500 hover:text-blue-400 transition-all"
+                                      title="Xem chi tiết"
+                                    >
+                                      <Info className="w-3.5 h-3.5" />
+                                    </button>
                                     {debt.plannedAmount >= debt.outstanding && debt.outstanding > 0 && (
                                       <span className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 text-[10px] font-bold uppercase">
                                         Tất toán
@@ -601,6 +614,93 @@ export default function RepaymentPlanner() {
                   >
                     <TrendingUp size={18} /> Chuyển sang Avalanche
                   </Button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Quick Debt Detail Modal */}
+        {isDetailModalOpen && selectedDetailDebt && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsDetailModalOpen(false)}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden"
+            >
+              <div className="p-6 border-b border-slate-800 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400">
+                    <Info size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black text-white">Chi tiết Khoản nợ</h2>
+                    <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">
+                      {selectedDetailDebt.internalCode}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsDetailModalOpen(false)}
+                  className="p-2 hover:bg-slate-800 rounded-xl text-slate-500 hover:text-white transition-all"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                {/* Main Stats Grid */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 rounded-2xl bg-slate-950/50 border border-slate-800/50">
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Đối tác</p>
+                    <p className="text-sm font-bold text-white truncate">{selectedDetailDebt.partyName}</p>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-slate-950/50 border border-slate-800/50">
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">
+                      Dư nợ hiện tại
+                    </p>
+                    <p className="text-sm font-bold text-emerald-400">
+                      {formatCurrency(selectedDetailDebt.outstanding)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between py-3 border-b border-slate-800/50">
+                    <span className="text-xs text-slate-400">Số tiền gốc ban đầu</span>
+                    <span className="text-sm font-bold text-white">{formatCurrency(selectedDetailDebt.principal)}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-3 border-b border-slate-800/50">
+                    <span className="text-xs text-slate-400">Lãi suất áp dụng</span>
+                    <span className="text-sm font-bold text-amber-400">{selectedDetailDebt.interestRate}% / năm</span>
+                  </div>
+                  <div className="flex items-center justify-between py-3 border-b border-slate-800/50">
+                    <span className="text-xs text-slate-400">Phương thức tính lãi</span>
+                    <span className="text-sm font-bold text-blue-400">{selectedDetailDebt.interestMethod}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-3 border-b border-slate-800/50">
+                    <span className="text-xs text-slate-400">Ngày đến hạn cuối</span>
+                    <span className="text-sm font-bold text-slate-300">
+                      {new Date(selectedDetailDebt.dueDate).toLocaleDateString('vi-VN')}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    onClick={() => (window.location.href = `/debts/${selectedDetailDebt.debtId}`)}
+                    className="w-full py-4 rounded-2xl bg-slate-800 text-white font-bold hover:bg-slate-700 transition-all flex items-center justify-center gap-2"
+                  >
+                    Xem hồ sơ đầy đủ <ChevronRight size={18} />
+                  </button>
                 </div>
               </div>
             </motion.div>
