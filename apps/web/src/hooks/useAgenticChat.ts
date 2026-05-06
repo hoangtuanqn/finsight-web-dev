@@ -37,19 +37,24 @@ export function useAgenticChat() {
   const abortRef = useRef(false);
 
   const sendMessage = useCallback(
-    async (text: string, ocrText: string | null = null, overrideDisplay: string | null = null) => {
+    async (text: string, ocrText: string | null = null, overrideDisplay: string | null = null, isSilent = false) => {
       if (!text.trim() || isStreaming) return;
 
-      const displayContent = overrideDisplay || text;
-      const userMsg: Message = {
-        id: `user-${Date.now()}`,
-        role: 'user',
-        content: displayContent,
-      };
       const aiMsgId = `ai-${Date.now()}`;
       const aiMsg: Message = { id: aiMsgId, role: 'assistant', content: '' };
 
-      setMessages((prev) => [...prev, userMsg, aiMsg]);
+      if (isSilent) {
+        // Silent message: only push the AI placeholder — no user bubble rendered
+        setMessages((prev) => [...prev, aiMsg]);
+      } else {
+        const displayContent = overrideDisplay || text;
+        const userMsg: Message = {
+          id: `user-${Date.now()}`,
+          role: 'user',
+          content: displayContent,
+        };
+        setMessages((prev) => [...prev, userMsg, aiMsg]);
+      }
       setIsStreaming(true);
       setToolStatus('🤔 Đang suy nghĩ...');
       abortRef.current = false;

@@ -20,7 +20,7 @@ export async function chatWithAgent(req: AuthenticatedRequest, res: Response) {
   Object.entries(SSE_HEADERS).forEach(([k, v]) => res.setHeader(k, v));
   res.flushHeaders();
 
-  const writer = new SseWriter(res, { legacyCompat: true, heartbeatMs: 15_000 });
+  const writer = new SseWriter(res, { legacyCompat: false, heartbeatMs: 15_000 });
   writer.startHeartbeat();
 
   let clientDisconnected = false;
