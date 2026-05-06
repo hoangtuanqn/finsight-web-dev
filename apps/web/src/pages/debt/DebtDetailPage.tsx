@@ -14,10 +14,11 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import FormattedInput from '../../components/common/FormattedInput';
 import { PageSkeleton } from '../../components/common/LoadingSpinner';
 import DebtFluctuationChart from '../../components/debt/DebtFluctuationChart';
 import EARBreakdown from '../../components/debt/EARBreakdown';
@@ -44,6 +45,7 @@ export default function DebtDetailPage() {
     handleSubmit,
     reset,
     setValue,
+    control,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(paymentSchema),
@@ -483,11 +485,18 @@ export default function DebtDetailPage() {
                   <label className="block text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-1.5">
                     Số tiền
                   </label>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    className={`w-full px-4 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] text-sm outline-none focus:border-emerald-500/60 transition-colors ${errors.amount ? 'border-red-500/60 focus:border-red-500' : 'border-[var(--color-border)]'}`}
-                    {...register('amount', { valueAsNumber: true })}
+                  <Controller
+                    control={control}
+                    name="amount"
+                    render={({ field: { onChange, value } }) => (
+                      <FormattedInput
+                        value={value === 0 ? '' : value}
+                        onValueChange={(val) => onChange(Number(val) || 0)}
+                        placeholder="0"
+                        suffix="đ"
+                        className={`w-full px-4 py-2.5 rounded-xl border bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] text-sm outline-none focus:border-emerald-500/60 transition-colors ${errors.amount ? 'border-red-500/60 focus:border-red-500' : 'border-[var(--color-border)]'}`}
+                      />
+                    )}
                   />
                   {errors.amount && (
                     <p className="mt-1 text-[11px] text-red-400 flex items-center gap-1">
