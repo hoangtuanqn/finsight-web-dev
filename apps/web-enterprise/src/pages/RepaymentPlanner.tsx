@@ -479,9 +479,7 @@ export default function RepaymentPlanner() {
                                   >
                                     <AlertCircle className="w-3 h-3" /> Bẫy nợ
                                   </button>
-                                ) : debt.monthsToPayoff === 'NEVER' ? (
-                                  <span className="text-xs text-(--color-text-muted)">Không khả thi</span>
-                                ) : debt.plannedAmount > 0 ? (
+                                ) : debt.monthsToPayoff !== 'NEVER' && debt.monthsToPayoff !== undefined ? (
                                   <span className="flex items-center gap-1.5 text-green-400 text-xs font-bold bg-green-400/10 px-3 py-1 rounded-full w-fit">
                                     <Clock className="w-3 h-3" /> {debt.monthsToPayoff} tháng
                                   </span>
