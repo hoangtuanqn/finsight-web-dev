@@ -208,7 +208,7 @@ export default function Sidebar({ isCollapsed, width, onClose, isMobile }: Sideb
         <div className="flex items-center justify-center gap-3 w-full">
           {!isCollapsed ? (
             <a href="/home">
-              <img src="https://i.ibb.co/84xLmWTK/LOGO.png" alt="FinSight Logo" className="h-16 w-50" />
+              <img src="https://i.ibb.co/WmGtp2t/Dark-Mode.png" alt="FinSight Logo" className="h-10 w-58" />
             </a>
           ) : (
             <div
