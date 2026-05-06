@@ -168,11 +168,6 @@ export default function DebtConfirmModal({ data, onConfirm, onDismiss, onFeedbac
     onDismiss();
   };
 
-  const formatVND = (v: string) => {
-    const num = Number(v);
-    return isNaN(num) || num === 0 ? '' : num.toLocaleString('vi-VN') + 'đ';
-  };
-
   if (!data) return null;
 
   const inputCls = 'w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-all';
