@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, type Variants } from 'framer-motion';
 import { Bot, Maximize2, MessageSquare, Minimize2, Paperclip, Send, Sparkles, User, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useAgenticChat } from '../../hooks/useAgenticChat';
@@ -176,7 +176,7 @@ export default function AIChatbotModal() {
   // Modal dimensions & positioning logic
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
-  const modalVariants = {
+  const modalVariants: Variants = {
     closed: {
       opacity: 0,
       scale: 0.8,
