@@ -11,7 +11,11 @@ export default function Footer() {
           {/* Brand Section */}
           <div className="lg:col-span-2 flex flex-col gap-8">
             <div className="flex flex-col gap-6">
-              <img src="https://i.ibb.co/84xLmWTK/LOGO.png" alt="FinSight Logo" className="h-16 w-auto self-start" />
+              <img
+                src="https://i.ibb.co/ksGVB17M/Light-Mode.png"
+                alt="FinSight Logo"
+                className="h-16 w-auto self-start"
+              />
               <p className="text-lg text-[var(--color-text-secondary)] leading-relaxed font-medium max-w-sm">
                 Nâng tầm quản trị tài chính cá nhân với trí tuệ nhân tạo. FinSight giúp bạn kiến tạo sự tự do và bứt phá
                 mọi giới hạn.

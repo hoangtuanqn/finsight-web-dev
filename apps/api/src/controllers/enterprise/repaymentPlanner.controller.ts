@@ -5,6 +5,17 @@ import { RepaymentPlanTrackingService } from '../../services/enterprise/repaymen
 const plannerService = new RepaymentPlannerService();
 const trackingService = new RepaymentPlanTrackingService();
 
+export const getEligibleDebts = async (req: Request, res: Response) => {
+  try {
+    const organizationId = (req as any).organizationId;
+    const debts = await plannerService.getEligibleDebts(organizationId);
+    return res.json(debts);
+  } catch (error: any) {
+    console.error('Get Eligible Debts Error:', error);
+    return res.status(500).json({ error: error.message || 'Lỗi khi tải danh sách nợ' });
+  }
+};
+
 export const calculateSimulation = async (req: Request, res: Response) => {
   try {
     const { budget, strategy, excludeDebtIds } = req.body;

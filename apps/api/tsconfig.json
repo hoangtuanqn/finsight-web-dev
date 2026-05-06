@@ -10,7 +10,8 @@
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
-      "*": ["node_modules/*"]
+      "@repo/financial-core": ["../../packages/financial-core/src"],
+      "@repo/financial-core/*": ["../../packages/financial-core/src/*"]
     },
     "allowJs": true,
     "resolveJsonModule": true

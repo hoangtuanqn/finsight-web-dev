@@ -177,7 +177,11 @@ export default function RegisterPage() {
       <div className="w-full flex flex-col items-center">
         {/* Brand Logo */}
         <Link to="/" className="mb-8 transition-transform hover:scale-105 active:scale-95">
-          <img src="https://i.ibb.co/84xLmWTK/LOGO.png" alt="FinSight Logo" className="h-12 w-auto drop-shadow-sm" />
+          <img
+            src={dark ? 'https://i.ibb.co/WmGtp2t/Dark-Mode.png' : 'https://i.ibb.co/ksGVB17M/Light-Mode.png'}
+            alt="FinSight Logo"
+            className="h-12 w-auto drop-shadow-sm"
+          />
         </Link>
 
         <h2 className="text-[24px] font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500 dark:from-emerald-400 dark:to-teal-400 mb-2 text-center">
