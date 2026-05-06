@@ -6,11 +6,29 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting enterprise database seed...');
 
+  // 0. Clear existing data
+  console.log('🧹 Clearing existing enterprise data...');
+  // Delete in reverse dependency order
+  await prisma.enterpriseRepaymentPlanItem.deleteMany({});
+  await prisma.enterpriseRepaymentPlan.deleteMany({});
+  await prisma.debtTransaction.deleteMany({});
+  await prisma.debtSchedule.deleteMany({});
+  await prisma.debtInterestRate.deleteMany({});
+  await prisma.debtDocument.deleteMany({});
+  await prisma.enterpriseNotification.deleteMany({});
+  await prisma.debtRecord.deleteMany({});
+  await prisma.enterpriseBankAccount.deleteMany({});
+  await prisma.contact.deleteMany({});
+  await prisma.party.deleteMany({});
+  await prisma.auditLog.deleteMany({});
+  await prisma.jobLog.deleteMany({});
+  await prisma.enterpriseUser.deleteMany({});
+  await prisma.organization.deleteMany({});
+  console.log('✨ Database cleared');
+
   // 1. Create Organization
-  const org = await prisma.organization.upsert({
-    where: { taxCode: '0123456789' },
-    update: {},
-    create: {
+  const org = await prisma.organization.create({
+    data: {
       taxCode: '0123456789',
       name: 'Công ty Cổ phần Techcom Enterprise',
       shortName: 'TechcomEnt',
@@ -18,16 +36,16 @@ async function main() {
       headquartersAddress: 'Toà nhà Keangnam, Phạm Hùng, Hà Nội',
       equity: 50000000000, // 50 tỷ
       annualRevenue: 120000000000, // 120 tỷ
+      maxDebtToEquity: 2.5,
+      minDSCR: 1.5,
     },
   });
   console.log('✅ Organization created:', org.name);
 
   // 2. Create Admin User
   const passwordHash = await bcrypt.hash('admin123', 10);
-  const admin = await prisma.enterpriseUser.upsert({
-    where: { email: 'admin@enterprise.vn' },
-    update: {},
-    create: {
+  const admin = await prisma.enterpriseUser.create({
+    data: {
       email: 'admin@enterprise.vn',
       passwordHash,
       fullName: 'Quản trị viên Hệ thống',
@@ -40,10 +58,8 @@ async function main() {
 
   // 3. Create Parties (Customers, Suppliers, Banks)
   // Party 1: Customer
-  const customer = await prisma.party.upsert({
-    where: { organizationId_internalCode: { organizationId: org.id, internalCode: 'KH-001' } },
-    update: {},
-    create: {
+  const customer = await prisma.party.create({
+    data: {
       organizationId: org.id,
       taxCode: '0312345678',
       name: 'Công ty Cổ phần Bán lẻ Vina',
@@ -52,6 +68,8 @@ async function main() {
       typeTags: ['CUSTOMER'],
       creditLimit: 5000000000, // 5 tỷ
       personInChargeId: admin.id,
+      status: 'ACTIVE',
+      isRelatedParty: false,
       contacts: {
         create: [
           {
@@ -67,17 +85,18 @@ async function main() {
   });
 
   // Party 2: Supplier
-  const supplier = await prisma.party.upsert({
-    where: { organizationId_internalCode: { organizationId: org.id, internalCode: 'NCC-001' } },
-    update: {},
-    create: {
+  const supplier = await prisma.party.create({
+    data: {
       organizationId: org.id,
       taxCode: '0101234567',
       name: 'Công ty TNHH Cung ứng Toàn cầu',
       shortName: 'GlobalSupply',
       internalCode: 'NCC-001',
       typeTags: ['SUPPLIER'],
+      creditLimit: 2000000000, // 2 tỷ
       personInChargeId: admin.id,
+      status: 'ACTIVE',
+      isRelatedParty: true, // Related party for testing
       contacts: {
         create: [
           {
@@ -103,16 +122,16 @@ async function main() {
   });
 
   // Party 3: Bank
-  const bank = await prisma.party.upsert({
-    where: { organizationId_internalCode: { organizationId: org.id, internalCode: 'NH-001' } },
-    update: {},
-    create: {
+  const bank = await prisma.party.create({
+    data: {
       organizationId: org.id,
       taxCode: '0100112437',
       name: 'Ngân hàng TMCP Ngoại thương Việt Nam',
       shortName: 'Vietcombank',
       internalCode: 'NH-001',
       typeTags: ['BANK'],
+      creditLimit: 10000000000, // 10 tỷ
+      status: 'ACTIVE',
     },
   });
   console.log('✅ Parties created');
@@ -139,6 +158,8 @@ async function main() {
       internalCode: 'AR-2023-001',
       personInChargeId: admin.id,
       notes: 'Hợp đồng cung cấp phần mềm ERP',
+      penaltyRate: 0.0005, // 0.05% per day
+      gracePeriodDays: 3,
       schedules: {
         create: [
           {
@@ -173,6 +194,8 @@ async function main() {
       internalCode: 'AP-2023-001',
       personInChargeId: admin.id,
       notes: 'Nhập lô hàng server',
+      penaltyRate: 0.001, // 0.1% per day
+      gracePeriodDays: 0,
       schedules: {
         create: [
           {
@@ -207,11 +230,14 @@ async function main() {
       internalCode: 'LN-VCB-001',
       personInChargeId: admin.id,
       notes: 'Vay vốn lưu động 12 tháng',
+      penaltyRate: 0.0003,
+      gracePeriodDays: 5,
       interestRates: {
         create: [
           {
             rate: 8.5,
             effectiveDate: today,
+            rateType: 'FIXED',
           },
         ],
       },
@@ -233,6 +259,50 @@ async function main() {
             remainingPrincipal: Math.max(0, remainingPrincipal),
           };
         }),
+      },
+    },
+  });
+
+  // Floating Rate Loan
+  const floatingLoan = await prisma.debtRecord.create({
+    data: {
+      organizationId: org.id,
+      partyId: bank.id,
+      type: 'PAYABLE',
+      origin: 'FINANCIAL',
+      principal: 2000000000, // 2 tỷ
+      outstanding: 2000000000,
+      interestMethod: 'REDUCING_BALANCE',
+      issueDate: lastMonth,
+      dueDate: nextYear,
+      status: 'ACTIVE',
+      internalCode: 'LN-VCB-002',
+      personInChargeId: admin.id,
+      notes: 'Vay lãi suất tham chiếu SOFR',
+      penaltyRate: 0.0003,
+      gracePeriodDays: 5,
+      interestRates: {
+        create: [
+          {
+            rate: 7.2, // Base + Spread
+            effectiveDate: lastMonth,
+            rateType: 'REFERENCE',
+            referenceBase: 'SOFR',
+            spread: 2.5,
+          },
+        ],
+      },
+      schedules: {
+        create: [
+          {
+            period: 1,
+            dueDate: today,
+            principalAmount: 0,
+            interestAmount: 2000000000 * (7.2 / 100 / 12),
+            totalAmount: 2000000000 * (7.2 / 100 / 12),
+            remainingPrincipal: 2000000000,
+          },
+        ],
       },
     },
   });
@@ -259,6 +329,8 @@ async function main() {
       personInChargeId: admin.id,
       notes: 'Khoản thu quá hạn từ tháng trước',
       overdueSince: overdueDueDate,
+      penaltyRate: 0.0005,
+      gracePeriodDays: 2,
       schedules: {
         create: [
           {
