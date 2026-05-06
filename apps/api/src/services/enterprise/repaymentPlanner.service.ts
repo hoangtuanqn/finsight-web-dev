@@ -18,6 +18,9 @@ interface SimulationDebt extends DebtRecord {
   penaltyAccrued: number;
   riskScore: number;
   isRateIncreasing: boolean;
+  mandatoryPrincipal: number;
+  mandatoryInterest: number;
+  mandatoryPayment: number;
 }
 
 interface SimulationResult {
@@ -70,6 +73,15 @@ export class RepaymentPlannerService {
           orderBy: { effectiveDate: 'desc' },
           take: 2, // Check for floating rate trends
         },
+        schedules: {
+          where: {
+            status: { in: ['PENDING', 'PARTIAL', 'OVERDUE'] },
+            isActivated: true,
+            dueDate: {
+              lte: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59, 999),
+            },
+          },
+        },
       },
     });
 
@@ -87,19 +99,32 @@ export class RepaymentPlannerService {
       }
 
       const monthlyInterest = (debt.outstanding * (currentRate / 100)) / 12;
-      const monthlyPenalty = debt.status === 'OVERDUE' ? debt.outstanding * penaltyRate * 30 : 0;
+      const penaltyAccrued = debt.status === 'OVERDUE' ? debt.outstanding * penaltyRate * 30 : 0;
 
-      // Default 1% prepayment penalty for bank loans as per business requirement 9.1
-      const prepaymentFee = debt.origin === 'FINANCIAL' ? debt.outstanding * 0.01 : 0;
+      // Calculate mandatory from schedules
+      const schedules = (debt as any).schedules || [];
+      const mandatoryPrincipal = schedules.reduce(
+        (sum: number, s: any) => sum + (s.principalAmount - s.paidPrincipal),
+        0,
+      );
+      const mandatoryInterest = schedules.reduce((sum: number, s: any) => sum + (s.interestAmount - s.paidInterest), 0);
+      const mandatoryPayment = penaltyAccrued + mandatoryInterest + mandatoryPrincipal;
+
+      const remainingOutstandingIfBasePaid = Math.max(0, debt.outstanding - mandatoryPrincipal);
+      const prepaymentFeeNeeded = 0; // Removed: debt.origin === 'FINANCIAL' ? remainingOutstandingIfBasePaid * 0.01 : 0;
+      const totalObligation = mandatoryPayment + remainingOutstandingIfBasePaid + prepaymentFeeNeeded;
 
       return {
         ...debt,
         effectiveAnnualRate: effectiveRate,
-        totalObligation: debt.outstanding + monthlyInterest + monthlyPenalty + prepaymentFee,
-        monthlyInterest,
-        penaltyAccrued: monthlyPenalty,
+        totalObligation,
+        monthlyInterest: mandatoryInterest,
+        penaltyAccrued,
         riskScore: 0,
         isRateIncreasing,
+        mandatoryPrincipal,
+        mandatoryInterest,
+        mandatoryPayment,
       } as SimulationDebt;
     });
   }
@@ -139,54 +164,26 @@ export class RepaymentPlannerService {
     }
 
     // Sort based on strategy
-    switch (strategy) {
-      case RepaymentStrategy.AVALANCHE:
-        debts.sort((a, b) => b.effectiveAnnualRate - a.effectiveAnnualRate);
-        break;
-      case RepaymentStrategy.SNOWBALL:
-        debts.sort((a, b) => a.outstanding - b.outstanding);
-        break;
-      case RepaymentStrategy.OVERDUE_FIRST:
-        debts.sort((a, b) => {
-          const getPriority = (d: SimulationDebt) => {
-            if (d.status !== 'OVERDUE') return 99;
-            if (d.origin === 'TAX') return 1;
-            if (d.origin === 'FINANCIAL') return 2;
-            if (d.origin === 'TRADE') return 3;
-            return 4;
-          };
-          const pA = getPriority(a);
-          const pB = getPriority(b);
-          if (pA !== pB) return pA - pB;
-          const daysA = a.overdueSince ? (Date.now() - new Date(a.overdueSince).getTime()) / 86400000 : 0;
-          const daysB = b.overdueSince ? (Date.now() - new Date(b.overdueSince).getTime()) / 86400000 : 0;
-          return daysB - daysA;
-        });
-        break;
-      case RepaymentStrategy.COVENANT_RISK:
-        this.calculateRiskScores(debts, org);
-        debts.sort((a, b) => b.riskScore - a.riskScore);
-        break;
-    }
+    this.sortDebtsByStrategy(debts, strategy, org);
 
     let remainingBudget = budget;
     let fullyPaidCount = 0;
 
-    // Phase 1: Calculate and allocate base minimum payment (Interest + Penalty) for ALL debts
+    // Phase 1: Calculate and allocate base mandatory payment (Penalty + Interest + Principal due) for ALL debts
     const allocations = debts.map((debt) => {
-      const monthlyCost = debt.monthlyInterest + (debt.status === 'OVERDUE' ? debt.penaltyAccrued : 0);
       return {
         debt,
-        monthlyCost,
+        mandatoryPayment: debt.mandatoryPayment,
         baseAllocation: 0,
         extraAllocation: 0,
+        effectiveExtraPrincipal: 0,
       };
     });
 
     // Allocate base minimums first (even if it's not the highest priority, we must cover interest to avoid default)
     for (const alloc of allocations) {
       if (remainingBudget <= 0) break;
-      const amountToPay = Math.min(remainingBudget, alloc.monthlyCost);
+      const amountToPay = Math.min(remainingBudget, alloc.mandatoryPayment);
       alloc.baseAllocation = amountToPay;
       remainingBudget -= amountToPay;
     }
@@ -194,51 +191,56 @@ export class RepaymentPlannerService {
     // Phase 2: Allocate remaining budget according to priority strategy (Avalanche/Snowball etc)
     for (const alloc of allocations) {
       if (remainingBudget <= 0) break;
-      const principalRemaining = alloc.debt.totalObligation - alloc.baseAllocation;
-      if (principalRemaining > 0) {
-        const amountToPay = Math.min(remainingBudget, principalRemaining);
+
+      const principalPaidInBase = Math.max(
+        0,
+        alloc.baseAllocation - alloc.debt.penaltyAccrued - alloc.debt.mandatoryInterest,
+      );
+      const remainingOutstanding = alloc.debt.outstanding - principalPaidInBase;
+
+      if (remainingOutstanding > 0) {
+        const prepaymentFeeRate = 0; // Removed: alloc.debt.origin === 'FINANCIAL' ? 0.01 : 0;
+        const budgetNeeded = remainingOutstanding * (1 + prepaymentFeeRate);
+        const amountToPay = Math.min(remainingBudget, budgetNeeded);
+
         alloc.extraAllocation = amountToPay;
+        alloc.effectiveExtraPrincipal = amountToPay / (1 + prepaymentFeeRate);
         remainingBudget -= amountToPay;
       }
     }
 
+    // Engine 2: Future Simulation Loop to calculate accurate monthsToPayoff
+    const simResults = this.runSimulationLoop(debts, budget, strategy, org);
+
     // Phase 3: Calculate outcomes
-    const allocatedDebts = allocations.map(({ debt, monthlyCost, baseAllocation, extraAllocation }, index) => {
-      const plannedAmount = baseAllocation + extraAllocation;
+    const allocatedDebts = allocations.map(
+      ({ debt, mandatoryPayment, baseAllocation, extraAllocation, effectiveExtraPrincipal }, index) => {
+        const plannedAmount = baseAllocation + extraAllocation;
 
-      if (plannedAmount >= debt.totalObligation) {
-        fullyPaidCount++;
-      }
+        const principalPaidInBase = Math.max(0, baseAllocation - debt.penaltyAccrued - debt.mandatoryInterest);
+        const totalPrincipalReduction = principalPaidInBase + effectiveExtraPrincipal;
+        const remainingAfter = Math.max(0, debt.outstanding - totalPrincipalReduction);
 
-      let monthsToPayoff: number | 'NEVER' = 'NEVER';
-      let isDebtTrap = false;
-
-      if (plannedAmount > 0) {
-        if (plannedAmount <= monthlyCost && debt.outstanding > 0) {
-          monthsToPayoff = 'NEVER';
-          isDebtTrap = true;
-        } else {
-          const netPrincipalPayment = plannedAmount - monthlyCost;
-          monthsToPayoff = Math.ceil(debt.outstanding / netPrincipalPayment);
+        if (remainingAfter <= 0) {
+          fullyPaidCount++;
         }
-      }
 
-      return {
-        debtId: debt.id,
-        debtName: debt.internalCode || 'N/A',
-        partyName: debt.party.name,
-        outstanding: debt.outstanding,
-        plannedAmount,
-        remainingAfter: Math.max(
-          0,
-          debt.outstanding - (plannedAmount - monthlyCost > 0 ? plannedAmount - monthlyCost : 0),
-        ),
-        priority: index + 1,
-        reason: this.getReasonForStrategy(debt, strategy),
-        monthsToPayoff,
-        isDebtTrap,
-      };
-    });
+        const { monthsToPayoff, isDebtTrap } = simResults[debt.id];
+
+        return {
+          debtId: debt.id,
+          debtName: debt.internalCode || 'N/A',
+          partyName: debt.party.name,
+          outstanding: debt.outstanding,
+          plannedAmount,
+          remainingAfter,
+          priority: index + 1,
+          reason: this.getReasonForStrategy(debt, strategy),
+          monthsToPayoff,
+          isDebtTrap,
+        };
+      },
+    );
 
     const alerts: { type: 'DANGER' | 'WARNING' | 'INFO'; message: string }[] = [];
     const trapDebts = allocatedDebts.filter((d) => d.isDebtTrap);
@@ -282,7 +284,142 @@ export class RepaymentPlannerService {
     };
   }
 
-  private calculateRiskScores(debts: SimulationDebt[], org: any) {
+  private sortDebtsByStrategy(debts: any[], strategy: RepaymentStrategy, org?: any) {
+    switch (strategy) {
+      case RepaymentStrategy.AVALANCHE:
+        debts.sort((a, b) => b.effectiveAnnualRate - a.effectiveAnnualRate);
+        break;
+      case RepaymentStrategy.SNOWBALL:
+        debts.sort((a, b) => a.outstanding - b.outstanding);
+        break;
+      case RepaymentStrategy.OVERDUE_FIRST:
+        debts.sort((a, b) => {
+          const getPriority = (d: any) => {
+            if (d.status !== 'OVERDUE') return 99;
+            if (d.origin === 'TAX') return 1;
+            if (d.origin === 'FINANCIAL') return 2;
+            if (d.origin === 'TRADE') return 3;
+            return 4;
+          };
+          const pA = getPriority(a);
+          const pB = getPriority(b);
+          if (pA !== pB) return pA - pB;
+          const daysA = a.overdueSince ? (Date.now() - new Date(a.overdueSince).getTime()) / 86400000 : 0;
+          const daysB = b.overdueSince ? (Date.now() - new Date(b.overdueSince).getTime()) / 86400000 : 0;
+          return daysB - daysA;
+        });
+        break;
+      case RepaymentStrategy.COVENANT_RISK:
+        if (org) this.calculateRiskScores(debts, org);
+        debts.sort((a, b) => b.riskScore - a.riskScore);
+        break;
+    }
+  }
+
+  private runSimulationLoop(
+    debts: SimulationDebt[],
+    monthlyBudget: number,
+    strategy: RepaymentStrategy,
+    org: any,
+  ): { [debtId: string]: { monthsToPayoff: number | 'NEVER'; isDebtTrap: boolean } } {
+    const simDebts = debts.map((d) => ({
+      id: d.id,
+      outstanding: d.outstanding,
+      effectiveAnnualRate: d.effectiveAnnualRate,
+      origin: d.origin,
+      status: d.status,
+      riskScore: d.riskScore,
+      overdueSince: d.overdueSince,
+      monthsCount: 0,
+      isPaidOff: d.outstanding <= 0,
+      isDebtTrap: false,
+    }));
+
+    let currentMonth = 0;
+    const MAX_MONTHS = 360; // 30 years cap
+
+    while (currentMonth < MAX_MONTHS) {
+      const activeDebts = simDebts.filter((d) => !d.isPaidOff);
+      if (activeDebts.length === 0) break;
+
+      currentMonth++;
+      let remainingBudget = monthlyBudget;
+
+      const monthlyRequirements = activeDebts.map((d) => {
+        const monthlyInterest = (d.outstanding * (d.effectiveAnnualRate / 100)) / 12;
+        return {
+          debt: d,
+          monthlyInterest,
+          baseAllocation: 0,
+          extraAllocation: 0,
+        };
+      });
+
+      // Phase 1: Pay interest first
+      for (const req of monthlyRequirements) {
+        if (remainingBudget <= 0) break;
+        const amountToPay = Math.min(remainingBudget, req.monthlyInterest);
+        req.baseAllocation = amountToPay;
+        remainingBudget -= amountToPay;
+
+        if (req.baseAllocation < req.monthlyInterest) {
+          req.debt.isDebtTrap = true;
+        }
+      }
+
+      // Phase 2: Allocate extra to principal
+      this.sortDebtsByStrategy(
+        monthlyRequirements.map((req) => req.debt),
+        strategy,
+        org,
+      );
+
+      for (const req of monthlyRequirements) {
+        if (remainingBudget <= 0) break;
+        const amountToPay = Math.min(remainingBudget, req.debt.outstanding);
+        req.extraAllocation = amountToPay;
+        remainingBudget -= amountToPay;
+      }
+
+      // Apply payments
+      for (const req of monthlyRequirements) {
+        if (!req.debt.isDebtTrap) {
+          req.debt.outstanding -= req.extraAllocation;
+        }
+
+        if (req.debt.outstanding <= 0 && !req.debt.isPaidOff) {
+          req.debt.isPaidOff = true;
+          req.debt.monthsCount = currentMonth;
+        } else if (currentMonth === MAX_MONTHS - 1) {
+          req.debt.monthsCount = 'NEVER';
+        }
+      }
+
+      if (
+        remainingBudget === 0 &&
+        monthlyRequirements.every((req) => req.baseAllocation < req.monthlyInterest || req.extraAllocation === 0)
+      ) {
+        activeDebts.forEach((d) => {
+          if (!d.isPaidOff) {
+            d.isDebtTrap = true;
+            d.monthsCount = 'NEVER';
+          }
+        });
+        break;
+      }
+    }
+
+    const result: any = {};
+    for (const d of simDebts) {
+      result[d.id] = {
+        monthsToPayoff: d.isPaidOff ? d.monthsCount : 'NEVER',
+        isDebtTrap: d.isDebtTrap,
+      };
+    }
+    return result;
+  }
+
+  private calculateRiskScores(debts: SimulationDebt[] | any[], org: any) {
     const totalDebt = debts.reduce((sum, d) => sum + d.outstanding, 0);
     const deRatio = org?.equity ? totalDebt / org.equity : 0;
 
