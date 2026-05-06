@@ -16,7 +16,7 @@ export class WalletController {
     try {
       const userId = (req as any).userId;
       const { id } = req.params;
-      const wallet = await WalletService.getById(id, userId);
+      const wallet = await WalletService.getById(id as string, userId);
       if (!wallet) {
         return res.status(404).json({ success: false, message: 'Wallet not found' });
       }
@@ -50,7 +50,7 @@ export class WalletController {
     try {
       const userId = (req as any).userId;
       const { id } = req.params;
-      const wallet = await WalletService.update(id, userId, req.body);
+      const wallet = await WalletService.update(id as string, userId, req.body);
       res.json({ success: true, data: wallet });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
@@ -61,7 +61,7 @@ export class WalletController {
     try {
       const userId = (req as any).userId;
       const { id } = req.params;
-      await WalletService.delete(id, userId);
+      await WalletService.delete(id as string, userId);
       res.json({ success: true, message: 'Wallet deleted' });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
