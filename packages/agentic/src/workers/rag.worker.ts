@@ -1,4 +1,4 @@
-import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { AIMessage, HumanMessage, SystemMessage } from '@langchain/core/messages';
 import { type AgentGraphState } from '../graph-state.js';
 import { getChatModel } from '../llm-provider.js';
 import { knowledgeSearchTool, RAG_NO_ANSWER_REPLY, type RagToolResult } from '../tools/rag.tools.js';
@@ -6,103 +6,22 @@ import { type AgentWorker, type WorkerOutput } from '../worker.interface.js';
 
 // ─── System prompt ────────────────────────────────────────────────────────────
 
-const RAG_SYSTEM = `Bạn là FinSight Knowledge Advisor. Quy tắc BẮT BUỘC:
-1. Gọi tool "knowledge_search" với câu hỏi của người dùng.
-2. Nếu tool trả về isRelevant: false → trả lời CHÍNH XÁC câu: "Tôi không biết về chủ đề đó. Vui lòng hỏi về lĩnh vực tài chính."
-3. Nếu tool trả về isRelevant: true → trả lời dựa HOÀN TOÀN vào nội dung context được cung cấp. KHÔNG dùng kiến thức ngoài context.
-4. Không gắn popup hoặc interactive card — chỉ văn bản.
-5. Câu trả lời ngắn gọn, rõ ràng, có trích dẫn từ nguồn nếu cần.
-6. Với câu hỏi định nghĩa như "DTI là gì?", trả lời trực tiếp bằng định nghĩa trong context trước, sau đó thêm công thức hoặc ngưỡng nếu context có.
-7. Không bịa thông tin khi context không đề cập.`;
+/**
+ * Grounded RAG system prompt.
+ * The LLM receives retrieved chunks in the HumanMessage and must answer
+ * solely from that context — no external knowledge allowed.
+ */
+const RAG_SYSTEM = `Bạn là FinSight Knowledge Advisor — chuyên gia tư vấn tài chính cá nhân.
 
-function normalizeForIntent(value: string): string {
-  return value
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim();
-}
-
-function isSimpleDefinitionQuestion(query: string): boolean {
-  const normalized = normalizeForIntent(query);
-  const isDefinition = /\b(la gi|dinh nghia|khai niem|giai thich)\b/.test(normalized);
-  return isDefinition && normalized.length <= 120;
-}
-
-function cleanMarkdownLine(line: string): string {
-  return line
-    .replace(/^#+\s*/, '')
-    .replace(/^[-*]\s*/, '')
-    .replace(/\*\*/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function inferQueryTerm(query: string, results: Array<{ title: string; chunk: string }>): string | null {
-  const acronym = query.match(/\b[A-Z]{2,8}\b/);
-  if (acronym) return acronym[0];
-
-  const normalizedQuery = normalizeForIntent(query);
-  for (const result of results) {
-    const titleAcronym = result.title.match(/\(([A-Z]{2,8})\)/);
-    if (titleAcronym && normalizedQuery.includes(titleAcronym[1].toLowerCase())) return titleAcronym[1];
-
-    const chunkAcronym = result.chunk.match(/\b([A-Z]{2,8})\b/);
-    if (chunkAcronym && normalizedQuery.includes(chunkAcronym[1].toLowerCase())) return chunkAcronym[1];
-  }
-
-  return null;
-}
-
-function buildExtractiveKnowledgeAnswer(
-  query: string,
-  results: Array<{ title: string; chunk: string }>,
-): string | null {
-  const term = inferQueryTerm(query, results);
-  const normalizedTerm = term ? normalizeForIntent(term) : null;
-  const lines = results.flatMap((result) => result.chunk.split(/\r?\n/));
-  const cleanedLines = lines.map(cleanMarkdownLine).filter(Boolean);
-  const normalizedQuery = normalizeForIntent(query);
-
-  const definitionLine =
-    cleanedLines.find((line) => {
-      const normalizedLine = normalizeForIntent(line);
-      if (!/\b(la|duoc hieu la)\b/.test(normalizedLine)) return false;
-      return normalizedTerm ? normalizedLine.includes(normalizedTerm) : true;
-    }) ?? null;
-
-  if (!definitionLine) return null;
-
-  const answerParts = [definitionLine];
-
-  const formulaLine = cleanedLines.find((line) => {
-    if (!normalizedTerm || !term) return line.includes('=') && line.includes('100');
-    return new RegExp(`\\b${escapeRegExp(term)}\\s*=`, 'i').test(line);
-  });
-
-  if (formulaLine && !definitionLine.includes(formulaLine)) {
-    answerParts.push(`Công thức: ${formulaLine}`);
-  }
-
-  const wantsThreshold = /\b(muc|nguong|duy tri|an toan|canh bao|bao nhieu)\b/.test(normalizedQuery);
-  if (wantsThreshold) {
-    const thresholdLines = cleanedLines
-      .filter((line) => /SAFE|WARNING|DANGER|CRITICAL|dưới|trên|35%|50%/i.test(line))
-      .slice(0, 3);
-
-    if (thresholdLines.length > 0) {
-      answerParts.push(`Ngưỡng tham khảo: ${thresholdLines.join(' ')}`);
-    }
-  }
-
-  return answerParts.join('\n\n');
-}
+QUY TẮC BẮT BUỘC:
+1. Trả lời DỰA HOÀN TOÀN vào phần "--- Tài liệu tham khảo ---" được cung cấp trong tin nhắn.
+2. TUYỆT ĐỐI không bịa thêm thông tin ngoài tài liệu, kể cả khi bạn biết từ kiến thức chung.
+3. Không gắn popup hay interactive card — chỉ trả lời văn bản thuần túy.
+4. Cấu trúc câu trả lời theo thứ tự: Định nghĩa → Công thức (nếu có) → Ví dụ thực tế (nếu có) → Khuyến nghị (nếu có).
+5. Với câu hỏi định nghĩa ("X là gì?"), bắt đầu TRỰC TIẾP bằng định nghĩa — KHÔNG lặp lại câu hỏi, KHÔNG nói "Theo tài liệu...".
+6. Ngắn gọn, rõ ràng; dùng bullet point khi liệt kê nhiều mục.
+7. Nếu tài liệu không đề cập đến thông tin người dùng cần, nói rõ: "Tài liệu hiện tại chưa có thông tin chi tiết về vấn đề này."
+8. Trả lời bằng tiếng Việt.`;
 
 // ─── Worker ───────────────────────────────────────────────────────────────────
 
@@ -117,10 +36,12 @@ export const ragWorker: AgentWorker = {
   ): Promise<WorkerOutput> {
     onToolStatus('🔍 Đang tìm kiếm kiến thức tài chính...');
 
-    // ── Step 1: Call knowledge_search directly (no ReAct loop needed) ─────────
+    // ── Step 1: Retrieve relevant knowledge chunks ─────────────────────────────
+    const searchQuery = state.summary ? `${state.summary} - ${state.input}` : state.input;
+
     let ragResult: RagToolResult | null = null;
     try {
-      const raw = await knowledgeSearchTool.invoke({ query: state.input });
+      const raw = await knowledgeSearchTool.invoke({ query: searchQuery });
       ragResult = JSON.parse(typeof raw === 'string' ? raw : JSON.stringify(raw)) as RagToolResult;
     } catch (err: any) {
       console.error('[RagWorker] knowledge_search error:', err.message);
@@ -138,37 +59,28 @@ export const ragWorker: AgentWorker = {
       return { text: '', uiSignal: null };
     }
 
-    const directAnswer = isSimpleDefinitionQuestion(state.input)
-      ? buildExtractiveKnowledgeAnswer(state.input, ragResult.results)
-      : null;
-
-    if (directAnswer) {
-      onToken(directAnswer);
-      return { text: directAnswer, uiSignal: null };
-    }
-
-    // ── Step 3: Build context block from retrieved chunks ─────────────────────
+    // ── Step 3: Build grounded context block & message array ──────────────────
     const contextBlock = ragResult.results
       .map((r, i) => `[${i + 1}] ${r.title} (${r.category})\n${r.chunk}`)
       .join('\n\n---\n\n');
 
-    const recentCtx = state.recentMessages
-      .slice(0, -1) // exclude last item (current user message already in state.input)
-      .map((m) => `${m.role === 'user' ? 'Người dùng' : 'AI'}: ${m.content}`)
-      .join('\n');
+    const systemPrompt = `${RAG_SYSTEM}\n\n--- TÀI LIỆU THAM KHẢO ---\n${contextBlock}`;
 
-    const userContent = [
-      state.summary ? `Tóm tắt ngữ cảnh trước: ${state.summary}` : '',
-      recentCtx,
-      `\nNgười dùng: ${state.input}`,
-      `\n\n--- Tài liệu tham khảo ---\n${contextBlock}`,
-    ]
-      .filter(Boolean)
-      .join('\n');
+    const roleMap: Record<string, (c: string) => SystemMessage | HumanMessage | AIMessage> = {
+      user: (c) => new HumanMessage(c),
+      assistant: (c) => new AIMessage(c.replace(/^\(Trợ lý đã trả lời:\s*|\)$/g, '').trim()),
+      system: (c) => new SystemMessage(c),
+    };
 
-    // ── Step 4: Stream response from LLM ──────────────────────────────────────
+    const historyMessages = state.recentMessages
+      // Loại trừ câu hỏi hiện tại bị lọt vào mảng lịch sử (do sliding window có thể đã lưu)
+      .filter((m) => !(m.role === 'user' && m.content === state.input))
+      .map((m) => (roleMap[m.role] ?? roleMap.assistant)(m.content));
+
+    const messages = [new SystemMessage(systemPrompt), ...historyMessages, new HumanMessage(state.input)];
+
+    // ── Step 4: Stream LLM response grounded in retrieved context ──────────────
     const llm = getChatModel({ streaming: true });
-    const messages = [new SystemMessage(RAG_SYSTEM), new HumanMessage(userContent)];
 
     let fullText = '';
 
@@ -192,8 +104,8 @@ export const ragWorker: AgentWorker = {
 
     // Fallback if LLM returned nothing
     if (!fullText.trim()) {
-      fullText = buildExtractiveKnowledgeAnswer(state.input, ragResult.results) ?? RAG_NO_ANSWER_REPLY;
-      onToken(fullText);
+      onToken(RAG_NO_ANSWER_REPLY);
+      return { text: RAG_NO_ANSWER_REPLY, uiSignal: null };
     }
 
     return { text: fullText, uiSignal: null };

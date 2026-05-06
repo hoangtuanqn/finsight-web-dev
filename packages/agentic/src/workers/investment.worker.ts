@@ -1,7 +1,9 @@
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { createReactAgent } from '@langchain/langgraph/prebuilt';
 import { type AgentGraphState } from '../graph-state.js';
 import { getInvestmentQuotaSnapshot } from '../investment-quota.helper.js';
 import { getChatModel } from '../llm-provider.js';
+import { parseInvestmentInformationTool } from '../tools/investment.tools.js';
 import { type UiSignal } from '../ui-signal.js';
 import { type AgentWorker, type WorkerOutput } from '../worker.interface.js';
 
@@ -14,10 +16,12 @@ const INVESTMENT_SYSTEM_QUOTA_OK = `Bạn là FinSight Investment Advisor. Thôn
 - Lượt tạo chiến lược còn lại: {quota}
 
 Nhiệm vụ:
-1. Trả lời ngắn gọn 2-3 câu giới thiệu ngữ cảnh đầu tư.
-2. Thông báo rằng bạn sẽ hiển thị popup để xác nhận thông tin trước khi tạo chiến lược.
-3. Luôn kết thúc bằng disclaimer ngắn: "⚠️ Đây là gợi ý tham khảo, không phải lời khuyên tài chính chính thức."
-4. KHÔNG tự tạo chiến lược hay phân tích số liệu chi tiết trong chat.`;
+1. Gọi tool "parse_investment_information" nếu người dùng có cung cấp BẤT KỲ thông tin nào về: số vốn, thu nhập hàng tháng, hoặc khẩu vị rủi ro. Điền đúng giá trị họ nói, để null nếu họ không nhắc đến.
+**QUAN TRỌNG**: Nếu bạn quyết định gọi tool, TUYỆT ĐỐI KHÔNG sinh ra bất kỳ văn bản (content) nào trong cùng bước đó. Bạn chỉ được phép trả lời văn bản ở bước tiếp theo sau khi tool đã chạy xong.
+2. Trả lời ngắn gọn 2-3 câu giới thiệu ngữ cảnh đầu tư sau khi trích xuất.
+3. Thông báo rằng bạn sẽ hiển thị popup để xác nhận thông tin trước khi tạo chiến lược.
+4. Luôn kết thúc bằng disclaimer ngắn: "⚠️ Đây chỉ là gợi ý tham khảo đầu tư tài chính từ AI."
+5. KHÔNG tự tạo chiến lược hay phân tích số liệu chi tiết trong chat.`;
 
 const INVESTMENT_SYSTEM_QUOTA_EXHAUSTED = `Bạn là FinSight Investment Advisor.
 Người dùng đã hết lượt tạo chiến lược AI ({quota} lượt còn lại).
@@ -118,16 +122,42 @@ export const investmentWorker: AgentWorker = {
     const userContent = contextBlock ? `${contextBlock}\n\nNgười dùng: ${state.input}` : state.input;
 
     const llm = getChatModel({ streaming: true });
+    const agent = createReactAgent({
+      llm,
+      tools: [parseInvestmentInformationTool] as any,
+    });
+
+    const inputs = {
+      messages: [new SystemMessage(systemPrompt), new HumanMessage(userContent)],
+    };
+
     let fullText = '';
+    let parsedData: Record<string, unknown> | null = null;
 
     try {
-      const stream = await llm.stream([new SystemMessage(systemPrompt), new HumanMessage(userContent)]);
-      for await (const chunk of stream) {
+      const stream = await agent.streamEvents(inputs, { version: 'v2' });
+
+      for await (const event of stream) {
         if (isAborted?.()) break;
-        const token = typeof chunk.content === 'string' ? chunk.content : '';
-        if (token) {
-          fullText += token;
-          onToken(token);
+
+        if (event.event === 'on_chat_model_stream') {
+          const chunk = event.data?.chunk?.content;
+          if (chunk) {
+            fullText += chunk;
+            onToken(chunk);
+          }
+        }
+
+        if (event.event === 'on_tool_end' && event.name === 'parse_investment_information') {
+          try {
+            const raw =
+              typeof event.data.output === 'string'
+                ? event.data.output
+                : (event.data.output?.content ?? JSON.stringify(event.data.output));
+            parsedData = JSON.parse(raw);
+          } catch (e: any) {
+            console.error('[InvestmentWorker] parse_investment_information parse error:', e.message);
+          }
         }
       }
     } catch (err: any) {
@@ -140,16 +170,19 @@ export const investmentWorker: AgentWorker = {
       onToken(fullText);
     }
 
+    // Combine parsed data with DB snapshot
+    const uiSignalData = {
+      monthlyIncome: (parsedData?.monthlyIncome as number | null) ?? snapshot.monthlyIncome ?? null,
+      capital: (parsedData?.capital as number | null) ?? snapshot.capital ?? null,
+      riskLevel: (parsedData?.riskLevel as string | null) ?? snapshot.riskLevel ?? null,
+      strategyQuotaRemaining: snapshot.strategyQuota,
+    };
+
     // 4. Build UiSignal — never decrement quota here
     const uiSignal: UiSignal = {
       type: 'SHOW_POPUP',
       action: 'INVESTMENT_CONFIRMATION',
-      data: {
-        monthlyIncome: snapshot.monthlyIncome ?? null,
-        capital: snapshot.capital ?? null,
-        riskLevel: snapshot.riskLevel ?? null,
-        strategyQuotaRemaining: snapshot.strategyQuota,
-      },
+      data: uiSignalData,
     };
 
     return { text: fullText, uiSignal };
