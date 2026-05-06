@@ -1,4 +1,4 @@
-import { convertFlatToReducingAPR } from './ear.js';
+import { calcFlatMonthlyPayment, calcReducingMonthlyPayment, convertFlatToReducingAPR } from './ear';
 
 export interface DebtItem {
   id: string | number;
@@ -110,6 +110,16 @@ export function simulateRepayment(
       effectiveApr += d.feeManagement;
     }
 
+    let calculatedMinPayment = d.minPayment;
+    // For loans (non-credit cards), calculate fixed monthly payment based on original principal
+    if (d.debtType !== 'CREDIT_CARD' && d.originalAmount && d.termMonths && d.termMonths > 0) {
+      if (d.rateType === 'FLAT') {
+        calculatedMinPayment = calcFlatMonthlyPayment(d.originalAmount, d.apr, d.termMonths);
+      } else {
+        calculatedMinPayment = calcReducingMonthlyPayment(d.originalAmount, d.apr, d.termMonths);
+      }
+    }
+
     return {
       id: d.id,
       name: d.name,
@@ -117,7 +127,7 @@ export function simulateRepayment(
       apr: effectiveApr,
       nominalApr: d.apr,
       rateType: d.rateType,
-      minPayment: d.minPayment,
+      minPayment: calculatedMinPayment,
       deadlineMonth: getDebtDeadlineMonth(d),
       debtType: d.debtType,
       feeManagement: d.feeManagement,
