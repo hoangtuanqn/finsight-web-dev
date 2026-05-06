@@ -181,16 +181,16 @@ export default function RepaymentPlanner() {
                   <input
                     type="range"
                     min="0"
-                    max="1000000000"
-                    step="10000000"
+                    max="100000000000"
+                    step="100000000"
                     value={budget}
                     onChange={(e) => setBudget(Number(e.target.value))}
                     className="w-full h-1.5 bg-(--color-bg-secondary) rounded-lg appearance-none cursor-pointer accent-blue-500"
                   />
                   <div className="flex justify-between text-[10px] text-(--color-text-muted) font-medium">
                     <span>0đ</span>
-                    <span>500M</span>
-                    <span>1B+</span>
+                    <span>50B</span>
+                    <span>100B+</span>
                   </div>
                 </div>
 
