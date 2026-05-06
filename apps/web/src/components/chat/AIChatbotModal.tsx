@@ -505,12 +505,6 @@ export default function AIChatbotModal() {
           signal={pendingUiSignal}
           onDismiss={dismissUiSignal}
           isModalOpen={!!pendingAction}
-          onConfirmed={(sig) => {
-            dismissUiSignal();
-            if (sig.action === 'DEBT_CONFIRMATION') {
-              sendMessage('Tôi đã xác nhận lưu khoản nợ thành công.', null, null, true);
-            }
-          }}
           onFeedback={(status, reason) => {
             const action = pendingUiSignal?.action || 'DEBT_CONFIRMATION';
             if (status === 'confirmed') {
