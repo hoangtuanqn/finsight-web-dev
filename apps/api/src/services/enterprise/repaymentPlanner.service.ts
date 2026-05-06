@@ -99,16 +99,17 @@ export class RepaymentPlannerService {
 
       const isRateIncreasing = currentRate > previousRate;
 
-      let effectiveRate = currentRate;
-      if (debt.status === 'OVERDUE') {
-        effectiveRate += penaltyRate * 365 * 100;
-      }
-
       const outstandingNum = Number(debt.outstanding);
       const currentRateNum = Number(currentRate);
       const penaltyRateNum = Number(penaltyRate);
 
-      const penaltyAccrued = debt.status === 'OVERDUE' ? outstandingNum * penaltyRateNum * 30 : 0;
+      let effectiveRate = currentRateNum;
+      if (debt.status === 'OVERDUE') {
+        // penaltyRate is daily percentage (e.g., 0.03 means 0.03%/day)
+        effectiveRate += penaltyRateNum * 365;
+      }
+
+      const penaltyAccrued = debt.status === 'OVERDUE' ? outstandingNum * (penaltyRateNum / 100) * 30 : 0;
 
       // Calculate mandatory from schedules
       const schedules = (debt as any).schedules || [];

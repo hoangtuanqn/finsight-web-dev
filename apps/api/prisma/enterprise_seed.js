@@ -462,7 +462,7 @@ async function main() {
       dueDate: dateOffset(6),
       status: 'OVERDUE',
       overdueSince: dateOffset(-1, -15),
-      penaltyRate: 150,
+      penaltyRate: 0.05,
       internalCode: 'HD-TCB-UNSEC-01',
       notes:
         'Vay tín chấp, có bảo lãnh cá nhân của ông Lê Hồng Minh (Chủ tịch). Đã chậm thanh toán kỳ 5. Nguy cơ hệ thống CIC tự động hạ nhóm nợ (Nhóm 2 - Nợ cần chú ý).',
