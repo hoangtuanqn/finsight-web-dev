@@ -18,7 +18,7 @@ interface UseVoiceRecorderReturn {
   cancelRecording: () => void;
 }
 
-const MIME_TYPES = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
+const MIME_TYPES = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
 
 function getSupportedMimeType(): string {
   for (const type of MIME_TYPES) {
@@ -39,6 +39,12 @@ export function useVoiceRecorder({
   const streamRef = useRef<MediaStream | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cancelledRef = useRef(false);
+  const isStartingRef = useRef(false);
+  // Keep onTranscribed stable to avoid re-creating startRecording on every render
+  const onTranscribedRef = useRef(onTranscribed);
+  useEffect(() => {
+    onTranscribedRef.current = onTranscribed;
+  }, [onTranscribed]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -54,7 +60,8 @@ export function useVoiceRecorder({
   }, []);
 
   const startRecording = useCallback(async () => {
-    if (state !== 'idle') return;
+    if (state !== 'idle' || isStartingRef.current) return;
+    isStartingRef.current = true;
 
     // Check browser support
     if (typeof MediaRecorder === 'undefined') {
@@ -100,7 +107,7 @@ export function useVoiceRecorder({
             setRecordingError('Không nhận diện được giọng nói, vui lòng thử lại.');
           } else {
             setRecordingError(null);
-            onTranscribed(text);
+            onTranscribedRef.current(text);
           }
         } catch (err: any) {
           setRecordingError(err?.message || 'Lỗi kết nối, vui lòng thử lại.');
@@ -125,8 +132,10 @@ export function useVoiceRecorder({
         isDenied ? 'Vui lòng cấp quyền microphone để sử dụng tính năng này.' : 'Không thể truy cập microphone.',
       );
       setState('idle');
+    } finally {
+      isStartingRef.current = false;
     }
-  }, [state, maxDurationSec, onTranscribed, releaseStream]);
+  }, [state, maxDurationSec, releaseStream]);
 
   const stopRecording = useCallback(() => {
     clearTimeout(timeoutRef.current ?? undefined);

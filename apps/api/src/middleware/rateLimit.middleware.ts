@@ -5,7 +5,7 @@ import { error } from '../utils/apiResponse';
 
 /**
  * Redis-based rate limiter for agentic endpoints.
- * Limit: 20 requests per minute per user.
+ * Limit: 50 requests per minute per user.
  * Graceful fallback: if Redis unavailable, allow through.
  */
 export function agenticRateLimit(req: AuthenticatedRequest, res: Response, next: NextFunction) {
