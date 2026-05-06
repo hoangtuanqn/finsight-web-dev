@@ -17,6 +17,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { referralAPI } from '../../../api';
+import FormattedInput from '../../../components/common/FormattedInput';
 import { useKycStatus } from '../../../hooks/useKycQuery';
 
 function formatVND(amount: number) {
@@ -491,14 +492,12 @@ export default function WithdrawalTab({ stats }: WithdrawalTabProps) {
                   <label className="text-[11px] font-black text-[var(--color-text-muted)] uppercase tracking-widest mb-2 block">
                     Số tiền rút (khả dụng: <span className="text-blue-500">{formatVND(availableBalance)}</span>)
                   </label>
-                  <input
-                    type="number"
+                  <FormattedInput
                     value={withdrawAmount}
-                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                    onValueChange={(val) => setWithdrawAmount(val)}
                     placeholder="Tối thiểu 50.000đ"
-                    min={50000}
-                    max={availableBalance}
                     className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-sm font-bold text-[var(--color-text-primary)] outline-none focus:border-blue-500 transition-colors"
+                    suffix="đ"
                   />
                 </div>
 
