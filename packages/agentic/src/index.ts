@@ -3,7 +3,7 @@ export * from './config.js';
 export * from './investment-quota.helper.js';
 export * from './memory.js';
 export * from './personal-data.repository.js';
-export * from './router.js';
+
 export * from './sse-envelope.js';
 export * from './ui-signal.js';
 
