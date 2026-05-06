@@ -121,7 +121,7 @@ export default function AIChatbotModal() {
     const reader = new FileReader();
     reader.onload = (ev) => {
       const img = new Image();
-      img.src = ev.target.result;
+      img.src = (ev.target?.result as string) || '';
       img.onload = () => {
         // Create canvas to resize image
         const canvas = document.createElement('canvas');
@@ -493,7 +493,7 @@ export default function AIChatbotModal() {
           data={pendingAction}
           onConfirm={() => {
             dismissAction();
-            sendMessage('Tôi đã xác nhận lưu khoản nợ thành công.');
+            sendMessage('Tôi đã xác nhận lưu khoản nợ thành công.', null, null, true);
           }}
           onDismiss={dismissAction}
         />
@@ -508,25 +508,30 @@ export default function AIChatbotModal() {
           onConfirmed={(sig) => {
             dismissUiSignal();
             if (sig.action === 'DEBT_CONFIRMATION') {
-              sendMessage('Tôi đã xác nhận lưu khoản nợ thành công.');
+              sendMessage('Tôi đã xác nhận lưu khoản nợ thành công.', null, null, true);
             }
           }}
           onFeedback={(status, reason) => {
             const action = pendingUiSignal?.action || 'DEBT_CONFIRMATION';
             if (status === 'confirmed') {
               if (action === 'REPAYMENT_CONFIRMATION') {
-                sendMessage('Tôi đã cập nhật kế hoạch phân bổ mới, mời bạn xem chi tiết trên màn hình.');
+                sendMessage(
+                  'Tôi đã cập nhật kế hoạch phân bổ mới, mời bạn xem chi tiết trên màn hình.',
+                  null,
+                  null,
+                  true,
+                );
               } else {
-                sendMessage('Tôi đã xác nhận lưu khoản nợ thành công.');
+                sendMessage('Tôi đã xác nhận lưu khoản nợ thành công.', null, null, true);
               }
             } else if (status === 'cancelled') {
-              sendMessage('Tôi đã hủy bỏ thao tác.');
+              sendMessage('Tôi đã hủy bỏ thao tác.', null, null, true);
             } else if (status === 'failed') {
               const actionName = action === 'REPAYMENT_CONFIRMATION' ? 'kế hoạch' : 'khoản nợ';
               const msg = reason
                 ? `Lưu ${actionName} thất bại: ${reason}`
                 : `Lưu ${actionName} thất bại, vui lòng thử lại.`;
-              sendMessage(msg);
+              sendMessage(msg, null, null, true);
             }
           }}
         />

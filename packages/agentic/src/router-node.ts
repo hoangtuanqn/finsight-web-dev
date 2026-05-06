@@ -252,7 +252,7 @@ export async function routerNode(
 
   // 1. Max length guard
   if (checkMaxLength(query)) {
-    return { intent: AgentIntent.OFF_TOPIC, worker: 'off_topic', errors };
+    return { intent: AgentIntent.OFF_TOPIC, worker: 'max_length', errors };
   }
 
   // 2. Off-topic fast guard
