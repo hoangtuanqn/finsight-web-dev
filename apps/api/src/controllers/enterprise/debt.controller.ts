@@ -336,7 +336,7 @@ export const updateDebt = async (req: Request, res: Response) => {
       userId,
       action: 'UPDATE',
       entityType: 'DEBT_RECORD',
-      entityId: id,
+      entityId: id as string,
       oldValues: oldDebt,
       newValues: updatedDebt,
     });
