@@ -13,6 +13,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useState } from 'react';
+import FormattedInput from '../components/common/FormattedInput';
 import { RepaymentExecutionReport } from '../components/debts/RepaymentExecutionReport';
 import { RepaymentStrategy, useRepaymentPlanner } from '../hooks/useRepaymentPlanner';
 
@@ -137,11 +138,10 @@ export default function RepaymentPlanner() {
                   <div className="flex justify-between items-center">
                     <label className="text-sm font-medium text-(--color-text-muted)">Ngân sách hàng tháng</label>
                     <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        value={budget}
-                        onChange={(e) => setBudget(Number(e.target.value))}
+                      <FormattedInput
                         className="w-32 px-3 py-1 rounded-lg bg-(--color-bg-secondary)/50 border border-(--color-border) text-right text-sm font-bold text-blue-400 focus:outline-none focus:border-blue-500/50"
+                        value={budget}
+                        onValueChange={(val) => setBudget(Number(val))}
                       />
                       <span className="text-[10px] text-(--color-text-muted) font-bold">VNĐ</span>
                     </div>
