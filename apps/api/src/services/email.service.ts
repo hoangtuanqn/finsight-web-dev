@@ -332,7 +332,7 @@ class EmailService {
               style="width:240px;background:linear-gradient(160deg,#0f172a 0%,#1e1b4b 100%);
                      padding:40px 28px;border-right:1px solid #334155;
                      border-left:4px solid ${cfg.color};">
-            <img src="https://i.ibb.co/84xLmWTK/LOGO.png" alt="FinSight" width="120" style="display:block;margin:0 auto 24px;height:auto;max-width:120px;">
+            <img src="https://i.ibb.co/WmGtp2t/Dark-Mode.png" alt="FinSight" width="120" style="display:block;margin:0 auto 24px;height:auto;max-width:120px;">
             <div style="font-size:52px;line-height:1;margin-bottom:16px;">${cfg.emoji}</div>
             <p style="margin:0 0 16px;font-size:16px;font-weight:900;color:#f8fafc;line-height:1.35;letter-spacing:-0.3px;text-align:center;">${cfg.title}</p>
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
