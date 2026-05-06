@@ -30,7 +30,7 @@ async function summarizeMessages(msgs: any[]): Promise<string> {
     const transcript = msgs
       .map((m) => {
         const role = m.role === 'user' ? 'Người dùng' : 'AI';
-        const content = m.content.length > 200 ? `${m.content.substring(0, 200)}…` : m.content;
+        const content = m.content.length > 200 ? `${m.content.substring(0, 200)}…` : m.content; // lỡ thônng tin quan trọng nằm sau thì chịu
         return `${role}: ${content}`;
       })
       .join('\n');
@@ -38,8 +38,8 @@ async function summarizeMessages(msgs: any[]): Promise<string> {
     const response = await model.invoke([
       new SystemMessage(
         `Bạn là trợ lý tóm tắt. Hãy tóm tắt cuộc hội thoại sau thành 2-3 câu ngắn gọn bằng tiếng Việt.
-Tập trung vào: thông tin khoản nợ đã khai báo, số liệu quan trọng, và các quyết định đã thực hiện.
-CHỈ trả về bản tóm tắt, không thêm lời giải thích.`,
+        Chú ý tóm tắt các thông tin chính, quan trọng như là khoản vay, ngân hàng, số tiền, ngày trả, và các quyết định của user (nếu có).
+        CHỈ trả về bản tóm tắt, không thêm lời giải thích.`,
       ),
       new SystemMessage(transcript),
     ]);
