@@ -301,7 +301,10 @@ export class RepaymentPlannerService {
         totalAllocated: budget - remainingBudget,
         remainingBudget,
         fullyPaidCount,
-        totalInterestSaved: 0,
+        totalInterestSaved: allocations.reduce((sum, alloc) => {
+          const annualRate = alloc.debt.effectiveAnnualRate / 100;
+          return sum + alloc.effectiveExtraPrincipal * annualRate;
+        }, 0),
       },
       alerts,
       optimalPoints: this.findOptimalPoints(debts, budget),
@@ -336,12 +339,13 @@ export class RepaymentPlannerService {
         break;
       case RepaymentStrategy.COVENANT_RISK:
         debts.sort((a, b) => {
-          // 1. Financial (Bank) debts first
+          // 1. Risk score descending (highest covenant risk first)
+          if (a.riskScore !== b.riskScore) return b.riskScore - a.riskScore;
+          // 2. Financial (Bank) debts first
           const originA = a.origin === 'FINANCIAL' ? 0 : 1;
           const originB = b.origin === 'FINANCIAL' ? 0 : 1;
           if (originA !== originB) return originA - originB;
-
-          // 2. Tie-break with High Interest (Avalanche)
+          // 3. Tie-break with highest interest rate
           return b.effectiveAnnualRate - a.effectiveAnnualRate;
         });
         break;
@@ -353,19 +357,27 @@ export class RepaymentPlannerService {
     const simDebts = debts.map((d) => ({
       id: d.id,
       outstanding: Number(d.outstanding),
+      originalPrincipal: Number(d.principal),
+      interestMethod: d.interestMethod,
       effectiveAnnualRate: d.effectiveAnnualRate,
+      baseRate: Number((d as any).interestRates?.[0]?.rate || 0),
+      riskScore: d.riskScore ?? 0,
       origin: d.origin,
-      status: d.status,
+      status: d.status as string,
       dueDate: d.dueDate,
       overdueSince: d.overdueSince,
       monthsCount: 0 as number | 'NEVER',
       isPaidOff: Number(d.outstanding) <= 0,
       isDebtTrap: false,
       trapReason: undefined as string | undefined,
+      growingMonths: 0,
     }));
 
     let currentMonth = 0;
     const MAX_MONTHS = 360;
+
+    // Sort simDebts by strategy once — order is preserved across loop iterations
+    this.sortDebtsByStrategy(simDebts as any[], strategy);
 
     while (currentMonth < MAX_MONTHS) {
       const activeDebts = simDebts.filter((d) => !d.isPaidOff);
@@ -374,18 +386,19 @@ export class RepaymentPlannerService {
       currentMonth++;
       let remainingBudget = monthlyBudget;
 
-      // Phase 1: Mandatory Interest + Penalties for ALL debts
-      // Strategy: Pay the HIGHEST interest bills first to prevent overall portfolio ballooning
+      // Phase 1: Mandatory Interest for ALL debts (strategy order preserved from activeDebts)
       const monthlyRequirements = activeDebts.map((d) => ({
         debt: d,
-        monthlyInterest: (d.outstanding * (d.effectiveAnnualRate / 100)) / 12,
+        previousOutstanding: d.outstanding,
+        monthlyInterest:
+          d.interestMethod === 'FLAT'
+            ? (d.originalPrincipal * (d.effectiveAnnualRate / 100)) / 12
+            : (d.outstanding * (d.effectiveAnnualRate / 100)) / 12,
         baseAllocation: 0,
         extraAllocation: 0,
       }));
 
-      // Sort by interest amount descending for Phase 1
-      monthlyRequirements.sort((a, b) => b.monthlyInterest - a.monthlyInterest);
-
+      // Phase 1: Pay interest in strategy order (activeDebts already sorted)
       for (const req of monthlyRequirements) {
         if (remainingBudget <= 0) break;
         const amountToPay = Math.min(remainingBudget, req.monthlyInterest);
@@ -393,14 +406,7 @@ export class RepaymentPlannerService {
         remainingBudget -= amountToPay;
       }
 
-      // Phase 2: Strategic Principal Payoff (Snowball/Avalanche etc.)
-      // Sort requirements based on the user's chosen strategy
-      monthlyRequirements.sort((a, b) => {
-        const temp = [a.debt, b.debt];
-        this.sortDebtsByStrategy(temp, strategy);
-        return temp[0] === a.debt ? -1 : 1;
-      });
-
+      // Phase 2: Pay extra principal in same strategy order
       for (const req of monthlyRequirements) {
         if (remainingBudget <= 0) break;
         const amountToPay = Math.min(remainingBudget, req.debt.outstanding);
@@ -408,10 +414,7 @@ export class RepaymentPlannerService {
         remainingBudget -= amountToPay;
       }
 
-      // Apply
-      const totalInterestNeeded = monthlyRequirements.reduce((s, r) => s + r.monthlyInterest, 0);
-      const isTotalTrap = monthlyBudget < totalInterestNeeded * 0.95; // 5% tolerance
-
+      // Apply payments and detect per-debt traps
       for (const req of monthlyRequirements) {
         const unpaidInterest = req.monthlyInterest - req.baseAllocation;
 
@@ -423,19 +426,27 @@ export class RepaymentPlannerService {
         if (req.debt.outstanding <= 0.5 && !req.debt.isPaidOff) {
           req.debt.isPaidOff = true;
           req.debt.monthsCount = currentMonth;
-          console.log(`[Simulation] Debt ${req.debt.id} paid off in month ${currentMonth} using ${strategy}`);
+          req.debt.growingMonths = 0;
+          req.debt.status = 'PAID';
+        } else if (req.debt.outstanding > req.previousOutstanding) {
+          // Per-debt trap: balance grew this month
+          req.debt.growingMonths++;
+          if (req.debt.growingMonths >= 6) {
+            req.debt.isDebtTrap = true;
+            req.debt.trapReason = 'GROWING_BALANCE';
+          }
+        } else {
+          req.debt.growingMonths = Math.max(0, req.debt.growingMonths - 1);
         }
       }
 
-      if (isTotalTrap && currentMonth > 12) {
-        // If even after 1 year we can't cover interests, it's a trap
-        activeDebts.forEach((d) => {
-          if (!d.isPaidOff) {
-            d.isDebtTrap = true;
-            d.trapReason = 'BUDGET_TOO_LOW';
-          }
-        });
-        break;
+      // Recalculate effectiveRate: OVERDUE debts with >50% of originalPrincipal paid off lose penalty
+      for (const req of monthlyRequirements) {
+        const paidFraction = 1 - req.debt.outstanding / req.debt.originalPrincipal;
+        if (!req.debt.isPaidOff && req.debt.status === 'OVERDUE' && paidFraction >= 0.5) {
+          req.debt.effectiveAnnualRate = req.debt.baseRate;
+          req.debt.status = 'ACTIVE';
+        }
       }
     }
 
