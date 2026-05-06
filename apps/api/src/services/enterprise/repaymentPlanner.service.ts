@@ -360,6 +360,7 @@ export class RepaymentPlannerService {
       monthsCount: 0 as number | 'NEVER',
       isPaidOff: Number(d.outstanding) <= 0,
       isDebtTrap: false,
+      trapReason: undefined as string | undefined,
     }));
 
     let currentMonth = 0;

@@ -22,7 +22,7 @@ export class BankSyncController {
   static async approve(req: Request, res: Response) {
     try {
       const userId = (req as any).userId;
-      const { id } = req.params;
+      const id = req.params.id as string;
       const { categoryId, description, type } = req.body;
 
       if (!categoryId) {
@@ -39,7 +39,7 @@ export class BankSyncController {
   static async reject(req: Request, res: Response) {
     try {
       const userId = (req as any).userId;
-      const { id } = req.params;
+      const id = req.params.id as string;
       await BankSyncService.rejectTransaction(userId, id);
       res.json({ success: true, message: 'Đã từ chối giao dịch' });
     } catch (error: any) {
