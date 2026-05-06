@@ -12,7 +12,6 @@ export function convertFlatToReducingAPR(principal: number, flatAPR: number, ter
   const totalInterest = principal * (flatAPR / 100) * (termMonths / 12);
   const monthlyPayment = (principal + totalInterest) / termMonths;
 
-  // Initial guess
   let r = flatAPR / 100 / 12;
   let error = 1;
   const tolerance = 1e-7;
@@ -21,9 +20,8 @@ export function convertFlatToReducingAPR(principal: number, flatAPR: number, ter
   while (error > tolerance && iterations < 100) {
     const term1 = Math.pow(1 + r, termMonths);
     const f = (principal * (r * term1)) / (term1 - 1) - monthlyPayment;
-
-    const fPrime = principal * ((term1 * (1 + r * termMonths) - 1) / Math.pow(term1 - 1, 2));
-
+    const fPrime =
+      principal * ((term1 * (term1 - 1) - r * termMonths * Math.pow(1 + r, termMonths - 1)) / Math.pow(term1 - 1, 2));
     const nextR = r - f / fPrime;
     error = Math.abs(nextR - r);
     r = nextR;
@@ -33,6 +31,13 @@ export function convertFlatToReducingAPR(principal: number, flatAPR: number, ter
   return r * 12 * 100;
 }
 
+export function getEffectiveAPR(apr: number, rateType?: string, originalAmount?: number, termMonths?: number): number {
+  if (rateType === 'FLAT' && originalAmount && termMonths) {
+    return convertFlatToReducingAPR(originalAmount, apr, termMonths);
+  }
+  return apr;
+}
+
 export function calcEAR(
   apr: number,
   feeProcessing: number,
@@ -40,17 +45,12 @@ export function calcEAR(
   feeManagement: number,
   termMonths: number,
   rateType?: string,
-  initialPrincipal?: number,
+  originalAmount?: number,
 ): number {
-  let effectiveAPR = apr;
-  if (rateType === 'FLAT' && initialPrincipal && termMonths) {
-    effectiveAPR = convertFlatToReducingAPR(initialPrincipal, apr, termMonths);
-  }
-
-  const apy = calcAPY(effectiveAPR);
+  const effectiveAPR = getEffectiveAPR(apr, rateType, originalAmount, termMonths);
   const annualizedProcessingFee = termMonths > 0 ? (feeProcessing / termMonths) * 12 : 0;
   const totalAnnualFees = Math.min(annualizedProcessingFee + feeInsurance + feeManagement, 300);
-  return apy + totalAnnualFees;
+  return effectiveAPR + totalAnnualFees;
 }
 
 export function calcReducingMonthlyPayment(principal: number, apr: number, termMonths: number): number {
@@ -62,4 +62,33 @@ export function calcReducingMonthlyPayment(principal: number, apr: number, termM
 export function calcFlatMonthlyPayment(principal: number, apr: number, termMonths: number): number {
   const totalInterest = principal * (apr / 100) * (termMonths / 12);
   return (principal + totalInterest) / termMonths;
+}
+
+interface CalculateMonthlyPaymentOptions {
+  principal: number;
+  apr: number;
+  termMonths: number;
+  rateType: 'FLAT' | 'REDUCING';
+  feeManagement?: number;
+}
+
+export function calculateMonthlyPayment({
+  principal,
+  apr,
+  termMonths,
+  rateType,
+  feeManagement = 0,
+}: CalculateMonthlyPaymentOptions): number {
+  if (!principal || !termMonths) return 0;
+  const r = apr / 100 / 12;
+  const m = (feeManagement || 0) / 100 / 12;
+
+  if (rateType === 'FLAT') {
+    return Math.round(principal / termMonths + principal * r + principal * m);
+  } else {
+    const rate = r + m;
+    if (rate === 0) return Math.round(principal / termMonths);
+    const emi = (principal * rate * Math.pow(1 + rate, termMonths)) / (Math.pow(1 + rate, termMonths) - 1);
+    return Math.round(emi);
+  }
 }

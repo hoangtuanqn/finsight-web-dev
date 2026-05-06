@@ -1,29 +1,22 @@
 import { generateSchedule, type InterestMethod } from '@repo/financial-core';
 import { Button, Input } from '@repo/ui';
 import { motion } from 'framer-motion';
-import {
-  Calculator,
-  Calendar,
-  ChevronRight,
-  DollarSign,
-  FileText,
-  Info,
-  Plus,
-  Save,
-  Trash2,
-  User,
-  Users,
-} from 'lucide-react';
+import { Calculator, Calendar, ChevronRight, DollarSign, FileText, Info, Save, User, Users } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { enterpriseAuthAPI } from '../../api';
+import FormattedInput from '../../components/common/FormattedInput';
+import { InterestRateSection, type InterestRateType } from '../../components/debts/InterestRateSection';
+import { SchedulePreview } from '../../components/debts/SchedulePreview';
 
 export default function DebtCreatePage() {
   const navigate = useNavigate();
   const [parties, setParties] = useState<any[]>([]);
   const [internalUsers, setInternalUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  const [interestRateType, setInterestRateType] = useState<InterestRateType>('FIXED');
 
   const [formData, setFormData] = useState<any>({
     type: 'RECEIVABLE',
@@ -34,7 +27,7 @@ export default function DebtCreatePage() {
     interestMethod: 'REDUCING_BALANCE' as InterestMethod,
     issueDate: new Date().toISOString().split('T')[0],
     termMonths: 12,
-    interestRates: [{ rate: 0, effectiveDate: new Date().toISOString().split('T')[0] }],
+    interestRates: [{ rate: 0, effectiveDate: new Date().toISOString().split('T')[0], rateType: 'FIXED' }],
     penaltyRate: 0,
     gracePeriodDays: 0,
     internalCode: '',
@@ -42,6 +35,7 @@ export default function DebtCreatePage() {
     personInChargeId: '',
   });
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [previewSchedule, setPreviewSchedule] = useState<any[]>([]);
 
   useEffect(() => {
@@ -98,16 +92,44 @@ export default function DebtCreatePage() {
     }
   };
 
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.partyId) newErrors.partyId = 'Vui lòng chọn đối tác';
+    if (!formData.principal || formData.principal <= 0) newErrors.principal = 'Số tiền gốc phải lớn hơn 0';
+    if (!formData.termMonths || formData.termMonths <= 0) newErrors.termMonths = 'Thời hạn phải lớn hơn 0';
+    if (!formData.internalCode?.trim()) newErrors.internalCode = 'Vui lòng nhập mã tham chiếu (Số HĐ)';
+    if (!formData.personInChargeId) newErrors.personInChargeId = 'Vui lòng chọn người phụ trách';
+    if (!formData.issueDate) newErrors.issueDate = 'Vui lòng chọn ngày phát sinh';
+
+    if (formData.interestMethod !== 'NONE') {
+      formData.interestRates.forEach((rate: any, idx: number) => {
+        if (rate.rate < 0) {
+          newErrors[`interestRate_${idx}`] = 'Lãi suất không được âm';
+        }
+      });
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.partyId) {
-      toast.error('Vui lòng chọn đối tác');
+
+    if (!validateForm()) {
+      toast.error('Vui lòng kiểm tra lại các thông tin còn thiếu hoặc sai sót');
       return;
     }
 
     setIsLoading(true);
     try {
-      const res = await (enterpriseAuthAPI as any).createDebt(formData);
+      const payload = {
+        ...formData,
+        guarantorId: formData.guarantorId || null,
+        personInChargeId: formData.personInChargeId || null,
+      };
+      const res = await (enterpriseAuthAPI as any).createDebt(payload);
       if (res.data.success) {
         toast.success('Đã tạo khoản nợ thành công');
         navigate('/debts');
@@ -119,11 +141,29 @@ export default function DebtCreatePage() {
     }
   };
 
+  const handleInterestRateChange = (index: number, field: string, value: any) => {
+    const newRates = [...formData.interestRates];
+    newRates[index][field] = value;
+    setFormData({ ...formData, interestRates: newRates });
+
+    // Clear error if exists
+    const errorKey = `interestRate_${index}`;
+    if (errors[errorKey]) {
+      const newErrors = { ...errors };
+      delete newErrors[errorKey];
+      setErrors(newErrors);
+    }
+  };
+
   const addInterestRate = () => {
-    setFormData({
-      ...formData,
-      interestRates: [...formData.interestRates, { rate: 0, effectiveDate: new Date().toISOString().split('T')[0] }],
-    });
+    const today = new Date().toISOString().split('T')[0];
+    const newBracket =
+      interestRateType === 'REFERENCE'
+        ? { rate: 0, effectiveDate: today, rateType: 'REFERENCE', referenceBase: '', spread: 0 }
+        : interestRateType === 'MIXED'
+          ? { rate: 0, effectiveDate: today, rateType: 'FIXED' }
+          : { rate: 0, effectiveDate: today, rateType: interestRateType === 'FIXED' ? 'FIXED' : 'FLOATING' };
+    setFormData({ ...formData, interestRates: [...formData.interestRates, newBracket] });
   };
 
   const removeInterestRate = (index: number) => {
@@ -131,6 +171,19 @@ export default function DebtCreatePage() {
     const newRates = [...formData.interestRates];
     newRates.splice(index, 1);
     setFormData({ ...formData, interestRates: newRates });
+  };
+
+  const handleInterestRateTypeChange = (type: InterestRateType) => {
+    setInterestRateType(type);
+    const today = new Date().toISOString().split('T')[0];
+    const defaults: Record<InterestRateType, any[]> = {
+      FIXED: [{ rate: 0, effectiveDate: today, rateType: 'FIXED' }],
+      FLOATING: [{ rate: 0, effectiveDate: today, rateType: 'FLOATING' }],
+      REFERENCE: [{ rate: 0, effectiveDate: today, rateType: 'REFERENCE', referenceBase: '', spread: 0 }],
+      MIXED: [{ rate: 0, effectiveDate: today, rateType: 'FIXED' }],
+      STEP: [{ rate: 0, effectiveDate: today, rateType: 'FLOATING' }],
+    };
+    setFormData({ ...formData, interestRates: defaults[type] });
   };
 
   const formatCurrency = (amount: number) => {
@@ -224,9 +277,14 @@ export default function DebtCreatePage() {
                     <User size={16} />
                   </div>
                   <select
-                    className="w-full pl-12 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:border-emerald-500/50 transition-all outline-none appearance-none"
+                    className={`w-full pl-12 pr-4 py-3 bg-slate-950 border rounded-xl text-sm text-white focus:border-emerald-500/50 transition-all outline-none appearance-none ${
+                      errors.partyId ? 'border-rose-500/50 ring-2 ring-rose-500/10' : 'border-slate-800'
+                    }`}
                     value={formData.partyId}
-                    onChange={(e) => setFormData({ ...formData, partyId: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, partyId: e.target.value });
+                      if (errors.partyId) setErrors({ ...errors, partyId: '' });
+                    }}
                   >
                     <option value="">Chọn đối tác...</option>
                     {parties.map((p) => (
@@ -236,6 +294,7 @@ export default function DebtCreatePage() {
                     ))}
                   </select>
                 </div>
+                {errors.partyId && <p className="text-[10px] font-bold text-rose-500 ml-1">{errors.partyId}</p>}
               </div>
 
               <div className="space-y-2">
@@ -244,10 +303,18 @@ export default function DebtCreatePage() {
                 </label>
                 <Input
                   placeholder="VD: HĐ-2024-001"
-                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white"
+                  className={`w-full px-4 py-3 bg-slate-950 border rounded-xl text-sm text-white ${
+                    errors.internalCode ? 'border-rose-500/50 ring-2 ring-rose-500/10' : 'border-slate-800'
+                  }`}
                   value={formData.internalCode}
-                  onChange={(e) => setFormData({ ...formData, internalCode: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, internalCode: e.target.value });
+                    if (errors.internalCode) setErrors({ ...errors, internalCode: '' });
+                  }}
                 />
+                {errors.internalCode && (
+                  <p className="text-[10px] font-bold text-rose-500 ml-1">{errors.internalCode}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -282,9 +349,14 @@ export default function DebtCreatePage() {
                     <User size={16} />
                   </div>
                   <select
-                    className="w-full pl-12 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:border-emerald-500/50 transition-all outline-none appearance-none"
+                    className={`w-full pl-12 pr-4 py-3 bg-slate-950 border rounded-xl text-sm text-white focus:border-emerald-500/50 transition-all outline-none appearance-none ${
+                      errors.personInChargeId ? 'border-rose-500/50 ring-2 ring-rose-500/10' : 'border-slate-800'
+                    }`}
                     value={formData.personInChargeId}
-                    onChange={(e) => setFormData({ ...formData, personInChargeId: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, personInChargeId: e.target.value });
+                      if (errors.personInChargeId) setErrors({ ...errors, personInChargeId: '' });
+                    }}
                   >
                     <option value="">Chọn nhân viên phụ trách...</option>
                     {internalUsers.map((u) => (
@@ -294,6 +366,9 @@ export default function DebtCreatePage() {
                     ))}
                   </select>
                 </div>
+                {errors.personInChargeId && (
+                  <p className="text-[10px] font-bold text-rose-500 ml-1">{errors.personInChargeId}</p>
+                )}
               </div>
             </div>
           </div>
@@ -316,13 +391,19 @@ export default function DebtCreatePage() {
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">
                     <DollarSign size={16} />
                   </div>
-                  <Input
-                    type="number"
-                    className="w-full pl-12 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white font-mono"
+                  <FormattedInput
+                    className={`w-full pl-12 pr-4 py-3 bg-slate-950 border rounded-xl text-sm text-white font-mono ${
+                      errors.principal ? 'border-rose-500/50 ring-2 ring-rose-500/10' : 'border-slate-800'
+                    }`}
                     value={formData.principal}
-                    onChange={(e) => setFormData({ ...formData, principal: Number(e.target.value) })}
+                    onValueChange={(val) => {
+                      setFormData({ ...formData, principal: Number(val) });
+                      if (errors.principal) setErrors({ ...errors, principal: '' });
+                    }}
+                    suffix="đ"
                   />
                 </div>
+                {errors.principal && <p className="text-[10px] font-bold text-rose-500 ml-1">{errors.principal}</p>}
               </div>
 
               <div className="space-y-2">
@@ -331,10 +412,16 @@ export default function DebtCreatePage() {
                 </label>
                 <Input
                   type="number"
-                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white"
+                  className={`w-full px-4 py-3 bg-slate-950 border rounded-xl text-sm text-white ${
+                    errors.termMonths ? 'border-rose-500/50 ring-2 ring-rose-500/10' : 'border-slate-800'
+                  }`}
                   value={formData.termMonths}
-                  onChange={(e) => setFormData({ ...formData, termMonths: Number(e.target.value) })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, termMonths: Number(e.target.value) });
+                    if (errors.termMonths) setErrors({ ...errors, termMonths: '' });
+                  }}
                 />
+                {errors.termMonths && <p className="text-[10px] font-bold text-rose-500 ml-1">{errors.termMonths}</p>}
               </div>
 
               <div className="space-y-2">
@@ -347,11 +434,17 @@ export default function DebtCreatePage() {
                   </div>
                   <Input
                     type="date"
-                    className="w-full pl-12 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white"
+                    className={`w-full pl-12 pr-4 py-3 bg-slate-950 border rounded-xl text-sm text-white ${
+                      errors.issueDate ? 'border-rose-500/50 ring-2 ring-rose-500/10' : 'border-slate-800'
+                    }`}
                     value={formData.issueDate}
-                    onChange={(e) => setFormData({ ...formData, issueDate: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, issueDate: e.target.value });
+                      if (errors.issueDate) setErrors({ ...errors, issueDate: '' });
+                    }}
                   />
                 </div>
+                {errors.issueDate && <p className="text-[10px] font-bold text-rose-500 ml-1">{errors.issueDate}</p>}
               </div>
 
               <div className="space-y-2">
@@ -403,67 +496,17 @@ export default function DebtCreatePage() {
               </div>
             </div>
 
-            {/* Floating Rates Section */}
+            {/* Interest Rate Section */}
             {formData.interestMethod !== 'NONE' && (
-              <div className="space-y-4 pt-4">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">
-                    Lãi suất thả nổi (%/năm)
-                  </label>
-                  <button
-                    type="button"
-                    onClick={addInterestRate}
-                    className="flex items-center gap-1 text-[10px] font-black text-emerald-500 uppercase hover:text-emerald-400 transition-colors"
-                  >
-                    <Plus size={12} /> Thêm bậc lãi suất
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  {formData.interestRates.map((rate: any, index: number) => (
-                    <div key={index} className="flex items-center gap-3 animate-in slide-in-from-right-2 duration-300">
-                      <div className="flex-1 grid grid-cols-2 gap-3 p-4 bg-slate-950 border border-slate-800 rounded-2xl">
-                        <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-slate-500">Lãi suất</span>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00"
-                            className="w-full bg-transparent border-none p-0 text-sm font-mono text-white h-auto"
-                            value={rate.rate}
-                            onChange={(e) => {
-                              const newRates = [...formData.interestRates];
-                              newRates[index].rate = Number(e.target.value);
-                              setFormData({ ...formData, interestRates: newRates });
-                            }}
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-slate-500">Ngày áp dụng</span>
-                          <input
-                            type="date"
-                            className="w-full bg-transparent border-none p-0 text-sm text-white h-auto outline-none"
-                            value={rate.effectiveDate}
-                            onChange={(e) => {
-                              const newRates = [...formData.interestRates];
-                              newRates[index].effectiveDate = e.target.value;
-                              setFormData({ ...formData, interestRates: newRates });
-                            }}
-                          />
-                        </div>
-                      </div>
-                      {index > 0 && (
-                        <button
-                          onClick={() => removeInterestRate(index)}
-                          className="p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <InterestRateSection
+                interestRateType={interestRateType}
+                interestRates={formData.interestRates}
+                errors={errors}
+                onTypeChange={handleInterestRateTypeChange}
+                onAdd={addInterestRate}
+                onRemove={removeInterestRate}
+                onChange={handleInterestRateChange}
+              />
             )}
           </div>
 
@@ -488,78 +531,11 @@ export default function DebtCreatePage() {
               <h2 className="text-lg font-bold text-white">Lịch trình Dự kiến</h2>
             </div>
 
-            {previewSchedule.length > 0 ? (
-              <div className="space-y-4">
-                <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Tổng phải trả</span>
-                    <span className="text-xl font-black text-emerald-500">
-                      {formatCurrency(previewSchedule.reduce((sum, p) => sum + p.totalAmount, 0))}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500">Tiền gốc:</span>
-                    <span className="text-white font-mono">{formatCurrency(formData.principal)}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs mt-1">
-                    <span className="text-slate-500">Tiền lãi:</span>
-                    <span className="text-white font-mono">
-                      {formatCurrency(previewSchedule.reduce((sum, p) => sum + p.interestAmount, 0))}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="max-h-100 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
-                  {previewSchedule.map((p, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-3 p-3 bg-slate-950/50 border border-slate-800/50 rounded-xl hover:border-emerald-500/30 transition-all group"
-                    >
-                      <div className="w-8 h-8 flex items-center justify-center bg-slate-900 rounded-lg text-[10px] font-black text-slate-500 group-hover:text-emerald-500 transition-colors">
-                        {p.period}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex justify-between">
-                          <span className="text-[10px] font-black text-white uppercase tracking-tighter">
-                            {new Date(p.dueDate).toLocaleDateString('vi-VN', { month: '2-digit', year: 'numeric' })}
-                          </span>
-                          <span className="text-[11px] font-black text-emerald-400 font-mono">
-                            {formatCurrency(p.totalAmount)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between mt-1">
-                          <span className="text-[9px] text-slate-500 font-medium">
-                            Gốc: {formatCurrency(p.principalAmount)}
-                          </span>
-                          <span className="text-[9px] text-slate-500 font-medium">
-                            Lãi: {formatCurrency(p.interestAmount)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="pt-4 border-t border-slate-800">
-                  <div className="flex items-start gap-3 p-3 bg-amber-500/5 border border-amber-500/10 rounded-xl">
-                    <Info size={16} className="text-amber-500 shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-amber-500/80 leading-relaxed">
-                      Lịch trình này chỉ mang tính chất tham khảo. Số liệu thực tế có thể thay đổi tùy thuộc vào ngày
-                      giải ngân và các khoản thanh toán thực tế.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="py-20 flex flex-col items-center justify-center text-center space-y-4">
-                <div className="w-16 h-16 bg-slate-950 rounded-full flex items-center justify-center border border-dashed border-slate-800">
-                  <Calculator size={24} className="text-slate-700" />
-                </div>
-                <p className="text-slate-500 text-xs font-medium max-w-50">
-                  Nhập số tiền và thời hạn để xem lịch trình dự kiến.
-                </p>
-              </div>
-            )}
+            <SchedulePreview
+              schedule={previewSchedule}
+              principal={formData.principal}
+              formatCurrency={formatCurrency}
+            />
           </div>
         </div>
       </div>

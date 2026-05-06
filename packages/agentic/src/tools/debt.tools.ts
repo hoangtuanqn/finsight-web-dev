@@ -1,11 +1,82 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
-import prisma from '../../lib/prisma';
+import { getDb } from '../config';
+
+// ─── Task 2.5: parse_debt_information (fully-nullable, new worker) ────────────
+
+/**
+ * All fields nullable so the debt-extraction worker can always emit a
+ * SHOW_POPUP/DEBT_CONFIRMATION signal, even when the user's prompt is
+ * missing required fields.  The modal then forces the user to fill them.
+ *
+ * IMPORTANT: This tool never calls debt.create.
+ */
+export const parseDebtInformationTool = tool(
+  async ({
+    loanName,
+    principalAmount,
+    interestRateAPR,
+    borrowDate,
+    termMonths,
+    rateType,
+    balance,
+    minPayment,
+    dueDay,
+    feeProcessing,
+    feeInsurance,
+    feeManagement,
+    notes,
+  }) => {
+    return JSON.stringify({
+      loanName: loanName ?? null,
+      principalAmount: principalAmount ?? null,
+      interestRateAPR: interestRateAPR ?? null,
+      borrowDate: borrowDate ?? null,
+      termMonths: termMonths ?? null,
+      rateType: rateType ?? null,
+      balance: balance ?? null,
+      minPayment: minPayment ?? null,
+      dueDay: dueDay ?? null,
+      feeProcessing: feeProcessing ?? 0,
+      feeInsurance: feeInsurance ?? 0,
+      feeManagement: feeManagement ?? 0,
+      notes: notes ?? null,
+    });
+  },
+  {
+    name: 'parse_debt_information',
+    description:
+      'Trích xuất thông tin khoản nợ từ văn bản người dùng. Tất cả các trường đều nullable — hãy trích xuất chính xác những gì người dùng cung cấp, không tự điền giá trị mặc định. Gọi tool này ngay khi người dùng đề cập đến khoản vay mới.',
+    schema: z.object({
+      loanName: z
+        .string()
+        .nullable()
+        .optional()
+        .describe('Tên tổ chức tín dụng / ngân hàng (vd: FE Credit, Vietcombank)'),
+      principalAmount: z.number().nullable().optional().describe('Số tiền gốc vay (VNĐ)'),
+      interestRateAPR: z.number().nullable().optional().describe('Lãi suất danh nghĩa hàng năm APR (%)'),
+      borrowDate: z.string().nullable().optional().describe('Ngày bắt đầu vay (YYYY-MM-DD); null nếu không rõ'),
+      termMonths: z.number().nullable().optional().describe('Kỳ hạn vay (số tháng); null nếu không rõ'),
+      rateType: z
+        .enum(['FLAT', 'REDUCING'])
+        .nullable()
+        .optional()
+        .describe('Loại lãi suất: FLAT hoặc REDUCING; null nếu không rõ'),
+      balance: z.number().nullable().optional().describe('Dư nợ hiện tại (VNĐ); null nếu không rõ'),
+      minPayment: z.number().nullable().optional().describe('Trả tối thiểu hàng tháng (VNĐ); null nếu không rõ'),
+      dueDay: z.number().nullable().optional().describe('Ngày đáo hạn hàng tháng (1-31); null nếu không rõ'),
+      feeProcessing: z.number().nullable().optional().describe('Phí xử lý hồ sơ hàng năm (%)'),
+      feeInsurance: z.number().nullable().optional().describe('Phí bảo hiểm hàng năm (%)'),
+      feeManagement: z.number().nullable().optional().describe('Phí quản lý hàng năm (%)'),
+      notes: z.string().nullable().optional().describe('Ghi chú thêm từ người dùng'),
+    }),
+  },
+);
 
 export const getUserDebtsTool = tool(
   async ({ userId }) => {
     try {
-      const debts = await (prisma as any).debt.findMany({
+      const debts = await getDb().debt.findMany({
         where: { userId, status: 'ACTIVE' },
       });
       if (debts.length === 0) return JSON.stringify({ message: 'Người dùng không có khoản nợ nào đang active.' });

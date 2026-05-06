@@ -9,7 +9,7 @@ export default function Footer() {
           <div className="lg:col-span-4">
             <Link to="/" className="flex items-center gap-2.5 mb-6 group">
               <img
-                src="https://i.ibb.co/84xLmWTK/LOGO.png"
+                src="https://i.ibb.co/ksGVB17M/Light-Mode.png"
                 alt="FinSight Logo"
                 className="h-8 w-auto object-contain group-hover:opacity-80 transition-all"
               />

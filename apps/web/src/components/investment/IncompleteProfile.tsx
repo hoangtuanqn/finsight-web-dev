@@ -35,7 +35,7 @@ export default function IncompleteProfile() {
         </Link>
 
         <div className="mt-12 pt-8 border-t border-white/5 flex items-center justify-center gap-4 opacity-50 grayscale">
-          <img src="https://i.ibb.co/84xLmWTK/LOGO.png" alt="FinSight" className="h-6 w-auto" />
+          <img src="https://i.ibb.co/ksGVB17M/Light-Mode.png" alt="FinSight Logo" className="h-10 w-auto mb-4" />
           <span className="text-[10px] font-semibold tracking-widest text-slate-500">Secure Protocol</span>
         </div>
       </motion.div>

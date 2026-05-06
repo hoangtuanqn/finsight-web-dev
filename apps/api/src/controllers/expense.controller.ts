@@ -26,7 +26,7 @@ export class ExpenseController {
     try {
       const userId = (req as any).userId;
       const { id } = req.params;
-      const expense = await ExpenseService.update(id, userId, req.body);
+      const expense = await ExpenseService.update(id as string, userId, req.body);
       res.json({ success: true, data: expense });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });
@@ -37,7 +37,7 @@ export class ExpenseController {
     try {
       const userId = (req as any).userId;
       const { id } = req.params;
-      await ExpenseService.delete(id, userId);
+      await ExpenseService.delete(id as string, userId);
       res.json({ success: true, message: 'Expense deleted' });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });

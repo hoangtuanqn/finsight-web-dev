@@ -1,14 +1,13 @@
-/**
- * Debt Engine - Core financial calculations for Enterprise Debt
- * Supports: Reducing Balance, EMI, Bullet
- * Features: Floating Interest Rates
- */
+import { calcDebtToIncomeRatio } from './dti';
 
 export type InterestMethod = 'REDUCING_BALANCE' | 'EMI' | 'BULLET' | 'NONE';
 
 export interface InterestRateSchedule {
-  rate: number; // Annual percentage (e.g. 8.5)
+  rate: number; // Annual percentage (e.g. 8.5) — total effective rate used for calculation
   effectiveDate: Date;
+  rateType?: 'FIXED' | 'FLOATING' | 'REFERENCE'; // metadata only, does not affect calculation
+  referenceBase?: string; // e.g. "VCB", "SOFR"
+  spread?: number; // basis points added on top of referenceBase (%)
 }
 
 export interface DebtScheduleInput {
@@ -39,6 +38,48 @@ export function getApplicableRate(date: Date, rates: InterestRateSchedule[]): nu
 
   const applicable = sortedRates.find((r) => r.effectiveDate.getTime() <= date.getTime());
   return applicable ? applicable.rate : sortedRates[sortedRates.length - 1].rate;
+}
+
+export function detectDominoRisk(debts: any[], monthlyIncome: number): any[] {
+  const alerts: any[] = [];
+  const today = new Date();
+  const currentDay = today.getDate();
+
+  // Check 1: Multiple debts due within same week
+  const dueSoon = debts.filter((d) => {
+    const dueDay = Number(d.dueDay || 0);
+    const daysUntilDue = dueDay >= currentDay ? dueDay - currentDay : 30 - currentDay + dueDay;
+    return daysUntilDue <= 7 && Number(d.balance || 0) > 0;
+  });
+
+  if (dueSoon.length >= 2) {
+    alerts.push({
+      type: 'MULTIPLE_DUE',
+      severity: 'WARNING',
+      message: `${dueSoon.length} khoản nợ đáo hạn trong tuần này — nguy cơ thiếu tiền`,
+      debts: dueSoon.map((d) => d.id),
+    });
+  }
+
+  // Check 2: Total minimum payments exceed income thresholds
+  const totalMin = debts.reduce((sum, d) => sum + (Number(d.minPayment) || 0), 0);
+  const dtiRatio = calcDebtToIncomeRatio(totalMin, monthlyIncome);
+
+  if (dtiRatio > 50) {
+    alerts.push({
+      type: 'HIGH_DTI',
+      severity: 'DANGER',
+      message: `Tổng nợ chiếm ${dtiRatio.toFixed(1)}% thu nhập — nguy cơ hiệu ứng domino`,
+    });
+  } else if (dtiRatio > 35) {
+    alerts.push({
+      type: 'MEDIUM_DTI',
+      severity: 'WARNING',
+      message: `Tổng nợ chiếm ${dtiRatio.toFixed(1)}% thu nhập — cần theo dõi`,
+    });
+  }
+
+  return alerts;
 }
 
 /**

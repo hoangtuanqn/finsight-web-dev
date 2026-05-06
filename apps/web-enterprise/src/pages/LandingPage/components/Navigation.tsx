@@ -33,9 +33,9 @@ export default function Navigation() {
         >
           <Link to="/" className="flex items-center gap-2.5 group">
             <img
-              src="https://i.ibb.co/84xLmWTK/LOGO.png"
+              src="https://i.ibb.co/ksGVB17M/Light-Mode.png"
               alt="FinSight Logo"
-              className="h-9 md:h-10 w-auto object-contain group-hover:scale-105 transition-transform"
+              className="h-8 w-auto object-contain transition-transform group-hover:scale-105"
             />
           </Link>
 

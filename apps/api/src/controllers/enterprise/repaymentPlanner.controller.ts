@@ -1,7 +1,20 @@
 import { Request, Response } from 'express';
 import { RepaymentPlannerService, RepaymentStrategy } from '../../services/enterprise/repaymentPlanner.service.js';
+import { RepaymentPlanTrackingService } from '../../services/enterprise/repaymentPlanTracking.service.js';
 
 const plannerService = new RepaymentPlannerService();
+const trackingService = new RepaymentPlanTrackingService();
+
+export const getEligibleDebts = async (req: Request, res: Response) => {
+  try {
+    const organizationId = (req as any).organizationId;
+    const debts = await plannerService.getEligibleDebts(organizationId);
+    return res.json(debts);
+  } catch (error: any) {
+    console.error('Get Eligible Debts Error:', error);
+    return res.status(500).json({ error: error.message || 'Lỗi khi tải danh sách nợ' });
+  }
+};
 
 export const calculateSimulation = async (req: Request, res: Response) => {
   try {
@@ -47,5 +60,21 @@ export const commitPlan = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Planner Commit Error:', error);
     return res.status(500).json({ error: error.message || 'Lỗi khi lưu kế hoạch' });
+  }
+};
+
+export const getExecutionReport = async (req: Request, res: Response) => {
+  try {
+    const organizationId = (req as any).organizationId;
+    const { month, year } = req.query;
+
+    const m = month ? Number(month) : new Date().getMonth() + 1;
+    const y = year ? Number(year) : new Date().getFullYear();
+
+    const report = await trackingService.getExecutionReport(organizationId, m, y);
+    return res.json(report);
+  } catch (error: any) {
+    console.error('Execution Report Error:', error);
+    return res.status(500).json({ error: error.message || 'Lỗi khi tải báo cáo thực thi' });
   }
 };

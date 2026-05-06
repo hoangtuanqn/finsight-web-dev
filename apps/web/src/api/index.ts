@@ -154,6 +154,11 @@ export const agenticAPI = {
   getSessions: () => api.get('/agentic/sessions'),
   getSession: (id: string | number) => api.get(`/agentic/sessions/${id}`),
   deleteSession: (id: string | number) => api.delete(`/agentic/sessions/${id}`),
+  repaymentSetup: (data: {
+    extraBudget: number;
+    targetDate?: string | null;
+    strategy?: 'AVALANCHE' | 'SNOWBALL' | 'CUSTOM' | null;
+  }) => api.post('/agentic/repayment-setup', data),
 };
 
 // REPORTS
