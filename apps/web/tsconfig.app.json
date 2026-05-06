@@ -19,7 +19,12 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "@repo/financial-core": ["../../packages/financial-core/src"],
+      "@repo/financial-core/*": ["../../packages/financial-core/src/*"]
+    }
   },
   "include": ["src"]
 }
