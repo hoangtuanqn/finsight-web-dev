@@ -201,14 +201,17 @@ export async function transcribeVoice(req: AuthenticatedRequest, res: Response) 
     return error(res, 'Không tìm thấy file audio', 400);
   }
 
-  const { buffer, mimetype, originalname } = req.file;
+  const { buffer, originalname } = req.file;
 
   if (buffer.length === 0) {
     return error(res, 'File audio rỗng', 400);
   }
 
   try {
-    const audioFile = await toFile(buffer, originalname || 'recording.webm', { type: mimetype || 'audio/webm' });
+    console.log(`[Voice STT] Processing ${buffer.length} bytes via FPT Cloud Whisper...`);
+
+    // Use standard .webm extension as produced by browser
+    const audioFile = await toFile(buffer, 'recording.webm', { type: 'audio/webm' });
 
     const transcription = await openaiClient.audio.transcriptions.create({
       file: audioFile,
@@ -223,10 +226,17 @@ export async function transcribeVoice(req: AuthenticatedRequest, res: Response) 
       return error(res, 'Không nhận diện được giọng nói, vui lòng thử lại.', 422);
     }
 
-    console.log(`[Voice STT] Transcribed ${buffer.length} bytes → "${text.substring(0, 60)}..."`);
+    console.log(`[Voice STT] Success → "${text.substring(0, 60)}..."`);
     return success(res, { text });
-  } catch (err) {
-    console.error('[Voice STT Error]', err);
-    return error(res, 'Lỗi chuyển đổi giọng nói, vui lòng thử lại sau.');
+  } catch (err: any) {
+    // Safer logging without JSON.stringify circular risk
+    const errorMessage = err.message || 'Unknown error';
+    const errorData = err.response?.data || err.error || null;
+
+    console.error('[Voice STT Error]:', errorMessage);
+    if (errorData) console.error('[Voice STT Error Data]:', errorData);
+
+    const status = err?.status || 500;
+    return error(res, `Lỗi chuyển đổi giọng nói (Mã lỗi: ${status}). Vui lòng thử lại sau.`);
   }
 }
