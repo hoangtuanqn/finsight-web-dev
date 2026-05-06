@@ -185,7 +185,7 @@ function checkMaxLength(query: string): boolean {
   return query.length > 2000;
 }
 
-function checkOffTopicGuardFast(query: string): boolean {
+export function checkOffTopicGuardFast(query: string): boolean {
   const offTopicKws = [
     'phim hay',
     'nhạc',
@@ -256,9 +256,9 @@ export async function routerNode(
   }
 
   // 2. Off-topic fast guard
-  if (checkOffTopicGuardFast(query)) {
-    return { intent: AgentIntent.OFF_TOPIC, worker: 'off_topic', errors };
-  }
+  // if (checkOffTopicGuardFast(query)) {
+  //   return { intent: AgentIntent.OFF_TOPIC, worker: 'off_topic', errors };
+  // }
 
   // 3. Keyword fast-path
   let intent = fastRouteByKeyword(query);
