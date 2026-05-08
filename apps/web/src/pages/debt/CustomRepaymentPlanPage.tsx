@@ -114,6 +114,13 @@ export default function CustomRepaymentPlanPage() {
   const activePlan = useMemo(() => plans.find((plan: any) => plan.id === activePlanId), [activePlanId, plans]);
   const debtMap = useMemo(() => new Map(debts.map((debt: any) => [String(debt.id), debt])), [debts]);
 
+  // Sync with user profile when no active plan is selected (e.g. creating new plan)
+  useEffect(() => {
+    if (!activePlanId) {
+      setExtraBudget(user?.extraBudget || 0);
+    }
+  }, [user?.extraBudget, activePlanId]);
+
   useEffect(() => {
     if (!activePlan) return;
     setPlanName(activePlan.name || 'Kế hoạch trả nợ riêng');
@@ -121,7 +128,7 @@ export default function CustomRepaymentPlanPage() {
     setSelectedIds(
       (activePlan.selectedDebts || []).map((debt: any) => String(debt.id)).filter((id: string) => debtMap.has(id)),
     );
-  }, [activePlan, debtMap, user?.extraBudget]);
+  }, [activePlan, debtMap]);
 
   const selectedDebts = useMemo(() => selectedIds.map((id) => debtMap.get(id)).filter(Boolean), [debtMap, selectedIds]);
   const availableDebts = useMemo(
