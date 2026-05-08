@@ -2,7 +2,8 @@ import crypto from 'crypto';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
-import { getDb } from '../config';
+import { pathToFileURL } from 'url';
+import { getDb, initAgentic } from '../config';
 import { getEmbeddingModel } from '../llm-provider';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
@@ -61,6 +62,11 @@ function chunkByHeadings(body: string, docTitle: string) {
 }
 
 async function ingest() {
+  // Bootstrap Prisma dynamically from apps/api (process.cwd() = apps/api when running rag:ingest)
+  const prismaLibPath = pathToFileURL(path.resolve(process.cwd(), 'src/lib/prisma.js')).href;
+  const { default: prismaClient } = await import(prismaLibPath);
+  initAgentic(prismaClient);
+
   console.log('📂 Đang quét thư mục kiến thức:', KNOWLEDGE_DIR);
 
   if (!fs.existsSync(KNOWLEDGE_DIR)) {
