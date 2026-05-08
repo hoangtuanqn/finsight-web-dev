@@ -35,6 +35,7 @@ import repaymentPlanRoutes from './routes/repayment-plan.routes';
 import reportRoutes from './routes/report.routes';
 import subscriptionRoutes from './routes/subscription.routes';
 import userRoutes from './routes/user.routes';
+import voiceRoutes from './routes/voice.routes';
 import walletRoutes from './routes/wallet.routes';
 import { initSocket } from './utils/socket';
 
@@ -79,6 +80,7 @@ app.use('/api/debts', debtRoutes);
 app.use('/api/investment', investmentRoutes);
 app.use('/api/market', marketRoutes);
 app.use('/api/agentic', agenticRoutes);
+app.use('/api/voice', voiceRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/subscription', subscriptionRoutes);
 app.use('/api/articles', articleRoutes);
