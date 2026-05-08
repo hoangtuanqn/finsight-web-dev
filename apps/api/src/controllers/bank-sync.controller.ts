@@ -29,7 +29,7 @@ export class BankSyncController {
         return res.status(400).json({ message: 'Vui lòng chọn danh mục' });
       }
 
-      const expense = await BankSyncService.approveTransaction(userId, id, { categoryId, description, type });
+      const expense = await BankSyncService.approveTransaction(userId, id as string, { categoryId, description, type });
       res.json({ success: true, message: 'Đã duyệt giao dịch', expense });
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -39,8 +39,8 @@ export class BankSyncController {
   static async reject(req: Request, res: Response) {
     try {
       const userId = (req as any).userId;
-      const id = req.params.id as string;
-      await BankSyncService.rejectTransaction(userId, id);
+      const { id } = req.params;
+      await BankSyncService.rejectTransaction(userId, id as string);
       res.json({ success: true, message: 'Đã từ chối giao dịch' });
     } catch (error: any) {
       res.status(400).json({ message: error.message });
