@@ -114,9 +114,16 @@ export default function AIChatbotModal() {
     setIsStreaming(true);
     setToolStatus('📷 Đang khởi tạo bộ đọc OCR...');
 
-    // Show optimistic user message right now
+    // Show optimistic user message right now AND an empty AI message to trigger the typing indicator
     const displayContent = text ? `📷 [Ảnh đính kèm]\n${text}` : `📷 [Ảnh đính kèm]`;
-    setMessages((prev) => [...prev, { id: `user-temp-${Date.now()}`, role: 'user', content: displayContent }]);
+    const tempUserId = `user-temp-${Date.now()}`;
+    const tempAiId = `ai-temp-${Date.now()}`;
+
+    setMessages((prev) => [
+      ...prev,
+      { id: tempUserId, role: 'user', content: displayContent },
+      { id: tempAiId, role: 'assistant', content: '' },
+    ]);
 
     const ocrResult = await runOCR(imageInfo.base64, (progress) => {
       setToolStatus(`📷 Đang quét ảnh... ${progress}%`);
@@ -127,7 +134,7 @@ export default function AIChatbotModal() {
       setIsStreaming(false);
       setToolStatus(null);
       setMessages((prev) => [
-        ...prev,
+        ...prev.filter((m) => m.id !== tempAiId), // Bỏ message AI trống
         {
           id: `sys-err-${Date.now()}`,
           role: 'assistant',
@@ -138,8 +145,8 @@ export default function AIChatbotModal() {
     }
 
     // OCR success! Now construct the final request.
-    // Clean up the temporary user message from state first, since sendMessage adds one.
-    setMessages((prev) => prev.filter((m) => !m.id.startsWith('user-temp-')));
+    // Clean up the temporary user and AI messages from state first, since sendMessage adds its own.
+    setMessages((prev) => prev.filter((m) => m.id !== tempUserId && m.id !== tempAiId));
     setIsStreaming(false);
 
     // Send the actual text + OCR to the backend
@@ -423,37 +430,6 @@ export default function AIChatbotModal() {
                       </div>
                     )}
 
-                    {/* Typed UI Signal Dispatcher — handles SHOW_POPUP and REDIRECT */}
-                    {pendingUiSignal?.type !== 'SHOW_INTERACTIVE_CARD' && (
-                      <UiSignalDispatcher
-                        signal={pendingUiSignal}
-                        onDismiss={dismissUiSignal}
-                        isModalOpen={!!pendingAction}
-                        onFeedback={(status, reason) => {
-                          const action = pendingUiSignal?.action || 'DEBT_CONFIRMATION';
-                          if (status === 'confirmed') {
-                            if (action === 'REPAYMENT_CONFIRMATION') {
-                              sendMessage(
-                                'Tôi đã cập nhật kế hoạch phân bổ mới, mời bạn xem chi tiết trên màn hình.',
-                                null,
-                                null,
-                                true,
-                              );
-                            } else {
-                              sendMessage('Tôi đã xác nhận lưu khoản nợ thành công.', null, null, true);
-                            }
-                          } else if (status === 'cancelled') {
-                            sendMessage('Tôi đã hủy bỏ thao tác.', null, null, true);
-                          } else if (status === 'failed') {
-                            const actionName = action === 'REPAYMENT_CONFIRMATION' ? 'kế hoạch' : 'khoản nợ';
-                            const msg = reason
-                              ? `Lưu ${actionName} thất bại: ${reason}`
-                              : `Lưu ${actionName} thất bại, vui lòng thử lại.`;
-                            sendMessage(msg, null, null, true);
-                          }
-                        }}
-                      />
-                    )}
                     {/* Streaming Indicator */}
                     {isStreaming &&
                       messages[messages.length - 1]?.role === 'assistant' &&
@@ -708,7 +684,6 @@ export default function AIChatbotModal() {
               data={pendingAction}
               onConfirm={() => {
                 dismissAction();
-                sendMessage('Tôi đã xác nhận lưu khoản nợ thành công.', null, null, true);
               }}
               onDismiss={dismissAction}
             />
@@ -719,12 +694,6 @@ export default function AIChatbotModal() {
               signal={pendingUiSignal}
               onDismiss={dismissUiSignal}
               isModalOpen={!!pendingAction}
-              onConfirmed={(sig) => {
-                dismissUiSignal();
-                if (sig.action === 'DEBT_CONFIRMATION') {
-                  sendMessage('Tôi đã xác nhận lưu khoản nợ thành công.', null, null, true);
-                }
-              }}
               onFeedback={(status, reason) => {
                 const action = pendingUiSignal?.action || 'DEBT_CONFIRMATION';
                 if (status === 'confirmed') {
