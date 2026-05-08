@@ -23,7 +23,6 @@ export const TOOLS_BY_INTENT: Record<string, any[]> = {
   WHAT_IF: [getUserDebtsTool, getUserProfileTool, simulateDtiTool],
   INVESTMENT_ADVICE: [getMarketPricesTool, getMarketSentimentTool, getUserProfileTool, knowledgeSearchTool],
   KNOWLEDGE: [knowledgeSearchTool],
-  OFF_TOPIC: [],
 };
 
 export function getToolsByIntent(intent: string) {

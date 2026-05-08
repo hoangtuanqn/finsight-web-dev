@@ -5,7 +5,7 @@ import { searchKnowledge } from '../rag/retriever';
 /**
  * Cosine similarity threshold for RAG relevance gate.
  * `similarity = 1 - cosine_distance` — higher is more relevant.
- * Chunks below this threshold are considered off-topic or unrelated.
+ * Chunks below this threshold are considered unrelated to the knowledge query.
  */
 export const RAG_SIMILARITY_THRESHOLD = 0.7;
 
