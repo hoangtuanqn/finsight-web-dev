@@ -80,7 +80,11 @@ export default function InvestmentConfirmModal({ data, onDismiss, onFeedback }: 
       setUser((prev: any) => ({ ...prev, ...updatedUser }));
 
       // Actually generate the strategy
-      await investmentAPI.generateStrategy([]);
+      const strategyRes = await investmentAPI.generateStrategy([]);
+      const newQuota = strategyRes?.data?.data?.remainingQuota ?? strategyRes?.data?.remainingQuota;
+      if (newQuota !== undefined) {
+        setUser((prev: any) => ({ ...prev, strategyQuota: newQuota }));
+      }
 
       onFeedback?.('confirmed');
       onDismiss();
