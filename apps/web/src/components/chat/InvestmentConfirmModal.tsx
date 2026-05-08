@@ -3,6 +3,7 @@ import { AlertTriangle, BarChart3, CheckCircle2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import { investmentAPI } from '../../api';
 import { useAuth } from '../../context/AuthContext';
 import { useUpdateProfile } from '../../hooks/useAuthQuery';
 
@@ -78,14 +79,16 @@ export default function InvestmentConfirmModal({ data, onDismiss, onFeedback }: 
       const updatedUser = res.data.data.user || res.data.user || res.data.data;
       setUser((prev: any) => ({ ...prev, ...updatedUser }));
 
-      // Quota is NOT decremented here — that's backend's job when generating.
+      // Actually generate the strategy
+      await investmentAPI.generateStrategy([]);
+
       onFeedback?.('confirmed');
       onDismiss();
       setTimeout(() => {
         navigate('/investment');
       }, 300);
     } catch (err: any) {
-      const msg = err?.response?.data?.error || 'Lỗi khi cập nhật hồ sơ. Vui lòng thử lại.';
+      const msg = err?.response?.data?.error || 'Lỗi khi tạo chiến lược. Vui lòng thử lại.';
       setError(msg);
       const safeReason = msg.length > 120 ? msg.slice(0, 120) : msg;
       onFeedback?.('failed', safeReason);
@@ -296,7 +299,10 @@ export default function InvestmentConfirmModal({ data, onDismiss, onFeedback }: 
               className="flex-1 py-3 rounded-xl text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading ? (
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <>
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Đang tạo chiến lược...
+                </>
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4" /> Xem chiến lược
