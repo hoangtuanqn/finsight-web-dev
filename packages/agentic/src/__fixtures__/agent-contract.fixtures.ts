@@ -32,7 +32,7 @@ export interface AgentFixture {
   expectedUiSignalAction?: string | null;
   /** Safety / guardrail expectations */
   safety: {
-    /** Should the off-topic guard block this request? */
+    /** Should a request-level guard block this request? */
     blockedByGuard: boolean;
     /** Should the agent refuse to write DB records directly? */
     noDirectDbWrite: boolean;
@@ -280,7 +280,7 @@ export const marketApiFailure: AgentFixture = {
 
 export const ragHappyPath: AgentFixture = {
   name: 'rag_happy_path',
-  input: 'DTI là gì và tôi nên duy trì ở mức nào?',
+  input: 'DTI là gì ?',
   expectedIntent: 'KNOWLEDGE',
   expectedWorker: 'RagWorker',
   expectedUiSignalType: UiSignalType.NONE,
@@ -308,27 +308,27 @@ export const ragNoRelevantResult: AgentFixture = {
   note: 'Query below cosine threshold. Worker MUST reply with the fixed phrase: "Tôi không biết về chủ đề đó. Vui lòng hỏi về lĩnh vực tài chính." No hallucination.',
 };
 
-// ─── 8. Off-topic guard ───────────────────────────────────────────────────────
+// ─── 8. General chat / soft fallback ──────────────────────────────────────────
 
-export const offTopicBlocked: AgentFixture = {
-  name: 'off_topic_blocked_by_guard',
+export const generalHandlesOutOfScope: AgentFixture = {
+  name: 'general_handles_out_of_scope',
   input: 'Bạn có thể giới thiệu phim hay cho tôi không?',
-  expectedIntent: 'OFF_TOPIC',
-  expectedWorker: 'None',
-  expectedUiSignalType: null,
+  expectedIntent: 'GENERAL_CHAT',
+  expectedWorker: 'GeneralWorker',
+  expectedUiSignalType: UiSignalType.NONE,
   expectedUiSignalAction: null,
   safety: {
-    blockedByGuard: true,
+    blockedByGuard: false,
     noDirectDbWrite: true,
   },
-  note: 'Keyword "phim hay" triggers checkIsOffTopicGuard. Request is blocked before reaching the router or any worker.',
+  note: 'Out-of-scope chat is routed to GeneralWorker for a soft, natural reply instead of being blocked by a guard.',
 };
 
-export const offTopicPassesGuardRoutedToGeneral: AgentFixture = {
-  name: 'off_topic_routed_general_chat',
+export const generalChatAcknowledgement: AgentFixture = {
+  name: 'general_chat_acknowledgement',
   input: 'Cảm ơn bạn, thông tin rất hữu ích!',
   expectedIntent: 'GENERAL_CHAT',
-  expectedWorker: 'None',
+  expectedWorker: 'GeneralWorker',
   expectedUiSignalType: UiSignalType.NONE,
   expectedUiSignalAction: null,
   safety: {
@@ -372,7 +372,7 @@ export const ALL_FIXTURES: AgentFixture[] = [
   ragHappyPath,
   ragNoRelevantResult,
 
-  // Guard / Off-topic
-  offTopicBlocked,
-  offTopicPassesGuardRoutedToGeneral,
+  // General chat / soft fallback
+  generalHandlesOutOfScope,
+  generalChatAcknowledgement,
 ];

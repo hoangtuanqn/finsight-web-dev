@@ -36,8 +36,8 @@ export class ExpenseController {
   static async delete(req: Request, res: Response) {
     try {
       const userId = (req as any).userId;
-      const { id } = req.params;
-      await ExpenseService.delete(id as string, userId);
+      const id = req.params.id as string;
+      await ExpenseService.delete(id, userId);
       res.json({ success: true, message: 'Expense deleted' });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });

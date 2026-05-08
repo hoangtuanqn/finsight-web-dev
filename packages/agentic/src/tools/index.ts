@@ -4,7 +4,7 @@ import { getMarketPricesTool, getMarketSentimentTool } from './market.tools';
 import { knowledgeSearchTool } from './rag.tools';
 export { createBoundTools } from './bind-tools';
 
-export const ALL_TOOLS = [
+export const ALL_TOOLS: any[] = [
   getUserDebtsTool,
   parseDebtFromTextTool,
   parseDebtInformationTool,
@@ -23,11 +23,10 @@ export const TOOLS_BY_INTENT: Record<string, any[]> = {
   WHAT_IF: [getUserDebtsTool, getUserProfileTool, simulateDtiTool],
   INVESTMENT_ADVICE: [getMarketPricesTool, getMarketSentimentTool, getUserProfileTool, knowledgeSearchTool],
   KNOWLEDGE: [knowledgeSearchTool],
-  OFF_TOPIC: [],
 };
 
 export function getToolsByIntent(intent: string) {
   return TOOLS_BY_INTENT[intent] || ALL_TOOLS;
 }
 
-export const toolsByName = Object.fromEntries(ALL_TOOLS.map((t) => [t.name, t]));
+export const toolsByName: Record<string, any> = Object.fromEntries(ALL_TOOLS.map((t) => [t.name, t]));

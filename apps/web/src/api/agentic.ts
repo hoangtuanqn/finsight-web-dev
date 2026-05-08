@@ -200,3 +200,27 @@ export async function deleteSession(sessionId) {
   });
   return res.json();
 }
+
+/**
+ * Extract text from an image using the backend agentic OCR endpoint
+ */
+export async function extractOcr(base64Image: string): Promise<{ success: boolean; text?: string; error?: string }> {
+  try {
+    const payload = { base64Image };
+    const res = await fetch(`${API_URL}/agentic/ocr`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      return { success: false, error: errText || 'Lỗi server khi parse ảnh' };
+    }
+
+    const data = await res.json();
+    return { success: true, text: data.data?.text };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Lỗi kết nối' };
+  }
+}

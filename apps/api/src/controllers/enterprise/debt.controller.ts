@@ -83,7 +83,7 @@ export const getDebts = async (req: Request, res: Response) => {
 export const getDebt = async (req: Request, res: Response) => {
   try {
     const orgId = (req as any).organizationId;
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const debt = await debtService.getDebtDetail(id as string, orgId as string);
 
@@ -100,7 +100,7 @@ export const getDebt = async (req: Request, res: Response) => {
 
 export const activateDebt = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const orgId = (req as any).organizationId;
     const userId = (req as any).userId;
 
@@ -113,7 +113,7 @@ export const activateDebt = async (req: Request, res: Response) => {
 
 export const disputeDebt = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { reason } = req.body;
     const orgId = (req as any).organizationId;
     const userId = (req as any).userId;
@@ -129,7 +129,7 @@ export const disputeDebt = async (req: Request, res: Response) => {
 
 export const resolveDispute = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const orgId = (req as any).organizationId;
     const userId = (req as any).userId;
 
@@ -142,7 +142,7 @@ export const resolveDispute = async (req: Request, res: Response) => {
 
 export const writeOffDebt = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { reason } = req.body;
     const orgId = (req as any).organizationId;
     const userId = (req as any).userId;
@@ -158,7 +158,7 @@ export const writeOffDebt = async (req: Request, res: Response) => {
 
 export const getDebtAuditLogs = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const orgId = (req as any).organizationId;
 
     const logs = await (enterpriseDb as any).auditLog.findMany({
@@ -188,7 +188,7 @@ export const getDebtAuditLogs = async (req: Request, res: Response) => {
 
 export const recordPayment = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const orgId = (req as any).organizationId;
     const userId = (req as any).userId;
 
@@ -210,7 +210,7 @@ export const updateDebt = async (req: Request, res: Response) => {
   try {
     const orgId = (req as any).organizationId;
     const userId = (req as any).userId;
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const oldDebt = await (enterpriseDb as any).debtRecord.findFirst({
       where: { id, organizationId: orgId },

@@ -1,5 +1,6 @@
 import { runAgenticChat, SSE_HEADERS, SseWriter } from '@repo/agentic';
 import { Response } from 'express';
+import OpenAI, { toFile } from 'openai';
 import prisma from '../lib/prisma';
 import { AuthenticatedRequest } from '../types';
 import { error, success } from '../utils/apiResponse';
@@ -150,5 +151,115 @@ export async function deleteSession(req: AuthenticatedRequest, res: Response) {
   } catch (err) {
     console.error('deleteSession error:', err);
     return error(res, 'Internal server error');
+  }
+}
+
+const openaiClient = new OpenAI({
+  apiKey: process.env.LLM_API_KEY,
+  baseURL: 'https://mkp-api.fptcloud.com/v1',
+});
+
+export async function extractOcr(req: AuthenticatedRequest, res: Response) {
+  const { base64Image } = req.body;
+  if (!base64Image || typeof base64Image !== 'string') {
+    return error(res, 'Missing base64Image', 400);
+  }
+
+  try {
+    const response = await openaiClient.chat.completions.create({
+      model: 'gemma-4-26B-A4B-it',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Extract all the text in this image accurately. Respond with only the extracted text.',
+            },
+            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Image}` } },
+          ],
+        },
+      ],
+      temperature: 0.1,
+      max_tokens: 1024,
+    });
+
+    const text = response.choices[0]?.message?.content || '';
+    if (!text || text.trim().length === 0) {
+      return error(res, 'Không thể đọc chữ từ ảnh', 400);
+    }
+    return success(res, { text: text.trim() });
+  } catch (err) {
+    console.error('[OCR Error]', err);
+    return error(res, 'Lỗi server khi parse ảnh');
+  }
+}
+
+/** POST /api/agentic/voice — Transcribe audio file via FPT Whisper STT */
+export async function transcribeVoice(req: AuthenticatedRequest, res: Response) {
+  if (!req.file) {
+    return error(res, 'Không tìm thấy file audio', 400);
+  }
+
+  const { buffer, originalname } = req.file;
+
+  if (buffer.length === 0) {
+    return error(res, 'File audio rỗng', 400);
+  }
+
+  try {
+    const mimeType = req.file.mimetype || 'audio/mp4';
+    const ext = mimeType.includes('mp4') ? 'm4a' : mimeType.includes('ogg') ? 'ogg' : 'webm';
+    console.log(`[Voice STT] Processing ${buffer.length} bytes (${mimeType}) via FPT Cloud Whisper...`);
+
+    // Pass buffer directly to toFile to avoid type mismatch with Blob
+    const audioFile = await toFile(buffer, `recording.${ext}`, { type: mimeType });
+
+    let transcription;
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    while (attempts < maxAttempts) {
+      try {
+        transcription = await openaiClient.audio.transcriptions.create({
+          file: audioFile,
+          model: 'FPT.AI-whisper-large-v3-turbo',
+          language: 'vi',
+          response_format: 'json',
+        });
+        break;
+      } catch (err: any) {
+        attempts++;
+        const status = err.status || err.response?.status;
+        // Chỉ retry nếu là lỗi 503 hoặc các lỗi server tạm thời khác
+        if (attempts >= maxAttempts || (status !== 503 && status !== 502 && status !== 504)) {
+          throw err;
+        }
+        console.warn(`[Voice STT] Attempt ${attempts} failed with status ${status}, retrying in 1.5s...`);
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
+    }
+
+    if (!transcription) {
+      throw new Error('Không nhận được kết quả từ dịch vụ STT');
+    }
+
+    const text = transcription.text?.trim() ?? '';
+
+    if (!text) {
+      return error(res, 'Không nhận diện được giọng nói, vui lòng thử lại.', 422);
+    }
+
+    console.log(`[Voice STT] Success → "${text.substring(0, 60)}${text.length > 60 ? '...' : ''}"`);
+    return success(res, { text });
+  } catch (err: any) {
+    const errorMessage = err.message || 'Unknown error';
+    const errorStatus = err?.status ?? err?.response?.status ?? 500;
+    const errorBody = err?.response?.data ?? err?.error ?? err?.body ?? null;
+
+    console.error(`[Voice STT Error] status=${errorStatus} message=${errorMessage}`);
+    if (errorBody) console.error('[Voice STT Error Body]:', JSON.stringify(errorBody, null, 2));
+
+    return error(res, `Lỗi chuyển đổi giọng nói (Mã lỗi: ${errorStatus}). Vui lòng thử lại sau.`);
   }
 }

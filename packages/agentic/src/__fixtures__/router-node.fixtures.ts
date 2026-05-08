@@ -131,15 +131,15 @@ export const ROUTER_FIXTURES: RouterFixture[] = [
     note: 'Câu cảm ơn.',
   },
 
-  // 11. OFF_TOPIC
+  // 11. Out-of-scope / soft fallback → GENERAL_CHAT
   {
     input: 'Bạn có thể giới thiệu phim hay cho tôi không?',
-    expectedIntent: AgentIntent.OFF_TOPIC,
-    note: 'Hỏi về giải trí.',
+    expectedIntent: AgentIntent.GENERAL_CHAT,
+    note: 'Câu ngoài luồng nghiệp vụ được chuyển cho General worker phản hồi mềm.',
   },
   {
     input: 'Đội nào vô địch C1 năm 2023?',
-    expectedIntent: AgentIntent.OFF_TOPIC,
-    note: 'Hỏi về thể thao.',
+    expectedIntent: AgentIntent.GENERAL_CHAT,
+    note: 'Câu ngoài luồng nghiệp vụ được chuyển cho General worker phản hồi mềm.',
   },
 ];

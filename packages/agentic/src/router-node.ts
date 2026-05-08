@@ -23,7 +23,6 @@ export const INTENT_TO_WORKER: Record<AgentIntent, string> = {
   [AgentIntent.MARKET_SPECIFIC]: 'market',
   [AgentIntent.KNOWLEDGE]: 'rag',
   [AgentIntent.GENERAL_CHAT]: 'general',
-  [AgentIntent.OFF_TOPIC]: 'off_topic',
 };
 
 // ─── Keyword fast-path rules ─────────────────────────────────────────────────
@@ -174,8 +173,7 @@ SIMULATION        – Giả lập "nếu vay thêm / nếu giảm thu nhập / w
 MARKET_OVERVIEW   – Hỏi tổng quan thị trường tài chính.
 MARKET_SPECIFIC   – Hỏi giá cụ thể (vàng, BTC, cổ phiếu riêng lẻ, chỉ số).
 KNOWLEDGE         – Hỏi khái niệm/định nghĩa tài chính.
-GENERAL_CHAT      – Xác nhận, cảm ơn, phản hồi ngắn không yêu cầu hành động mới.
-OFF_TOPIC         – Hoàn toàn ngoài lĩnh vực tài chính.
+GENERAL_CHAT      – Xác nhận, cảm ơn, phản hồi ngắn, hoặc câu hỏi ngoài các luồng thao tác tài chính đang hỗ trợ.
 
 Chỉ trả về ĐÚNG MỘT TỪ (ví dụ: DEBT_EXTRACTION). Không giải thích.`;
 
@@ -183,43 +181,6 @@ Chỉ trả về ĐÚNG MỘT TỪ (ví dụ: DEBT_EXTRACTION). Không giải th
 
 function checkMaxLength(query: string): boolean {
   return query.length > 2000;
-}
-
-function checkOffTopicGuardFast(query: string): boolean {
-  const offTopicKws = [
-    'phim hay',
-    'nhạc',
-    'bóng đá',
-    'thể thao',
-    'nấu ăn',
-    'giải trí',
-    'truyện cười',
-    'anime',
-    'manga',
-    'esport',
-    'chính trị',
-    'bầu cử',
-    'đảng',
-    'tình yêu',
-    'người yêu',
-    'hẹn hò',
-    'ai đẹp hơn',
-    'viết thơ',
-    'viết văn',
-    'viết truyện',
-    'rap',
-    'hát',
-    'dịch sang',
-    'làm bài tập',
-    'giải toán',
-    'vật lý',
-    'hóa học',
-    'thời tiết',
-    'hôm nay ngày mấy',
-    'kể chuyện',
-  ];
-  const lower = query.toLowerCase();
-  return offTopicKws.some((kw) => lower.includes(kw));
 }
 
 function investmentPrecheck(query: string, strategyQuota: number | null | undefined): boolean {
@@ -235,11 +196,10 @@ function investmentPrecheck(query: string, strategyQuota: number | null | undefi
  * Determines intent and worker for the current turn.
  *
  * Pipeline:
- * 1. Max-length guard  → OFF_TOPIC (will be handled as error in orchestrator).
- * 2. Off-topic fast-path guard.
- * 3. Keyword fast-path (no LLM call).
- * 4. LLM fallback (timeout 5 s).
- * 5. Investment quota pre-check (re-routes to GENERAL_CHAT when quota = 0
+ * 1. Max-length guard  → max_length worker.
+ * 2. Keyword fast-path (no LLM call).
+ * 3. LLM fallback (timeout 5 s).
+ * 4. Investment quota pre-check (re-routes to GENERAL_CHAT when quota = 0
  *    and intent is clearly investment-related).
  */
 export async function routerNode(
@@ -252,18 +212,13 @@ export async function routerNode(
 
   // 1. Max length guard
   if (checkMaxLength(query)) {
-    return { intent: AgentIntent.OFF_TOPIC, worker: 'max_length', errors };
+    return { intent: AgentIntent.GENERAL_CHAT, worker: 'max_length', errors };
   }
 
-  // 2. Off-topic fast guard
-  if (checkOffTopicGuardFast(query)) {
-    return { intent: AgentIntent.OFF_TOPIC, worker: 'off_topic', errors };
-  }
-
-  // 3. Keyword fast-path
+  // 2. Keyword fast-path
   let intent = fastRouteByKeyword(query);
 
-  // 4. LLM fallback
+  // 3. LLM fallback
   if (!intent) {
     try {
       const model = getChatModel({ temperature: 0.1, streaming: false });
@@ -284,7 +239,7 @@ export async function routerNode(
     }
   }
 
-  // 5. Investment quota pre-check guard
+  // 4. Investment quota pre-check guard
   if (intent === AgentIntent.INVESTMENT_ADVICE && investmentPrecheck(query, strategyQuota)) {
     intent = AgentIntent.GENERAL_CHAT;
   }
