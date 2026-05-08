@@ -6,6 +6,7 @@ const MASTER_USERS = [
   { email: 'nguyenvangiabinh22072006@gmail.com', fullName: 'Nguyễn Văn Gia Bình' },
   { email: 'lamhoangan612@gmail.com', fullName: 'Lâm Hoàng An' },
   { email: 'taikhoanstudycuabinh@gmail.com', fullName: 'Lê Gia Bảo' },
+  { email: 'chunhau.py@gmail.com', fullName: 'Mai Trung Hậu' },
 ];
 
 function monthsAgo(n, day = null) {
@@ -257,6 +258,46 @@ export async function seedUsers(prisma) {
         });
       }
     }
+
+    // AI Strategy & Portfolio
+    const strategy = await prisma.aIStrategy.create({
+      data: {
+        userId: user.id,
+        sentimentValue: 65,
+        sentimentLabel: 'Cẩn trọng - Lạc quan',
+        riskLevel: 'MEDIUM',
+        savings: 20000000,
+        gold: 15000000,
+        stocks: 10000000,
+        bonds: 5000000,
+        crypto: 0,
+        recommendation:
+          'Dựa trên dư nợ thẻ tín dụng hiện tại (15tr VCB, 18.7tr HSBC), bạn nên ưu tiên thanh toán dứt điểm thẻ VIB (lãi 36%) trước. Tăng tỷ trọng tích lũy vàng để dự phòng thanh khoản Q4.',
+        marketViews: {
+          vcb_lending_rate: 'Tăng 0.5%',
+          inflation_forecast: 'Ổn định 3.8%',
+          gold_trend: 'Tiếp tục tăng do địa chính trị',
+        },
+        assetSnapshot: {
+          total_assets: 175000000,
+          total_debt: userTotalDebt,
+          dti_ratio: (userTotalDebt / 35000000) * 100,
+        },
+      },
+    });
+
+    await prisma.userPortfolio.create({
+      data: {
+        userId: user.id,
+        sourceStrategyId: strategy.id,
+        savings: 20000000,
+        gold: 15000000,
+        stocks: 10000000,
+        bonds: 5000000,
+        crypto: 0,
+        notes: 'Danh mục phòng thủ theo tư vấn của FinSight AI.',
+      },
+    });
 
     // Debt Goal
     await prisma.debtGoal.create({
