@@ -12,7 +12,7 @@ export async function transcribeAudio(audioBlob: Blob): Promise<string> {
   const formData = new FormData();
   formData.append('audio', audioBlob, 'recording.webm');
 
-  const response = await fetch(`${API_URL}/agentic/voice`, {
+  const response = await fetch(`${API_URL}/voice/transcribe`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${getToken()}`,
