@@ -107,9 +107,9 @@ export class TransactionService {
         const newPaidPrincipal = Math.round(((schedule.paidPrincipal || 0) + principalPayToThis) * 100) / 100;
         principalToDistribute = Math.round((principalToDistribute - principalPayToThis) * 100) / 100;
 
-        // Use small epsilon (0.1) to handle rounding differences when comparing
+        // Use epsilon (1.0) to handle rounding differences and fractional remainders (especially for VND)
         const isFullyPaid =
-          newPaidPrincipal >= schedule.principalAmount - 0.1 && newPaidInterest >= (schedule.interestAmount || 0) - 0.1;
+          newPaidPrincipal >= schedule.principalAmount - 1.0 && newPaidInterest >= (schedule.interestAmount || 0) - 1.0;
 
         await tx.debtSchedule.update({
           where: { id: schedule.id },
