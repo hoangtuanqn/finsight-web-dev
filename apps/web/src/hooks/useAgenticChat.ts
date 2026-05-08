@@ -24,7 +24,7 @@ export interface UiSignal {
   data?: unknown;
 }
 
-export function useAgenticChat() {
+export function useAgenticChat(options?: { onChatDone?: (meta: any) => void }) {
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -98,6 +98,9 @@ export function useAgenticChat() {
             if (meta.uiSignal?.type && meta.uiSignal.type !== 'NONE') {
               setPendingUiSignal(meta.uiSignal as UiSignal);
             }
+
+            // External callback
+            options?.onChatDone?.(meta);
           },
 
           onError: (err) => {
