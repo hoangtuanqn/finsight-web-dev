@@ -37,11 +37,11 @@ export class RepaymentPlanTrackingService {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
+    const planDebtIds = plan.items.map((item) => item.debtRecordId);
+
     const transactions = await prisma.debtTransaction.findMany({
       where: {
-        debtRecord: {
-          organizationId,
-        },
+        debtRecordId: { in: planDebtIds },
         type: 'PAYMENT',
         paidAt: {
           gte: startDate,
@@ -54,7 +54,7 @@ export class RepaymentPlanTrackingService {
     const executionItems = plan.items.map((item) => {
       const actualAmount = transactions
         .filter((t) => t.debtRecordId === item.debtRecordId)
-        .reduce((sum, t) => sum + t.amount, 0);
+        .reduce((sum, t) => sum + Number(t.amount), 0);
 
       const variance = actualAmount - item.plannedAmount;
       const status = actualAmount >= item.plannedAmount ? 'COMPLIANT' : actualAmount > 0 ? 'PARTIAL' : 'NON_COMPLIANT';
@@ -63,7 +63,7 @@ export class RepaymentPlanTrackingService {
         debtId: item.debtRecordId,
         debtName: item.debtRecord.internalCode || 'N/A',
         partyName: item.debtRecord.party.name,
-        plannedAmount: item.plannedAmount,
+        plannedAmount: Number(item.plannedAmount),
         actualAmount,
         variance,
         status,
@@ -74,11 +74,12 @@ export class RepaymentPlanTrackingService {
     // 4. Calculate overall compliance score
     const totalPlanned = executionItems.reduce((sum, i) => sum + i.plannedAmount, 0);
     const totalActual = executionItems.reduce((sum, i) => sum + i.actualAmount, 0);
-    const complianceRate = totalPlanned > 0 ? (totalActual / totalPlanned) * 100 : 100;
+    const baseComplianceRate = totalPlanned > 0 ? (totalActual / totalPlanned) * 100 : 100;
 
     // Detect priority violations (paying a lower priority debt while a higher one is unpaid)
     let priorityViolation = false;
     let foundUnpaidHigherPriority = false;
+    let violationCount = 0;
 
     // Sort by priority (asc)
     const sortedItems = [...executionItems].sort((a, b) => a.priority - b.priority);
@@ -88,9 +89,12 @@ export class RepaymentPlanTrackingService {
       } else if (foundUnpaidHigherPriority && item.actualAmount > 0) {
         // We found a payment for a lower priority debt while a higher one wasn't fully met
         priorityViolation = true;
-        break;
+        violationCount++;
       }
     }
+
+    // Penalize compliance rate for priority violations (each violation = -5%)
+    const complianceRate = Math.max(0, baseComplianceRate - violationCount * 5);
 
     return {
       plan: {
