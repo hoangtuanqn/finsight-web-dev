@@ -2,12 +2,12 @@ import { Input } from '@repo/ui';
 import { Plus, Trash2 } from 'lucide-react';
 import React from 'react';
 
-export type InterestRateType = 'FIXED' | 'FLOATING' | 'REFERENCE' | 'MIXED' | 'STEP';
+export type InterestRateType = 'FIXED' | 'FLOATING' | 'MIXED' | 'STEP';
 
 export interface InterestRateBracket {
   rate: number;
   effectiveDate: string;
-  rateType?: 'FIXED' | 'FLOATING' | 'REFERENCE';
+  rateType?: 'FIXED' | 'FLOATING';
   referenceBase?: string;
   spread?: number;
 }
@@ -25,7 +25,6 @@ interface InterestRateSectionProps {
 const RATE_TYPE_OPTIONS: { value: InterestRateType; label: string; desc: string }[] = [
   { value: 'FIXED', label: 'Cố định', desc: 'Một mức lãi duy nhất, không đổi suốt kỳ' },
   { value: 'FLOATING', label: 'Thả nổi', desc: 'Thay đổi theo từng giai đoạn, nhập thủ công' },
-  { value: 'REFERENCE', label: 'Tham chiếu', desc: 'Gắn với lãi suất cơ sở + biên độ (VD: VCB + 2%)' },
   { value: 'MIXED', label: 'Hỗn hợp', desc: 'Cố định một thời gian, sau đó thả nổi' },
   { value: 'STEP', label: 'Bậc thang', desc: 'Tăng/giảm dần theo lịch định sẵn' },
 ];
@@ -44,7 +43,6 @@ export const InterestRateSection: React.FC<InterestRateSectionProps> = ({
   const sectionLabel = {
     FIXED: 'Lãi suất cố định (%/năm)',
     FLOATING: 'Lãi suất thả nổi (%/năm)',
-    REFERENCE: 'Lãi suất tham chiếu (%/năm)',
     MIXED: 'Lãi suất hỗn hợp (%/năm)',
     STEP: 'Lãi suất bậc thang (%/năm)',
   }[interestRateType];
@@ -152,86 +150,6 @@ export const InterestRateSection: React.FC<InterestRateSectionProps> = ({
                         value={rate.effectiveDate}
                         onChange={(e) => onChange(index, 'effectiveDate', e.target.value)}
                       />
-                    </div>
-                  </div>
-                )}
-
-                {/* REFERENCE */}
-                {interestRateType === 'REFERENCE' && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                        Lãi suất cơ sở (tên)
-                      </span>
-                      <input
-                        type="text"
-                        placeholder="VD: VCB, SOFR, Prime..."
-                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all placeholder:text-slate-600"
-                        value={rate.referenceBase || ''}
-                        onChange={(e) => onChange(index, 'referenceBase', e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                        Lãi suất cơ sở (%/năm)
-                      </span>
-                      <div className="relative">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00"
-                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 pr-14 text-sm font-mono text-white focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all"
-                          value={rate.rate - (rate.spread || 0)}
-                          onChange={(e) => {
-                            const base = Number(e.target.value);
-                            onChange(index, 'rate', base + (rate.spread || 0));
-                          }}
-                        />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500 pointer-events-none">
-                          %/năm
-                        </span>
-                      </div>
-                    </div>
-                    <div className="space-y-1.5">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                        Biên độ cộng thêm
-                      </span>
-                      <div className="relative">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0.00"
-                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 pr-14 text-sm font-mono text-white focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all"
-                          value={rate.spread || 0}
-                          onChange={(e) => {
-                            const spread = Number(e.target.value);
-                            onChange(index, 'spread', spread);
-                            const base = rate.rate - (rate.spread || 0);
-                            onChange(index, 'rate', base + spread);
-                          }}
-                        />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500 pointer-events-none">
-                          %/năm
-                        </span>
-                      </div>
-                    </div>
-                    <div className="space-y-1.5">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                        Ngày áp dụng
-                      </span>
-                      <input
-                        type="date"
-                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/10 outline-none transition-all"
-                        value={rate.effectiveDate}
-                        onChange={(e) => onChange(index, 'effectiveDate', e.target.value)}
-                      />
-                    </div>
-                    <div className="col-span-2 flex items-center gap-3 px-4 py-2.5 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                        Lãi suất tổng:
-                      </span>
-                      <span className="text-base font-mono font-black text-emerald-400">{rate.rate.toFixed(2)}%</span>
-                      <span className="text-[10px] text-slate-600">/năm</span>
                     </div>
                   </div>
                 )}
