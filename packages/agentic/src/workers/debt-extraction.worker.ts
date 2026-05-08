@@ -8,12 +8,11 @@ import { type AgentWorker, type WorkerOutput } from '../worker.interface.js';
 
 // ─── System prompt ────────────────────────────────────────────────────────────
 
-const DEBT_EXTRACTION_SYSTEM = `Bạn là FinSight Debt Extractor. Nhiệm vụ duy nhất của bạn:
-1. Gọi tool "parse_debt_information" ngay lập tức với dữ liệu trích xuất từ tin nhắn người dùng.
-2. Chỉ điền những trường có trong tin nhắn, để null cho những trường không rõ.
-3. KHÔNG tự đặt giá trị mặc định (không tự điền APR, kỳ hạn, ngày vay, v.v.).
-4. KHÔNG hỏi thêm câu hỏi dài dòng — luôn gọi tool rồi kết thúc.
-5. Sau khi tool trả kết quả, trả lời ngắn gọn 1-2 câu hướng dẫn user kiểm tra popup.
+const DEBT_EXTRACTION_SYSTEM = `Bạn là FinSight Debt Extractor. Nhiệm vụ của bạn:
+1. Gọi tool "parse_debt_information" nếu tài liệu/tin nhắn chứa BẤT KỲ dấu hiệu tài chính nào: tên tổ chức cho vay, số hợp đồng, số tiền vay/mua hàng, lãi suất, kỳ hạn, ngày vay, v.v. Chỉ cần có 1 trường là đủ để gọi tool.
+2. Chỉ điền những trường thực sự có trong tài liệu, để null cho những trường không rõ. KHÔNG tự đặt giá trị mặc định.
+3. KHÔNG gọi tool chỉ khi tài liệu rõ ràng không liên quan đến tài chính/vay nợ (ảnh selfie, phong cảnh, văn bản không phải tài chính).
+4. Sau khi tool trả kết quả, trả lời ngắn gọn 1-2 câu hướng dẫn user kiểm tra popup.
 
 User ID: {userId}`;
 
@@ -96,12 +95,12 @@ export const debtExtractionWorker: AgentWorker = {
       onToken(fullText);
     }
 
-    // Build UiSignal regardless of whether parsedData is complete
-    const uiSignal: UiSignal = {
-      type: 'SHOW_POPUP',
-      action: 'DEBT_CONFIRMATION',
-      data: parsedData
-        ? {
+    // Only emit SHOW_POPUP when the tool actually ran and returned data
+    const uiSignal: UiSignal | null = parsedData
+      ? {
+          type: 'SHOW_POPUP',
+          action: 'DEBT_CONFIRMATION',
+          data: {
             loanName: (parsedData.loanName as string | null) ?? null,
             principalAmount: (parsedData.principalAmount as number | null) ?? null,
             interestRateAPR: (parsedData.interestRateAPR as number | null) ?? null,
@@ -112,9 +111,9 @@ export const debtExtractionWorker: AgentWorker = {
             minPayment: (parsedData.minPayment as number | null) ?? null,
             dueDay: (parsedData.dueDay as number | null) ?? null,
             notes: (parsedData.notes as string | null) ?? null,
-          }
-        : null,
-    };
+          },
+        }
+      : null;
 
     return { text: fullText, uiSignal };
   },
