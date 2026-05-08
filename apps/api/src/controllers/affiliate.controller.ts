@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { banks } from '../data/banks';
 import prisma from '../lib/prisma';
 import { checkBankOwner } from '../services/kyc.service';
+import { ReferralService } from '../services/referral.service';
 import { AuthenticatedRequest } from '../types';
 import { error, success } from '../utils/apiResponse';
 
@@ -31,10 +32,11 @@ export async function getAffiliateStats(req: AuthenticatedRequest, res: Response
   try {
     const userId = req.userId!;
 
+    const referralCode = await ReferralService.getOrCreateReferralCode(userId);
+
     const user = await (prisma as any).user.findUnique({
       where: { id: userId },
       select: {
-        referralCode: true,
         commissionBalance: true,
         totalCommissionEarned: true,
       },
@@ -65,7 +67,7 @@ export async function getAffiliateStats(req: AuthenticatedRequest, res: Response
     const pendingWithdrawalAmount = pendingWithdrawalResult._sum.amount || 0;
 
     return success(res, {
-      referralCode: user.referralCode,
+      referralCode,
       commissionBalance: user.commissionBalance,
       totalCommissionEarned: user.totalCommissionEarned,
       pendingWithdrawalAmount,
