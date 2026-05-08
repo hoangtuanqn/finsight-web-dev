@@ -111,8 +111,14 @@ export function simulateRepayment(
     }
 
     let calculatedMinPayment = d.minPayment;
-    // For loans (non-credit cards), calculate fixed monthly payment based on original principal
-    if (d.debtType !== 'CREDIT_CARD' && d.originalAmount && d.termMonths && d.termMonths > 0) {
+    // ONLY re-calculate if minPayment is missing or 0 to maintain consistency with DB values
+    if (
+      (!calculatedMinPayment || calculatedMinPayment <= 0) &&
+      d.debtType !== 'CREDIT_CARD' &&
+      d.originalAmount &&
+      d.termMonths &&
+      d.termMonths > 0
+    ) {
       if (d.rateType === 'FLAT') {
         calculatedMinPayment = calcFlatMonthlyPayment(d.originalAmount, d.apr, d.termMonths);
       } else {
