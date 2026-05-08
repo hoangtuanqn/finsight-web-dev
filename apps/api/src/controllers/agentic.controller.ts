@@ -169,7 +169,7 @@ export async function extractOcr(req: AuthenticatedRequest, res: Response) {
 
   try {
     const response = await openaiClient.chat.completions.create({
-      model: 'gemma-3-27b-it',
+      model: 'FPT.AI-KIE-v1.7',
       messages: [
         {
           role: 'user',
