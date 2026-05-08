@@ -2,10 +2,10 @@ import bcrypt from 'bcryptjs';
 
 const MASTER_USERS = [
   { email: 'phamhoangtuanqn@gmail.com', fullName: 'Phạm Hoàng Tuấn' },
-  { email: 'ducphucdn2006@gmail.com', fullName: 'Trần Đức Phúc' },
+  { email: 'ducphucdn2006@gmail.com', fullName: 'Phạm Đức Phúc' },
   { email: 'nguyenvangiabinh22072006@gmail.com', fullName: 'Nguyễn Văn Gia Bình' },
   { email: 'lamhoangan612@gmail.com', fullName: 'Lâm Hoàng An' },
-  { email: 'taikhoanstudycuabinh@gmail.com', fullName: 'Lê Gia Bảo' },
+  { email: 'taikhoanstudycuabinh@gmail.com', fullName: 'Nguyễn Văn Gia Bình' },
   { email: 'chunhau.py@gmail.com', fullName: 'Mai Trung Hậu' },
 ];
 
@@ -199,8 +199,8 @@ export async function seedUsers(prisma) {
         password: passwordHash,
         monthlyIncome: 35000000,
         extraBudget: 8000000,
-        level: 'BASIC',
-        strategyQuota: 5,
+        level: 'PROMAX',
+        strategyQuota: 100,
       },
     });
 
