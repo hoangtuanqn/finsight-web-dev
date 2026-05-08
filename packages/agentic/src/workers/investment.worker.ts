@@ -72,6 +72,7 @@ export const investmentWorker: AgentWorker = {
       const systemPrompt = INVESTMENT_SYSTEM_QUOTA_EXHAUSTED.replace('{quota}', String(snapshot.strategyQuota));
 
       const recentCtx = state.recentMessages
+        .slice(0, -1) // exclude last item (current user message already in state.input)
         .map((m) => `${m.role === 'user' ? 'Người dùng' : 'AI'}: ${m.content}`)
         .join('\n');
       const userContent = recentCtx ? `${recentCtx}\n\nNgười dùng: ${state.input}` : state.input;
@@ -110,6 +111,7 @@ export const investmentWorker: AgentWorker = {
       .replace('{quota}', String(snapshot.strategyQuota));
 
     const recentCtx = state.recentMessages
+      .slice(0, -1) // exclude last item (current user message already in state.input)
       .map((m) => `${m.role === 'user' ? 'Người dùng' : 'AI'}: ${m.content}`)
       .join('\n');
     const contextBlock = state.summary ? `Tóm tắt ngữ cảnh trước: ${state.summary}\n\n${recentCtx}` : recentCtx;

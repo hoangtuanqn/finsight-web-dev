@@ -153,6 +153,7 @@ export const ragWorker: AgentWorker = {
       .join('\n\n---\n\n');
 
     const recentCtx = state.recentMessages
+      .slice(0, -1) // exclude last item (current user message already in state.input)
       .map((m) => `${m.role === 'user' ? 'Người dùng' : 'AI'}: ${m.content}`)
       .join('\n');
 
