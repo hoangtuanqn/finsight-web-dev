@@ -26,7 +26,16 @@ const extractRepaymentSetupTool = tool(
     description:
       'Trích xuất thông tin kế hoạch trả nợ từ tin nhắn người dùng. Chỉ điền các trường người dùng đề cập rõ ràng. Gọi tool này ngay khi người dùng đề cập đến việc trả thêm tiền hoặc thiết lập kế hoạch trả nợ.',
     schema: z.object({
-      extraBudget: z.number().nullable().optional().describe('Số tiền trả thêm mỗi tháng (VNĐ); null nếu không rõ'),
+      extraBudget: z
+        .union([z.number(), z.string()])
+        .transform((v) => {
+          if (typeof v === 'number') return v;
+          const num = parseFloat(v.replace(/[^\d.-]/g, ''));
+          return isNaN(num) ? null : num;
+        })
+        .nullable()
+        .optional()
+        .describe('Số tiền trả thêm mỗi tháng (VNĐ); null nếu không rõ'),
       targetDate: z
         .string()
         .nullable()

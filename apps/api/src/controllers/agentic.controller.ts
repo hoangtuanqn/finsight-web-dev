@@ -169,7 +169,7 @@ export async function extractOcr(req: AuthenticatedRequest, res: Response) {
 
   try {
     const response = await openaiClient.chat.completions.create({
-      model: 'gemma-4-31B-it',
+      model: 'gemma-3-27b-it',
       messages: [
         {
           role: 'user',
@@ -182,9 +182,13 @@ export async function extractOcr(req: AuthenticatedRequest, res: Response) {
           ],
         },
       ],
-      temperature: 0.1,
+      temperature: 1,
       max_tokens: 1024,
-    });
+      top_p: 1,
+      presence_penalty: 0,
+      frequency_penalty: 0,
+      top_k: 40,
+    } as any);
 
     const text = response.choices[0]?.message?.content || '';
     if (!text || text.trim().length === 0) {
