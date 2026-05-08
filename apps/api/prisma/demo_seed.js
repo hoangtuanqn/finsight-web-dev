@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-async function main() {
+export async function seedDemo(prisma) {
   const email = 'demo@finsight.vn';
   const rawPassword = 'demo_password_123';
   const hashedPassword = await bcrypt.hash(rawPassword, 12);
@@ -1381,12 +1381,3 @@ Trích dẫn từ: CafeF, VietnamFinance & Báo cáo Xu hướng Fintech Việt 
   console.log('🎉 Seed data successfully created!');
   console.log('Login: demo@finsight.vn / demo_password_123');
 }
-
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });

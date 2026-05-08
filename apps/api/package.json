@@ -9,10 +9,11 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "type-check": "tsc --noEmit",
-    "seed": "node prisma/seed.js",
-    "db:push": "npx prisma db push && npx prisma db push --schema=prisma/enterprise/schema.prisma",
-    "db:generate": "npx prisma generate && npx prisma generate --schema=prisma/enterprise/schema.prisma",
-    "db:studio": "npx prisma studio",
+    "db:seed": "bun prisma/seed.js || node prisma/seed.js",
+    "db:reset": "bunx prisma db push --force-reset && bunx prisma db push --schema=prisma/enterprise/schema.prisma --force-reset && bun run db:seed",
+    "db:push": "bunx prisma db push && bunx prisma db push --schema=prisma/enterprise/schema.prisma",
+    "db:generate": "bunx prisma generate && bunx prisma generate --schema=prisma/enterprise/schema.prisma",
+    "db:studio": "bunx prisma studio",
     "rag:ingest": "tsx ../../packages/agentic/src/rag/ingest.ts"
   },
   "dependencies": {
