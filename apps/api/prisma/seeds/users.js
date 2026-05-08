@@ -198,8 +198,8 @@ export async function seedUsers(prisma) {
         password: passwordHash,
         monthlyIncome: 35000000,
         extraBudget: 8000000,
-        level: 'PROMAX',
-        strategyQuota: 100,
+        level: 'BASIC',
+        strategyQuota: 5,
       },
     });
 
