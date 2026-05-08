@@ -5,7 +5,7 @@ const WELCOME_MESSAGE = {
   id: 'welcome',
   role: 'assistant' as const,
   content:
-    'Xin chào! Tôi là **FinSight AI Advisor** - trợ lý tài chính thông minh của bạn. Hãy hỏi tôi về:\n- 📊 Tình trạng nợ & DTI\n- 💡 Chiến lược trả nợ (Avalanche / Snowball)\n- 📈 Thị trường & đầu tư\n- 🏦 Khai báo khoản nợ mới\n- 📷 Upload ảnh hóa đơn/hợp đồng vay để thêm nợ tự động',
+    'Xin chào! Tôi là **FinSight AI Advisor** - trợ lý tài chính thông minh của bạn. Hãy hỏi tôi về:\n- Tình trạng nợ & DTI\n- Chiến lược trả nợ (Avalanche / Snowball)\n- Thị trường & đầu tư\n- Khai báo khoản nợ mới\n- Upload ảnh hóa đơn/hợp đồng vay để thêm nợ tự động',
 };
 
 interface Message {
@@ -58,7 +58,7 @@ export function useAgenticChat() {
       };
       setMessages((prev) => [...prev, userMsg, aiMsg]);
       setIsStreaming(true);
-      setToolStatus('🤔 Đang suy nghĩ...');
+      setToolStatus('Đang suy nghĩ...');
       abortRef.current = false;
 
       await streamChatTyped(
@@ -105,7 +105,7 @@ export function useAgenticChat() {
             setToolStatus(null);
             setMessages((prev) =>
               prev.map((m) =>
-                m.id === aiMsgId ? { ...m, content: `⚠️ ${err || 'Đã xảy ra lỗi. Vui lòng thử lại.'}` } : m,
+                m.id === aiMsgId ? { ...m, content: `${err || 'Đã xảy ra lỗi. Vui lòng thử lại.'}` } : m,
               ),
             );
           },

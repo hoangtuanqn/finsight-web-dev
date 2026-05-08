@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckCircle2, TrendingDown, X } from 'lucide-react';
+import { CheckCircle2, Info, TrendingDown, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
@@ -245,14 +245,15 @@ export default function RepaymentConfirmModal({ data, onDismiss, onFeedback }: R
 
               {/* Info note */}
               <div
-                className="p-3 rounded-xl text-xs"
+                className="p-3 rounded-xl text-xs flex items-start gap-2"
                 style={{
                   background: 'var(--color-bg-secondary)',
                   color: 'var(--color-text-secondary)',
                   border: '1px solid var(--color-border)',
                 }}
               >
-                💡 Sau khi xác nhận, bạn sẽ được chuyển đến trang kế hoạch trả nợ để xem chi tiết mô phỏng.
+                <Info className="w-3.5 h-3.5 mt-0.5 shrink-0 text-cyan-400" />
+                <span>Sau khi xác nhận, bạn sẽ được chuyển đến trang kế hoạch trả nợ để xem chi tiết mô phỏng.</span>
               </div>
             </div>
 
